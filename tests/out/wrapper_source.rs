@@ -1010,7 +1010,7 @@ pub(crate) mod rules_108_1 {
 // ================================================================================
 
 // TODO: code generation not fully supported yet
-// #[cfg(any())]
+#[cfg(any())]
 pub(crate) mod rules_150_1 {
 
     // ------------------------------------------------------------
@@ -1318,14 +1318,39 @@ pub(crate) mod rules_152_1 {
 // ================================================================================
 
 // TODO: code generation not fully supported yet
-#[cfg(any())]
+// #[cfg(any())]
 pub(crate) mod rules_153_1 {
 
     // ------------------------------------------------------------
     // [wrapper source for rule 153 #1, start a]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_153_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 6;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("A", None), ("B", None), ("C", None), ("D", None), ("E", None), ("F", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["a", "a_1", "a_2", "a_3", "a_4"];
+    static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 2, 2, 3, 3, 4, 4];
+    static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::T(0), Symbol::NT(1), Symbol::T(5)], &[Symbol::T(1), Symbol::NT(2)], &[Symbol::T(2), Symbol::T(3), Symbol::NT(3)], &[Symbol::T(4), Symbol::NT(4)], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(1)], &[Symbol::Empty]];
+    static PARSING_TABLE: [AltId; 35] = [0, 10, 10, 10, 10, 10, 11, 10, 1, 2, 10, 3, 11, 10, 10, 4, 4, 10, 4, 5, 10, 10, 6, 6, 10, 6, 7, 10, 10, 8, 8, 10, 8, 9, 10];
+    static OPCODES: [&[OpCode]; 10] = [&[OpCode::Exit(0), OpCode::T(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::NT(2), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(3), OpCode::T(2)], &[OpCode::NT(4), OpCode::T(4)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)], &[OpCode::Loop(1), OpCode::Exit(6)], &[OpCode::Exit(7)], &[OpCode::Loop(1), OpCode::Exit(8)], &[OpCode::Exit(9)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1342,7 +1367,11 @@ pub(crate) mod rules_153_1 {
     pub struct SynA1(pub Vec<SynA1Item>);
     /// `B` item in `a -> A ( ►► B ◄◄  | C D | E)+ F`
     #[derive(Debug, PartialEq)]
-    pub struct SynA1Item { pub c: String, pub d: String }
+    pub enum SynA1Item {
+        A1 { b: String},
+        A2 { c: String, d: String },
+        A3 { e: String }
+    }
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
@@ -1400,7 +1429,7 @@ pub(crate) mod rules_153_1 {
                         6 |                                         // a_3 -> a_1
                         7 |                                         // a_3 -> ε
                         8 |                                         // a_4 -> a_1
-                        9 => self.exit_a1(),                        // a_4 -> ε
+                        9 => self.exit_a1(alt_id),                  // a_4 -> ε
                      /* 1 */                                        // a_1 -> B a_2 (never called)
                      /* 2 */                                        // a_1 -> C D a_3 (never called)
                      /* 3 */                                        // a_1 -> E a_4 (never called)
@@ -1466,16 +1495,138 @@ pub(crate) mod rules_153_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self) {
-            let b = self.stack_t.pop().unwrap();
-            let mut plus_it = self.stack.pop().unwrap().get_a1();
-            plus_it.0.push(b);
-            self.stack.push(SynValue::A1(plus_it));
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let val = match alt_id {
+                4 | 5 => {
+                    let b = self.stack_t.pop().unwrap();
+                    SynA1Item::A1 { b }
+                }
+                6 | 7 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let c = self.stack_t.pop().unwrap();
+                    SynA1Item::A2 { c, d }
+                }
+                8 | 9 => {
+                    let e = self.stack_t.pop().unwrap();
+                    SynA1Item::A3 { e }
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
+            };
+            let SynValue::A1(SynA1(plus_it)) = self.stack.last_mut().unwrap() else {
+                panic!("unexpected SynA1 item on wrapper stack");
+            };
+            plus_it.push(val);
         }
     }
 
     // [wrapper source for rule 153 #1, start a]
     // ------------------------------------------------------------
+
+    #[derive(Debug)]
+    pub struct SynA(pub Vec<String>);
+
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::lexer::CaretCol;
+        use super::*;
+        use lexigram_lib::log::{BufLog, LogStatus};
+
+        struct EListener {
+            log: BufLog,
+            result: Option<Vec<String>>,
+        }
+
+        impl EListener {
+            fn new() -> Self {
+                EListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA) {
+                self.result = Some(a.0);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA) -> SynA {
+                let CtxA::A { a, plus, f } = ctx;
+                let mut val = vec![];
+                val.push(a);
+                val.extend(plus.0.into_iter()
+                    .map(|choice| {
+                        match choice {
+                            SynA1Item::A1 { b } => format!("b({b})"),
+                            SynA1Item::A2 { c, d } => format!("c({c}), d({d})"),
+                            SynA1Item::A3 { e } => format!("e({e})"),
+                        }
+                }));
+                val.push(f);
+                SynA(val)
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // a -> A (B | C D | E)+ F
+                ("alpha echo charlie delta bravo foxtrot", Some(vec!["alpha", "e(echo)", "c(charlie), d(delta)", "b(bravo)", "foxtrot"])),
+                ("A C B F", None),
+            ];
+            const VERBOSE: bool = true;
+            const VERBOSE_LISTENER: bool = false;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let mut stop_lexer = false;
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).filter_map(|(i, w)| {
+                    if !stop_lexer {
+                        // use the first letter to find a terminal
+                        let first = w.chars().next().unwrap_or('?').to_ascii_uppercase().to_string();
+                        if let Some(s) = symbols.get(&first) {
+                            Some((*s, w.to_string(), 1, i))
+                        } else {
+                            stop_lexer = true;
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                });
+                let listener = EListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let listener = wrapper.get_listener();
+                assert_eq!(listener.result, expected_result.map(|v| v.into_iter().map(|s| s.to_string()).to_vec()), "test failed for input {input}");
+            }
+        }
+
+    }
 }
 
 // ================================================================================

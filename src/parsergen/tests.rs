@@ -687,7 +687,7 @@ mod wrapper_source {
             //  - a_2 -> a_1
             //  - a_3 -> a_1
             //  - a_4 -> a_1
-            (153, true, false, 0, btreemap![
+            (153, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![t 0, nt 1, t 5],          //  0: a -> A a_1 F   | ◄0 F! ►a_1 A! | A a_1 F
                 1 => symbols![],                        //  1: a_1 -> B a_2   | ►a_2 B!       |
@@ -1791,7 +1791,7 @@ mod wrapper_source {
         ];
 
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
-        let type_gen_exclusion = 603..=632_u32;
+        let type_gen_exclusion = |x: u32| matches!(x, 603..=632 | 153);
 
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
@@ -1853,7 +1853,7 @@ mod wrapper_source {
             ).collect::<BTreeMap<_, _>>();
             let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
             let rule_name = format!("{tr_id}_{rule_iter}");
-            if !type_gen_exclusion.contains(&tr_id) {
+            if !type_gen_exclusion(tr_id) {
                 builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
             }
             for (v, s) in nt_type.clone() {
