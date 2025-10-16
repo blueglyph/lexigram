@@ -5026,7 +5026,6 @@ pub(crate) mod rules_502_2 {
 
 // ================================================================================
 
-#[cfg(test)]
 #[allow(unused)]
 pub(crate) mod rules_580_1 {
     use crate::out::wrapper_source::level_string::LevelString;
@@ -5184,7 +5183,6 @@ pub(crate) mod rules_580_1 {
     // [wrapper source for rule 580 #1, start e]
     // ------------------------------------------------------------
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
@@ -5296,7 +5294,6 @@ pub(crate) mod rules_580_1 {
     }
 }
 
-#[cfg(test)]
 #[allow(unused)]
 pub(crate) mod rules_581_1 {
     // ------------------------------------------------------------
@@ -5458,7 +5455,6 @@ pub(crate) mod rules_581_1 {
     // [wrapper source for rule 581 #1, start e]
     // ------------------------------------------------------------
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
@@ -5577,7 +5573,6 @@ pub(crate) mod rules_581_1 {
 
 // ================================================================================
 
-#[cfg(test)]
 #[allow(unused)]
 pub(crate) mod rules_600_1 {
     // ------------------------------------------------------------
@@ -9785,7 +9780,6 @@ mod test_precedence {
 
 // ================================================================================
 
-#[cfg(test)]
 // #[allow(unused)]
 pub(crate) mod rules_640_1 {
     #![allow(unused_imports)]
@@ -9979,7 +9973,6 @@ pub(crate) mod rules_640_1 {
     #[derive(Debug, PartialEq)]
     pub struct SynE(LevelString);
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
@@ -10111,7 +10104,6 @@ pub(crate) mod rules_640_1 {
     }
 }
 
-#[cfg(test)]
 pub(crate) mod rules_641_1 {
     #![allow(unused_imports)]
 
@@ -10304,7 +10296,6 @@ pub(crate) mod rules_641_1 {
     #[derive(Debug, PartialEq)]
     pub struct SynE(LevelString);
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
@@ -10436,7 +10427,6 @@ pub(crate) mod rules_641_1 {
     }
 }
 
-#[cfg(test)]
 pub(crate) mod rules_642_1 {
     #![allow(unused_imports)]
 
@@ -10629,7 +10619,6 @@ pub(crate) mod rules_642_1 {
     #[derive(Debug, PartialEq)]
     pub struct SynE(LevelString);
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
@@ -11733,7 +11722,6 @@ pub(crate) mod rules_811_1 {
 
 // ================================================================================
 
-#[cfg(test)]
 #[allow(unused)]
 pub(crate) mod rules_835_1 {
     // ------------------------------------------------------------
@@ -12069,7 +12057,6 @@ pub(crate) mod rules_862_1 {
     // [wrapper source for rule 862 #1, start expr]
     // ------------------------------------------------------------
 
-    #[cfg(test)]
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
