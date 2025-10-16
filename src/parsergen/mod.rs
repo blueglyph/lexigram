@@ -1503,7 +1503,7 @@ impl ParserGen {
                         let last = alts.len() - 1 - discarded;
                         choices.extend((0..last).map(|i| format!("                    {} |", alts[i])));
                         if no_method {
-                            choices.push(format!("                    {} => {{}}", alts.last().unwrap()));
+                            choices.push(format!("                    {} => {{}}", alts[last]));
                         } else {
                             choices.push(format!("                    {} => self.{name}({}{force_id_str}),",
                                                  alts[last],
