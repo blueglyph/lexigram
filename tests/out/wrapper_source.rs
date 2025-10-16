@@ -1533,21 +1533,21 @@ pub(crate) mod rules_153_1 {
         use super::*;
         use lexigram_lib::log::{BufLog, LogStatus};
 
-        struct EListener {
+        struct ChoiceListener {
             log: BufLog,
             result: Option<Vec<String>>,
         }
 
-        impl EListener {
+        impl ChoiceListener {
             fn new() -> Self {
-                EListener {
+                ChoiceListener {
                     log: BufLog::new(),
                     result: None,
                 }
             }
         }
 
-        impl TestListener for EListener {
+        impl TestListener for ChoiceListener {
             fn get_mut_log(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
@@ -1580,13 +1580,13 @@ pub(crate) mod rules_153_1 {
                 ("alpha echo charlie delta bravo foxtrot", Some(vec!["alpha", "e(echo)", "c(charlie), d(delta)", "b(bravo)", "foxtrot"])),
                 ("A C B F", None),
             ];
-            const VERBOSE: bool = true;
+            const VERBOSE: bool = false;
             const VERBOSE_LISTENER: bool = false;
 
             let mut parser = build_parser();
             let table = parser.get_symbol_table().unwrap();
             let symbols = (0..table.get_num_t() as TokenId)
-                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .map(|t| (Symbol::T(t).to_str(Some(table)).chars().next().unwrap(), t))
                 .collect::<HashMap<_, _>>();
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
@@ -1594,7 +1594,7 @@ pub(crate) mod rules_153_1 {
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).filter_map(|(i, w)| {
                     if !stop_lexer {
                         // use the first letter to find a terminal
-                        let first = w.chars().next().unwrap_or('?').to_ascii_uppercase().to_string();
+                        let first = w.chars().next().unwrap_or('?').to_ascii_uppercase();
                         if let Some(s) = symbols.get(&first) {
                             Some((*s, w.to_string(), 1, i))
                         } else {
@@ -1605,7 +1605,7 @@ pub(crate) mod rules_153_1 {
                         None
                     }
                 });
-                let listener = EListener::new();
+                let listener = ChoiceListener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
                 match parser.parse_stream(&mut wrapper, stream) {
                     Ok(_) => {
