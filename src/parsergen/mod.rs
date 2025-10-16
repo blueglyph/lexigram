@@ -1500,12 +1500,13 @@ impl ParserGen {
                             choices.push(format!("                    {} => self.{name}({force_id_str}),", alts[0], ));
                         }
                     } else {
-                        choices.extend((0..alts.len() - 1 - discarded).map(|i| format!("                    {} |", alts[i])));
+                        let last = alts.len() - 1 - discarded;
+                        choices.extend((0..last).map(|i| format!("                    {} |", alts[i])));
                         if no_method {
                             choices.push(format!("                    {} => {{}}", alts.last().unwrap()));
                         } else {
                             choices.push(format!("                    {} => self.{name}({}{force_id_str}),",
-                                                 alts.last().unwrap(),
+                                                 alts[last],
                                                  if is_alt_id { "alt_id" } else { "" }));
                         }
                     }

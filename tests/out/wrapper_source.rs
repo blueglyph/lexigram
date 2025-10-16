@@ -1084,7 +1084,7 @@ pub(crate) mod rules_150_1 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> a_1
                         1 |                                         // a_1 -> A a_1
-                        3 => self.exit_a1(alt_id),                  // a_1 -> B a_1
+                        2 => self.exit_a1(alt_id),                  // a_1 -> B a_1
                         3 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -1239,7 +1239,7 @@ pub(crate) mod rules_152_1 {
                         0 => self.exit_a(),                         // a -> A a_1 F
                         1 |                                         // a_1 -> B a_1
                         2 |                                         // a_1 -> C D a_1
-                        4 => self.exit_a1(alt_id),                  // a_1 -> E a_1
+                        3 => self.exit_a1(alt_id),                  // a_1 -> E a_1
                         4 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
