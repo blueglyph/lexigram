@@ -827,7 +827,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<(String, String, String)>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -879,14 +879,6 @@ impl ParserGen {
                         }
                         let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
                         for s in item_ops {
-                            // if let Symbol::NT(v) = s {
-                            //     if nt_name[*v as usize].is_none() {
-                            //         let name = self.symbol_table.get_nt_name(*v);
-                            //         nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
-                            //                                      nt_lower_fixer.get_unique_name(name.to_underscore_lowercase()),
-                            //                                      nt_plower_fixer.get_unique_name(name.to_underscore_lowercase())));
-                            //     }
-                            // }
                             if let Some((_, c)) = indices.get_mut(s) {
                                 *c = Some(0);
                             } else {
@@ -936,6 +928,8 @@ impl ParserGen {
                         let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
                             || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && self.is_alt_sym_empty(alt_id);
 
+                        let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
+
                         let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
                         if VERBOSE {
                             println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
@@ -971,21 +965,24 @@ impl ParserGen {
                                 vec![]
                             }
                         } else {
-                            let mut infos = item_ops.into_iter().map(|s| {
-                                let index = if let Some((_, Some(index))) = indices.get_mut(s) {
-                                    let idx = *index;
-                                    *index += 1;
-                                    Some(idx)
-                                } else {
-                                    None
-                                };
-                                ItemInfo {
-                                    name: indices[&s].0.clone(),
-                                    sym: s.clone(),
-                                    owner,
-                                    index,
-                                }
-                            }).to_vec();
+                            let skip = if is_rep_child_no_lform { 1 } else { 0 };
+                            let mut infos = item_ops.into_iter()
+                                .skip(skip)
+                                .map(|s| {
+                                    let index = if let Some((_, Some(index))) = indices.get_mut(s) {
+                                        let idx = *index;
+                                        *index += 1;
+                                        Some(idx)
+                                    } else {
+                                        None
+                                    };
+                                    ItemInfo {
+                                        name: indices[&s].0.clone(),
+                                        sym: s.clone(),
+                                        owner,
+                                        index,
+                                    }
+                                }).to_vec();
                             if self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) {
                                 // we add the flag telling the listener whether it's the last iteration or not
                                 let last_name = fixer.get_unique_name("last_iteration".to_string());
@@ -996,11 +993,14 @@ impl ParserGen {
                                     index: None,
                                 });
                             };
-                            if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
-                                let iter = infos.iter().skip(1).cloned().to_vec();
-                                if iter.len() > 1 || !iter[0].sym.is_t() {
-                                    nt_repeat.insert(owner, iter);
-                                }
+                            // if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
+                            //     let iter = infos.iter().skip(1).cloned().to_vec();
+                            //     if iter.len() > 1 || !iter[0].sym.is_t() {
+                            //         nt_repeat.insert(owner, iter);
+                            //     }
+                            // }
+                            if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
+                                nt_repeat.insert(owner, infos.clone());
                             }
                             infos
                         }
@@ -1639,7 +1639,7 @@ impl ParserGen {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    let mut_s = if /* !is_child_repeat_lform &&*/ v as usize == nt { "mut " } else { "" };
+                                    let mut_s = if v as usize == nt { "mut " } else { "" };
                                     src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
                                                                   nt_name[v as usize].2));
                                 } else {
