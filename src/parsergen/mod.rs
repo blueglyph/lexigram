@@ -1257,70 +1257,43 @@ impl ParserGen {
                 let is_lform = self.nt_has_all_flags(v, ruleflag::L_FORM);
                 let first_alt = self.var_alts[v as usize][0];
                 let (t, var_oid) = self.origin.get(v).unwrap();
-                if let Some(infos) = nt_repeat.get(&(v)) {
-                    if is_lform {
-                        let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
-                        let user_def_type = vec![
-                            format!("// {astr}"),
-                            format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
-                        ];
-                        log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
-                        src.extend(user_def_type);
-                        let extra_src = vec![
-                            astr,
-                            format!("#[derive(Debug, PartialEq)]"),
-                            format!("pub struct {nt_type}();"),
-                        ];
-                        self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
-                    } else {
+                if is_lform {
+                    let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
+                    let user_def_type = vec![
+                        format!("// {astr}"),
+                        format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
+                    ];
+                    log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
+                    src.extend(user_def_type);
+                    let extra_src = vec![
+                        astr,
+                        format!("#[derive(Debug, PartialEq)]"),
+                        format!("pub struct {nt_type}();"),
+                    ];
+                    self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
+                } else {
+                    let top_parent = self.parsing_table.get_top_parent(v);
+                    src.push(format!("/// Computed `{}` array in `{} -> {}`",
+                                     grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
+                                     Symbol::NT(top_parent).to_str(self.get_symbol_table()),
+                                     grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
+                    ));
+                    if let Some(infos) = nt_repeat.get(&v) {
                         if infos.len() == 1 {
                             // single + * item; for ex. A -> (B)+
                             let type_name = self.get_info_type(&infos, &infos[0]);
-                            let top_parent = self.parsing_table.get_top_parent(v);
-                            src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                             grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
-                                             Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                             grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
-                            ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
                         } else {
                             // complex + * items; for ex. A -> (B b)+
-                            let top_parent = self.parsing_table.get_top_parent(v);
-                            src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                             grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
-                                             Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                             grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
-                            ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                             src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                         }
-                    }
-                } else {
-                    if is_lform {
-                        let fstr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
-                        let user_def_type = vec![
-                            format!("// {fstr}"),
-                            format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
-                        ];
-                        log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
-                        src.extend(user_def_type);
-                        let extra_src = vec![
-                            fstr,
-                            format!("#[derive(Debug, PartialEq)]"),
-                            format!("pub struct {nt_type}();"),
-                        ];
-                        self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
                         // + * item is only a terminal
-                        let top_parent = self.parsing_table.get_top_parent(v);
-                        src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                         grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
-                                         Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                         grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub struct {nt_type}(pub Vec<String>);"));
                     }
