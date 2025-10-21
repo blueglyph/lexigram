@@ -110,7 +110,7 @@ impl From<Symbol> for OpCode {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct ItemInfo {
     name: String,
     sym: Symbol,            // NT(var) or T(token)
@@ -826,8 +826,15 @@ impl ParserGen {
     ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
     /// }
     /// ```
-    fn get_type_info(&self) -> (Vec<(String, String, String)>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
+    fn get_type_info(&self) -> (
+        Vec<(String, String, String)>,
+        Vec<Option<(VarId, String)>>,
+        Vec<Vec<ItemInfo>>,
+        HashMap<VarId, Vec<ItemInfo>>,
+        HashMap<VarId, Vec<AltId>>
+    ) {
         const VERBOSE: bool = true;
+        const NEW_REPEAT: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -844,6 +851,7 @@ impl ParserGen {
         let mut alt_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.alts.len()];
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.alts.len()];
+        let mut child_repeat_endpoints = HashMap::<VarId, Vec<AltId>>::new();
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let is_ambig = self.nt_has_any_flags(group[0], ruleflag::PARENT_AMBIGUITY);
             let mut is_ambig_1st_child = is_ambig;
@@ -853,6 +861,34 @@ impl ParserGen {
                 let nt_flags = pinfo.flags[nt];
                 if is_ambig && (nt_flags & ruleflag::PARENT_L_RECURSION != 0 || (nt_flags & ruleflag::CHILD_L_RECURSION != 0 && !is_ambig_1st_child)) {
                     continue;
+                }
+                if nt_flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                    // collects the alt endpoints that correspond to each choice (one or several choices if | is used inside the repeat),
+                    // each alt endpoint corresponding to the data in item_info
+                    let is_plus = nt_flags & ruleflag::REPEAT_PLUS != 0;
+                    let mut endpoints = self.gather_alts(*var);
+                    if VERBOSE { println!("** {} endpoints: {endpoints:?} ", Symbol::NT(*var).to_str(self.get_symbol_table())); }
+                    if is_plus {
+                        // with +, alt endpoints come in couples: the first loops, the other exits, both having the same data
+                        // (in each (id1, id2) couple, id2 == id1 + 1)
+                        endpoints = endpoints.chunks(2).map(|slice| slice[0]).to_vec();
+                    } else {
+                        // with *, the endpoint corresponding to the exit has no data
+                        //endpoints.retain(|e| self.item_ops[e].len() > 1);
+                        endpoints.retain(|e| !pinfo.alts[*e as usize].1.is_sym_empty());
+                    }
+                    assert!(!endpoints.is_empty());
+                    if VERBOSE {
+                        // TODO: sort endpoints using the original tree, where each concat's id should correspond to a map[endpoint]:
+                        println!(
+                            "** {} endpoints: {endpoints:?} = {}",
+                            Symbol::NT(*var).to_str(self.get_symbol_table()),
+                            endpoints.iter().map(|e| self.item_ops[e].iter().skip(1).map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" / "));
+                        let (v, id) = &self.origin.map[var];
+                        let t = &self.origin.trees[*v as usize];
+                        println!("   original : {}", crate::grammar::grtree_to_str_ansi(t, None, Some(*id), Some(*v), self.get_symbol_table(), false));
+                    }
+                    child_repeat_endpoints.insert(*var, endpoints);
                 }
                 for &alt_id in &self.var_alts[nt] {
                     let i = alt_id as usize;
@@ -928,7 +964,7 @@ impl ParserGen {
                         let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
                             || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && self.is_alt_sym_empty(alt_id);
 
-                        let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
+                        let is_rep_child_no_lform = NEW_REPEAT && is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
 
                         let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
                         if VERBOSE {
@@ -993,14 +1029,17 @@ impl ParserGen {
                                     index: None,
                                 });
                             };
-                            // if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
-                            //     let iter = infos.iter().skip(1).cloned().to_vec();
-                            //     if iter.len() > 1 || !iter[0].sym.is_t() {
-                            //         nt_repeat.insert(owner, iter);
-                            //     }
-                            // }
-                            if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
-                                nt_repeat.insert(owner, infos.clone());
+                            if NEW_REPEAT {
+                                if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
+                                    nt_repeat.insert(owner, infos.clone());
+                                }
+                            } else {
+                                if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
+                                    let iter = infos.iter().skip(1).cloned().to_vec();
+                                    if iter.len() > 1 || !iter[0].sym.is_t() {
+                                        nt_repeat.insert(owner, iter);
+                                    }
+                                }
                             }
                             infos
                         }
@@ -1034,7 +1073,7 @@ impl ParserGen {
             // println!("item_info: {item_info:?}");
             println!("nt_repeat: {nt_repeat:?}");
         }
-        (nt_name, alt_info, item_info, nt_repeat)
+        (nt_name, alt_info, item_info, nt_repeat, child_repeat_endpoints)
     }
 
     // Building the source code as we do below is not the most efficient, but it's done that way to
@@ -1192,7 +1231,7 @@ impl ParserGen {
             "lexigram_lib::grammar::AltId", "lexigram_lib::log::Logger",
         ]);
 
-        let (nt_name, alt_info, item_info, nt_repeat) = self.get_type_info();
+        let (nt_name, alt_info, item_info, nt_repeat, child_repeat_endpoints) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -1278,24 +1317,37 @@ impl ParserGen {
                                      Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                      grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
                     ));
-                    if let Some(infos) = nt_repeat.get(&v) {
-                        if infos.len() == 1 {
-                            // single + * item; for ex. A -> (B)+
-                            let type_name = self.get_info_type(&infos, &infos[0]);
-                            src.push(format!("#[derive(Debug, PartialEq)]"));
-                            src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
-                        } else {
-                            // complex + * items; for ex. A -> (B b)+
+                    if let Some(endpoints) = child_repeat_endpoints.get(&v) {
+                        if endpoints.len() > 1 {
+                            // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
-                            src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
-                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
+                            src.push(format!("pub enum Syn{nu}Item {{"));
+                            for &a_id in endpoints {
+                                src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
+                                src.push(format!("    Ch{a_id} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
+                            }
+                            src.push(format!("}}"));
+                        } else {
+                            // single possibility; for ex. a -> (A B)+  => struct
+                            let a_id = endpoints[0];
+                            let infos = &item_info[a_id as usize];
+                            assert_eq!(infos, nt_repeat.get(&v).unwrap());  // FIXME: temporary test
+                            if infos.len() == 1 {
+                                // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                                let type_name = self.get_info_type(&infos, &infos[0]);
+                                src.push(format!("#[derive(Debug, PartialEq)]"));
+                                src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
+                            } else {
+                                // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
+                                src.push(format!("#[derive(Debug, PartialEq)]"));
+                                src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                                src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
+                                src.push(format!("#[derive(Debug, PartialEq)]"));
+                                src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
+                            }
                         }
-                    } else {
-                        // + * item is only a terminal
-                        src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct {nt_type}(pub Vec<String>);"));
                     }
                 }
             } else {
@@ -1459,11 +1511,14 @@ impl ParserGen {
                     // the `alt_id` parameter to determine whether it's the last iteration or not.
                     // We do discard the 2nd, empty alternative immediately for a non-<L> * child because there's no associated context.
                     let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
-                    // + children always have 2 left-factorized children with identical item_ops (one for the loop, one for the last iteration).
-                    // There are two alts in the switch statement that call the wrapper method, but the alt_id is not required in non-<L> form because
-                    // the data are the same and there's no context, hence the 2nd term of the following condition:
-                    let is_alt_id = force_id.is_none() && alts.len() - discarded > 1 &&
-                        flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) != (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
+
+                    // + children always have 2*n left-factorized children, each couple with identical item_ops (one for the loop, one for the last iteration).
+                    // So in non-<L> +, we need more than 2 alts to need the alt_id parameter. In other cases, we need more than one
+                    // alt (after removing the possible discarded one) to require the alt_id parameter.
+                    let is_plus_no_lform = flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
+                    let is_alt_id_threshold = if is_plus_no_lform { 2 } else { 1 };
+                    let is_alt_id = force_id.is_none() && alts.len() - discarded > is_alt_id_threshold;
+
                     let mut choices = Vec::<String>::new();
                     let force_id_str = force_id.map(|f| f.to_string()).unwrap_or_default();
                     if alts.len() - discarded == 1 {
@@ -1635,8 +1690,7 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                         }
                     } else {
-                        // no_method is not expected here (only used in +* with no lform)
-                        assert!(!no_method);
+                        assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
                         let has_last_flag = is_child_repeat_lform && flags & ruleflag::REPEAT_PLUS != 0; // special last flag
                         let (mut last_alt_ids, exit_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter().partition(|i| alt_info[*i as usize].is_none());
                         let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other alternatives use the parent
