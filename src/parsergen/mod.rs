@@ -1317,36 +1317,35 @@ impl ParserGen {
                                      Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                      grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
                     ));
-                    if let Some(endpoints) = child_repeat_endpoints.get(&v) {
-                        if endpoints.len() > 1 {
-                            // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
+                    let endpoints = child_repeat_endpoints.get(&v).unwrap();
+                    if endpoints.len() > 1 {
+                        // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
+                        src.push(format!("#[derive(Debug, PartialEq)]"));
+                        src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                        src.push(format!("#[derive(Debug, PartialEq)]"));
+                        src.push(format!("pub enum Syn{nu}Item {{"));
+                        for &a_id in endpoints {
+                            src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
+                            src.push(format!("    Ch{a_id} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
+                        }
+                        src.push(format!("}}"));
+                    } else {
+                        // single possibility; for ex. a -> (A B)+  => struct
+                        let a_id = endpoints[0];
+                        let infos = &item_info[a_id as usize];
+                        assert_eq!(infos, nt_repeat.get(&v).unwrap());  // FIXME: temporary test
+                        if infos.len() == 1 {
+                            // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                            let type_name = self.get_info_type(&infos, &infos[0]);
+                            src.push(format!("#[derive(Debug, PartialEq)]"));
+                            src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
+                        } else {
+                            // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                            src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
-                            src.push(format!("pub enum Syn{nu}Item {{"));
-                            for &a_id in endpoints {
-                                src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                                src.push(format!("    Ch{a_id} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
-                            }
-                            src.push(format!("}}"));
-                        } else {
-                            // single possibility; for ex. a -> (A B)+  => struct
-                            let a_id = endpoints[0];
-                            let infos = &item_info[a_id as usize];
-                            assert_eq!(infos, nt_repeat.get(&v).unwrap());  // FIXME: temporary test
-                            if infos.len() == 1 {
-                                // single repeat item; for ex. A -> B+  => type directly as Vec<type>
-                                let type_name = self.get_info_type(&infos, &infos[0]);
-                                src.push(format!("#[derive(Debug, PartialEq)]"));
-                                src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
-                            } else {
-                                // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
-                                src.push(format!("#[derive(Debug, PartialEq)]"));
-                                src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
-                                src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
-                                src.push(format!("#[derive(Debug, PartialEq)]"));
-                                src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
-                            }
+                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                         }
                     }
                 }
@@ -1646,7 +1645,74 @@ impl ParserGen {
                             continue;
                         }
 
+                        fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> Vec<String> {
+                            let mut src = vec![];
+                            let mut var_fixer = NameFixer::new();
+                            let mut indices = HashMap::<Symbol, Vec<String>>::new();
+                            let mut non_indices = Vec::<String>::new();
+                            for item in infos.iter().rev() {
+                                let varname = if let Some(index) = item.index {
+                                    let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
+                                    indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
+                                    name
+                                } else {
+                                    let name = item.name.clone();
+                                    non_indices.push(name.clone());
+                                    name
+                                };
+                                if let Symbol::NT(v) = item.sym {
+                                    src.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}(); //1", nt_name[v as usize].2));
+                                } else {
+                                    src.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap(); //2"));
+                                }
+                            }
+                            src
+                        }
+
                         if has_value {
+                            let endpoints = child_repeat_endpoints.get(var).unwrap();
+                            let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+                            let vec_name = if is_plus { "plus_it" } else { "star_it" };
+                            let val_name = if endpoints.len() > 1 {
+                                // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
+                                src_wrapper_impl.push(format!("        let val = match alt_id {{"));
+                                for &a_id in endpoints {
+                                    let infos = &item_info[a_id as usize];
+                                    src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!("| {}", a_id + 1) } else { String::new() }));
+                                    src_wrapper_impl.extend(
+                                        source_lets(infos, &nt_name, "        ")
+                                    );
+                                    // FIXME: take [] into account
+                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{a_id} {{ {} }}", infos.iter().map(|i| i.name.clone()).join(", ")));
+                                    src_wrapper_impl.push(format!("            }}"));
+                                }
+                                src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
+                                src_wrapper_impl.push(format!("        }};"));
+                                "val".to_string()
+                            } else {
+                                // single possibility; for ex. a -> (A B)+  => struct
+                                let a_id = endpoints[0];
+                                let infos = &item_info[a_id as usize];
+                                src_wrapper_impl.extend(
+                                    source_lets(infos, &nt_name, "")
+                                );
+                                if infos.len() == 1 {
+                                    // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                                    let val_name = infos[0].name.clone();
+                                    val_name
+                                } else {
+                                    // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
+                                    // FIXME: take [] into account
+                                    src_wrapper_impl.push(format!("        let val = Syn{nu}Item {{ {} }};", infos.iter().map(|i| i.name.clone()).join(", ")));
+                                    "val".to_string()
+                                }
+                            };
+                            src_wrapper_impl.push(format!("        let Some(SynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
+                            src_wrapper_impl.push(format!("            panic!(\"unexpected Syn{nu} item on wrapper stack\");"));
+                            src_wrapper_impl.push(format!("        }};"));
+                            src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
+
+/*
                             let a = exit_alts[0];
                             if VERBOSE {
                                 println!("    - ALTERNATIVE {a}: {} -> {}",
@@ -1688,6 +1754,7 @@ impl ParserGen {
                                 }
                             }
                             src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
+*/
                         }
                     } else {
                         assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
