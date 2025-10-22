@@ -2108,11 +2108,13 @@ mod wrapper_source {
                 Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 2: a_1 -> i
                 Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 3: a_1 -> ε
             ]),
-            // a -> (<L=i> A B)*
+            // a -> (<L=i> b A b B A)*
+            // b -> C
             (202, vec![
-                Some(r#"a -> (<L> A B)*"#),                                  // 0: a -> i
-                Some(r#"`<L> A B` iteration in `a -> ( ►► <L> A B ◄◄ )*`"#), // 1: i -> A B i
-                None,                                                        // 2: i -> ε
+                Some(r#"a -> (<L> b A b B A)*"#),                                        // 0: a -> i
+                Some(r#"`<L> b A b B A` iteration in `a -> ( ►► <L> b A b B A ◄◄ )*`"#), // 1: i -> b A b B A i
+                None,                                                                    // 2: i -> ε
+                Some(r#"b -> C"#),                                                       // 3: b -> C
             ]),
             // a -> (<L=i> A (<L=j> b ",")* ";")* C
             // b -> B

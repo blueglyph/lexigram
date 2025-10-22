@@ -678,7 +678,7 @@ pub(crate) mod rules_104_1 {
             let b_2 = self.stack.pop().unwrap().get_b();
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
-            let val = SynA1Item { b, a, b, b1, a };
+            let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
@@ -856,7 +856,7 @@ pub(crate) mod rules_105_1 {
             let b_2 = self.stack.pop().unwrap().get_b();
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
-            let val = SynA1Item { b, a, b, b1, a };
+            let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
@@ -1712,7 +1712,7 @@ pub(crate) mod rules_152_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch3 { b, c, b, b1, c }
+                    SynA1Item::Ch3 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 4 => {
                     let e = self.stack_t.pop().unwrap();
@@ -1949,7 +1949,7 @@ pub(crate) mod rules_153_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch9 { b, c, b, b1, c }
+                    SynA1Item::Ch9 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -1970,9 +1970,9 @@ pub(crate) mod rules_153_1 {
     // ------------------------------------------------------------
 
     /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
+    #[derive(Debug, PartialEq)] pub struct SynA(pub Vec<String>);
     /// User-defined type for `b`
-    #[derive(Debug, PartialEq)] pub struct SynB();
+    #[derive(Debug, PartialEq)] pub struct SynB(pub String);
 
     mod test {
         use std::collections::HashMap;
@@ -2012,21 +2012,29 @@ pub(crate) mod rules_153_1 {
                 val.extend(plus.0.into_iter()
                     .map(|choice| {
                         match choice {
-                            SynA1Item::A1 { b } => format!("b({b})"),
-                            SynA1Item::A2 { c, d } => format!("c({c}), d({d})"),
-                            SynA1Item::A3 { e } => format!("e({e})"),
+                            SynA1Item::Ch5 { b } => format!("b({b})"),
+                            SynA1Item::Ch7 { e } => format!("e({e})"),
+                            SynA1Item::Ch9 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
                         }
                 }));
                 val.push(f);
                 SynA(val)
+            }
+
+            fn exit_b(&mut self, ctx: CtxB) -> SynB {
+                let CtxB::B { d } = ctx;
+                SynB(d)
             }
         }
 
         #[test]
         fn test() {
             let sequences = vec![
-                // a -> A (B | C D | E)+ F
-                ("alpha echo charlie delta bravo foxtrot", Some(vec!["alpha", "e(echo)", "c(charlie), d(delta)", "b(bravo)", "foxtrot"])),
+                // a -> A (B | b C b B C | E)+ F; b -> D;
+                (
+                    "alpha echo delta charlie delta2 bravo charlie2 foxtrot",
+                    Some(vec!["alpha", "e(echo)", "d(delta), c(charlie), d(delta2), b(bravo), c(charlie2)", "foxtrot"])
+                ),
                 ("A C B F", None),
             ];
             const VERBOSE: bool = false;

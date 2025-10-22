@@ -165,8 +165,10 @@ pub(crate) mod code_251_1 {
 pub(crate) mod code_256_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
-    /// User-defined type for `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C | D)+ E`
+    /// User-defined type for `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
     #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
 }
 
 pub(crate) mod code_301_1 {

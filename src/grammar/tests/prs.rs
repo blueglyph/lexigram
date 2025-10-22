@@ -164,8 +164,9 @@ fn rts_prodrule_from() {
         ], vec![6144, 4097], vec![None, Some(0)]),
         (105, vec![
             r#"a -> a_1"#,                                      // parent_+_or_* | plus
-            r#"a_1 -> A B a_1 | A B"#,                          // child_+_or_* | plus
-        ], vec![6144, 4097], vec![None, Some(0)]),
+            r#"b -> C"#,                                        //
+            r#"a_1 -> b A b B A a_1 | b A b B A"#,              // child_+_or_* | plus
+        ], vec![6144, 0, 4097], vec![None, None, Some(0)]),
         (106, vec![
             r#"a -> a_2 C"#,                                    // parent_+_or_*
             r#"b -> B"#,                                        //

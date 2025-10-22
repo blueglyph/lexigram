@@ -1563,7 +1563,7 @@ impl ParserGen {
                     }
                 }
 
-                fn get_var_params(item_info: &Vec<ItemInfo>, skip: usize, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> String {
+                fn get_var_params(item_info: &[ItemInfo], skip: usize, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> String {
                     item_info.iter().skip(skip).filter_map(|item| {
                         get_var_param(item, indices, non_indices)
                     }).join(", ")
@@ -1648,8 +1648,8 @@ impl ParserGen {
                             continue;
                         }
 
-                        fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> Vec<String> {
-                            let mut src = vec![];
+                        fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> (Vec<String>, String) {
+                            let mut src_let = vec![];
                             let mut var_fixer = NameFixer::new();
                             let mut indices = HashMap::<Symbol, Vec<String>>::new();
                             let mut non_indices = Vec::<String>::new();
@@ -1664,12 +1664,23 @@ impl ParserGen {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    src.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].2));
+                                    src_let.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].2));
                                 } else {
-                                    src.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap();"));
+                                    src_let.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            src
+
+                            let is_simple = infos.len() == 1 && infos[0].sym.is_t(); // Vec<String>
+                            let src_struct = if is_simple {
+                                non_indices[0].clone()
+                            } else {
+                                if infos.len() == 1 {
+                                    get_var_param(&infos[0], &indices, &mut non_indices).unwrap()
+                                } else {
+                                    get_var_params(&infos, 0, &indices, &mut non_indices)
+                                }
+                            };
+                            (src_let, src_struct)
                         }
 
                         if has_value {
@@ -1682,11 +1693,9 @@ impl ParserGen {
                                 for &a_id in endpoints {
                                     let infos = &item_info[a_id as usize];
                                     src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
-                                    src_wrapper_impl.extend(
-                                        source_lets(infos, &nt_name, "        ")
-                                    );
-                                    // FIXME: take [] into account
-                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{a_id} {{ {} }}", infos.iter().map(|i| i.name.clone()).join(", ")));
+                                    let (src_let, src_struct) = source_lets(infos, &nt_name, "        ");
+                                    src_wrapper_impl.extend(src_let);
+                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{a_id} {{ {} }}", src_struct));
                                     src_wrapper_impl.push(format!("            }}"));
                                 }
                                 src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
@@ -1696,17 +1705,15 @@ impl ParserGen {
                                 // single possibility; for ex. a -> (A B)+  => struct
                                 let a_id = endpoints[0];
                                 let infos = &item_info[a_id as usize];
-                                src_wrapper_impl.extend(
-                                    source_lets(infos, &nt_name, "")
-                                );
+                                let (src_let, src_struct) = source_lets(infos, &nt_name, "");
+                                src_wrapper_impl.extend(src_let);
                                 if infos.len() == 1 {
                                     // single repeat item; for ex. A -> B+  => type directly as Vec<type>
                                     let val_name = infos[0].name.clone();
                                     val_name
                                 } else {
                                     // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
-                                    // FIXME: take [] into account
-                                    src_wrapper_impl.push(format!("        let val = Syn{nu}Item {{ {} }};", infos.iter().map(|i| i.name.clone()).join(", ")));
+                                    src_wrapper_impl.push(format!("        let val = Syn{nu}Item {{ {} }};", src_struct));
                                     "val".to_string()
                                 }
                             };
@@ -1715,49 +1722,6 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("        }};"));
                             src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
 
-/*
-                            let a = exit_alts[0];
-                            if VERBOSE {
-                                println!("    - ALTERNATIVE {a}: {} -> {}",
-                                         sym_nt.to_str(self.get_symbol_table()),
-                                         self.parsing_table.alts[a as usize].1.to_str(self.get_symbol_table()));
-                            }
-                            let mut var_fixer = NameFixer::new();
-                            let mut indices = HashMap::<Symbol, Vec<String>>::new();
-                            let mut non_indices = Vec::<String>::new();
-                            for item in item_info[a as usize].iter().rev() {
-                                let varname = if let Some(index) = item.index {
-                                    let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
-                                    indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
-                                    name
-                                } else {
-                                    let name = item.name.clone();
-                                    non_indices.push(name.clone());
-                                    name
-                                };
-                                if let Symbol::NT(v) = item.sym {
-                                    let mut_s = if v as usize == nt { "mut " } else { "" };
-                                    src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
-                                                                  nt_name[v as usize].2));
-                                } else {
-                                    src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
-                                }
-                            }
-                            let var_name = non_indices.pop().unwrap();
-                            let is_simple = item_info[a as usize].len() == 2 && item_info[a as usize][1].sym.is_t(); // Vec<String>
-                            if is_simple {
-                                src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
-                            } else {
-                                if item_info[a as usize].len() == 2 {
-                                    src_wrapper_impl.push(format!("        {var_name}.0.push({});",
-                                                                  get_var_param(&item_info[a as usize][1], &indices, &mut non_indices).unwrap()));
-                                } else {
-                                    let params = get_var_params(&item_info[a as usize], 1, &indices, &mut non_indices);
-                                    src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
-                                }
-                            }
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
-*/
                         }
                     } else {
                         assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
