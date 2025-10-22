@@ -657,7 +657,6 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- norm+/* alternatives
-            // TODO: code generation not fully supported yet
             // a -> (A | B)*
             // NT flags:
             //  - a: parent_+_or_* (2048)
@@ -1026,7 +1025,6 @@ mod wrapper_source {
                 3 => symbols![nt 1],                    //  3: i -> ε   | ◄3       | i
             ], Default, btreemap![0 => vec![0]]),
 
-            // TODO: crashes in the code generation when a `+` is used with `|`
             // a -> (<L=i> A | B)+
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
@@ -1686,7 +1684,6 @@ mod wrapper_source {
             // parents:
             //  - a_1 -> a
             //  - a_2 -> a_1
-            // TODO (code generation not yet supported in parsergen)
             (840, false, false, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 1],                    //  0: a -> a_1     | ◄0 ►a_1    | a_1
@@ -1887,7 +1884,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1896,7 +1893,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
@@ -1904,9 +1901,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            if matches!(tr_id, 840) { continue } // FIXME: crashes in Vec::push code generation
             // if !matches!(tr_id, 150..160) { continue }
-            // if !matches!(tr_id, 257) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }

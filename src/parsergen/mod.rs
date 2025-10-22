@@ -787,54 +787,63 @@ impl ParserGen {
     ///                                            are changed if they're Rust identifiers)
     /// * `alt_info[alt]: Vec<Option<(VarId, String)>>` contains the enum variant names for each context (must be regrouped by VarId)
     /// * `item_info[alt]: Vec<ItemInfo>` contains the data available on the stacks when exiting the alternative
-    /// * `nt_repeat[var]: HashMap<VarId, Vec<ItemInfo>>` contains the data of + and * items
+    /// * `child_repeat_endpoints[var]: HashMap<VarId, Vec<AltId>>` list of alts (several when the repeat child has several outcomes,
+    ///                                 as in `a -> (A | B)+`), where each alt corresponds to the item_ops with the values on the stack.
     ///
     /// For example:
     ///
     /// ```text
-    /// // A -> (B c)* b | a; B -> b
+    /// // a -> (b C | A D | A E E)* D | A; b -> B;
     /// //
-    /// //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
-    /// //  1: A -> a         | ◄1 a!         | a
-    /// //  2: B -> b         | ◄2 b!         | b
-    /// //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
-    /// //  4: A_1 -> ε       | ◄4            |
+    /// //  0: a -> a_1 D     | ◄0 D! ►a_1    | a_1 D
+    /// //  1: a -> A         | ◄1 A!         | A
+    /// //  2: b -> B         | ◄2 B!         | B
+    /// //  3: a_1 -> A a_2   | ►a_2 A!       |
+    /// //  4: a_1 -> b C a_1 | ●a_1 ◄4 C! ►b | a_1 b C
+    /// //  5: a_1 -> ε       | ◄5            | a_1
+    /// //  6: a_2 -> D a_1   | ●a_1 ◄6 D!    | a_1 A D
+    /// //  7: a_2 -> E E a_1 | ●a_1 ◄7 E! E! | a_1 A E E
     ///
-    /// pub enum Ctx { A { a: SynA } }
     /// pub enum CtxA {
-    ///     A1 { star: SynA1, b: String },
-    ///     A2 { a: String },
+    ///     A1 { star: SynA1, d: String },  // `a -> (b C | A D | A E E)* D`
+    ///     A2 { a: String },               // `a -> A`
     /// }
     /// pub enum CtxB {
-    ///     B { b: String },
+    ///     B { b: String },                // `b -> B`
     /// }
-    ///
-    /// struct SynA1(Vec<SynA1Item>);
-    /// struct SynA1Item { b: SynB, c: String }
+    /// pub struct SynA1(pub Vec<SynA1Item>);
+    /// pub enum SynA1Item {
+    ///     Ch1 { b: SynB, c: String },         // `b C` item in `a -> ( ►► b C ◄◄  | A D | A E E)* D | A`
+    ///     Ch2 { a: String, d: String },       // `A D` item in `a -> (b C |  ►► A D ◄◄  | A E E)* D | A`
+    ///     Ch3 { a: String, e: [String; 2] },  // `A E E` item in `a -> (b C | A D |  ►► A E E ◄◄ )* D | A`
+    /// }
     /// // User-defined: SynA, SynB
     ///
-    /// nt_name = [("A", "a", "a"), ("B", "b", "b"), ("A1", "a1", "a1")]
-    /// alt_info: [Some((0, "A1")), Some((0, "A2")), Some((1, "B")), None, None]
-    /// item_info = [
-    ///     [ItemInfo { name: "star", sym: NT(2), .. }, ItemInfo { name: "b", sym: T(1), .. }],
-    ///     [ItemInfo { name: "a", sym: T(0), .. }],
-    ///     [ItemInfo { name: "b", sym: T(1), .. }],
-    ///     [ItemInfo { name: "star_it", sym: NT(2), .. }, ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }],
-    ///     []
-    /// ]
-    /// nt_repeat = {
-    ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
-    /// }
+    /// nt_name: [("A", "a", "a"), ("B", "b", "b"), ("A1", "a1", "a1"), ("A2", "a2", "a2")]
+    /// alt_info: [Some((0, "A1")), Some((0, "A2")), Some((1, "B")), None, None, None, None, None]
+    /// item_info:
+    /// 0:  [ItemInfo { name: "star", sym: NT(2), owner: 0, index: None },
+    ///      ItemInfo { name: "d", sym: T(2), owner: 0, index: None }],
+    /// 1:  [ItemInfo { name: "a", sym: T(1), owner: 0, index: None }],
+    /// 2:  [ItemInfo { name: "b", sym: T(4), owner: 1, index: None }],
+    /// 3:  [],
+    /// 4:  [ItemInfo { name: "b", sym: NT(1), owner: 2, index: None },
+    ///      ItemInfo { name: "c", sym: T(0), owner: 2, index: None }],
+    /// 5:  [],
+    /// 6:  [ItemInfo { name: "a", sym: T(1), owner: 2, index: None },
+    ///      ItemInfo { name: "d", sym: T(2), owner: 2, index: None }],
+    /// 7:  [ItemInfo { name: "a", sym: T(1), owner: 2, index: None },
+    ///      ItemInfo { name: "e", sym: T(3), owner: 2, index: Some(0) },
+    ///      ItemInfo { name: "e", sym: T(3), owner: 2, index: Some(1) }]
+    /// child_repeat_endpoints: {2: [4, 6, 7]}
     /// ```
     fn get_type_info(&self) -> (
         Vec<(String, String, String)>,
         Vec<Option<(VarId, String)>>,
         Vec<Vec<ItemInfo>>,
-        HashMap<VarId, Vec<ItemInfo>>,
         HashMap<VarId, Vec<AltId>>
     ) {
-        const VERBOSE: bool = true;
-        const NEW_REPEAT: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -964,7 +973,7 @@ impl ParserGen {
                         let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
                             || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && self.is_alt_sym_empty(alt_id);
 
-                        let is_rep_child_no_lform = NEW_REPEAT && is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
+                        let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
 
                         let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
                         if VERBOSE {
@@ -1029,17 +1038,8 @@ impl ParserGen {
                                     index: None,
                                 });
                             };
-                            if NEW_REPEAT {
-                                if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
-                                    nt_repeat.insert(owner, infos.clone());
-                                }
-                            } else {
-                                if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
-                                    let iter = infos.iter().skip(1).cloned().to_vec();
-                                    if iter.len() > 1 || !iter[0].sym.is_t() {
-                                        nt_repeat.insert(owner, iter);
-                                    }
-                                }
+                            if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
+                                nt_repeat.insert(owner, infos.clone());
                             }
                             infos
                         }
@@ -1072,11 +1072,10 @@ impl ParserGen {
                     .map(|ii| format!("{}{} ({})", ii.name, ii.index.map(|i| format!("[{i}]")).unwrap_or(String::new()), ii.sym.to_str(self.get_symbol_table())))
                     .join(", "));
             }
-            // println!("item_info: {item_info:?}");
-            println!("nt_repeat: {nt_repeat:?}");
+            println!("item_info: {item_info:?}");
             println!("child_repeat_endpoints: {child_repeat_endpoints:?}");
         }
-        (nt_name, alt_info, item_info, nt_repeat, child_repeat_endpoints)
+        (nt_name, alt_info, item_info, child_repeat_endpoints)
     }
 
     // Building the source code as we do below is not the most efficient, but it's done that way to
@@ -1234,7 +1233,7 @@ impl ParserGen {
             "lexigram_lib::grammar::AltId", "lexigram_lib::log::Logger",
         ]);
 
-        let (nt_name, alt_info, item_info, nt_repeat, child_repeat_endpoints) = self.get_type_info();
+        let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -1336,7 +1335,6 @@ impl ParserGen {
                         // single possibility; for ex. a -> (A B)+  => struct
                         let a_id = endpoints[0];
                         let infos = &item_info[a_id as usize];
-                        assert_eq!(infos, nt_repeat.get(&v).unwrap());  // FIXME: temporary test
                         if infos.len() == 1 {
                             // single repeat item; for ex. A -> B+  => type directly as Vec<type>
                             let type_name = self.get_info_type(&infos, &infos[0]);

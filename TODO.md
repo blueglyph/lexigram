@@ -6,17 +6,17 @@
 - [x] ~~review coherency in Symbol::to_str*, associated traits, OpCode::*.to_str*, ...~~
   - [x] ~~add unit tests~~
   - [x] ~~unify the names~~
-- [x] clean-up of the unit & integration tests
+- [x] ~~clean-up of the unit & integration tests~~
   - [x] ~~split test files~~  
   - [x] ~~create rtsgen and TestRules type to create GrTree/RTS/PRS~~
-  - [ ] update all tests (or almost) that rely on build_rts and build_prs
+  - [x] ~~update all tests (or almost) that rely on build_rts and build_prs~~
 - [x] ~~more coherency in functions/methods that create source code (names, location)~~
   - Name conventions:
     - build:  creates object by consuming self (or non-method that creates object)
     - make:   sets fields or creates object without consuming self
     - gen:    creates string source code
     - write:  writes source code into file
-- [ ] split huge files (
+- [ ] split huge files
   - [ ] dfa
   - [ ] grammar
     - [ ] make GrTree a proper wrapper type + methods
