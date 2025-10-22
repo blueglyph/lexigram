@@ -1068,10 +1068,13 @@ impl ParserGen {
             println!("alt_info: {alt_info:?}");
             println!("item_info:");
             for (i, item) in item_info.iter().enumerate().filter(|(_, item)| !item.is_empty()) {
-                println!("- {i}: {{ {} }}", item.iter().map(|ii| format!("{} ({})", ii.name, ii.sym.to_str(self.get_symbol_table()))).join(", "));
+                println!("- {i}: {{ {} }}", item.iter()
+                    .map(|ii| format!("{}{} ({})", ii.name, ii.index.map(|i| format!("[{i}]")).unwrap_or(String::new()), ii.sym.to_str(self.get_symbol_table())))
+                    .join(", "));
             }
             // println!("item_info: {item_info:?}");
             println!("nt_repeat: {nt_repeat:?}");
+            println!("child_repeat_endpoints: {child_repeat_endpoints:?}");
         }
         (nt_name, alt_info, item_info, nt_repeat, child_repeat_endpoints)
     }
@@ -1661,9 +1664,9 @@ impl ParserGen {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    src.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}(); //1", nt_name[v as usize].2));
+                                    src.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].2));
                                 } else {
-                                    src.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap(); //2"));
+                                    src.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
                             src
@@ -1678,7 +1681,7 @@ impl ParserGen {
                                 src_wrapper_impl.push(format!("        let val = match alt_id {{"));
                                 for &a_id in endpoints {
                                     let infos = &item_info[a_id as usize];
-                                    src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!("| {}", a_id + 1) } else { String::new() }));
+                                    src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
                                     src_wrapper_impl.extend(
                                         source_lets(infos, &nt_name, "        ")
                                     );

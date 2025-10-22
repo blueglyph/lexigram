@@ -581,6 +581,39 @@ mod wrapper_source {
                 3 => symbols![nt 1, t 1],               //  3: a_2 -> ε     | ◄3            | a_1 B
             ], Default, btreemap![0 => vec![0]]),
 
+            // a -> (b A b B A)*
+            // b -> C
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* (1)
+            // parents:
+            //  - a_1 -> a
+            (104, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2],                            //  0: a -> a_1             | ◄0 ►a_1                | a_1
+                1 => symbols![t 2],                             //  1: b -> C               | ◄1 C!                  | C
+                2 => symbols![nt 2, nt 1, t 0, nt 1, t 1, t 0], //  2: a_1 -> b A b B A a_1 | ●a_1 ◄2 A! B! ►b A! ►b | a_1 b A b B A
+                3 => symbols![nt 2],                            //  3: a_1 -> ε             | ◄3                     | a_1
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // a -> (b A b B A)+
+            // b -> C
+            // NT flags:
+            //  - a: parent_+_or_* | plus (6144)
+            //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - a_2: child_left_fact (64)
+            // parents:
+            //  - a_1 -> a
+            //  - a_2 -> a_1
+            (105, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2],                            //  0: a -> a_1             | ◄0 ►a_1             | a_1
+                1 => symbols![t 2],                             //  1: b -> C               | ◄1 C!               | C
+                2 => symbols![],                                //  2: a_1 -> b A b B A a_2 | ►a_2 A! B! ►b A! ►b |
+                3 => symbols![nt 2, nt 1, t 0, nt 1, t 1, t 0], //  3: a_2 -> a_1           | ●a_1 ◄3             | a_1 b A b B A
+                4 => symbols![nt 2, nt 1, t 0, nt 1, t 1, t 0], //  4: a_2 -> ε             | ◄4                  | a_1 b A b B A
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
             // a -> (A (b ",")* ";")* C
             // b -> B
             // NT flags:
@@ -660,7 +693,8 @@ mod wrapper_source {
                 6 => symbols![nt 1, t 1],               //  6: a_3 -> ε     | ◄6      | a_1 B
             ], Default, btreemap![0 => vec![0]]),
 
-            // a -> A (B | C D | E)* F
+            // a -> A (B | b C b B C | E)* F
+            // b -> D
             // NT flags:
             //  - a: parent_+_or_* (2048)
             //  - a_1: child_+_or_* (1)
@@ -668,14 +702,16 @@ mod wrapper_source {
             //  - a_1 -> a
             (152, true, false, 0, btreemap![
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 5],          //  0: a -> A a_1 F   | ◄0 F! ►a_1 A! | A a_1 F
-                1 => symbols![nt 1, t 1],               //  1: a_1 -> B a_1   | ●a_1 ◄1 B!    | a_1 B
-                2 => symbols![nt 1, t 2, t 3],          //  2: a_1 -> C D a_1 | ●a_1 ◄2 D! C! | a_1 C D
-                3 => symbols![nt 1, t 4],               //  3: a_1 -> E a_1   | ●a_1 ◄3 E!    | a_1 E
-                4 => symbols![nt 1],                    //  4: a_1 -> ε       | ◄4            | a_1
-            ], Default, btreemap![0 => vec![0]]),
+                0 => symbols![t 0, nt 2, t 4],                  //  0: a -> A a_1 F         | ◄0 F! ►a_1 A!          | A a_1 F
+                1 => symbols![t 5],                             //  1: b -> D               | ◄1 D!                  | D
+                2 => symbols![nt 2, t 1],                       //  2: a_1 -> B a_1         | ●a_1 ◄2 B!             | a_1 B
+                3 => symbols![nt 2, nt 1, t 2, nt 1, t 1, t 2], //  3: a_1 -> b C b B C a_1 | ●a_1 ◄3 C! B! ►b C! ►b | a_1 b C b B C
+                4 => symbols![nt 2, t 3],                       //  4: a_1 -> E a_1         | ●a_1 ◄4 E!             | a_1 E
+                5 => symbols![nt 2],                            //  5: a_1 -> ε             | ◄5                     | a_1
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
-            // a -> A (B | C D | E)+ F
+            // a -> A (B | b C b B C | E)+ F
+            // b -> D
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
             //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -689,17 +725,18 @@ mod wrapper_source {
             //  - a_4 -> a_1
             (153, true, true, 0, btreemap![
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 5],          //  0: a -> A a_1 F   | ◄0 F! ►a_1 A! | A a_1 F
-                1 => symbols![],                        //  1: a_1 -> B a_2   | ►a_2 B!       |
-                2 => symbols![],                        //  2: a_1 -> C D a_3 | ►a_3 D! C!    |
-                3 => symbols![],                        //  3: a_1 -> E a_4   | ►a_4 E!       |
-                4 => symbols![nt 1, t 1],               //  4: a_2 -> a_1     | ●a_1 ◄4       | a_1 B
-                5 => symbols![nt 1, t 1],               //  5: a_2 -> ε       | ◄5            | a_1 B
-                6 => symbols![nt 1, t 2, t 3],          //  6: a_3 -> a_1     | ●a_1 ◄6       | a_1 C D
-                7 => symbols![nt 1, t 2, t 3],          //  7: a_3 -> ε       | ◄7            | a_1 C D
-                8 => symbols![nt 1, t 4],               //  8: a_4 -> a_1     | ●a_1 ◄8       | a_1 E
-                9 => symbols![nt 1, t 4],               //  9: a_4 -> ε       | ◄9            | a_1 E
-            ], Default, btreemap![0 => vec![0]]),
+                0 => symbols![t 0, nt 2, t 4],                   //  0: a -> A a_1 F         | ◄0 F! ►a_1 A!       | A a_1 F
+                1 => symbols![t 5],                              //  1: b -> D               | ◄1 D!               | D
+                2 => symbols![],                                 //  2: a_1 -> B a_2         | ►a_2 B!             |
+                3 => symbols![],                                 //  3: a_1 -> E a_3         | ►a_3 E!             |
+                4 => symbols![],                                 //  4: a_1 -> b C b B C a_4 | ►a_4 C! B! ►b C! ►b |
+                5 => symbols![nt 2, t 1],                        //  5: a_2 -> a_1           | ●a_1 ◄5             | a_1 B
+                6 => symbols![nt 2, t 1],                        //  6: a_2 -> ε             | ◄6                  | a_1 B
+                7 => symbols![nt 2, t 3],                        //  7: a_3 -> a_1           | ●a_1 ◄7             | a_1 E
+                8 => symbols![nt 2, t 3],                        //  8: a_3 -> ε             | ◄8                  | a_1 E
+                9 => symbols![nt 2, nt 1, t 2, nt 1, t 1, t 2],  //  9: a_4 -> a_1           | ●a_1 ◄9             | a_1 b C b B C
+                10 => symbols![nt 2, nt 1, t 2, nt 1, t 1, t 2], // 10: a_4 -> ε             | ◄10                 | a_1 b C b B C
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
             // a -> (A | A B | C)*
             // NT flags:
@@ -855,6 +892,21 @@ mod wrapper_source {
                 3 => symbols![nt 1, t 1],               //  3: a_1 -> ε   | ◄3          | i B
             ], Set(symbols![nt 1]), btreemap![0 => vec![0]]),
 
+            // a -> (<L=i> b A b B A)*
+            // b -> C
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - i: child_+_or_* | L-form (129)
+            // parents:
+            //  - i -> a
+            (202, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                            //  0: a -> i           | ◄0 ►i                | i
+                1 => symbols![nt 1, nt 2, t 0, nt 2, t 1, t 0], //  1: i -> b A b B A i | ●i ◄1 A! B! ►b A! ►b | i b A b B A
+                2 => symbols![nt 1],                            //  2: i -> ε           | ◄2                   | i
+                3 => symbols![t 2],                             //  3: b -> C           | ◄3 C!                | C
+            ], Default, btreemap![0 => vec![0], 2 => vec![3]]),
+
             // a -> (A (<L=j> B ",")* ";")* C
             // NT flags:
             //  - a: parent_+_or_* (2048)
@@ -996,7 +1048,8 @@ mod wrapper_source {
                 6 => symbols![nt 1, t 1],               //  6: a_2 -> ε   | ◄6      | i B
             ], Default, btreemap![0 => vec![0]]),
 
-            // a -> A (<L=i> B A | B A C | D)+ E
+            // a -> A (<L=i> B A | B A C b | D)+ E
+            // b -> F
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -1010,42 +1063,43 @@ mod wrapper_source {
             //  - a_3 -> a_1
             (256, true, false, 0, btreemap![
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 4],          //  0: a -> A i E   | ◄0 E! ►i A! | A i E
-                1 => symbols![],                        //  1: i -> B A a_1 | ►a_1 A! B!  |
-                2 => symbols![],                        //  2: i -> D a_2   | ►a_2 D!     |
-                3 => symbols![],                        //  3: a_1 -> C a_3 | ►a_3 C!     |
-                4 => symbols![nt 1, t 1, t 0],          //  4: a_1 -> i     | ●i ◄4       | i B A
-                5 => symbols![nt 1, t 1, t 0],          //  5: a_1 -> ε     | ◄5          | i B A
-                6 => symbols![nt 1, t 3],               //  6: a_2 -> i     | ●i ◄6       | i D
-                7 => symbols![nt 1, t 3],               //  7: a_2 -> ε     | ◄7          | i D
-                8 => symbols![nt 1, t 1, t 0, t 2],     //  8: a_3 -> i     | ●i ◄8       | i B A C
-                9 => symbols![nt 1, t 1, t 0, t 2],     //  9: a_3 -> ε     | ◄9          | i B A C
-            ], Default, btreemap![0 => vec![0]]),
+                0 => symbols![t 0, nt 1, t 4],             //  0: a -> A i E     | ◄0 E! ►i A! | A i E
+                1 => symbols![],                           //  1: i -> B A a_1   | ►a_1 A! B!  |
+                2 => symbols![],                           //  2: i -> D a_2     | ►a_2 D!     |
+                3 => symbols![t 5],                        //  3: b -> F         | ◄3 F!       | F
+                4 => symbols![],                           //  4: a_1 -> C b a_3 | ►a_3 ►b C!  |
+                5 => symbols![nt 1, t 1, t 0],             //  5: a_1 -> i       | ●i ◄5       | i B A
+                6 => symbols![nt 1, t 1, t 0],             //  6: a_1 -> ε       | ◄6          | i B A
+                7 => symbols![nt 1, t 3],                  //  7: a_2 -> i       | ●i ◄7       | i D
+                8 => symbols![nt 1, t 3],                  //  8: a_2 -> ε       | ◄8          | i D
+                9 => symbols![nt 1, t 1, t 0, t 2, nt 2],  //  9: a_3 -> i       | ●i ◄9       | i B A C b
+                10 => symbols![nt 1, t 1, t 0, t 2, nt 2], // 10: a_3 -> ε       | ◄10         | i B A C b
+            ], Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
-            // a -> (A | A B | C)+
+            // a -> (<L=i> A | A B A | C)+
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
-            //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - a_2: parent_left_fact | child_left_fact (96)
+            //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - a_1: parent_left_fact | child_left_fact (96)
+            //  - a_2: child_left_fact (64)
             //  - a_3: child_left_fact (64)
-            //  - a_4: child_left_fact (64)
             // parents:
-            //  - a_1 -> a
-            //  - a_2 -> a_1
+            //  - i -> a
+            //  - a_1 -> i
+            //  - a_2 -> i
             //  - a_3 -> a_1
-            //  - a_4 -> a_2
             (257, false, false, 0, btreemap![
             ], btreemap![
-                0 => symbols![nt 1],                    //  0: a -> a_1     | ◄0 ►a_1 | a_1
-                1 => symbols![],                        //  1: a_1 -> A a_2 | ►a_2 A! |
-                2 => symbols![],                        //  2: a_1 -> C a_3 | ►a_3 C! |
-                3 => symbols![],                        //  3: a_2 -> B a_4 | ►a_4 B! |
-                4 => symbols![nt 1, t 0],               //  4: a_2 -> a_1   | ●a_1 ◄4 | a_1 A
-                5 => symbols![nt 1, t 0],               //  5: a_2 -> ε     | ◄5      | a_1 A
-                6 => symbols![nt 1, t 2],               //  6: a_3 -> a_1   | ●a_1 ◄6 | a_1 C
-                7 => symbols![nt 1, t 2],               //  7: a_3 -> ε     | ◄7      | a_1 C
-                8 => symbols![nt 1, t 0, t 1],          //  8: a_4 -> a_1   | ◄8 ►a_1 | a_1 A B
-                9 => symbols![nt 1, t 0, t 1],          //  9: a_4 -> ε     | ◄9      | a_1 A B
+                0 => symbols![nt 1],                    //  0: a -> i         | ◄0 ►i      | i
+                1 => symbols![],                        //  1: i -> A a_1     | ►a_1 A!    |
+                2 => symbols![],                        //  2: i -> C a_2     | ►a_2 C!    |
+                3 => symbols![],                        //  3: a_1 -> B A a_3 | ►a_3 A! B! |
+                4 => symbols![nt 1, t 0],               //  4: a_1 -> i       | ●i ◄4      | i A
+                5 => symbols![nt 1, t 0],               //  5: a_1 -> ε       | ◄5         | i A
+                6 => symbols![nt 1, t 2],               //  6: a_2 -> i       | ●i ◄6      | i C
+                7 => symbols![nt 1, t 2],               //  7: a_2 -> ε       | ◄7         | i C
+                8 => symbols![nt 1, t 0, t 1, t 0],     //  8: a_3 -> i       | ●i ◄8      | i A B A
+                9 => symbols![nt 1, t 0, t 1, t 0],     //  9: a_3 -> ε       | ◄9         | i A B A
             ], Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- right_rec

@@ -67,8 +67,8 @@ impl TestRules {
             101 => vec![r#"a -> A+;"#],
             102 => vec![r#"a -> A B* C;"#],
             103 => vec![r#"a -> A B+ C;"#],
-            104 => vec![r#"a -> (A B)*;"#],
-            105 => vec![r#"a -> (A B)+;"#],
+            104 => vec![r#"a -> (b A b B A)*; b -> C; "#],
+            105 => vec![r#"a -> (b A b B A)+; b -> C; "#],
             106 => vec![r#"a -> (A (b ",")* ";")* C; b -> B;"#],
             107 => vec![r#"a -> (A (b ",")+ ";")+ C; b -> B;"#],
             108 => vec![r#"a -> A "B"* C;"#],
@@ -76,8 +76,8 @@ impl TestRules {
             // TODO (not yet fully supported in parsergen)
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
-            152 => vec![r#"a -> A (B | C D | E)* F;"#],
-            153 => vec![r#"a -> A (B | C D | E)+ F;"#],
+            152 => vec![r#"a -> A (B | b C b B C | E)* F; b -> D;"#],
+            153 => vec![r#"a -> A (B | b C b B C | E)+ F; b -> D;"#],
             154 => vec![r#"a -> (A | A B | C)*;"#],
             155 => vec![r#"a -> (A | A B | C)+;"#],
             156 => vec![r#"a -> A ( (B C | D)* E | F)* G;"#],
@@ -87,8 +87,8 @@ impl TestRules {
             // -----------------------------------------------------------------------------
             200 => vec![r#"a -> A (<L=i> B)* C;"#],
             201 => vec![r#"a -> A (<L=i> B)+ C;"#],
-            202 => vec![r#"a -> (<L=i> A B)*;"#],
-            203 => vec![r#"a -> (<L=i> A B)+;"#],
+            202 => vec![r#"a -> (<L=i> b A b B A)*; b -> C;"#],
+            203 => vec![r#"a -> (<L=i> b A b B A)+; b -> C;"#],
             204 => vec![r#"a -> (<L=i> A (      B ",")* ";")*;"#],
             205 => vec![r#"a -> (<L=i> A (      B ",")+ ";")+;"#],
             206 => vec![r#"a -> (      A (<L=j> B ",")* ";")* C;"#],
@@ -101,12 +101,12 @@ impl TestRules {
             // TODO (not yet fully supported in parsergen)
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
-            252 => vec![r#"a -> A (      (<L=j> B C | D)+ E | F)+ G;"#],
-            253 => vec![r#"a -> A (<L=i> (      B C | D)+ E | F)+ G;"#],
-            254 => vec![r#"a -> A (<L=i> (<L=j> B C | D)* E | F)* G;"#],
-            255 => vec![r#"a -> A (<L=i> (<L=j> B C | D)+ E | F)+ G;"#],
-            256 => vec![r#"a -> A (<L=i> B A | B A C | D)+ E;"#],
-            257 => vec![r#"a -> (A | A B | C)+;"#],
+            252 => vec![r#"a -> A (      (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
+            253 => vec![r#"a -> A (<L=i> (      b C b B C | D)+ E | F)+ G; b -> H;"#],
+            254 => vec![r#"a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G; b -> H;"#],
+            255 => vec![r#"a -> A (<L=i> (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
+            256 => vec![r#"a -> A (<L=i> B A | B A C b | D)+ E; b-> F;"#],
+            257 => vec![r#"a -> (<L=i> A | A B A | C)+;"#],
 
             // 3xx = rrec: simple
             // -----------------------------------------------------------------------------
