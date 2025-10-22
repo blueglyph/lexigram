@@ -574,9 +574,10 @@ pub mod microcalc_parser {
 
         fn exit_program1(&mut self) {
             let function = self.stack.pop().unwrap().get_function();
-            let mut plus_it = self.stack.pop().unwrap().get_program1();
-            plus_it.0.push(function);
-            self.stack.push(SynValue::Program1(plus_it));
+            let Some(SynValue::Program1(SynProgram1(plus_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynProgram1 item on wrapper stack");
+            };
+            plus_it.push(function);
         }
 
         fn exit_function(&mut self) {
@@ -594,9 +595,10 @@ pub mod microcalc_parser {
 
         fn exit_function1(&mut self) {
             let instruction = self.stack.pop().unwrap().get_instruction();
-            let mut plus_it = self.stack.pop().unwrap().get_function1();
-            plus_it.0.push(instruction);
-            self.stack.push(SynValue::Function1(plus_it));
+            let Some(SynValue::Function1(SynFunction1(plus_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynFunction1 item on wrapper stack");
+            };
+            plus_it.push(instruction);
         }
 
         fn exit_fun_params(&mut self, alt_id: AltId) {
@@ -622,9 +624,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let mut star_it = self.stack.pop().unwrap().get_fun_params1();
-            star_it.0.push(id);
-            self.stack.push(SynValue::FunParams1(star_it));
+            let Some(SynValue::FunParams1(SynFunParams1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynFunParams1 item on wrapper stack");
+            };
+            star_it.push(id);
         }
 
         fn exit_instruction(&mut self, alt_id: AltId) {
@@ -728,9 +731,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            let mut star_it = self.stack.pop().unwrap().get_fun_args1();
-            star_it.0.push(expr);
-            self.stack.push(SynValue::FunArgs1(star_it));
+            let Some(SynValue::FunArgs1(SynFunArgs1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynFunArgs1 item on wrapper stack");
+            };
+            star_it.push(expr);
         }
     }
 

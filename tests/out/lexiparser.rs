@@ -508,9 +508,10 @@ pub(crate) mod lexiparser {
 
         fn exit_file1(&mut self) {
             let file_item = self.stack.pop().unwrap().get_file_item();
-            let mut star_it = self.stack.pop().unwrap().get_file1();
-            star_it.0.push(file_item);
-            self.stack.push(SynValue::File1(star_it));
+            let Some(SynValue::File1(SynFile1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynFile1 item on wrapper stack");
+            };
+            star_it.push(file_item);
         }
 
         fn exit_file_item(&mut self, alt_id: AltId) {
@@ -559,9 +560,10 @@ pub(crate) mod lexiparser {
 
         fn exit_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let mut star_it = self.stack.pop().unwrap().get_option1();
-            star_it.0.push(id);
-            self.stack.push(SynValue::Option1(star_it));
+            let Some(SynValue::Option1(SynOption1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynOption1 item on wrapper stack");
+            };
+            star_it.push(id);
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -602,9 +604,10 @@ pub(crate) mod lexiparser {
 
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
-            let mut star_it = self.stack.pop().unwrap().get_actions1();
-            star_it.0.push(action);
-            self.stack.push(SynValue::Actions1(star_it));
+            let Some(SynValue::Actions1(SynActions1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynActions1 item on wrapper stack");
+            };
+            star_it.push(action);
         }
 
         fn exit_action(&mut self, alt_id: AltId) {
@@ -660,9 +663,10 @@ pub(crate) mod lexiparser {
 
         fn exit_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let mut star_it = self.stack.pop().unwrap().get_alt_items1();
-            star_it.0.push(alt_item);
-            self.stack.push(SynValue::AltItems1(star_it));
+            let Some(SynValue::AltItems1(SynAltItems1(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynAltItems1 item on wrapper stack");
+            };
+            star_it.push(alt_item);
         }
 
         fn exit_alt_item(&mut self) {
@@ -678,9 +682,10 @@ pub(crate) mod lexiparser {
 
         fn exit_alt_item1(&mut self) {
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-            let mut plus_it = self.stack.pop().unwrap().get_alt_item1();
-            plus_it.0.push(repeat_item);
-            self.stack.push(SynValue::AltItem1(plus_it));
+            let Some(SynValue::AltItem1(SynAltItem1(plus_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynAltItem1 item on wrapper stack");
+            };
+            plus_it.push(repeat_item);
         }
 
         fn exit_repeat_item(&mut self, alt_id: AltId) {
@@ -778,9 +783,10 @@ pub(crate) mod lexiparser {
 
         fn exit_char_set1(&mut self) {
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
-            let mut plus_it = self.stack.pop().unwrap().get_char_set1();
-            plus_it.0.push(char_set_one);
-            self.stack.push(SynValue::CharSet1(plus_it));
+            let Some(SynValue::CharSet1(SynCharSet1(plus_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynCharSet1 item on wrapper stack");
+            };
+            plus_it.push(char_set_one);
         }
 
         fn exit_char_set_one(&mut self, alt_id: AltId) {
