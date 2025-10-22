@@ -1368,8 +1368,6 @@ pub(crate) mod rules_108_1 {
 
 // ================================================================================
 
-// TODO: code generation not fully supported yet
-#[cfg(any())]
 pub(crate) mod rules_150_1 {
 
     // ------------------------------------------------------------
@@ -1537,8 +1535,6 @@ pub(crate) mod rules_150_1 {
 
 // ================================================================================
 
-// TODO: code generation not fully supported yet
-#[cfg(any())]
 pub(crate) mod rules_152_1 {
 
     // ------------------------------------------------------------
@@ -1570,11 +1566,11 @@ pub(crate) mod rules_152_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)* F`
-        Ch2 { b: String },
+        Ch1 { b: String },
         /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)* F`
-        Ch3 { b: [SynB; 2], c: [String; 2], b1: String },
+        Ch2 { b: [SynB; 2], c: [String; 2], b1: String },
         /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )* F`
-        Ch4 { e: String },
+        Ch3 { e: String },
     }
 
     #[derive(Debug)]
@@ -1704,7 +1700,7 @@ pub(crate) mod rules_152_1 {
             let val = match alt_id {
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch2 { b }
+                    SynA1Item::Ch1 { b }
                 }
                 3 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -1712,11 +1708,11 @@ pub(crate) mod rules_152_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch3 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::Ch2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 4 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch4 { e }
+                    SynA1Item::Ch3 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -1739,8 +1735,6 @@ pub(crate) mod rules_152_1 {
 
 // ================================================================================
 
-// TODO: code generation not fully supported yet
-// #[cfg(any())]
 pub(crate) mod rules_153_1 {
 
     // ------------------------------------------------------------
@@ -1797,11 +1791,11 @@ pub(crate) mod rules_153_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)+ F`
-        Ch5 { b: String },
+        Ch1 { b: String },
         /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )+ F`
-        Ch7 { e: String },
+        Ch2 { e: String },
         /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)+ F`
-        Ch9 { b: [SynB; 2], c: [String; 2], b1: String },
+        Ch3 { b: [SynB; 2], c: [String; 2], b1: String },
     }
 
     #[derive(Debug)]
@@ -1937,11 +1931,11 @@ pub(crate) mod rules_153_1 {
             let val = match alt_id {
                 5 | 6 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch5 { b }
+                    SynA1Item::Ch1 { b }
                 }
                 7 | 8 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch7 { e }
+                    SynA1Item::Ch2 { e }
                 }
                 9 | 10 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -1949,7 +1943,7 @@ pub(crate) mod rules_153_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch9 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::Ch3 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -2012,9 +2006,9 @@ pub(crate) mod rules_153_1 {
                 val.extend(plus.0.into_iter()
                     .map(|choice| {
                         match choice {
-                            SynA1Item::Ch5 { b } => format!("b({b})"),
-                            SynA1Item::Ch7 { e } => format!("e({e})"),
-                            SynA1Item::Ch9 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
+                            SynA1Item::Ch1 { b } => format!("b({b})"),
+                            SynA1Item::Ch2 { e } => format!("e({e})"),
+                            SynA1Item::Ch3 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
                         }
                 }));
                 val.push(f);

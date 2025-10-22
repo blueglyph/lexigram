@@ -1327,9 +1327,9 @@ impl ParserGen {
                         src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub enum Syn{nu}Item {{"));
-                        for &a_id in endpoints {
+                        for (i, &a_id) in endpoints.into_iter().index_start(1) {
                             src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                            src.push(format!("    Ch{a_id} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
+                            src.push(format!("    Ch{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
                         }
                         src.push(format!("}}"));
                     } else {
@@ -1690,12 +1690,12 @@ impl ParserGen {
                             let val_name = if endpoints.len() > 1 {
                                 // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
                                 src_wrapper_impl.push(format!("        let val = match alt_id {{"));
-                                for &a_id in endpoints {
+                                for (i, &a_id) in endpoints.into_iter().index_start(1) {
                                     let infos = &item_info[a_id as usize];
                                     src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
                                     let (src_let, src_struct) = source_lets(infos, &nt_name, "        ");
                                     src_wrapper_impl.extend(src_let);
-                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{a_id} {{ {} }}", src_struct));
+                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{i} {{ {} }}", src_struct));
                                     src_wrapper_impl.push(format!("            }}"));
                                 }
                                 src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
