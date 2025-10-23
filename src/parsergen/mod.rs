@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, AltId, NTConversion, Alternative, grtree_to_str};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, AltId, NTConversion, Alternative, grtree_to_str, GrTreeExt};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
@@ -781,6 +781,35 @@ impl ParserGen {
         self.item_ops = items;
     }
 
+    fn sort_alt_ids(&self, top_nt: VarId, alts: &[AltId]) -> Vec<AltId> {
+        const VERBOSE: bool = true;
+        if VERBOSE {
+            println!("  sorting {} alts {alts:?}", Symbol::NT(top_nt).to_str(self.get_symbol_table()));
+            for &a_id in alts {
+                let &(_nt, ref alt) = &self.parsing_table.alts[a_id as usize];
+                if let Some((v, id)) = alt.origin {
+                    let tree = &self.origin.trees[v as usize];
+                    println!("    [{a_id}] id = {},{id} -> {}  <->  {}",
+                             Symbol::NT(v).to_str(self.get_symbol_table()),
+                             crate::grammar::grtree_to_str_ansi(tree, None, Some(id), Some(v), self.get_symbol_table(), false),
+                             tree.to_str_index(None, self.get_symbol_table())
+                    );
+                    assert_eq!(v, top_nt, "v = {}, top_nt = {}", Symbol::NT(v).to_str(self.get_symbol_table()), Symbol::NT(top_nt).to_str(self.get_symbol_table()));
+                }
+            }
+        }
+        let mut sorted = vec![];
+        let mut ids = alts.iter().filter_map(|&alt_id| self.parsing_table.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
+            .collect::<HashMap<_, _>>();
+        let tree = &self.origin.trees[top_nt as usize];
+        for node in tree.iter_depth() {
+            if let Some((_, alt_id)) = ids.remove_entry(&node.index) {
+                sorted.push(alt_id);
+            }
+        }
+        sorted
+    }
+
     /// Calculates nt_name, nt_info, item_info
     ///
     /// * `nt_name[var]: (String, String, String)` contains (upper, lower, lower)-case unique identifiers for each parent NT (the first two
@@ -843,7 +872,7 @@ impl ParserGen {
         Vec<Vec<ItemInfo>>,
         HashMap<VarId, Vec<AltId>>
     ) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -887,6 +916,7 @@ impl ParserGen {
                         endpoints.retain(|e| !pinfo.alts[*e as usize].1.is_sym_empty());
                     }
                     assert!(!endpoints.is_empty());
+                    let endpoints = self.sort_alt_ids(group[0], &endpoints);
                     if VERBOSE {
                         // TODO: sort endpoints using the original tree, where each concat's id should correspond to a map[endpoint]:
                         println!(
@@ -896,6 +926,8 @@ impl ParserGen {
                         let (v, id) = &self.origin.map[var];
                         let t = &self.origin.trees[*v as usize];
                         println!("   original : {}", crate::grammar::grtree_to_str_ansi(t, None, Some(*id), Some(*v), self.get_symbol_table(), false));
+                        let sorted = self.sort_alt_ids(group[0], &endpoints);
+                        println!("   sorted endpoints: {sorted:?}");
                     }
                     child_repeat_endpoints.insert(*var, endpoints);
                 }
@@ -1221,7 +1253,7 @@ impl ParserGen {
     }
 
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
@@ -1260,20 +1292,34 @@ impl ParserGen {
                     }
                 }
             }
+            if VERBOSE {
+                println!("group {}", group.iter().map(|nt| Symbol::NT(*nt).to_str(self.get_symbol_table())).join(" "));
+            }
             for &nt in group {
                 if let Some(alts) = group_names.get(&nt) {
+                    if VERBOSE {
+                        if let Some(gn) = group_names.get(&nt) {
+                            println!("- {}: alts = {}", Symbol::NT(nt).to_str(self.get_symbol_table()), gn.iter().map(|a| a.to_string()).join(", "));
+                            let sorted = self.sort_alt_ids(group[0], gn);
+                            println!("     sorted alts: {sorted:?}");
+                        }
+                    }
                     log.add_note(format!("  - Ctx{}:", nt_name[nt as usize].0));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
+                    if VERBOSE { println!("  context Ctx{}:", nt_name[nt as usize].0); }
                     for &a_id in alts {
                         let comment = self.full_alt_str(a_id, None, true);
                         log.add_note(format!("    /// {comment}"));
                         src.push(format!("    /// {comment}"));
+                        if VERBOSE { println!("      /// {comment}"); }
                         let ctx_content = self.source_infos(&item_info[a_id as usize], false);
                         let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
+                            if VERBOSE { println!("      {a_name},"); }
                             format!("    {a_name},", )
                         } else {
+                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
                             format!("    {a_name} {{ {ctx_content} }},", )
                         };
                         log.add_note(ctx_item.clone());

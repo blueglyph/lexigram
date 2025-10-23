@@ -1792,10 +1792,10 @@ pub(crate) mod rules_153_1 {
     pub enum SynA1Item {
         /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)+ F`
         Ch1 { b: String },
-        /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )+ F`
-        Ch2 { e: String },
         /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)+ F`
-        Ch3 { b: [SynB; 2], c: [String; 2], b1: String },
+        Ch2 { b: [SynB; 2], c: [String; 2], b1: String },
+        /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )+ F`
+        Ch3 { e: String },
     }
 
     #[derive(Debug)]
@@ -1933,17 +1933,17 @@ pub(crate) mod rules_153_1 {
                     let b = self.stack_t.pop().unwrap();
                     SynA1Item::Ch1 { b }
                 }
-                7 | 8 => {
-                    let e = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch2 { e }
-                }
                 9 | 10 => {
                     let c_2 = self.stack_t.pop().unwrap();
                     let b1 = self.stack_t.pop().unwrap();
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch3 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::Ch2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                }
+                7 | 8 => {
+                    let e = self.stack_t.pop().unwrap();
+                    SynA1Item::Ch3 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
