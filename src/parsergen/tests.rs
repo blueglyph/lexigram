@@ -1219,6 +1219,54 @@ mod wrapper_source {
                 11 => symbols![nt 2, t 4],              // 11: a_2 -> j   | ●j ◄11      | j E
             ], Default, btreemap![0 => vec![0]]),
 
+            // a -> (<L=i> A | A B | C | D (<L=j> E | E F | G)+)+
+            // NT flags:
+            //  - a: parent_+_or_* | plus (6144)
+            //  - i: child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus (6305)
+            //  - j: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - a_1: parent_left_fact | child_left_fact (96)
+            //  - a_2: child_left_fact (64)
+            //  - a_3: child_left_fact (64)
+            //  - a_4: parent_left_fact | child_left_fact (96)
+            //  - a_5: child_left_fact (64)
+            //  - a_6: child_left_fact (64)
+            //  - a_7: child_left_fact (64)
+            // parents:
+            //  - i -> a
+            //  - j -> i
+            //  - a_1 -> i
+            //  - a_2 -> i
+            //  - a_3 -> i
+            //  - a_4 -> j
+            //  - a_5 -> j
+            //  - a_6 -> a_1
+            //  - a_7 -> a_4
+            (259, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: a -> i       | ◄0 ►i      | i
+                1 => symbols![],                        //  1: i -> A a_1   | ►a_1 A!    |
+                2 => symbols![],                        //  2: i -> C a_2   | ►a_2 C!    |
+                3 => symbols![],                        //  3: i -> D j a_3 | ►a_3 ►j D! |
+                4 => symbols![],                        //  4: j -> E a_4   | ►a_4 E!    |
+                5 => symbols![],                        //  5: j -> G a_5   | ►a_5 G!    |
+                6 => symbols![],                        //  6: a_1 -> B a_6 | ►a_6 B!    |
+                7 => symbols![nt 1, t 0],               //  7: a_1 -> i     | ●i ◄7      | i A
+                8 => symbols![nt 1, t 0],               //  8: a_1 -> ε     | ◄8         | i A
+                9 => symbols![nt 1, t 2],               //  9: a_2 -> i     | ●i ◄9      | i C
+                10 => symbols![nt 1, t 2],              // 10: a_2 -> ε     | ◄10        | i C
+                11 => symbols![nt 1, t 3, nt 2],        // 11: a_3 -> i     | ●i ◄11     | i D j
+                12 => symbols![nt 1, t 3, nt 2],        // 12: a_3 -> ε     | ◄12        | i D j
+                13 => symbols![],                       // 13: a_4 -> F a_7 | ►a_7 F!    |
+                14 => symbols![nt 2, t 4],              // 14: a_4 -> j     | ●j ◄14     | j E
+                15 => symbols![nt 2, t 4],              // 15: a_4 -> ε     | ◄15        | j E
+                16 => symbols![nt 2, t 6],              // 16: a_5 -> j     | ●j ◄16     | j G
+                17 => symbols![nt 2, t 6],              // 17: a_5 -> ε     | ◄17        | j G
+                18 => symbols![nt 1, t 0, t 1],         // 18: a_6 -> i     | ●i ◄18     | i A B
+                19 => symbols![nt 1, t 0, t 1],         // 19: a_6 -> ε     | ◄19        | i A B
+                20 => symbols![nt 2, t 4, t 5],         // 20: a_7 -> j     | ●j ◄20     | j E F
+                21 => symbols![nt 2, t 4, t 5],         // 21: a_7 -> ε     | ◄21        | j E F
+            ], Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- right_rec
             // expr -> Id "." expr | "(" Num ")"
             // NT flags:
@@ -2003,7 +2051,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2012,7 +2060,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 

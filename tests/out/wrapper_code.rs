@@ -209,6 +209,15 @@ pub(crate) mod code_258_1 {
     #[derive(Debug, PartialEq)] pub struct SynJ();
 }
 
+pub(crate) mod code_259_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)+)+`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)+)+`
+    #[derive(Debug, PartialEq)] pub struct SynJ();
+}
+
 pub(crate) mod code_301_1 {
     /// User-defined type for `expr`
     #[derive(Debug, PartialEq)] pub struct SynExpr();
