@@ -51,18 +51,18 @@ pub(crate) mod rules_13_1 {
     #[derive(Debug)]
     pub enum CtxS {
         /// `s -> Id "=" val`
-        S1 { id: String, val: SynVal },
+        V1 { id: String, val: SynVal },
         /// `s -> "exit"`
-        S2,
+        V2,
         /// `s -> "return" val`
-        S3 { val: SynVal },
+        V3 { val: SynVal },
     }
     #[derive(Debug)]
     pub enum CtxVal {
         /// `val -> Id`
-        Val1 { id: String },
+        V1 { id: String },
         /// `val -> Num`
-        Val2 { num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -182,14 +182,14 @@ pub(crate) mod rules_13_1 {
                 0 => {
                     let val = self.stack.pop().unwrap().get_val();
                     let id = self.stack_t.pop().unwrap();
-                    CtxS::S1 { id, val }
+                    CtxS::V1 { id, val }
                 }
                 1 => {
-                    CtxS::S2
+                    CtxS::V2
                 }
                 2 => {
                     let val = self.stack.pop().unwrap().get_val();
-                    CtxS::S3 { val }
+                    CtxS::V3 { val }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_s")
             };
@@ -201,11 +201,11 @@ pub(crate) mod rules_13_1 {
             let ctx = match alt_id {
                 3 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxVal::Val1 { id }
+                    CtxVal::V1 { id }
                 }
                 4 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxVal::Val2 { num }
+                    CtxVal::V2 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_val")
             };
@@ -230,7 +230,7 @@ pub(crate) mod rules_102_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A B* C`
-        A { a: String, star: SynA1, c: String },
+        V1 { a: String, star: SynA1, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -346,7 +346,7 @@ pub(crate) mod rules_102_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, star, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -380,7 +380,7 @@ pub(crate) mod rules_103_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A B+ C`
-        A { a: String, plus: SynA1, c: String },
+        V1 { a: String, plus: SynA1, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -498,7 +498,7 @@ pub(crate) mod rules_103_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -532,12 +532,12 @@ pub(crate) mod rules_104_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (b A b B A)*`
-        A { star: SynA1 },
+        V1 { star: SynA1 },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> C`
-        B { c: String },
+        V1 { c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -663,7 +663,7 @@ pub(crate) mod rules_104_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::A { star });
+            let val = self.listener.exit_a(CtxA::V1 { star });
             self.stack.push(SynValue::A(val));
         }
 
@@ -687,7 +687,7 @@ pub(crate) mod rules_104_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { c });
+            let val = self.listener.exit_b(CtxB::V1 { c });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -708,12 +708,12 @@ pub(crate) mod rules_105_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (b A b B A)+`
-        A { plus: SynA1 },
+        V1 { plus: SynA1 },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> C`
-        B { c: String },
+        V1 { c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -841,7 +841,7 @@ pub(crate) mod rules_105_1 {
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::A { plus });
+            let val = self.listener.exit_a(CtxA::V1 { plus });
             self.stack.push(SynValue::A(val));
         }
 
@@ -865,7 +865,7 @@ pub(crate) mod rules_105_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { c });
+            let val = self.listener.exit_b(CtxB::V1 { c });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -886,12 +886,12 @@ pub(crate) mod rules_106_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (A (b ",")* ";")* C`
-        A { star: SynA2, c: String },
+        V1 { star: SynA2, c: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1027,7 +1027,7 @@ pub(crate) mod rules_106_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
-            let val = self.listener.exit_a(CtxA::A { star, c });
+            let val = self.listener.exit_a(CtxA::V1 { star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -1061,7 +1061,7 @@ pub(crate) mod rules_106_1 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { b });
+            let val = self.listener.exit_b(CtxB::V1 { b });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1247,7 +1247,7 @@ pub(crate) mod rules_108_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A "B"* C`
-        A { a: String, c: String },
+        V1 { a: String, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1357,7 +1357,7 @@ pub(crate) mod rules_108_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, c });
             self.stack.push(SynValue::A(val));
         }
     }
@@ -1379,7 +1379,7 @@ pub(crate) mod rules_150_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (A | B)*`
-        A { star: SynA1 },
+        V1 { star: SynA1 },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1392,9 +1392,9 @@ pub(crate) mod rules_150_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `A` item in `a -> ( ►► A ◄◄  | B)*`
-        Ch1 { a: String },
+        V1 { a: String },
         /// `B` item in `a -> (A |  ►► B ◄◄ )*`
-        Ch2 { b: String },
+        V2 { b: String },
     }
 
     #[derive(Debug)]
@@ -1501,7 +1501,7 @@ pub(crate) mod rules_150_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::A { star });
+            let val = self.listener.exit_a(CtxA::V1 { star });
             self.stack.push(SynValue::A(val));
         }
 
@@ -1514,11 +1514,11 @@ pub(crate) mod rules_150_1 {
             let val = match alt_id {
                 1 => {
                     let a = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch1 { a }
+                    SynA1Item::V1 { a }
                 }
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch2 { b }
+                    SynA1Item::V2 { b }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -1546,12 +1546,12 @@ pub(crate) mod rules_152_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (B | b C b B C | E)* F`
-        A { a: String, star: SynA1, f: String },
+        V1 { a: String, star: SynA1, f: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> D`
-        B { d: String },
+        V1 { d: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1566,11 +1566,11 @@ pub(crate) mod rules_152_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)* F`
-        Ch1 { b: String },
+        V1 { b: String },
         /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)* F`
-        Ch2 { b: [SynB; 2], c: [String; 2], b1: String },
+        V2 { b: [SynB; 2], c: [String; 2], b1: String },
         /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )* F`
-        Ch3 { e: String },
+        V3 { e: String },
     }
 
     #[derive(Debug)]
@@ -1687,7 +1687,7 @@ pub(crate) mod rules_152_1 {
             let f = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, star, f });
+            let val = self.listener.exit_a(CtxA::V1 { a, star, f });
             self.stack.push(SynValue::A(val));
         }
 
@@ -1700,7 +1700,7 @@ pub(crate) mod rules_152_1 {
             let val = match alt_id {
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch1 { b }
+                    SynA1Item::V1 { b }
                 }
                 3 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -1708,11 +1708,11 @@ pub(crate) mod rules_152_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 4 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch3 { e }
+                    SynA1Item::V3 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -1724,7 +1724,7 @@ pub(crate) mod rules_152_1 {
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { d });
+            let val = self.listener.exit_b(CtxB::V1 { d });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1771,12 +1771,12 @@ pub(crate) mod rules_153_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (B | b C b B C | E)+ F`
-        A { a: String, plus: SynA1, f: String },
+        V1 { a: String, plus: SynA1, f: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> D`
-        B { d: String },
+        V1 { d: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1791,11 +1791,11 @@ pub(crate) mod rules_153_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)+ F`
-        Ch1 { b: String },
+        V1 { b: String },
         /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)+ F`
-        Ch2 { b: [SynB; 2], c: [String; 2], b1: String },
+        V2 { b: [SynB; 2], c: [String; 2], b1: String },
         /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )+ F`
-        Ch3 { e: String },
+        V3 { e: String },
     }
 
     #[derive(Debug)]
@@ -1918,7 +1918,7 @@ pub(crate) mod rules_153_1 {
             let f = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, f });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, f });
             self.stack.push(SynValue::A(val));
         }
 
@@ -1931,7 +1931,7 @@ pub(crate) mod rules_153_1 {
             let val = match alt_id {
                 5 | 6 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch1 { b }
+                    SynA1Item::V1 { b }
                 }
                 9 | 10 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -1939,11 +1939,11 @@ pub(crate) mod rules_153_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 7 | 8 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch3 { e }
+                    SynA1Item::V3 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -1955,7 +1955,7 @@ pub(crate) mod rules_153_1 {
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { d });
+            let val = self.listener.exit_b(CtxB::V1 { d });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -2092,12 +2092,12 @@ pub(crate) mod rules_200_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B)* C`
-        A { a: String, star: SynI, c: String },
+        V1 { a: String, star: SynI, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-        I { star_it: SynI, b: String },
+        V1 { star_it: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2215,7 +2215,7 @@ pub(crate) mod rules_200_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, star, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -2227,7 +2227,7 @@ pub(crate) mod rules_200_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { star_it, b });
+            let val = self.listener.exit_i(CtxI::V1 { star_it, b });
             self.stack.push(SynValue::I(val));
         }
 
@@ -2258,12 +2258,12 @@ pub(crate) mod rules_200_2 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B)* C`
-        A { a: String, c: String },
+        V1 { a: String, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-        I { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2375,13 +2375,13 @@ pub(crate) mod rules_200_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, c });
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::I { b });
+            self.listener.exit_i(CtxI::V1 { b });
         }
     }
 
@@ -2401,12 +2401,12 @@ pub(crate) mod rules_201_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B)+ C`
-        A { a: String, plus: SynMyI, c: String },
+        V1 { a: String, plus: SynMyI, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        I { plus_it: SynMyI, b: String, last_iteration: bool },
+        V1 { plus_it: SynMyI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2525,7 +2525,7 @@ pub(crate) mod rules_201_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -2538,7 +2538,7 @@ pub(crate) mod rules_201_1 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { plus_it, b, last_iteration });
+            let val = self.listener.exit_i(CtxI::V1 { plus_it, b, last_iteration });
             self.stack.push(SynValue::I(val));
         }
     }
@@ -2559,12 +2559,12 @@ pub(crate) mod rules_201_2 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B)+ C`
-        A { a: String, c: String },
+        V1 { a: String, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        I { b: String, last_iteration: bool },
+        V1 { b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2678,14 +2678,14 @@ pub(crate) mod rules_201_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, c });
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::I { b, last_iteration });
+            self.listener.exit_i(CtxI::V1 { b, last_iteration });
         }
     }
 
@@ -2705,12 +2705,12 @@ pub(crate) mod rules_201_3 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B)+ C`
-        A { a: String, plus: SynMyI, c: String },
+        V1 { a: String, plus: SynMyI, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        I { plus_it: SynMyI, b: String, last_iteration: bool },
+        V1 { plus_it: SynMyI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2823,7 +2823,7 @@ pub(crate) mod rules_201_3 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_a(CtxA::A { a, plus, c });
+            self.listener.exit_a(CtxA::V1 { a, plus, c });
         }
 
         fn init_i(&mut self) {
@@ -2835,7 +2835,7 @@ pub(crate) mod rules_201_3 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { plus_it, b, last_iteration });
+            let val = self.listener.exit_i(CtxI::V1 { plus_it, b, last_iteration });
             self.stack.push(SynValue::I(val));
         }
     }
@@ -2856,17 +2856,17 @@ pub(crate) mod rules_202_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> b A b B A)*`
-        A { star: SynI },
+        V1 { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> b A b B A` iteration in `a -> ( ►► <L> b A b B A ◄◄ )*`
-        I { star_it: SynI, b: [SynB; 2], a: [String; 2], b1: String },
+        V1 { star_it: SynI, b: [SynB; 2], a: [String; 2], b1: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> C`
-        B { c: String },
+        V1 { c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2991,7 +2991,7 @@ pub(crate) mod rules_202_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { star });
+            let val = self.listener.exit_a(CtxA::V1 { star });
             self.stack.push(SynValue::A(val));
         }
 
@@ -3007,7 +3007,7 @@ pub(crate) mod rules_202_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { star_it, b: [b_1, b_2], a: [a_1, a_2], b1 });
+            let val = self.listener.exit_i(CtxI::V1 { star_it, b: [b_1, b_2], a: [a_1, a_2], b1 });
             self.stack.push(SynValue::I(val));
         }
 
@@ -3018,7 +3018,7 @@ pub(crate) mod rules_202_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { c });
+            let val = self.listener.exit_b(CtxB::V1 { c });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -3039,12 +3039,12 @@ pub(crate) mod rules_206_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (A (<L> B ",")* ";")* C`
-        A { star: SynA1, c: String },
+        V1 { star: SynA1, c: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> B ","` iteration in `a -> (A ( ►► <L> B "," ◄◄ )* ";")* C`
-        J { star_it: SynAiter, b: String },
+        V1 { star_it: SynAiter, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3173,7 +3173,7 @@ pub(crate) mod rules_206_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::A { star, c });
+            let val = self.listener.exit_a(CtxA::V1 { star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -3185,7 +3185,7 @@ pub(crate) mod rules_206_1 {
         fn exit_j(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::J { star_it, b });
+            let val = self.listener.exit_j(CtxJ::V1 { star_it, b });
             self.stack.push(SynValue::J(val));
         }
 
@@ -3226,22 +3226,22 @@ pub(crate) mod rules_208_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
-        A { star: SynI, c: String },
+        V1 { star: SynI, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        I { star_it: SynI, a: String, star: SynJ },
+        V1 { star_it: SynI, a: String, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-        J { star_it: SynJ, b: SynB },
+        V1 { star_it: SynJ, b: SynB },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3378,7 +3378,7 @@ pub(crate) mod rules_208_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { star, c });
+            let val = self.listener.exit_a(CtxA::V1 { star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -3391,7 +3391,7 @@ pub(crate) mod rules_208_1 {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { star_it, a, star });
+            let val = self.listener.exit_i(CtxI::V1 { star_it, a, star });
             self.stack.push(SynValue::I(val));
         }
 
@@ -3408,7 +3408,7 @@ pub(crate) mod rules_208_1 {
         fn exit_j(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let star_it = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::J { star_it, b });
+            let val = self.listener.exit_j(CtxJ::V1 { star_it, b });
             self.stack.push(SynValue::J(val));
         }
 
@@ -3419,7 +3419,7 @@ pub(crate) mod rules_208_1 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { b });
+            let val = self.listener.exit_b(CtxB::V1 { b });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -3440,22 +3440,22 @@ pub(crate) mod rules_208_2 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
-        A { star: SynI, c: String },
+        V1 { star: SynI, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        I { star_it: SynI, a: String },
+        V1 { star_it: SynI, a: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-        J,
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3581,7 +3581,7 @@ pub(crate) mod rules_208_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { star, c });
+            let val = self.listener.exit_a(CtxA::V1 { star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -3593,7 +3593,7 @@ pub(crate) mod rules_208_2 {
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { star_it, a });
+            let val = self.listener.exit_i(CtxI::V1 { star_it, a });
             self.stack.push(SynValue::I(val));
         }
 
@@ -3603,12 +3603,12 @@ pub(crate) mod rules_208_2 {
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::J);
+            self.listener.exit_j(CtxJ::V1);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::B { b });
+            self.listener.exit_b(CtxB::V1 { b });
         }
     }
 
@@ -3628,22 +3628,22 @@ pub(crate) mod rules_208_3 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
-        A { c: String },
+        V1 { c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        I { a: String },
+        V1 { a: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-        J,
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3763,22 +3763,22 @@ pub(crate) mod rules_208_3 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { c });
+            let val = self.listener.exit_a(CtxA::V1 { c });
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::I { a });
+            self.listener.exit_i(CtxI::V1 { a });
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::J);
+            self.listener.exit_j(CtxJ::V1);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::B { b });
+            self.listener.exit_b(CtxB::V1 { b });
         }
     }
 
@@ -3799,22 +3799,22 @@ pub(crate) mod rules_208_4 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
-        A { c: String },
+        V1 { c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        I { a: String },
+        V1 { a: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-        J,
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3923,21 +3923,21 @@ pub(crate) mod rules_208_4 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            self.listener.exit_a(CtxA::A { c });
+            self.listener.exit_a(CtxA::V1 { c });
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::I { a });
+            self.listener.exit_i(CtxI::V1 { a });
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::J);
+            self.listener.exit_j(CtxJ::V1);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::B { b });
+            self.listener.exit_b(CtxB::V1 { b });
         }
     }
 
@@ -3957,12 +3957,12 @@ pub(crate) mod rules_210_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> "B")* C`
-        A { a: String, c: String },
+        V1 { a: String, c: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> "B"` iteration in `a -> A ( ►► <L> "B" ◄◄ )* C`
-        I,
+        V1,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4074,12 +4074,12 @@ pub(crate) mod rules_210_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, c });
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
-            self.listener.exit_i(CtxI::I);
+            self.listener.exit_i(CtxI::V1);
         }
     }
 
@@ -4099,14 +4099,14 @@ pub(crate) mod rules_211_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A A (B <L>)* C`
-        A1 { a: [String; 2], star: SynI, c: String },
+        V1 { a: [String; 2], star: SynI, c: String },
         /// `a -> A C (B <L>)* C`
-        A2 { a: String, c: [String; 2], star: SynI },
+        V2 { a: String, c: [String; 2], star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `B <L>` iteration in `a -> A A ( ►► B <L> ◄◄ )* C | A C ( ►► B <L> ◄◄ )* C`
-        I { star_it: SynI, b: String },
+        V1 { star_it: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4230,14 +4230,14 @@ pub(crate) mod rules_211_1 {
                     let star = self.stack.pop().unwrap().get_i();
                     let a_2 = self.stack_t.pop().unwrap();
                     let a_1 = self.stack_t.pop().unwrap();
-                    CtxA::A1 { a: [a_1, a_2], star, c }
+                    CtxA::V1 { a: [a_1, a_2], star, c }
                 }
                 4 => {
                     let c_2 = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_i();
                     let c_1 = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A2 { a, c: [c_1, c_2], star }
+                    CtxA::V2 { a, c: [c_1, c_2], star }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
@@ -4253,7 +4253,7 @@ pub(crate) mod rules_211_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::I { star_it, b });
+            let val = self.listener.exit_i(CtxI::V1 { star_it, b });
             self.stack.push(SynValue::I(val));
         }
 
@@ -4280,14 +4280,14 @@ pub(crate) mod rules_250_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A | B)*`
-        A { star: SynI },
+        V1 { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
-        I1 { star_it: SynI, a: String },
+        V1 { star_it: SynI, a: String },
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`
-        I2 { star_it: SynI, b: String },
+        V2 { star_it: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4404,7 +4404,7 @@ pub(crate) mod rules_250_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { star });
+            let val = self.listener.exit_a(CtxA::V1 { star });
             self.stack.push(SynValue::A(val));
         }
 
@@ -4418,12 +4418,12 @@ pub(crate) mod rules_250_1 {
                 1 => {
                     let a = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { star_it, a }
+                    CtxI::V1 { star_it, a }
                 }
                 2 => {
                     let b = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { star_it, b }
+                    CtxI::V2 { star_it, b }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -4453,14 +4453,14 @@ pub(crate) mod rules_251_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A | B)+`
-        A { plus: SynI },
+        V1 { plus: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
-        I1 { plus_it: SynI, a: String, last_iteration: bool },
+        V1 { plus_it: SynI, a: String, last_iteration: bool },
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
-        I2 { plus_it: SynI, b: String, last_iteration: bool },
+        V2 { plus_it: SynI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4580,7 +4580,7 @@ pub(crate) mod rules_251_1 {
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { plus });
+            let val = self.listener.exit_a(CtxA::V1 { plus });
             self.stack.push(SynValue::A(val));
         }
 
@@ -4595,13 +4595,13 @@ pub(crate) mod rules_251_1 {
                     let last_iteration = alt_id == 4;
                     let a = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { plus_it, a, last_iteration }
+                    CtxI::V1 { plus_it, a, last_iteration }
                 }
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
                     let b = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { plus_it, b, last_iteration }
+                    CtxI::V2 { plus_it, b, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -4626,19 +4626,19 @@ pub(crate) mod rules_252_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A ((<L> b C b B C | D)+ E | F)+ G`
-        A { a: String, plus: SynA1, g: String },
+        V1 { a: String, plus: SynA1, g: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b C b B C` iteration in `a -> A (( ►► <L> b C b B C ◄◄  | D)+ E | F)+ G`
-        J1 { plus_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
+        V1 { plus_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
         /// `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
-        J2 { plus_it: SynJ, d: String, last_iteration: bool },
+        V2 { plus_it: SynJ, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> H`
-        B { h: String },
+        V1 { h: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4655,9 +4655,9 @@ pub(crate) mod rules_252_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `(<L> b C b B C | D)+ E` item in `a -> A ( ►► (<L> b C b B C | D)+ E ◄◄  | F)+ G`
-        Ch1 { plus: SynJ, e: String },
+        V1 { plus: SynJ, e: String },
         /// `F` item in `a -> A ((<L> b C b B C | D)+ E |  ►► F ◄◄ )+ G`
-        Ch2 { f: String },
+        V2 { f: String },
     }
 
     #[derive(Debug)]
@@ -4789,7 +4789,7 @@ pub(crate) mod rules_252_1 {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, g });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, g });
             self.stack.push(SynValue::A(val));
         }
 
@@ -4804,7 +4804,7 @@ pub(crate) mod rules_252_1 {
                     let last_iteration = alt_id == 7;
                     let d = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J2 { plus_it, d, last_iteration }
+                    CtxJ::V2 { plus_it, d, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
@@ -4814,7 +4814,7 @@ pub(crate) mod rules_252_1 {
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
                     let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { plus_it, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
+                    CtxJ::V1 { plus_it, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -4832,11 +4832,11 @@ pub(crate) mod rules_252_1 {
                 12 | 13 => {
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_j();
-                    SynA1Item::Ch1 { plus, e }
+                    SynA1Item::V1 { plus, e }
                 }
                 10 | 11 => {
                     let f = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch2 { f }
+                    SynA1Item::V2 { f }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -4848,7 +4848,7 @@ pub(crate) mod rules_252_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { h });
+            let val = self.listener.exit_b(CtxB::V1 { h });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -4869,19 +4869,19 @@ pub(crate) mod rules_253_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> (b C b B C | D)+ E | F)+ G`
-        A { a: String, plus: SynI, g: String },
+        V1 { a: String, plus: SynI, g: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> (b C b B C | D)+ E` iteration in `a -> A ( ►► <L> (b C b B C | D)+ E ◄◄  | F)+ G`
-        I1 { plus_it: SynI, plus: SynA1, e: String, last_iteration: bool },
+        V1 { plus_it: SynI, plus: SynA1, e: String, last_iteration: bool },
         /// `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
-        I2 { plus_it: SynI, f: String, last_iteration: bool },
+        V2 { plus_it: SynI, f: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> H`
-        B { h: String },
+        V1 { h: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4898,9 +4898,9 @@ pub(crate) mod rules_253_1 {
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
         /// `b C b B C` item in `a -> A (<L> ( ►► b C b B C ◄◄  | D)+ E | F)+ G`
-        Ch1 { b: [SynB; 2], c: [String; 2], b1: String },
+        V1 { b: [SynB; 2], c: [String; 2], b1: String },
         /// `D` item in `a -> A (<L> (b C b B C |  ►► D ◄◄ )+ E | F)+ G`
-        Ch2 { d: String },
+        V2 { d: String },
     }
 
     #[derive(Debug)]
@@ -5032,7 +5032,7 @@ pub(crate) mod rules_253_1 {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, g });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, g });
             self.stack.push(SynValue::A(val));
         }
 
@@ -5047,14 +5047,14 @@ pub(crate) mod rules_253_1 {
                     let last_iteration = alt_id == 7;
                     let f = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { plus_it, f, last_iteration }
+                    CtxI::V2 { plus_it, f, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_a1();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { plus_it, plus, e, last_iteration }
+                    CtxI::V1 { plus_it, plus, e, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5075,11 +5075,11 @@ pub(crate) mod rules_253_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::Ch1 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    SynA1Item::V1 { b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 10 | 11 => {
                     let d = self.stack_t.pop().unwrap();
-                    SynA1Item::Ch2 { d }
+                    SynA1Item::V2 { d }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -5091,7 +5091,7 @@ pub(crate) mod rules_253_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { h });
+            let val = self.listener.exit_b(CtxB::V1 { h });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -5112,26 +5112,26 @@ pub(crate) mod rules_254_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> (<L> b C b B C | D)* E | F)* G`
-        A { a: String, star: SynI, g: String },
+        V1 { a: String, star: SynI, g: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
-        I1 { star_it: SynI, star: SynJ, e: String },
+        V1 { star_it: SynI, star: SynJ, e: String },
         /// `F` iteration in `a -> A (<L> (<L> b C b B C | D)* E |  ►► F ◄◄ )* G`
-        I2 { star_it: SynI, f: String },
+        V2 { star_it: SynI, f: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
-        J1 { star_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
+        V1 { star_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
         /// `D` iteration in `a -> A (<L> (<L> b C b B C |  ►► D ◄◄ )* E | F)* G`
-        J2 { star_it: SynJ, d: String },
+        V2 { star_it: SynJ, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> H`
-        B { h: String },
+        V1 { h: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5271,7 +5271,7 @@ pub(crate) mod rules_254_1 {
             let g = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, star, g });
+            let val = self.listener.exit_a(CtxA::V1 { a, star, g });
             self.stack.push(SynValue::A(val));
         }
 
@@ -5286,12 +5286,12 @@ pub(crate) mod rules_254_1 {
                     let e = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_j();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { star_it, star, e }
+                    CtxI::V1 { star_it, star, e }
                 }
                 2 => {
                     let f = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { star_it, f }
+                    CtxI::V2 { star_it, f }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5318,12 +5318,12 @@ pub(crate) mod rules_254_1 {
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { star_it, b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    CtxJ::V1 { star_it, b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 5 => {
                     let d = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J2 { star_it, d }
+                    CtxJ::V2 { star_it, d }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -5338,7 +5338,7 @@ pub(crate) mod rules_254_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { h });
+            let val = self.listener.exit_b(CtxB::V1 { h });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -5359,21 +5359,21 @@ pub(crate) mod rules_256_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (<L> B A | B A C b | D)+ E`
-        A { a: String, plus: SynI, e: String },
+        V1 { a: String, plus: SynI, e: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
-        I1 { plus_it: SynI, b: String, a: String, last_iteration: bool },
+        V1 { plus_it: SynI, b: String, a: String, last_iteration: bool },
         /// `B A C b` iteration in `a -> A (<L> B A |  ►► B A C b ◄◄  | D)+ E`
-        I2 { plus_it: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
+        V2 { plus_it: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
         /// `D` iteration in `a -> A (<L> B A | B A C b |  ►► D ◄◄ )+ E`
-        I3 { plus_it: SynI, d: String, last_iteration: bool },
+        V3 { plus_it: SynI, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> F`
-        B { f: String },
+        V1 { f: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5507,7 +5507,7 @@ pub(crate) mod rules_256_1 {
             let e = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, e });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, e });
             self.stack.push(SynValue::A(val));
         }
 
@@ -5523,13 +5523,13 @@ pub(crate) mod rules_256_1 {
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { plus_it, b, a, last_iteration }
+                    CtxI::V1 { plus_it, b, a, last_iteration }
                 }
                 7 | 8 => {
                     let last_iteration = alt_id == 8;
                     let d = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I3 { plus_it, d, last_iteration }
+                    CtxI::V3 { plus_it, d, last_iteration }
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
@@ -5538,7 +5538,7 @@ pub(crate) mod rules_256_1 {
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { plus_it, b, a, c, b1, last_iteration }
+                    CtxI::V2 { plus_it, b, a, c, b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5548,7 +5548,7 @@ pub(crate) mod rules_256_1 {
 
         fn exit_b(&mut self) {
             let f = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { f });
+            let val = self.listener.exit_b(CtxB::V1 { f });
             self.stack.push(SynValue::B(val));
         }
     }
@@ -5569,27 +5569,27 @@ pub(crate) mod rules_258_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A | A B | C | D (<L> E | E F | G)*)*`
-        A { star: SynI },
+        V1 { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)*)*`
-        I1 { star_it: SynI, a: String },
+        V1 { star_it: SynI, a: String },
         /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | D (<L> E | E F | G)*)*`
-        I2 { star_it: SynI, a: String, b: String },
+        V2 { star_it: SynI, a: String, b: String },
         /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | D (<L> E | E F | G)*)*`
-        I3 { star_it: SynI, c: String },
+        V3 { star_it: SynI, c: String },
         /// `D (<L> E | E F | G)*` iteration in `a -> (<L> A | A B | C |  ►► D (<L> E | E F | G)* ◄◄ )*`
-        I4 { star_it: SynI, d: String, star: SynJ },
+        V4 { star_it: SynI, d: String, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)*)*`
-        J1 { star_it: SynJ, e: String },
+        V1 { star_it: SynJ, e: String },
         /// `E F` iteration in `a -> (<L> A | A B | C | D (<L> E |  ►► E F ◄◄  | G)*)*`
-        J2 { star_it: SynJ, e: String, f: String },
+        V2 { star_it: SynJ, e: String, f: String },
         /// `G` iteration in `a -> (<L> A | A B | C | D (<L> E | E F |  ►► G ◄◄ )*)*`
-        J3 { star_it: SynJ, g: String },
+        V3 { star_it: SynJ, g: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5724,7 +5724,7 @@ pub(crate) mod rules_258_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::A { star });
+            let val = self.listener.exit_a(CtxA::V1 { star });
             self.stack.push(SynValue::A(val));
         }
 
@@ -5738,24 +5738,24 @@ pub(crate) mod rules_258_1 {
                 2 => {
                     let c = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I3 { star_it, c }
+                    CtxI::V3 { star_it, c }
                 }
                 3 => {
                     let star = self.stack.pop().unwrap().get_j();
                     let d = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I4 { star_it, d, star }
+                    CtxI::V4 { star_it, d, star }
                 }
                 8 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { star_it, a, b }
+                    CtxI::V2 { star_it, a, b }
                 }
                 9 => {
                     let a = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { star_it, a }
+                    CtxI::V1 { star_it, a }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5778,18 +5778,18 @@ pub(crate) mod rules_258_1 {
                 6 => {
                     let g = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J3 { star_it, g }
+                    CtxJ::V3 { star_it, g }
                 }
                 10 => {
                     let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J2 { star_it, e, f }
+                    CtxJ::V2 { star_it, e, f }
                 }
                 11 => {
                     let e = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { star_it, e }
+                    CtxJ::V1 { star_it, e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -5819,9 +5819,9 @@ pub(crate) mod rules_301_1 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> Id "." expr`
-        Expr1 { id: String, expr: SynExpr },
+        V1 { id: String, expr: SynExpr },
         /// `expr -> "(" Num ")"`
-        Expr2 { num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5931,11 +5931,11 @@ pub(crate) mod rules_301_1 {
                 0 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr1 { id, expr }
+                    CtxExpr::V1 { id, expr }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr2 { num }
+                    CtxExpr::V2 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
@@ -5961,9 +5961,9 @@ pub(crate) mod rules_301_2 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> Id "." expr`
-        Expr1 { id: String },
+        V1 { id: String },
         /// `expr -> "(" Num ")"`
-        Expr2 { num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6061,11 +6061,11 @@ pub(crate) mod rules_301_2 {
             let ctx = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr1 { id }
+                    CtxExpr::V1 { id }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr2 { num }
+                    CtxExpr::V2 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
@@ -6089,9 +6089,9 @@ pub(crate) mod rules_401_1 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Id "." expr`
-        Expr1 { expr: SynExpr, id: String },
+        V1 { expr: SynExpr, id: String },
         /// `expr -> "(" Num ")"`
-        Expr2 { expr: SynExpr, num: String },
+        V2 { expr: SynExpr, num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6206,12 +6206,12 @@ pub(crate) mod rules_401_1 {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr1 { expr, id }
+                    CtxExpr::V1 { expr, id }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr2 { expr, num }
+                    CtxExpr::V2 { expr, num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
@@ -6236,9 +6236,9 @@ pub(crate) mod rules_401_2 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Id "." expr`
-        Expr1 { id: String },
+        V1 { id: String },
         /// `expr -> "(" Num ")"`
-        Expr2 { num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6336,11 +6336,11 @@ pub(crate) mod rules_401_2 {
             let ctx = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr1 { id }
+                    CtxExpr::V1 { id }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr2 { num }
+                    CtxExpr::V2 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
@@ -6363,14 +6363,14 @@ pub(crate) mod rules_502_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> f`
-        E1 { f: SynF },
+        V1 { f: SynF },
         /// `e -> e "." Id`
-        E2 { e: SynE, id: String },
+        V2 { e: SynE, id: String },
     }
     #[derive(Debug)]
     pub enum CtxF {
         /// `f -> Id`
-        F { id: String },
+        V1 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6488,14 +6488,14 @@ pub(crate) mod rules_502_1 {
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
-            let val = self.listener.exit_e(CtxE::E1 { f });
+            let val = self.listener.exit_e(CtxE::V1 { f });
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E2 { e, id });
+            let val = self.listener.exit_e(CtxE::V2 { e, id });
             self.stack.push(SynValue::E(val));
         }
 
@@ -6506,7 +6506,7 @@ pub(crate) mod rules_502_1 {
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_f(CtxF::F { id });
+            let val = self.listener.exit_f(CtxF::V1 { id });
             self.stack.push(SynValue::F(val));
         }
     }
@@ -6527,14 +6527,14 @@ pub(crate) mod rules_502_2 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> f`
-        E1 { f: SynF },
+        V1 { f: SynF },
         /// `e -> e "." Id`
-        E2 { id: String },
+        V2 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxF {
         /// `f -> Id`
-        F { id: String },
+        V1 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6645,17 +6645,17 @@ pub(crate) mod rules_502_2 {
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
-            self.listener.exit_e(CtxE::E1 { f });
+            self.listener.exit_e(CtxE::V1 { f });
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.listener.exit_e(CtxE::E2 { id });
+            self.listener.exit_e(CtxE::V2 { id });
         }
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_f(CtxF::F { id });
+            let val = self.listener.exit_f(CtxF::V1 { id });
             self.stack.push(SynValue::F(val));
         }
     }
@@ -6679,11 +6679,11 @@ pub(crate) mod rules_580_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "!"`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> "-" e`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> Num`
-        E3 { num: String },
+        V3 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6796,11 +6796,11 @@ pub(crate) mod rules_580_1 {
             let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E3 { num }
+                    CtxE::V3 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
@@ -6810,7 +6810,7 @@ pub(crate) mod rules_580_1 {
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E1 { e });
+            let val = self.listener.exit_e(CtxE::V1 { e });
             self.stack.push(SynValue::E(val));
         }
 
@@ -6945,11 +6945,11 @@ pub(crate) mod rules_581_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "!"`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> <L> "-" e`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> Num`
-        E3 { e: SynE, num: String },
+        V3 { e: SynE, num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7067,12 +7067,12 @@ pub(crate) mod rules_581_1 {
             let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e, num }
+                    CtxE::V3 { e, num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
@@ -7082,7 +7082,7 @@ pub(crate) mod rules_581_1 {
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E1 { e });
+            let val = self.listener.exit_e(CtxE::V1 { e });
             self.stack.push(SynValue::E(val));
         }
 
@@ -7224,9 +7224,9 @@ pub(crate) mod rules_600_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "+" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> Num`
-        E2 { num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7337,13 +7337,13 @@ pub(crate) mod rules_600_1 {
         fn exit_e1(&mut self) {
             let e_2 = self.stack.pop().unwrap().get_e();
             let e_1 = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E1 { e: [e_1, e_2] });
+            let val = self.listener.exit_e(CtxE::V1 { e: [e_1, e_2] });
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E2 { num });
+            let val = self.listener.exit_e(CtxE::V2 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -7393,13 +7393,13 @@ pub(crate) mod rules_603_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> "!" e`
-        E3 { e: SynE },
+        V3 { e: SynE },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7517,12 +7517,12 @@ pub(crate) mod rules_603_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -7534,11 +7534,11 @@ pub(crate) mod rules_603_1 {
             let ctx = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::V3 { e }
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -7649,13 +7649,13 @@ pub(crate) mod rules_604_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> "!" e`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7773,12 +7773,12 @@ pub(crate) mod rules_604_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -7790,11 +7790,11 @@ pub(crate) mod rules_604_1 {
             let ctx = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -7905,13 +7905,13 @@ pub(crate) mod rules_605_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "!" e`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8029,12 +8029,12 @@ pub(crate) mod rules_605_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -8046,11 +8046,11 @@ pub(crate) mod rules_605_1 {
             let ctx = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::V1 { e }
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -8161,13 +8161,13 @@ pub(crate) mod rules_606_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> <R> e "!" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8285,17 +8285,17 @@ pub(crate) mod rules_606_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -8305,7 +8305,7 @@ pub(crate) mod rules_606_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -8412,13 +8412,13 @@ pub(crate) mod rules_607_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> <R> e "!" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8537,17 +8537,17 @@ pub(crate) mod rules_607_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -8557,7 +8557,7 @@ pub(crate) mod rules_607_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -8664,13 +8664,13 @@ pub(crate) mod rules_608_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> <R> e "!" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8792,17 +8792,17 @@ pub(crate) mod rules_608_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -8812,7 +8812,7 @@ pub(crate) mod rules_608_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -8919,13 +8919,13 @@ pub(crate) mod rules_609_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "!"`
-        E3 { e: SynE },
+        V3 { e: SynE },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9043,16 +9043,16 @@ pub(crate) mod rules_609_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::V3 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -9062,7 +9062,7 @@ pub(crate) mod rules_609_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9169,13 +9169,13 @@ pub(crate) mod rules_610_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "!"`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9294,16 +9294,16 @@ pub(crate) mod rules_610_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -9313,7 +9313,7 @@ pub(crate) mod rules_610_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9420,13 +9420,13 @@ pub(crate) mod rules_611_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "!"`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9547,17 +9547,17 @@ pub(crate) mod rules_611_1 {
             let ctx = match alt_id {
                 1 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::V1 { e }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -9567,7 +9567,7 @@ pub(crate) mod rules_611_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9674,13 +9674,13 @@ pub(crate) mod rules_612_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "!" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9802,17 +9802,17 @@ pub(crate) mod rules_612_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -9822,7 +9822,7 @@ pub(crate) mod rules_612_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9929,13 +9929,13 @@ pub(crate) mod rules_613_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> <P> e "!" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -10053,17 +10053,17 @@ pub(crate) mod rules_613_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -10073,7 +10073,7 @@ pub(crate) mod rules_613_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10180,13 +10180,13 @@ pub(crate) mod rules_614_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> <P> e "!" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -10305,17 +10305,17 @@ pub(crate) mod rules_614_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -10325,7 +10325,7 @@ pub(crate) mod rules_614_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::E4 { num });
+            let val = self.listener.exit_e(CtxE::V4 { num });
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10432,13 +10432,13 @@ pub(crate) mod rules_630_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+"`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> "!" e`
-        E3 { e: SynE },
+        V3 { e: SynE },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -10553,11 +10553,11 @@ pub(crate) mod rules_630_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -10569,11 +10569,11 @@ pub(crate) mod rules_630_1 {
             let ctx = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::V3 { e }
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
@@ -10684,13 +10684,13 @@ pub(crate) mod rules_631_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> e "+"`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> <R> "!" e`
-        E3 { e: SynE },
+        V3 { e: SynE },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -10805,11 +10805,11 @@ pub(crate) mod rules_631_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -10821,11 +10821,11 @@ pub(crate) mod rules_631_1 {
             let ctx = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::V3 { e }
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
@@ -10936,13 +10936,13 @@ pub(crate) mod rules_632_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
+        V1 { e: [SynE; 2] },
         /// `e -> <R> e "+"`
-        E2 { e: SynE },
+        V2 { e: SynE },
         /// `e -> "!" e`
-        E3 { e: SynE },
+        V3 { e: SynE },
         /// `e -> Num`
-        E4 { num: String },
+        V4 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -11057,11 +11057,11 @@ pub(crate) mod rules_632_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::V1 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
+                    CtxE::V2 { e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -11073,11 +11073,11 @@ pub(crate) mod rules_632_1 {
             let ctx = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::V3 { e }
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E4 { num }
+                    CtxE::V4 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
@@ -11435,17 +11435,17 @@ pub(crate) mod rules_640_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> e "/" <P> e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E4 { e: [SynE; 2] },
+        V4 { e: [SynE; 2] },
         /// `e -> e "-" <P> e`
-        E5 { e: [SynE; 2] },
+        V5 { e: [SynE; 2] },
         /// `e -> Id`
-        E6 { id: String },
+        V6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -11566,22 +11566,22 @@ pub(crate) mod rules_640_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::V4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e: [e_1, e_2] }
+                    CtxE::V5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -11593,11 +11593,11 @@ pub(crate) mod rules_640_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::V1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::E6 { id }
+                    CtxE::V6 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -11758,17 +11758,17 @@ pub(crate) mod rules_641_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> <R> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> <R> e "/" <P> e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> <R> e "+" e`
-        E4 { e: [SynE; 2] },
+        V4 { e: [SynE; 2] },
         /// `e -> <R> e "-" <P> e`
-        E5 { e: [SynE; 2] },
+        V5 { e: [SynE; 2] },
         /// `e -> Id`
-        E6 { id: String },
+        V6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -11889,22 +11889,22 @@ pub(crate) mod rules_641_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::V4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e: [e_1, e_2] }
+                    CtxE::V5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -11916,11 +11916,11 @@ pub(crate) mod rules_641_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::V1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::E6 { id }
+                    CtxE::V6 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -12081,17 +12081,17 @@ pub(crate) mod rules_642_1 {
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
-        E1 { e: SynE },
+        V1 { e: SynE },
         /// `e -> <R> e "*" e`
-        E2 { e: [SynE; 2] },
+        V2 { e: [SynE; 2] },
         /// `e -> <R> e "/" <P> e`
-        E3 { e: [SynE; 2] },
+        V3 { e: [SynE; 2] },
         /// `e -> e "+" e`
-        E4 { e: [SynE; 2] },
+        V4 { e: [SynE; 2] },
         /// `e -> e "-" <P> e`
-        E5 { e: [SynE; 2] },
+        V5 { e: [SynE; 2] },
         /// `e -> Id`
-        E6 { id: String },
+        V6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12212,22 +12212,22 @@ pub(crate) mod rules_642_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::V2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::V3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::V4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e: [e_1, e_2] }
+                    CtxE::V5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -12239,11 +12239,11 @@ pub(crate) mod rules_642_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::V1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::E6 { id }
+                    CtxE::V6 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
@@ -12402,9 +12402,9 @@ pub(crate) mod rules_650_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a A a a`
-        A1 { a: [SynA; 3], a1: String },
+        V1 { a: [SynA; 3], a1: String },
         /// `a -> B`
-        A2 { b: String },
+        V2 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12517,13 +12517,13 @@ pub(crate) mod rules_650_1 {
             let a_2 = self.stack.pop().unwrap().get_a();
             let a1 = self.stack_t.pop().unwrap();
             let a_1 = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A1 { a: [a_1, a_2, a_3], a1 });
+            let val = self.listener.exit_a(CtxA::V1 { a: [a_1, a_2, a_3], a1 });
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a2(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A2 { b });
+            let val = self.listener.exit_a(CtxA::V2 { b });
             self.stack.push(SynValue::A(val));
         }
     }
@@ -12544,15 +12544,15 @@ pub(crate) mod rules_705_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A`
-        A1 { a: String },
+        V1 { a: String },
         /// `a -> A B`
-        A2 { a: String, b: String },
+        V2 { a: String, b: String },
         /// `a -> A B C`
-        A3 { a: String, b: String, c: String },
+        V3 { a: String, b: String, c: String },
         /// `a -> A B D`
-        A4 { a: String, b: String, d: String },
+        V4 { a: String, b: String, d: String },
         /// `a -> E`
-        A5 { e: String },
+        V5 { e: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12667,28 +12667,28 @@ pub(crate) mod rules_705_1 {
             let ctx = match alt_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
-                    CtxA::A5 { e }
+                    CtxA::V5 { e }
                 }
                 3 => {
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A1 { a }
+                    CtxA::V1 { a }
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A3 { a, b, c }
+                    CtxA::V3 { a, b, c }
                 }
                 5 => {
                     let d = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A4 { a, b, d }
+                    CtxA::V4 { a, b, d }
                 }
                 6 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A2 { a, b }
+                    CtxA::V2 { a, b }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
@@ -12713,9 +12713,9 @@ pub(crate) mod rules_820_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a A* C`
-        A1 { a: SynA, star: SynA1, c: String },
+        V1 { a: SynA, star: SynA1, c: String },
         /// `a -> B`
-        A2 { b: String },
+        V2 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12833,7 +12833,7 @@ pub(crate) mod rules_820_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A2 { b });
+            let val = self.listener.exit_a(CtxA::V2 { b });
             self.stack.push(SynValue::A(val));
         }
 
@@ -12854,7 +12854,7 @@ pub(crate) mod rules_820_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A1 { a, star, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -12880,9 +12880,9 @@ pub(crate) mod rules_821_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a A+ C`
-        A1 { a: SynA, plus: SynA1, c: String },
+        V1 { a: SynA, plus: SynA1, c: String },
         /// `a -> B`
-        A2 { b: String },
+        V2 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13001,7 +13001,7 @@ pub(crate) mod rules_821_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A2 { b });
+            let val = self.listener.exit_a(CtxA::V2 { b });
             self.stack.push(SynValue::A(val));
         }
 
@@ -13022,7 +13022,7 @@ pub(crate) mod rules_821_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A1 { a, plus, c });
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -13048,9 +13048,9 @@ pub(crate) mod rules_810_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A* B a`
-        A1 { star: SynA1, b: String, a: SynA },
+        V1 { star: SynA1, b: String, a: SynA },
         /// `a -> C`
-        A2 { c: String },
+        V2 { c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13169,11 +13169,11 @@ pub(crate) mod rules_810_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     let b = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_a1();
-                    CtxA::A1 { star, b, a }
+                    CtxA::V1 { star, b, a }
                 }
                 1 => {
                     let c = self.stack_t.pop().unwrap();
-                    CtxA::A2 { c }
+                    CtxA::V2 { c }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
@@ -13211,9 +13211,9 @@ pub(crate) mod rules_811_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A+ B a`
-        A1 { plus: SynA1, b: String, a: SynA },
+        V1 { plus: SynA1, b: String, a: SynA },
         /// `a -> C`
-        A2 { c: String },
+        V2 { c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13334,11 +13334,11 @@ pub(crate) mod rules_811_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     let b = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_a1();
-                    CtxA::A1 { plus, b, a }
+                    CtxA::V1 { plus, b, a }
                 }
                 1 => {
                     let c = self.stack_t.pop().unwrap();
-                    CtxA::A2 { c }
+                    CtxA::V2 { c }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
@@ -13377,13 +13377,13 @@ pub(crate) mod rules_835_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a "x" a`
-        A1 { a: [SynA; 2] },
+        V1 { a: [SynA; 2] },
         /// `a -> a "*" "[" Num+ "]"`
-        A2 { a: SynA, plus: SynA1 },
+        V2 { a: SynA, plus: SynA1 },
         /// `a -> "-" a`
-        A3 { a: SynA },
+        V3 { a: SynA },
         /// `a -> Id`
-        A4 { id: String },
+        V4 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13520,12 +13520,12 @@ pub(crate) mod rules_835_1 {
                 2 => {
                     let a_2 = self.stack.pop().unwrap().get_a();
                     let a_1 = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a: [a_1, a_2] }
+                    CtxA::V1 { a: [a_1, a_2] }
                 }
                 3 => {
                     let plus = self.stack.pop().unwrap().get_a1();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, plus }
+                    CtxA::V2 { a, plus }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a2")
             };
@@ -13537,11 +13537,11 @@ pub(crate) mod rules_835_1 {
             let ctx = match alt_id {
                 5 => {
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a }
+                    CtxA::V3 { a }
                 }
                 6 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxA::A4 { id }
+                    CtxA::V4 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a3")
             };
@@ -13566,9 +13566,9 @@ pub(crate) mod rules_862_1 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Num "^" expr`
-        Expr1 { expr: SynExpr, num: String },
+        V1 { expr: SynExpr, num: String },
         /// `expr -> Num`
-        Expr2 { expr: SynExpr, num: String },
+        V2 { expr: SynExpr, num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13685,12 +13685,12 @@ pub(crate) mod rules_862_1 {
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr1 { expr, num }
+                    CtxExpr::V1 { expr, num }
                 }
                 2 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr2 { expr, num }
+                    CtxExpr::V2 { expr, num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
@@ -13831,11 +13831,11 @@ pub(crate) mod rules_870_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a A`
-        A1 { a: SynA, a1: String },
+        V1 { a: SynA, a1: String },
         /// `a -> B C`
-        A2 { b: String, c: String },
+        V2 { b: String, c: String },
         /// `a -> B D`
-        A3 { b: String, d: String },
+        V3 { b: String, d: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13950,12 +13950,12 @@ pub(crate) mod rules_870_1 {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    CtxA::A2 { b, c }
+                    CtxA::V2 { b, c }
                 }
                 4 => {
                     let d = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    CtxA::A3 { b, d }
+                    CtxA::V3 { b, d }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
@@ -13966,7 +13966,7 @@ pub(crate) mod rules_870_1 {
         fn exit_a1(&mut self) {
             let a1 = self.stack_t.pop().unwrap();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A1 { a, a1 });
+            let val = self.listener.exit_a(CtxA::V1 { a, a1 });
             self.stack.push(SynValue::A(val));
         }
 
@@ -13992,11 +13992,11 @@ pub(crate) mod rules_871_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> a A B`
-        A1 { a: SynA, a1: String, b: String },
+        V1 { a: SynA, a1: String, b: String },
         /// `a -> a A C`
-        A2 { a: SynA, a1: String, c: String },
+        V2 { a: SynA, a1: String, c: String },
         /// `a -> D`
-        A3 { d: String },
+        V3 { d: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -14108,7 +14108,7 @@ pub(crate) mod rules_871_1 {
 
         fn inter_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A3 { d });
+            let val = self.listener.exit_a(CtxA::V3 { d });
             self.stack.push(SynValue::A(val));
         }
 
@@ -14118,13 +14118,13 @@ pub(crate) mod rules_871_1 {
                     let b = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a, a1, b }
+                    CtxA::V1 { a, a1, b }
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, a1, c }
+                    CtxA::V2 { a, a1, c }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
@@ -14155,129 +14155,129 @@ pub(crate) mod rules_901_1 {
     #[derive(Debug)]
     pub enum CtxFile {
         /// `file -> header file_item*`
-        File1 { header: SynHeader, star: SynFile1 },
+        V1 { header: SynHeader, star: SynFile1 },
         /// `file -> file_item*`
-        File2 { star: SynFile1 },
+        V2 { star: SynFile1 },
     }
     #[derive(Debug)]
     pub enum CtxFileItem {
         /// `file_item -> option`
-        FileItem1 { option: SynOption },
+        V1 { option: SynOption },
         /// `file_item -> declaration`
-        FileItem2 { declaration: SynDeclaration },
+        V2 { declaration: SynDeclaration },
         /// `file_item -> rule`
-        FileItem3 { rule: SynRule },
+        V3 { rule: SynRule },
     }
     #[derive(Debug)]
     pub enum CtxHeader {
         /// `header -> "lexicon" Id ";"`
-        Header { id: String },
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxDeclaration {
         /// `declaration -> "mode" Id ";"`
-        Declaration { id: String },
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxOption {
         /// `option -> "channels" "{" Id ("," Id)* "}"`
-        Option { id: String, star: SynOption1 },
+        V1 { id: String, star: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
         /// `rule -> "fragment" Id ":" match ";"`
-        Rule1 { id: String, match1: SynMatch },
+        V1 { id: String, match1: SynMatch },
         /// `rule -> Id ":" match "->" actions ";"`
-        Rule2 { id: String, match1: SynMatch, actions: SynActions },
+        V2 { id: String, match1: SynMatch, actions: SynActions },
         /// `rule -> Id ":" match ";"`
-        Rule3 { id: String, match1: SynMatch },
+        V3 { id: String, match1: SynMatch },
     }
     #[derive(Debug)]
     pub enum CtxActions {
         /// `actions -> action ("," action)*`
-        Actions { action: SynAction, star: SynActions1 },
+        V1 { action: SynAction, star: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
         /// `action -> "mode" "(" Id ")"`
-        Action1 { id: String },
+        V1 { id: String },
         /// `action -> "push" "(" Id ")"`
-        Action2 { id: String },
+        V2 { id: String },
         /// `action -> "pop"`
-        Action3,
+        V3,
         /// `action -> "skip"`
-        Action4,
+        V4,
         /// `action -> "more"`
-        Action5,
+        V5,
         /// `action -> "type" "(" Id ")"`
-        Action6 { id: String },
+        V6 { id: String },
         /// `action -> "channel" "(" Id ")"`
-        Action7 { id: String },
+        V7 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxMatch {
         /// `match -> alt_items`
-        Match { alt_items: SynAltItems },
+        V1 { alt_items: SynAltItems },
     }
     #[derive(Debug)]
     pub enum CtxAltItems {
         /// `alt_items -> alt_item ("|" alt_item)*`
-        AltItems { alt_item: SynAltItem, star: SynAltItems1 },
+        V1 { alt_item: SynAltItem, star: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
         /// `alt_item -> repeat_item+`
-        AltItem { plus: SynAltItem1 },
+        V1 { plus: SynAltItem1 },
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
         /// `repeat_item -> item "*" "?"`
-        RepeatItem1 { item: SynItem },
+        V1 { item: SynItem },
         /// `repeat_item -> item "*"`
-        RepeatItem2 { item: SynItem },
+        V2 { item: SynItem },
         /// `repeat_item -> item "+" "?"`
-        RepeatItem3 { item: SynItem },
+        V3 { item: SynItem },
         /// `repeat_item -> item "+"`
-        RepeatItem4 { item: SynItem },
+        V4 { item: SynItem },
         /// `repeat_item -> item "?"`
-        RepeatItem5 { item: SynItem },
+        V5 { item: SynItem },
         /// `repeat_item -> item`
-        RepeatItem6 { item: SynItem },
+        V6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
         /// `item -> Id`
-        Item1 { id: String },
+        V1 { id: String },
         /// `item -> CharLit ".." CharLit`
-        Item2 { charlit: [String; 2] },
+        V2 { charlit: [String; 2] },
         /// `item -> CharLit`
-        Item3 { charlit: String },
+        V3 { charlit: String },
         /// `item -> StrLit`
-        Item4 { strlit: String },
+        V4 { strlit: String },
         /// `item -> char_set`
-        Item5 { char_set: SynCharSet },
+        V5 { char_set: SynCharSet },
         /// `item -> "(" alt_items ")"`
-        Item6 { alt_items: SynAltItems },
+        V6 { alt_items: SynAltItems },
         /// `item -> "~" item`
-        Item7 { item: SynItem },
+        V7 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
         /// `char_set -> "[" char_set_one+ "]"`
-        CharSet1 { plus: SynCharSet1 },
+        V1 { plus: SynCharSet1 },
         /// `char_set -> "."`
-        CharSet2,
+        V2,
         /// `char_set -> FixedSet`
-        CharSet3 { fixedset: String },
+        V3 { fixedset: String },
     }
     #[derive(Debug)]
     pub enum CtxCharSetOne {
         /// `char_set_one -> SetChar "-" SetChar`
-        CharSetOne1 { setchar: [String; 2] },
+        V1 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
-        CharSetOne2 { setchar: String },
+        V2 { setchar: String },
         /// `char_set_one -> FixedSet`
-        CharSetOne3 { fixedset: String },
+        V3 { fixedset: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -14606,11 +14606,11 @@ pub(crate) mod rules_901_1 {
                 0 => {
                     let star = self.stack.pop().unwrap().get_file1();
                     let header = self.stack.pop().unwrap().get_header();
-                    CtxFile::File1 { header, star }
+                    CtxFile::V1 { header, star }
                 }
                 1 => {
                     let star = self.stack.pop().unwrap().get_file1();
-                    CtxFile::File2 { star }
+                    CtxFile::V2 { star }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
@@ -14635,15 +14635,15 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 2 => {
                     let option = self.stack.pop().unwrap().get_option();
-                    CtxFileItem::FileItem1 { option }
+                    CtxFileItem::V1 { option }
                 }
                 3 => {
                     let declaration = self.stack.pop().unwrap().get_declaration();
-                    CtxFileItem::FileItem2 { declaration }
+                    CtxFileItem::V2 { declaration }
                 }
                 4 => {
                     let rule = self.stack.pop().unwrap().get_rule();
-                    CtxFileItem::FileItem3 { rule }
+                    CtxFileItem::V3 { rule }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
@@ -14653,20 +14653,20 @@ pub(crate) mod rules_901_1 {
 
         fn exit_header(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_header(CtxHeader::Header { id });
+            let val = self.listener.exit_header(CtxHeader::V1 { id });
             self.stack.push(SynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_declaration(CtxDeclaration::Declaration { id });
+            let val = self.listener.exit_declaration(CtxDeclaration::V1 { id });
             self.stack.push(SynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_option(CtxOption::Option { id, star });
+            let val = self.listener.exit_option(CtxOption::V1 { id, star });
             self.stack.push(SynValue::Option(val));
         }
 
@@ -14688,18 +14688,18 @@ pub(crate) mod rules_901_1 {
                 8 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule1 { id, match1 }
+                    CtxRule::V1 { id, match1 }
                 }
                 43 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule2 { id, match1, actions }
+                    CtxRule::V2 { id, match1, actions }
                 }
                 44 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule3 { id, match1 }
+                    CtxRule::V3 { id, match1 }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
@@ -14710,7 +14710,7 @@ pub(crate) mod rules_901_1 {
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
             let action = self.stack.pop().unwrap().get_action();
-            let val = self.listener.exit_actions(CtxActions::Actions { action, star });
+            let val = self.listener.exit_actions(CtxActions::V1 { action, star });
             self.stack.push(SynValue::Actions(val));
         }
 
@@ -14731,28 +14731,28 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action1 { id }
+                    CtxAction::V1 { id }
                 }
                 12 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action2 { id }
+                    CtxAction::V2 { id }
                 }
                 13 => {
-                    CtxAction::Action3
+                    CtxAction::V3
                 }
                 14 => {
-                    CtxAction::Action4
+                    CtxAction::V4
                 }
                 15 => {
-                    CtxAction::Action5
+                    CtxAction::V5
                 }
                 16 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action6 { id }
+                    CtxAction::V6 { id }
                 }
                 17 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action7 { id }
+                    CtxAction::V7 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
@@ -14762,14 +14762,14 @@ pub(crate) mod rules_901_1 {
 
         fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
-            let val = self.listener.exit_match(CtxMatch::Match { alt_items });
+            let val = self.listener.exit_match(CtxMatch::V1 { alt_items });
             self.stack.push(SynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let val = self.listener.exit_alt_items(CtxAltItems::AltItems { alt_item, star });
+            let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star });
             self.stack.push(SynValue::AltItems(val));
         }
 
@@ -14788,7 +14788,7 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_item(&mut self) {
             let plus = self.stack.pop().unwrap().get_alt_item1();
-            let val = self.listener.exit_alt_item(CtxAltItem::AltItem { plus });
+            let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus });
             self.stack.push(SynValue::AltItem(val));
         }
 
@@ -14809,27 +14809,27 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem5 { item }
+                    CtxRepeatItem::V5 { item }
                 }
                 48 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem6 { item }
+                    CtxRepeatItem::V6 { item }
                 }
                 57 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem3 { item }
+                    CtxRepeatItem::V3 { item }
                 }
                 58 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem4 { item }
+                    CtxRepeatItem::V4 { item }
                 }
                 59 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem1 { item }
+                    CtxRepeatItem::V1 { item }
                 }
                 60 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem2 { item }
+                    CtxRepeatItem::V2 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
@@ -14841,32 +14841,32 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
-                    CtxItem::Item6 { alt_items }
+                    CtxItem::V6 { alt_items }
                 }
                 23 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item7 { item }
+                    CtxItem::V7 { item }
                 }
                 24 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxItem::Item1 { id }
+                    CtxItem::V1 { id }
                 }
                 26 => {
                     let strlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item4 { strlit }
+                    CtxItem::V4 { strlit }
                 }
                 27 => {
                     let char_set = self.stack.pop().unwrap().get_char_set();
-                    CtxItem::Item5 { char_set }
+                    CtxItem::V5 { char_set }
                 }
                 49 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::Item2 { charlit: [charlit_1, charlit_2] }
+                    CtxItem::V2 { charlit: [charlit_1, charlit_2] }
                 }
                 50 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { charlit }
+                    CtxItem::V3 { charlit }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
@@ -14878,14 +14878,14 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 28 => {
                     let plus = self.stack.pop().unwrap().get_char_set1();
-                    CtxCharSet::CharSet1 { plus }
+                    CtxCharSet::V1 { plus }
                 }
                 29 => {
-                    CtxCharSet::CharSet2
+                    CtxCharSet::V2
                 }
                 30 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSet::CharSet3 { fixedset }
+                    CtxCharSet::V3 { fixedset }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
@@ -14910,16 +14910,16 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne3 { fixedset }
+                    CtxCharSetOne::V3 { fixedset }
                 }
                 51 => {
                     let setchar_2 = self.stack_t.pop().unwrap();
                     let setchar_1 = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne1 { setchar: [setchar_1, setchar_2] }
+                    CtxCharSetOne::V1 { setchar: [setchar_1, setchar_2] }
                 }
                 52 => {
                     let setchar = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne2 { setchar }
+                    CtxCharSetOne::V2 { setchar }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };

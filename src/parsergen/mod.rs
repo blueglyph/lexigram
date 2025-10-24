@@ -1067,13 +1067,8 @@ impl ParserGen {
             } // var in group
             if VERBOSE { println!("alt_info_to_sort = {alt_info_to_sort:?}"); }
             for (owner, alts) in alt_info_to_sort {
-                let is_unique = alts.len() == 1;
-                for (num, alt) in self.sort_alt_ids(group[0], &alts).into_iter().enumerate() {
-                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                    if !is_unique {
-                        NameFixer::add_number(&mut name, num + 1);
-                    }
-                    alt_info[alt as usize] = Some((owner, name.clone()));
+                for (num, alt) in self.sort_alt_ids(group[0], &alts).into_iter().index_start(1) {
+                    alt_info[alt as usize] = Some((owner, format!("V{num}")));
                 }
             }
         } // group
@@ -1367,7 +1362,7 @@ impl ParserGen {
                         src.push(format!("pub enum Syn{nu}Item {{"));
                         for (i, &a_id) in endpoints.into_iter().index_start(1) {
                             src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                            src.push(format!("    Ch{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
+                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
                         }
                         src.push(format!("}}"));
                     } else {
@@ -1725,7 +1720,7 @@ impl ParserGen {
                                     src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
                                     let (src_let, src_struct) = source_lets(infos, &nt_name, "        ");
                                     src_wrapper_impl.extend(src_let);
-                                    src_wrapper_impl.push(format!("                Syn{nu}Item::Ch{i} {{ {} }}", src_struct));
+                                    src_wrapper_impl.push(format!("                Syn{nu}Item::V{i} {{ {} }}", src_struct));
                                     src_wrapper_impl.push(format!("            }}"));
                                 }
                                 src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
