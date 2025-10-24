@@ -5568,28 +5568,28 @@ pub(crate) mod rules_258_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | A B | C | (<L> D | D E | F)*)*`
+        /// `a -> (<L> A | A B | C | D (<L> E | E F | G)*)*`
         A { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | (<L> D | D E | F)*)*`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)*)*`
         I1 { star_it: SynI, a: String },
-        /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | (<L> D | D E | F)*)*`
+        /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | D (<L> E | E F | G)*)*`
         I2 { star_it: SynI, a: String, b: String },
-        /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | (<L> D | D E | F)*)*`
+        /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | D (<L> E | E F | G)*)*`
         I3 { star_it: SynI, c: String },
-        /// `(<L> D | D E | F)*` iteration in `a -> (<L> A | A B | C |  ►► (<L> D | D E | F)* ◄◄ )*`
-        I4 { star_it: SynI, star: SynJ },
+        /// `D (<L> E | E F | G)*` iteration in `a -> (<L> A | A B | C |  ►► D (<L> E | E F | G)* ◄◄ )*`
+        I4 { star_it: SynI, d: String, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
-        /// `<L> D` iteration in `a -> (<L> A | A B | C | ( ►► <L> D ◄◄  | D E | F)*)*`
-        J1 { star_it: SynJ, d: String },
-        /// `D E` iteration in `a -> (<L> A | A B | C | (<L> D |  ►► D E ◄◄  | F)*)*`
-        J2 { star_it: SynJ, d: String, e: String },
-        /// `F` iteration in `a -> (<L> A | A B | C | (<L> D | D E |  ►► F ◄◄ )*)*`
-        J3 { star_it: SynJ, f: String },
+        /// `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)*)*`
+        J1 { star_it: SynJ, e: String },
+        /// `E F` iteration in `a -> (<L> A | A B | C | D (<L> E |  ►► E F ◄◄  | G)*)*`
+        J2 { star_it: SynJ, e: String, f: String },
+        /// `G` iteration in `a -> (<L> A | A B | C | D (<L> E | E F |  ►► G ◄◄ )*)*`
+        J3 { star_it: SynJ, g: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5663,16 +5663,16 @@ pub(crate) mod rules_258_1 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i
                         2 |                                         // i -> <L> C i
-                        3 |                                         // i -> <L> j i
+                        3 |                                         // i -> <L> D j i
                         8 |                                         // a_1 -> B i
                         9 => self.exit_i(alt_id),                   // a_1 -> i
                         4 => self.exitloop_i(),                     // i -> <L> ε
-                        6 |                                         // j -> <L> F j
-                        10 |                                        // a_2 -> E j
+                        6 |                                         // j -> <L> G j
+                        10 |                                        // a_2 -> F j
                         11 => self.exit_j(alt_id),                  // a_2 -> j
                         7 => self.exitloop_j(),                     // j -> <L> ε
                      /* 1 */                                        // i -> <L> A a_1 (never called)
-                     /* 5 */                                        // j -> <L> D a_2 (never called)
+                     /* 5 */                                        // j -> <L> E a_2 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -5742,8 +5742,9 @@ pub(crate) mod rules_258_1 {
                 }
                 3 => {
                     let star = self.stack.pop().unwrap().get_j();
+                    let d = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I4 { star_it, star }
+                    CtxI::I4 { star_it, d, star }
                 }
                 8 => {
                     let b = self.stack_t.pop().unwrap();
@@ -5775,20 +5776,20 @@ pub(crate) mod rules_258_1 {
         fn exit_j(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
                 6 => {
-                    let f = self.stack_t.pop().unwrap();
+                    let g = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J3 { star_it, f }
+                    CtxJ::J3 { star_it, g }
                 }
                 10 => {
+                    let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
-                    let d = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J2 { star_it, d, e }
+                    CtxJ::J2 { star_it, e, f }
                 }
                 11 => {
-                    let d = self.stack_t.pop().unwrap();
+                    let e = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { star_it, d }
+                    CtxJ::J1 { star_it, e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
