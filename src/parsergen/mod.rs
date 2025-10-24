@@ -894,7 +894,6 @@ impl ParserGen {
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let is_ambig = self.nt_has_any_flags(group[0], ruleflag::PARENT_AMBIGUITY);
             let mut is_ambig_1st_child = is_ambig;
-            // let mut group_names = HashMap::<String, (usize, usize)>::new();
             let mut alt_info_to_sort = HashMap::<VarId, Vec<AltId>>::new();
             for var in group {
                 let nt = *var as usize;
@@ -1011,22 +1010,6 @@ impl ParserGen {
                             alt_info_to_sort.entry(owner)
                                 .and_modify(|v| v.push(alt_id))
                                 .or_insert_with(|| vec![alt_id]);
-
-                            // let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                            // group_names.entry(name.clone())
-                            //     .and_modify(|(last_i, number)| {
-                            //         if *number == 1 {
-                            //             NameFixer::add_number(&mut alt_info[*last_i].as_mut().unwrap().1, 1);
-                            //         }
-                            //         NameFixer::add_number(&mut name, *number + 1);
-                            //         alt_info[i] = Some((owner, name.clone()));
-                            //         *last_i = i;
-                            //         *number += 1;
-                            //     })
-                            //     .or_insert_with(|| {
-                            //         alt_info[i] = Some((owner, name));
-                            //         (i, 1)
-                            //     });
                         }
                         if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
@@ -1694,13 +1677,6 @@ impl ParserGen {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { ", alt_id: AltId" } else { "" }));
                     }
                     if flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                        if false && exit_alts.len() > 2 {
-                            log.add_error(format!("- alternatives in * and + are not supported: in {}. {} has too many alternatives: {}",
-                                                  Symbol::NT(parent_nt as VarId).to_str(self.get_symbol_table()),
-                                                  sym_nt.to_str(self.get_symbol_table()),
-                                                  exit_alts.iter().join(", ")));
-                            continue;
-                        }
 
                         fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> (Vec<String>, String) {
                             let mut src_let = vec![];
