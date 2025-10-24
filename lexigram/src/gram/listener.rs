@@ -271,14 +271,14 @@ impl GramParserListener for GramListener {
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         let curr_nt = self.curr_nt.take().unwrap();
         let id = match ctx {
-            CtxRule::Rule1 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
-            CtxRule::Rule2 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
+            CtxRule::Rule1 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
                 if curr_nt > 0 {
                     self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_name.as_ref().unwrap()));
                 }
                 // we don't add Symbol::End to the tree because it's not necessary nor, in fact, even allowed)
                 id
             }
+            CtxRule::Rule2 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
         };
         tree.set_root(id);
         if self.rules.len() < curr_nt as usize {
@@ -352,8 +352,8 @@ impl GramParserListener for GramListener {
         let tree = self.curr.as_mut().expect("no current tree");
         let (id, l_check) = match ctx {
             CtxProdFactor::ProdFactor1 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Plus, factor_item), true),   // prodAtom +
-            CtxProdFactor::ProdFactor2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
-            CtxProdFactor::ProdFactor3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
+            CtxProdFactor::ProdFactor2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
+            CtxProdFactor::ProdFactor3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
             CtxProdFactor::ProdFactor4 { prod_atom: SynProdAtom(factor_item) } => (factor_item, false),                                  // prodAtom
         };
         if l_check {

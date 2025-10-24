@@ -328,24 +328,24 @@ pub mod microcalc_parser {
     }
     #[derive(Debug)]
     pub enum CtxExpr {
-        /// `expr -> expr "*" expr`
-        Expr1 { expr: [SynExpr; 2] },
-        /// `expr -> expr <P> "/" expr`
-        Expr2 { expr: [SynExpr; 2] },
-        /// `expr -> expr "+" expr`
-        Expr3 { expr: [SynExpr; 2] },
-        /// `expr -> expr <P> "-" expr`
-        Expr4 { expr: [SynExpr; 2] },
-        /// `expr -> "(" expr ")"`
-        Expr5 { expr: SynExpr },
         /// `expr -> "-" expr`
+        Expr1 { expr: SynExpr },
+        /// `expr -> expr "*" expr`
+        Expr2 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "/" expr`
+        Expr3 { expr: [SynExpr; 2] },
+        /// `expr -> expr "+" expr`
+        Expr4 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "-" expr`
+        Expr5 { expr: [SynExpr; 2] },
+        /// `expr -> "(" expr ")"`
         Expr6 { expr: SynExpr },
-        /// `expr -> Num`
-        Expr7 { num: String },
         /// `expr -> Id "(" fun_args ")"`
-        Expr8 { id: String, fun_args: SynFunArgs },
+        Expr7 { id: String, fun_args: SynFunArgs },
         /// `expr -> Id`
-        Expr9 { id: String },
+        Expr8 { id: String },
+        /// `expr -> Num`
+        Expr9 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxFunArgs {
@@ -656,22 +656,22 @@ pub mod microcalc_parser {
                 16 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr1 { expr: [expr_1, expr_2] }
+                    CtxExpr::Expr2 { expr: [expr_1, expr_2] }
                 }
                 17 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr2 { expr: [expr_1, expr_2] }
+                    CtxExpr::Expr3 { expr: [expr_1, expr_2] }
                 }
                 18 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr3 { expr: [expr_1, expr_2] }
+                    CtxExpr::Expr4 { expr: [expr_1, expr_2] }
                 }
                 19 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr4 { expr: [expr_1, expr_2] }
+                    CtxExpr::Expr5 { expr: [expr_1, expr_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
@@ -683,24 +683,24 @@ pub mod microcalc_parser {
             let ctx = match alt_id {
                 25 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr5 { expr }
+                    CtxExpr::Expr6 { expr }
                 }
                 26 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr6 { expr }
+                    CtxExpr::Expr1 { expr }
                 }
                 28 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr7 { num }
+                    CtxExpr::Expr9 { num }
                 }
                 33 => {
                     let fun_args = self.stack.pop().unwrap().get_fun_args();
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr8 { id, fun_args }
+                    CtxExpr::Expr7 { id, fun_args }
                 }
                 34 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr9 { id }
+                    CtxExpr::Expr8 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr4")
             };

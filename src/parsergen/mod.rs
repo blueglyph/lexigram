@@ -782,7 +782,7 @@ impl ParserGen {
     }
 
     fn sort_alt_ids(&self, top_nt: VarId, alts: &[AltId]) -> Vec<AltId> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         if VERBOSE {
             println!("  sorting {} alts {alts:?}", Symbol::NT(top_nt).to_str(self.get_symbol_table()));
             for &a_id in alts {
@@ -807,6 +807,7 @@ impl ParserGen {
                 sorted.push(alt_id);
             }
         }
+        if VERBOSE { println!("    -> {sorted:?}"); }
         sorted
     }
 
@@ -872,7 +873,7 @@ impl ParserGen {
         Vec<Vec<ItemInfo>>,
         HashMap<VarId, Vec<AltId>>
     ) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -893,7 +894,8 @@ impl ParserGen {
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let is_ambig = self.nt_has_any_flags(group[0], ruleflag::PARENT_AMBIGUITY);
             let mut is_ambig_1st_child = is_ambig;
-            let mut group_names = HashMap::<String, (usize, usize)>::new();
+            // let mut group_names = HashMap::<String, (usize, usize)>::new();
+            let mut alt_info_to_sort = HashMap::<VarId, Vec<AltId>>::new();
             for var in group {
                 let nt = *var as usize;
                 let nt_flags = pinfo.flags[nt];
@@ -917,18 +919,6 @@ impl ParserGen {
                     }
                     assert!(!endpoints.is_empty());
                     let endpoints = self.sort_alt_ids(group[0], &endpoints);
-                    if VERBOSE {
-                        // TODO: sort endpoints using the original tree, where each concat's id should correspond to a map[endpoint]:
-                        println!(
-                            "** {} endpoints: {endpoints:?} = {}",
-                            Symbol::NT(*var).to_str(self.get_symbol_table()),
-                            endpoints.iter().map(|e| self.item_ops[e].iter().skip(1).map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" / "));
-                        let (v, id) = &self.origin.map[var];
-                        let t = &self.origin.trees[*v as usize];
-                        println!("   original : {}", crate::grammar::grtree_to_str_ansi(t, None, Some(*id), Some(*v), self.get_symbol_table(), false));
-                        let sorted = self.sort_alt_ids(group[0], &endpoints);
-                        println!("   sorted endpoints: {sorted:?}");
-                    }
                     child_repeat_endpoints.insert(*var, endpoints);
                 }
                 for &alt_id in &self.var_alts[nt] {
@@ -997,13 +987,18 @@ impl ParserGen {
                         // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
                         let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
 
+                        // <alt> -> ε
+                        let is_alt_sym_empty = self.is_alt_sym_empty(alt_id);
+
                         // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
                         // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
                         let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
-                            alt_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
+                            is_alt_sym_empty;
+                        // let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
+                        //     alt_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
 
                         let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
-                            || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && self.is_alt_sym_empty(alt_id);
+                            || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
 
                         let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
 
@@ -1013,21 +1008,25 @@ impl ParserGen {
                                 is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_last_empty_iteration} => has_context = {has_context}");
                         }
                         if has_context {
-                            let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                            group_names.entry(name.clone())
-                                .and_modify(|(last_i, number)| {
-                                    if *number == 1 {
-                                        NameFixer::add_number(&mut alt_info[*last_i].as_mut().unwrap().1, 1);
-                                    }
-                                    NameFixer::add_number(&mut name, *number + 1);
-                                    alt_info[i] = Some((owner, name.clone()));
-                                    *last_i = i;
-                                    *number += 1;
-                                })
-                                .or_insert_with(|| {
-                                    alt_info[i] = Some((owner, name));
-                                    (i, 1)
-                                });
+                            alt_info_to_sort.entry(owner)
+                                .and_modify(|v| v.push(alt_id))
+                                .or_insert_with(|| vec![alt_id]);
+
+                            // let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
+                            // group_names.entry(name.clone())
+                            //     .and_modify(|(last_i, number)| {
+                            //         if *number == 1 {
+                            //             NameFixer::add_number(&mut alt_info[*last_i].as_mut().unwrap().1, 1);
+                            //         }
+                            //         NameFixer::add_number(&mut name, *number + 1);
+                            //         alt_info[i] = Some((owner, name.clone()));
+                            //         *last_i = i;
+                            //         *number += 1;
+                            //     })
+                            //     .or_insert_with(|| {
+                            //         alt_info[i] = Some((owner, name));
+                            //         (i, 1)
+                            //     });
                         }
                         if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
@@ -1083,6 +1082,17 @@ impl ParserGen {
                     is_ambig_1st_child = false;
                 }
             } // var in group
+            if VERBOSE { println!("alt_info_to_sort = {alt_info_to_sort:?}"); }
+            for (owner, alts) in alt_info_to_sort {
+                let is_unique = alts.len() == 1;
+                for (num, alt) in self.sort_alt_ids(group[0], &alts).into_iter().enumerate() {
+                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
+                    if !is_unique {
+                        NameFixer::add_number(&mut name, num + 1);
+                    }
+                    alt_info[alt as usize] = Some((owner, name.clone()));
+                }
+            }
         } // group
 
         if VERBOSE {
@@ -1253,7 +1263,7 @@ impl ParserGen {
     }
 
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
@@ -1308,7 +1318,7 @@ impl ParserGen {
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
                     if VERBOSE { println!("  context Ctx{}:", nt_name[nt as usize].0); }
-                    for &a_id in alts {
+                    for a_id in self.sort_alt_ids(group[0], alts) {
                         let comment = self.full_alt_str(a_id, None, true);
                         log.add_note(format!("    /// {comment}"));
                         src.push(format!("    /// {comment}"));

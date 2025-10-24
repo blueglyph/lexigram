@@ -114,35 +114,35 @@ pub(crate) mod lexiparser {
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
-        /// `repeat_item -> item "?"`
+        /// `repeat_item -> item "*" "?"`
         RepeatItem1 { item: SynItem },
-        /// `repeat_item -> item`
+        /// `repeat_item -> item "*"`
         RepeatItem2 { item: SynItem },
         /// `repeat_item -> item "+" "?"`
         RepeatItem3 { item: SynItem },
         /// `repeat_item -> item "+"`
         RepeatItem4 { item: SynItem },
-        /// `repeat_item -> item "*" "?"`
+        /// `repeat_item -> item "?"`
         RepeatItem5 { item: SynItem },
-        /// `repeat_item -> item "*"`
+        /// `repeat_item -> item`
         RepeatItem6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
-        /// `item -> "(" alt_items ")"`
-        Item1 { alt_items: SynAltItems },
-        /// `item -> "~" item`
-        Item2 { item: SynItem },
         /// `item -> Id`
-        Item3 { id: String },
+        Item1 { id: String },
+        /// `item -> CharLit ".." CharLit`
+        Item2 { charlit: [String; 2] },
+        /// `item -> CharLit`
+        Item3 { charlit: String },
         /// `item -> StrLit`
         Item4 { strlit: String },
         /// `item -> char_set`
         Item5 { char_set: SynCharSet },
-        /// `item -> CharLit ".." CharLit`
-        Item6 { charlit: [String; 2] },
-        /// `item -> CharLit`
-        Item7 { charlit: String },
+        /// `item -> "(" alt_items ")"`
+        Item6 { alt_items: SynAltItems },
+        /// `item -> "~" item`
+        Item7 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
@@ -155,12 +155,12 @@ pub(crate) mod lexiparser {
     }
     #[derive(Debug)]
     pub enum CtxCharSetOne {
-        /// `char_set_one -> FixedSet`
-        CharSetOne1 { fixedset: String },
         /// `char_set_one -> SetChar "-" SetChar`
-        CharSetOne2 { setchar: [String; 2] },
+        CharSetOne1 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
-        CharSetOne3 { setchar: String },
+        CharSetOne2 { setchar: String },
+        /// `char_set_one -> FixedSet`
+        CharSetOne3 { fixedset: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -692,11 +692,11 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem1 { item }
+                    CtxRepeatItem::RepeatItem5 { item }
                 }
                 48 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem2 { item }
+                    CtxRepeatItem::RepeatItem6 { item }
                 }
                 57 => {
                     let item = self.stack.pop().unwrap().get_item();
@@ -708,11 +708,11 @@ pub(crate) mod lexiparser {
                 }
                 59 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem5 { item }
+                    CtxRepeatItem::RepeatItem1 { item }
                 }
                 60 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem6 { item }
+                    CtxRepeatItem::RepeatItem2 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
@@ -724,15 +724,15 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
-                    CtxItem::Item1 { alt_items }
+                    CtxItem::Item6 { alt_items }
                 }
                 23 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item2 { item }
+                    CtxItem::Item7 { item }
                 }
                 24 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { id }
+                    CtxItem::Item1 { id }
                 }
                 26 => {
                     let strlit = self.stack_t.pop().unwrap();
@@ -745,11 +745,11 @@ pub(crate) mod lexiparser {
                 49 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::Item6 { charlit: [charlit_1, charlit_2] }
+                    CtxItem::Item2 { charlit: [charlit_1, charlit_2] }
                 }
                 50 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item7 { charlit }
+                    CtxItem::Item3 { charlit }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
@@ -793,16 +793,16 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne1 { fixedset }
+                    CtxCharSetOne::CharSetOne3 { fixedset }
                 }
                 51 => {
                     let setchar_2 = self.stack_t.pop().unwrap();
                     let setchar_1 = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne2 { setchar: [setchar_1, setchar_2] }
+                    CtxCharSetOne::CharSetOne1 { setchar: [setchar_1, setchar_2] }
                 }
                 52 => {
                     let setchar = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne3 { setchar }
+                    CtxCharSetOne::CharSetOne2 { setchar }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };

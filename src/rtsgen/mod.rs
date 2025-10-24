@@ -311,9 +311,9 @@ impl RtsGenListener for RGListener<'_> {
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         let (var, id) = match ctx {
             // rule -> rule_nt "->" prs_expr ";"
-            CtxRule::Rule1 { rule_nt: SynRuleNt(var), prs_expr: SynPrsExpr(id_expr) }
+            CtxRule::Rule1 { rule_nt: SynRuleNt(var), rts_expr: SynRtsExpr(id_expr) }
             // rule -> rule_nt "=>" rts_expr ";"
-            | CtxRule::Rule2 { rule_nt: SynRuleNt(var), rts_expr: SynRtsExpr(id_expr) } => (var, id_expr),
+            | CtxRule::Rule2 { rule_nt: SynRuleNt(var), prs_expr: SynPrsExpr(id_expr) } => (var, id_expr),
         };
         let mut tree = self.curr.take().unwrap();
         tree.set_root(id);
@@ -779,10 +779,10 @@ pub mod rtsgen_parser {
     }
     #[derive(Debug)]
     pub enum CtxRule {
-        /// `rule -> rule_nt "->" prs_expr ";"`
-        Rule1 { rule_nt: SynRuleNt, prs_expr: SynPrsExpr },
         /// `rule -> rule_nt "=>" rts_expr ";"`
-        Rule2 { rule_nt: SynRuleNt, rts_expr: SynRtsExpr },
+        Rule1 { rule_nt: SynRuleNt, rts_expr: SynRtsExpr },
+        /// `rule -> rule_nt "->" prs_expr ";"`
+        Rule2 { rule_nt: SynRuleNt, prs_expr: SynPrsExpr },
     }
     #[derive(Debug)]
     pub enum CtxRuleNt {
@@ -1174,12 +1174,12 @@ pub mod rtsgen_parser {
                 53 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
-                    CtxRule::Rule1 { rule_nt, prs_expr }
+                    CtxRule::Rule2 { rule_nt, prs_expr }
                 }
                 54 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
-                    CtxRule::Rule2 { rule_nt, rts_expr }
+                    CtxRule::Rule1 { rule_nt, rts_expr }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };

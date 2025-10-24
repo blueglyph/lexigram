@@ -2007,8 +2007,8 @@ pub(crate) mod rules_153_1 {
                     .map(|choice| {
                         match choice {
                             SynA1Item::Ch1 { b } => format!("b({b})"),
-                            SynA1Item::Ch2 { e } => format!("e({e})"),
-                            SynA1Item::Ch3 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
+                            SynA1Item::Ch2 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
+                            SynA1Item::Ch3 { e } => format!("e({e})"),
                         }
                 }));
                 val.push(f);
@@ -4630,10 +4630,10 @@ pub(crate) mod rules_252_1 {
     }
     #[derive(Debug)]
     pub enum CtxJ {
-        /// `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
-        J1 { plus_it: SynJ, d: String, last_iteration: bool },
         /// `<L> b C b B C` iteration in `a -> A (( ►► <L> b C b B C ◄◄  | D)+ E | F)+ G`
-        J2 { plus_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
+        J1 { plus_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
+        /// `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
+        J2 { plus_it: SynJ, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -4804,7 +4804,7 @@ pub(crate) mod rules_252_1 {
                     let last_iteration = alt_id == 7;
                     let d = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { plus_it, d, last_iteration }
+                    CtxJ::J2 { plus_it, d, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
@@ -4814,7 +4814,7 @@ pub(crate) mod rules_252_1 {
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
                     let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J2 { plus_it, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
+                    CtxJ::J1 { plus_it, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -4873,10 +4873,10 @@ pub(crate) mod rules_253_1 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
-        I1 { plus_it: SynI, f: String, last_iteration: bool },
         /// `<L> (b C b B C | D)+ E` iteration in `a -> A ( ►► <L> (b C b B C | D)+ E ◄◄  | F)+ G`
-        I2 { plus_it: SynI, plus: SynA1, e: String, last_iteration: bool },
+        I1 { plus_it: SynI, plus: SynA1, e: String, last_iteration: bool },
+        /// `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
+        I2 { plus_it: SynI, f: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -5047,14 +5047,14 @@ pub(crate) mod rules_253_1 {
                     let last_iteration = alt_id == 7;
                     let f = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { plus_it, f, last_iteration }
+                    CtxI::I2 { plus_it, f, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_a1();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { plus_it, plus, e, last_iteration }
+                    CtxI::I1 { plus_it, plus, e, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5365,10 +5365,10 @@ pub(crate) mod rules_256_1 {
     pub enum CtxI {
         /// `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
         I1 { plus_it: SynI, b: String, a: String, last_iteration: bool },
-        /// `D` iteration in `a -> A (<L> B A | B A C b |  ►► D ◄◄ )+ E`
-        I2 { plus_it: SynI, d: String, last_iteration: bool },
         /// `B A C b` iteration in `a -> A (<L> B A |  ►► B A C b ◄◄  | D)+ E`
-        I3 { plus_it: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
+        I2 { plus_it: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
+        /// `D` iteration in `a -> A (<L> B A | B A C b |  ►► D ◄◄ )+ E`
+        I3 { plus_it: SynI, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -5529,7 +5529,7 @@ pub(crate) mod rules_256_1 {
                     let last_iteration = alt_id == 8;
                     let d = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { plus_it, d, last_iteration }
+                    CtxI::I3 { plus_it, d, last_iteration }
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
@@ -5538,7 +5538,7 @@ pub(crate) mod rules_256_1 {
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I3 { plus_it, b, a, c, b1, last_iteration }
+                    CtxI::I2 { plus_it, b, a, c, b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5573,23 +5573,23 @@ pub(crate) mod rules_258_1 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | (<L> D | D E | F)*)*`
-        I1 { star_it: SynI, c: String },
-        /// `(<L> D | D E | F)*` iteration in `a -> (<L> A | A B | C |  ►► (<L> D | D E | F)* ◄◄ )*`
-        I2 { star_it: SynI, star: SynJ },
-        /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | (<L> D | D E | F)*)*`
-        I3 { star_it: SynI, a: String, b: String },
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | (<L> D | D E | F)*)*`
-        I4 { star_it: SynI, a: String },
+        I1 { star_it: SynI, a: String },
+        /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | (<L> D | D E | F)*)*`
+        I2 { star_it: SynI, a: String, b: String },
+        /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | (<L> D | D E | F)*)*`
+        I3 { star_it: SynI, c: String },
+        /// `(<L> D | D E | F)*` iteration in `a -> (<L> A | A B | C |  ►► (<L> D | D E | F)* ◄◄ )*`
+        I4 { star_it: SynI, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
-        /// `F` iteration in `a -> (<L> A | A B | C | (<L> D | D E |  ►► F ◄◄ )*)*`
-        J1 { star_it: SynJ, f: String },
+        /// `<L> D` iteration in `a -> (<L> A | A B | C | ( ►► <L> D ◄◄  | D E | F)*)*`
+        J1 { star_it: SynJ, d: String },
         /// `D E` iteration in `a -> (<L> A | A B | C | (<L> D |  ►► D E ◄◄  | F)*)*`
         J2 { star_it: SynJ, d: String, e: String },
-        /// `<L> D` iteration in `a -> (<L> A | A B | C | ( ►► <L> D ◄◄  | D E | F)*)*`
-        J3 { star_it: SynJ, d: String },
+        /// `F` iteration in `a -> (<L> A | A B | C | (<L> D | D E |  ►► F ◄◄ )*)*`
+        J3 { star_it: SynJ, f: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5738,23 +5738,23 @@ pub(crate) mod rules_258_1 {
                 2 => {
                     let c = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I1 { star_it, c }
+                    CtxI::I3 { star_it, c }
                 }
                 3 => {
                     let star = self.stack.pop().unwrap().get_j();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I2 { star_it, star }
+                    CtxI::I4 { star_it, star }
                 }
                 8 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I3 { star_it, a, b }
+                    CtxI::I2 { star_it, a, b }
                 }
                 9 => {
                     let a = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::I4 { star_it, a }
+                    CtxI::I1 { star_it, a }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5777,7 +5777,7 @@ pub(crate) mod rules_258_1 {
                 6 => {
                     let f = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J1 { star_it, f }
+                    CtxJ::J3 { star_it, f }
                 }
                 10 => {
                     let e = self.stack_t.pop().unwrap();
@@ -5788,7 +5788,7 @@ pub(crate) mod rules_258_1 {
                 11 => {
                     let d = self.stack_t.pop().unwrap();
                     let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::J3 { star_it, d }
+                    CtxJ::J1 { star_it, d }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -6677,12 +6677,12 @@ pub(crate) mod rules_580_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> "-" e`
-        E1 { e: SynE },
-        /// `e -> Num`
-        E2 { num: String },
         /// `e -> e "!"`
-        E3 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> "-" e`
+        E2 { e: SynE },
+        /// `e -> Num`
+        E3 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6795,11 +6795,11 @@ pub(crate) mod rules_580_1 {
             let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::E2 { e }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::E2 { num }
+                    CtxE::E3 { num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
@@ -6809,7 +6809,7 @@ pub(crate) mod rules_580_1 {
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E3 { e });
+            let val = self.listener.exit_e(CtxE::E1 { e });
             self.stack.push(SynValue::E(val));
         }
 
@@ -6862,12 +6862,12 @@ pub(crate) mod rules_580_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // e -> "-" e
-                    CtxE::E1 { e: SynE(ls) } => ls_prefix_op("-", ls),
-                    // e -> Num
-                    CtxE::E2 { num } => LevelString(0, num),
                     // e -> e "!"
-                    CtxE::E3 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    // e -> "-" e
+                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    // e -> Num
+                    CtxE::E3 { num } => LevelString(0, num),
                 })
             }
         }
@@ -6943,12 +6943,12 @@ pub(crate) mod rules_581_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> <L> "-" e`
-        E1 { e: SynE },
-        /// `e -> Num`
-        E2 { e: SynE, num: String },
         /// `e -> e "!"`
-        E3 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> <L> "-" e`
+        E2 { e: SynE },
+        /// `e -> Num`
+        E3 { e: SynE, num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7066,12 +7066,12 @@ pub(crate) mod rules_581_1 {
             let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e }
+                    CtxE::E2 { e }
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e, num }
+                    CtxE::E3 { e, num }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
@@ -7081,7 +7081,7 @@ pub(crate) mod rules_581_1 {
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::E3 { e });
+            let val = self.listener.exit_e(CtxE::E1 { e });
             self.stack.push(SynValue::E(val));
         }
 
@@ -7135,12 +7135,12 @@ pub(crate) mod rules_581_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // e -> <L> "-" e
-                    CtxE::E1 { e: SynE(ls) } => ls_prefix_op("-", ls),
-                    // e -> Num
-                    CtxE::E2 { e: SynE(ls), num } => LevelString(0, num),
                     // e -> e "!"
-                    CtxE::E3 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    // e -> <L> "-" e
+                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    // e -> Num
+                    CtxE::E3 { e: SynE(ls), num } => LevelString(0, num),
                 })
             }
         }
@@ -7649,10 +7649,10 @@ pub(crate) mod rules_604_1 {
     pub enum CtxE {
         /// `e -> e "*" e`
         E1 { e: [SynE; 2] },
-        /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
         /// `e -> "!" e`
-        E3 { e: SynE },
+        E2 { e: SynE },
+        /// `e -> e "+" e`
+        E3 { e: [SynE; 2] },
         /// `e -> Num`
         E4 { num: String },
     }
@@ -7777,7 +7777,7 @@ pub(crate) mod rules_604_1 {
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -7789,7 +7789,7 @@ pub(crate) mod rules_604_1 {
             let ctx = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::E2 { e }
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
@@ -7834,10 +7834,10 @@ pub(crate) mod rules_604_1 {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
-                    // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
                     CtxE::E4 { num } => LevelString(0, num),
                 })
@@ -7903,12 +7903,12 @@ pub(crate) mod rules_605_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
-        /// `e -> e "+" e`
-        E2 { e: [SynE; 2] },
         /// `e -> "!" e`
-        E3 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> e "*" e`
+        E2 { e: [SynE; 2] },
+        /// `e -> e "+" e`
+        E3 { e: [SynE; 2] },
         /// `e -> Num`
         E4 { num: String },
     }
@@ -8028,12 +8028,12 @@ pub(crate) mod rules_605_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::E2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -8045,7 +8045,7 @@ pub(crate) mod rules_605_1 {
             let ctx = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
+                    CtxE::E1 { e }
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
@@ -8088,12 +8088,12 @@ pub(crate) mod rules_605_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
-                    // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::E1 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> e "*" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
                     CtxE::E4 { num } => LevelString(0, num),
                 })
@@ -11433,16 +11433,16 @@ pub(crate) mod rules_640_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> e "*" e`
-        E1 { e: [SynE; 2] },
-        /// `e -> e "/" <P> e`
-        E2 { e: [SynE; 2] },
-        /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
-        /// `e -> e "-" <P> e`
-        E4 { e: [SynE; 2] },
         /// `e -> "-" e`
-        E5 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> e "*" e`
+        E2 { e: [SynE; 2] },
+        /// `e -> e "/" <P> e`
+        E3 { e: [SynE; 2] },
+        /// `e -> e "+" e`
+        E4 { e: [SynE; 2] },
+        /// `e -> e "-" <P> e`
+        E5 { e: [SynE; 2] },
         /// `e -> Id`
         E6 { id: String },
     }
@@ -11565,22 +11565,22 @@ pub(crate) mod rules_640_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::E2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::E4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::E5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -11592,7 +11592,7 @@ pub(crate) mod rules_640_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e }
+                    CtxE::E1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
@@ -11648,16 +11648,16 @@ pub(crate) mod rules_640_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // `E -> E * E`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
-                    // `E -> E / E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
-                    // `E -> E + E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
-                    // `E -> E - E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> - E`
-                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> E * E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
                     CtxE::E6 { id } => LevelString(0, id),
                 })
@@ -11756,16 +11756,16 @@ pub(crate) mod rules_641_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> <R> e "*" e`
-        E1 { e: [SynE; 2] },
-        /// `e -> <R> e "/" <P> e`
-        E2 { e: [SynE; 2] },
-        /// `e -> <R> e "+" e`
-        E3 { e: [SynE; 2] },
-        /// `e -> <R> e "-" <P> e`
-        E4 { e: [SynE; 2] },
         /// `e -> "-" e`
-        E5 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> <R> e "*" e`
+        E2 { e: [SynE; 2] },
+        /// `e -> <R> e "/" <P> e`
+        E3 { e: [SynE; 2] },
+        /// `e -> <R> e "+" e`
+        E4 { e: [SynE; 2] },
+        /// `e -> <R> e "-" <P> e`
+        E5 { e: [SynE; 2] },
         /// `e -> Id`
         E6 { id: String },
     }
@@ -11888,22 +11888,22 @@ pub(crate) mod rules_641_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::E2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::E4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::E5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -11915,7 +11915,7 @@ pub(crate) mod rules_641_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e }
+                    CtxE::E1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
@@ -11971,16 +11971,16 @@ pub(crate) mod rules_641_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // `E -> E * E`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
-                    // `E -> E / E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
-                    // `E -> E + E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
-                    // `E -> E - E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> - E`
-                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> E * E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
                     CtxE::E6 { id } => LevelString(0, id),
                 })
@@ -12079,16 +12079,16 @@ pub(crate) mod rules_642_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `e -> <R> e "*" e`
-        E1 { e: [SynE; 2] },
-        /// `e -> <R> e "/" <P> e`
-        E2 { e: [SynE; 2] },
-        /// `e -> e "+" e`
-        E3 { e: [SynE; 2] },
-        /// `e -> e "-" <P> e`
-        E4 { e: [SynE; 2] },
         /// `e -> "-" e`
-        E5 { e: SynE },
+        E1 { e: SynE },
+        /// `e -> <R> e "*" e`
+        E2 { e: [SynE; 2] },
+        /// `e -> <R> e "/" <P> e`
+        E3 { e: [SynE; 2] },
+        /// `e -> e "+" e`
+        E4 { e: [SynE; 2] },
+        /// `e -> e "-" <P> e`
+        E5 { e: [SynE; 2] },
         /// `e -> Id`
         E6 { id: String },
     }
@@ -12211,22 +12211,22 @@ pub(crate) mod rules_642_1 {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E1 { e: [e_1, e_2] }
+                    CtxE::E2 { e: [e_1, e_2] }
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e: [e_1, e_2] }
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e: [e_1, e_2] }
+                    CtxE::E4 { e: [e_1, e_2] }
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e: [e_1, e_2] }
+                    CtxE::E5 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
@@ -12238,7 +12238,7 @@ pub(crate) mod rules_642_1 {
             let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e }
+                    CtxE::E1 { e }
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
@@ -12294,16 +12294,16 @@ pub(crate) mod rules_642_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    // `E -> E * E`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
-                    // `E -> E / E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
-                    // `E -> E + E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
-                    // `E -> E - E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> - E`
-                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> E * E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
                     CtxE::E6 { id } => LevelString(0, id),
                 })
@@ -12542,16 +12542,16 @@ pub(crate) mod rules_705_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> E`
-        A1 { e: String },
         /// `a -> A`
-        A2 { a: String },
+        A1 { a: String },
+        /// `a -> A B`
+        A2 { a: String, b: String },
         /// `a -> A B C`
         A3 { a: String, b: String, c: String },
         /// `a -> A B D`
         A4 { a: String, b: String, d: String },
-        /// `a -> A B`
-        A5 { a: String, b: String },
+        /// `a -> E`
+        A5 { e: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12666,11 +12666,11 @@ pub(crate) mod rules_705_1 {
             let ctx = match alt_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
-                    CtxA::A1 { e }
+                    CtxA::A5 { e }
                 }
                 3 => {
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A2 { a }
+                    CtxA::A1 { a }
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
@@ -12687,7 +12687,7 @@ pub(crate) mod rules_705_1 {
                 6 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::A5 { a, b }
+                    CtxA::A2 { a, b }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
@@ -12711,10 +12711,10 @@ pub(crate) mod rules_820_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> B`
-        A1 { b: String },
         /// `a -> a A* C`
-        A2 { a: SynA, star: SynA1, c: String },
+        A1 { a: SynA, star: SynA1, c: String },
+        /// `a -> B`
+        A2 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -12832,7 +12832,7 @@ pub(crate) mod rules_820_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A1 { b });
+            let val = self.listener.exit_a(CtxA::A2 { b });
             self.stack.push(SynValue::A(val));
         }
 
@@ -12853,7 +12853,7 @@ pub(crate) mod rules_820_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A2 { a, star, c });
+            let val = self.listener.exit_a(CtxA::A1 { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -12878,10 +12878,10 @@ pub(crate) mod rules_821_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> B`
-        A1 { b: String },
         /// `a -> a A+ C`
-        A2 { a: SynA, plus: SynA1, c: String },
+        A1 { a: SynA, plus: SynA1, c: String },
+        /// `a -> B`
+        A2 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -13000,7 +13000,7 @@ pub(crate) mod rules_821_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A1 { b });
+            let val = self.listener.exit_a(CtxA::A2 { b });
             self.stack.push(SynValue::A(val));
         }
 
@@ -13021,7 +13021,7 @@ pub(crate) mod rules_821_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::A2 { a, plus, c });
+            let val = self.listener.exit_a(CtxA::A1 { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -13990,12 +13990,12 @@ pub(crate) mod rules_871_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> D`
-        A1 { d: String },
         /// `a -> a A B`
-        A2 { a: SynA, a1: String, b: String },
+        A1 { a: SynA, a1: String, b: String },
         /// `a -> a A C`
-        A3 { a: SynA, a1: String, c: String },
+        A2 { a: SynA, a1: String, c: String },
+        /// `a -> D`
+        A3 { d: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -14107,7 +14107,7 @@ pub(crate) mod rules_871_1 {
 
         fn inter_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A1 { d });
+            let val = self.listener.exit_a(CtxA::A3 { d });
             self.stack.push(SynValue::A(val));
         }
 
@@ -14117,13 +14117,13 @@ pub(crate) mod rules_871_1 {
                     let b = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, a1, b }
+                    CtxA::A1 { a, a1, b }
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a, a1, c }
+                    CtxA::A2 { a, a1, c }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
@@ -14230,35 +14230,35 @@ pub(crate) mod rules_901_1 {
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
-        /// `repeat_item -> item "?"`
+        /// `repeat_item -> item "*" "?"`
         RepeatItem1 { item: SynItem },
-        /// `repeat_item -> item`
+        /// `repeat_item -> item "*"`
         RepeatItem2 { item: SynItem },
         /// `repeat_item -> item "+" "?"`
         RepeatItem3 { item: SynItem },
         /// `repeat_item -> item "+"`
         RepeatItem4 { item: SynItem },
-        /// `repeat_item -> item "*" "?"`
+        /// `repeat_item -> item "?"`
         RepeatItem5 { item: SynItem },
-        /// `repeat_item -> item "*"`
+        /// `repeat_item -> item`
         RepeatItem6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
-        /// `item -> "(" alt_items ")"`
-        Item1 { alt_items: SynAltItems },
-        /// `item -> "~" item`
-        Item2 { item: SynItem },
         /// `item -> Id`
-        Item3 { id: String },
+        Item1 { id: String },
+        /// `item -> CharLit ".." CharLit`
+        Item2 { charlit: [String; 2] },
+        /// `item -> CharLit`
+        Item3 { charlit: String },
         /// `item -> StrLit`
         Item4 { strlit: String },
         /// `item -> char_set`
         Item5 { char_set: SynCharSet },
-        /// `item -> CharLit ".." CharLit`
-        Item6 { charlit: [String; 2] },
-        /// `item -> CharLit`
-        Item7 { charlit: String },
+        /// `item -> "(" alt_items ")"`
+        Item6 { alt_items: SynAltItems },
+        /// `item -> "~" item`
+        Item7 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
@@ -14271,12 +14271,12 @@ pub(crate) mod rules_901_1 {
     }
     #[derive(Debug)]
     pub enum CtxCharSetOne {
-        /// `char_set_one -> FixedSet`
-        CharSetOne1 { fixedset: String },
         /// `char_set_one -> SetChar "-" SetChar`
-        CharSetOne2 { setchar: [String; 2] },
+        CharSetOne1 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
-        CharSetOne3 { setchar: String },
+        CharSetOne2 { setchar: String },
+        /// `char_set_one -> FixedSet`
+        CharSetOne3 { fixedset: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -14808,11 +14808,11 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem1 { item }
+                    CtxRepeatItem::RepeatItem5 { item }
                 }
                 48 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem2 { item }
+                    CtxRepeatItem::RepeatItem6 { item }
                 }
                 57 => {
                     let item = self.stack.pop().unwrap().get_item();
@@ -14824,11 +14824,11 @@ pub(crate) mod rules_901_1 {
                 }
                 59 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem5 { item }
+                    CtxRepeatItem::RepeatItem1 { item }
                 }
                 60 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem6 { item }
+                    CtxRepeatItem::RepeatItem2 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
@@ -14840,15 +14840,15 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
-                    CtxItem::Item1 { alt_items }
+                    CtxItem::Item6 { alt_items }
                 }
                 23 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item2 { item }
+                    CtxItem::Item7 { item }
                 }
                 24 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { id }
+                    CtxItem::Item1 { id }
                 }
                 26 => {
                     let strlit = self.stack_t.pop().unwrap();
@@ -14861,11 +14861,11 @@ pub(crate) mod rules_901_1 {
                 49 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::Item6 { charlit: [charlit_1, charlit_2] }
+                    CtxItem::Item2 { charlit: [charlit_1, charlit_2] }
                 }
                 50 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item7 { charlit }
+                    CtxItem::Item3 { charlit }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
@@ -14909,16 +14909,16 @@ pub(crate) mod rules_901_1 {
             let ctx = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne1 { fixedset }
+                    CtxCharSetOne::CharSetOne3 { fixedset }
                 }
                 51 => {
                     let setchar_2 = self.stack_t.pop().unwrap();
                     let setchar_1 = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne2 { setchar: [setchar_1, setchar_2] }
+                    CtxCharSetOne::CharSetOne1 { setchar: [setchar_1, setchar_2] }
                 }
                 52 => {
                     let setchar = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne3 { setchar }
+                    CtxCharSetOne::CharSetOne2 { setchar }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };

@@ -746,12 +746,12 @@ impl LexiParserListener for LexiListener {
         if self.verbose { print!("- exit_repeat_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
-            CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item ?
-                let empty = tree.add(None, node!(e));
-                (tree.addci_iter(None, node!(|), [item.0.0, empty]), None)
+            CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item *? (lazy)
+                let star = tree.addci(None, node!(*), item.0.0);
+                (tree.addci(None, node!(??), star), None)
             }
-            CtxRepeatItem::RepeatItem2 { item } => {   // repeat_item -> item
-                item.0
+            CtxRepeatItem::RepeatItem2 { item } => {   // repeat_item -> item *
+                (tree.addci(None, node!(*), item.0.0), None)
             }
             CtxRepeatItem::RepeatItem3 { item } => {   // repeat_item -> item +? (lazy)
                 let plus = tree.addci(None, node!(+), item.0.0);
@@ -760,12 +760,12 @@ impl LexiParserListener for LexiListener {
             CtxRepeatItem::RepeatItem4 { item } => {   // repeat_item -> item +
                 (tree.addci(None, node!(+), item.0.0), None)
             }
-            CtxRepeatItem::RepeatItem5 { item } => {   // repeat_item -> item *? (lazy)
-                let star = tree.addci(None, node!(*), item.0.0);
-                (tree.addci(None, node!(??), star), None)
+            CtxRepeatItem::RepeatItem5 { item } => {   // repeat_item -> item ?
+                let empty = tree.add(None, node!(e));
+                (tree.addci_iter(None, node!(|), [item.0.0, empty]), None)
             }
-            CtxRepeatItem::RepeatItem6 { item } => {   // repeat_item -> item *
-                (tree.addci(None, node!(*), item.0.0), None)
+            CtxRepeatItem::RepeatItem6 { item } => {   // repeat_item -> item
+                item.0
             }
         };
         if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
@@ -776,19 +776,7 @@ impl LexiParserListener for LexiListener {
         if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
-            CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
-                alt_items.0
-            }
-            CtxItem::Item2 { item } => {            // item -> ~ item
-                let node = tree.get_mut(item.0.0);
-                if let ReType::CharRange(range) = node.get_mut_type() {
-                    *range = Box::new(range.not());
-                } else {
-                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to {}", self.curr_name.as_ref().unwrap(), node.get_type()));
-                }
-                (item.0.0, None)
-            }
-            CtxItem::Item3 { id } => {              // item -> Id
+            CtxItem::Item1 { id } => {              // item -> Id
                 if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
                     let subtree = self.fragments.get(*f as usize).unwrap();
                     let const_literal = self.fragment_literals.get(*f as usize).unwrap().clone();
@@ -798,6 +786,24 @@ impl LexiParserListener for LexiListener {
                     let fake = format!("♫{id}♫"); // we make up the result to leave a chance to the parser to continue
                     (tree.add(None, ReNode::string(&fake)), Some(fake))
                 }
+            }
+            CtxItem::Item2 { charlit } => {         // item -> CharLit .. CharLit
+                let [first, last] = charlit.map(|clit| {
+                    decode_char(&clit[1..clit.len() - 1]).unwrap_or_else(|e| {
+                        self.log.add_error(format!("rule {}: cannot decode the character literal '{clit}': {e}", self.curr_name.as_ref().unwrap()));
+                        '♫' // we make up the result to leave a chance to the parser to continue
+                    })
+                });
+                (tree.add(None, ReNode::char_range(Segments::from((first, last)))), None)
+            }
+            CtxItem::Item3 { charlit } => {         // item -> CharLit
+                // charlit is always sourrounded by quotes:
+                // fragment CharLiteral	: '\'' Char '\'';
+                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character literal {charlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    '♫' // we make up the result to leave a chance to the parser to continue
+                });
+                (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
                 let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
@@ -809,23 +815,17 @@ impl LexiParserListener for LexiListener {
             CtxItem::Item5 { char_set } => {         // item -> char_set
                 (tree.add(None, ReNode::char_range(char_set.0)), None)
             }
-            CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
-                let [first, last] = charlit.map(|clit| {
-                    decode_char(&clit[1..clit.len() - 1]).unwrap_or_else(|e| {
-                        self.log.add_error(format!("rule {}: cannot decode the character literal '{clit}': {e}", self.curr_name.as_ref().unwrap()));
-                        '♫' // we make up the result to leave a chance to the parser to continue
-                    })
-                });
-                (tree.add(None, ReNode::char_range(Segments::from((first, last)))), None)
+            CtxItem::Item6 { alt_items } => {       // item -> ( alt_items )
+                alt_items.0
             }
-            CtxItem::Item7 { charlit } => {         // item -> CharLit
-                // charlit is always sourrounded by quotes:
-                // fragment CharLiteral	: '\'' Char '\'';
-                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character literal {charlit}: {e}", self.curr_name.as_ref().unwrap()));
-                    '♫' // we make up the result to leave a chance to the parser to continue
-                });
-                (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
+            CtxItem::Item7 { item } => {            // item -> ~ item
+                let node = tree.get_mut(item.0.0);
+                if let ReType::CharRange(range) = node.get_mut_type() {
+                    *range = Box::new(range.not());
+                } else {
+                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to {}", self.curr_name.as_ref().unwrap(), node.get_type()));
+                }
+                (item.0.0, None)
             }
         };
         if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
@@ -863,13 +863,7 @@ impl LexiParserListener for LexiListener {
         // |   FIXED_SET;
         if self.verbose { print!("- exit_char_set_one({ctx:?})"); }
         let seg = match ctx {
-            CtxCharSetOne::CharSetOne1 { fixedset } => {    // char_set_one -> FixedSet
-                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
-                    segments!('♫') // we make up the result to leave a chance to the parser to continue
-                })
-            }
-            CtxCharSetOne::CharSetOne2 { setchar } => {     // char_set_one -> SetChar - SetChar
+            CtxCharSetOne::CharSetOne1 { setchar } => {     // char_set_one -> SetChar - SetChar
                 let [first, last] = setchar.map(|sc| {
                     decode_set_char(&sc).unwrap_or_else(|e| {
                         self.log.add_error(format!("rule {}: cannot decode the character '{sc}': {e}", self.curr_name.as_ref().unwrap()));
@@ -878,12 +872,18 @@ impl LexiParserListener for LexiListener {
                 });
                 Segments::from((first, last))
             }
-            CtxCharSetOne::CharSetOne3 { setchar } => {     // char_set_one -> SetChar
+            CtxCharSetOne::CharSetOne2 { setchar } => {     // char_set_one -> SetChar
                 let single = decode_set_char(&setchar).unwrap_or_else(|e| {
                     self.log.add_error(format!("rule {}: cannot decode the character '{setchar}': {e}", self.curr_name.as_ref().unwrap()));
                     '♫' // we make up the result to leave a chance to the parser to continue
                 });
                 Segments::from(single)
+            }
+            CtxCharSetOne::CharSetOne3 { fixedset } => {    // char_set_one -> FixedSet
+                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
+                    segments!('♫') // we make up the result to leave a chance to the parser to continue
+                })
             }
         };
         if self.verbose { println!(" -> {seg}"); }

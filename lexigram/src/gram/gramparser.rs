@@ -51,9 +51,9 @@ pub enum CtxRules {
 }
 #[derive(Debug)]
 pub enum CtxRule {
-    /// `rule -> rule_name ":" prod ";"`
-    Rule1 { rule_name: SynRuleName, prod: SynProd },
     /// `rule -> rule_name ":" prod "EOF" ";"`
+    Rule1 { rule_name: SynRuleName, prod: SynProd },
+    /// `rule -> rule_name ":" prod ";"`
     Rule2 { rule_name: SynRuleName, prod: SynProd },
 }
 #[derive(Debug)]
@@ -77,9 +77,9 @@ pub enum CtxProdTerm {
 pub enum CtxProdFactor {
     /// `prod_factor -> prod_atom "+"`
     ProdFactor1 { prod_atom: SynProdAtom },
-    /// `prod_factor -> prod_atom "?"`
-    ProdFactor2 { prod_atom: SynProdAtom },
     /// `prod_factor -> prod_atom "*"`
+    ProdFactor2 { prod_atom: SynProdAtom },
+    /// `prod_factor -> prod_atom "?"`
     ProdFactor3 { prod_atom: SynProdAtom },
     /// `prod_factor -> prod_atom`
     ProdFactor4 { prod_atom: SynProdAtom },
@@ -335,12 +335,12 @@ impl<T: GramParserListener> Wrapper<T> {
             19 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
-                CtxRule::Rule1 { rule_name, prod }
+                CtxRule::Rule2 { rule_name, prod }
             }
             20 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
-                CtxRule::Rule2 { rule_name, prod }
+                CtxRule::Rule1 { rule_name, prod }
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
         };
@@ -399,11 +399,11 @@ impl<T: GramParserListener> Wrapper<T> {
             }
             22 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor2 { prod_atom }
+                CtxProdFactor::ProdFactor3 { prod_atom }
             }
             23 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor3 { prod_atom }
+                CtxProdFactor::ProdFactor2 { prod_atom }
             }
             24 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
