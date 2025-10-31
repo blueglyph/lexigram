@@ -269,7 +269,7 @@ impl RtsGenListener for RGListener<'_> {
     fn exit_decl_terminal(&mut self, ctx: CtxDeclTerminal) -> SynDeclTerminal {
         match ctx {
             // decl_terminal -> Terminal "=" TerminalCst
-            CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst } => {
+            CtxDeclTerminal::V1 { terminal, terminalcst } => {
                 if self.t.contains_key(&terminal) {
                     self.log.add_error(format!("token '{terminal}' already declared"));
                 } else if self.t.contains_key(&terminalcst) {
@@ -284,7 +284,7 @@ impl RtsGenListener for RGListener<'_> {
 
             }
             // decl_terminal -> Terminal
-            CtxDeclTerminal::DeclTerminal2 { terminal } => {
+            CtxDeclTerminal::V2 { terminal } => {
                 if self.t.contains_key(&terminal) {
                     self.log.add_error(format!("token '{terminal}' already declared"));
                 } else {
@@ -311,9 +311,9 @@ impl RtsGenListener for RGListener<'_> {
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         let (var, id) = match ctx {
             // rule -> rule_nt "->" prs_expr ";"
-            CtxRule::Rule1 { rule_nt: SynRuleNt(var), rts_expr: SynRtsExpr(id_expr) }
+            CtxRule::V1 { rule_nt: SynRuleNt(var), rts_expr: SynRtsExpr(id_expr) }
             // rule -> rule_nt "=>" rts_expr ";"
-            | CtxRule::Rule2 { rule_nt: SynRuleNt(var), prs_expr: SynPrsExpr(id_expr) } => (var, id_expr),
+            | CtxRule::V2 { rule_nt: SynRuleNt(var), prs_expr: SynPrsExpr(id_expr) } => (var, id_expr),
         };
         let mut tree = self.curr.take().unwrap();
         tree.set_root(id);
@@ -322,7 +322,7 @@ impl RtsGenListener for RGListener<'_> {
     }
 
     fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt {
-        let CtxRuleNt::RuleNt { nonterminal } = ctx;
+        let CtxRuleNt::V1 { nonterminal } = ctx;
         let mut error = false;
         assert_eq!(self.curr_nt, None);
         let var = if let Some(&var) = self.nt.get(&nonterminal) {
@@ -345,22 +345,22 @@ impl RtsGenListener for RGListener<'_> {
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             // rts_expr -> "&" rts_children
-            CtxRtsExpr::RtsExpr1 { rts_children: SynRtsChildren(v) } =>
+            CtxRtsExpr::V1 { rts_children: SynRtsChildren(v) } =>
                 tree.addci_iter(None, GrNode::Concat, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "|" rts_children
-            CtxRtsExpr::RtsExpr2 { rts_children: SynRtsChildren(v) } =>
+            CtxRtsExpr::V2 { rts_children: SynRtsChildren(v) } =>
                 tree.addci_iter(None, GrNode::Or, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "+" rts_children
-            CtxRtsExpr::RtsExpr3 { rts_children: SynRtsChildren(v) } =>
+            CtxRtsExpr::V3 { rts_children: SynRtsChildren(v) } =>
                 tree.addci_iter(None, GrNode::Plus, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "*" rts_children
-            CtxRtsExpr::RtsExpr4 { rts_children: SynRtsChildren(v) } =>
+            CtxRtsExpr::V4 { rts_children: SynRtsChildren(v) } =>
                 tree.addci_iter(None, GrNode::Star, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "?" rts_children
-            CtxRtsExpr::RtsExpr5 { rts_children: SynRtsChildren(v) } =>
+            CtxRtsExpr::V5 { rts_children: SynRtsChildren(v) } =>
                 tree.addci_iter(None, GrNode::Maybe, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> item
-            CtxRtsExpr::RtsExpr6 { item: SynItem(id_item) } =>
+            CtxRtsExpr::V6 { item: SynItem(id_item) } =>
                 id_item,
         };
         SynRtsExpr(id)
@@ -368,7 +368,7 @@ impl RtsGenListener for RGListener<'_> {
 
     fn exit_rts_children(&mut self, ctx: CtxRtsChildren) -> SynRtsChildren {
         // rts_children -> "(" rts_expr* ")"
-        let CtxRtsChildren::RtsChildren { star: SynRtsChildren1(v) } = ctx;
+        let CtxRtsChildren::V1 { star: SynRtsChildren1(v) } = ctx;
         SynRtsChildren(v)
     }
 
@@ -376,16 +376,16 @@ impl RtsGenListener for RGListener<'_> {
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             // prs_expr -> prs_expr "+"
-            CtxPrsExpr::PrsExpr1 { prs_expr: SynPrsExpr(id) } =>
+            CtxPrsExpr::V1 { prs_expr: SynPrsExpr(id) } =>
                 tree.addci(None, GrNode::Plus, id),
             // prs_expr -> prs_expr "*"
-            CtxPrsExpr::PrsExpr2 { prs_expr: SynPrsExpr(id) } =>
+            CtxPrsExpr::V2 { prs_expr: SynPrsExpr(id) } =>
                 tree.addci(None, GrNode::Star, id),
             // prs_expr -> prs_expr "?"
-            CtxPrsExpr::PrsExpr3 { prs_expr: SynPrsExpr(id) } =>
+            CtxPrsExpr::V3 { prs_expr: SynPrsExpr(id) } =>
                 tree.addci(None, GrNode::Maybe, id),
             // prs_expr -> prs_expr prs_expr
-            CtxPrsExpr::PrsExpr4 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
+            CtxPrsExpr::V4 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
                 if *tree.get(left) != GrNode::Concat {
                     left = tree.addci(None, GrNode::Concat, left);
                 }
@@ -393,7 +393,7 @@ impl RtsGenListener for RGListener<'_> {
                 left
             }
             // prs_expr -> prs_expr "|" prs_expr
-            CtxPrsExpr::PrsExpr5 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
+            CtxPrsExpr::V5 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
                 if *tree.get(left) != GrNode::Or {
                     left = tree.addci(None, GrNode::Or, left);
                 }
@@ -401,9 +401,9 @@ impl RtsGenListener for RGListener<'_> {
                 left
             }
             // prs_expr -> "(" prs_expr ")"
-            CtxPrsExpr::PrsExpr6 { prs_expr: SynPrsExpr(id) } => id,
+            CtxPrsExpr::V6 { prs_expr: SynPrsExpr(id) } => id,
             // prs_expr -> item
-            CtxPrsExpr::PrsExpr7 { item: SynItem(id) } => id,
+            CtxPrsExpr::V7 { item: SynItem(id) } => id,
         };
         SynPrsExpr(id)
     }
@@ -411,12 +411,12 @@ impl RtsGenListener for RGListener<'_> {
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
         let id = match ctx {
             // item -> Nonterminal
-            CtxItem::Item1 { nonterminal } => {
+            CtxItem::V1 { nonterminal } => {
                 let var = self.get_or_create_nt(nonterminal);
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(var)))
             }
             // item -> NTx (NT symbol without any check or creation process)
-            CtxItem::Item2 { ntx } => {
+            CtxItem::V2 { ntx } => {
                 let x = match VarId::from_str(&ntx[3..ntx.len() - 1]) {
                     Ok(x) => x,
                     Err(e) => {
@@ -427,7 +427,7 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(x)))
             }
             // item -> Terminal
-            CtxItem::Item3 { terminal } => {
+            CtxItem::V3 { terminal } => {
                 let (is_new, tok) = self.get_or_create_t(terminal.clone());
                 if let IsNew::Yes = is_new {
                     self.tokens.push((terminal, None));
@@ -435,7 +435,7 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
             // item -> TerminalCst
-            CtxItem::Item4 { terminalcst } => {
+            CtxItem::V4 { terminalcst } => {
                 let (is_new, tok) = self.get_or_create_t(terminalcst.clone());
                 if let IsNew::Yes = is_new {
                     // the names will be set later, to give priority to variable terminal names in case of conflict
@@ -452,7 +452,7 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
             // item -> Tx (T symbol without any check or creation process)
-            CtxItem::Item5 { tx } => {
+            CtxItem::V5 { tx } => {
                 let x = match VarId::from_str(&tx[2..tx.len() - 1]) {
                     Ok(x) => x,
                     Err(e) => {
@@ -463,10 +463,10 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(x)))
             }
             // item -> Empty
-            CtxItem::Item6 { .. } =>
+            CtxItem::V6 { .. } =>
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::Empty)),
             // item -> LTag
-            CtxItem::Item7 { ltag } => {
+            CtxItem::V7 { ltag } => {
                 // `ltag` contains "<L=name>" or "<L>"
                 let var = if ltag.len() > 3 {
                     let name = &ltag[3..ltag.len()-1];
@@ -481,9 +481,9 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::LForm(var))
             }
             // item -> "<P>"
-            CtxItem::Item8 => self.curr.as_mut().unwrap().add(None, GrNode::PrecEq),
+            CtxItem::V8 => self.curr.as_mut().unwrap().add(None, GrNode::PrecEq),
             // item -> "<R>"
-            CtxItem::Item9 => self.curr.as_mut().unwrap().add(None, GrNode::RAssoc),
+            CtxItem::V9 => self.curr.as_mut().unwrap().add(None, GrNode::RAssoc),
         };
         SynItem(id)
     }
@@ -743,109 +743,109 @@ pub mod rtsgen_parser {
     #[derive(Debug)]
     pub enum CtxFile {
         /// `file -> decls ruleset`
-        File { decls: SynDecls, ruleset: SynRuleset },
+        V1 { decls: SynDecls, ruleset: SynRuleset },
     }
     #[derive(Debug)]
     pub enum CtxDecls {
         /// `decls -> (<L> decl)*`
-        Decls,
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxDeclIter {
         /// `<L> decl` iteration in `decls -> ( ►► <L> decl ◄◄ )*`
-        DeclIter { decl: SynDecl },
+        V1 { decl: SynDecl },
     }
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> "token" decl_terminal ("," decl_terminal)* ";"`
-        Decl { decl_terminal: SynDeclTerminal, star: SynDecl1 },
+        V1 { decl_terminal: SynDeclTerminal, star: SynDecl1 },
     }
     #[derive(Debug)]
     pub enum CtxDeclTerminal {
         /// `decl_terminal -> Terminal "=" TerminalCst`
-        DeclTerminal1 { terminal: String, terminalcst: String },
+        V1 { terminal: String, terminalcst: String },
         /// `decl_terminal -> Terminal`
-        DeclTerminal2 { terminal: String },
+        V2 { terminal: String },
     }
     #[derive(Debug)]
     pub enum CtxRuleset {
         /// `ruleset -> (<L> rule)*`
-        Ruleset,
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxRuleIter {
         /// `<L> rule` iteration in `ruleset -> ( ►► <L> rule ◄◄ )*`
-        RuleIter { rule: SynRule },
+        V1 { rule: SynRule },
     }
     #[derive(Debug)]
     pub enum CtxRule {
         /// `rule -> rule_nt "=>" rts_expr ";"`
-        Rule1 { rule_nt: SynRuleNt, rts_expr: SynRtsExpr },
+        V1 { rule_nt: SynRuleNt, rts_expr: SynRtsExpr },
         /// `rule -> rule_nt "->" prs_expr ";"`
-        Rule2 { rule_nt: SynRuleNt, prs_expr: SynPrsExpr },
+        V2 { rule_nt: SynRuleNt, prs_expr: SynPrsExpr },
     }
     #[derive(Debug)]
     pub enum CtxRuleNt {
         /// `rule_nt -> Nonterminal`
-        RuleNt { nonterminal: String },
+        V1 { nonterminal: String },
     }
     #[derive(Debug)]
     pub enum CtxRtsExpr {
         /// `rts_expr -> "&" rts_children`
-        RtsExpr1 { rts_children: SynRtsChildren },
+        V1 { rts_children: SynRtsChildren },
         /// `rts_expr -> "|" rts_children`
-        RtsExpr2 { rts_children: SynRtsChildren },
+        V2 { rts_children: SynRtsChildren },
         /// `rts_expr -> "+" rts_children`
-        RtsExpr3 { rts_children: SynRtsChildren },
+        V3 { rts_children: SynRtsChildren },
         /// `rts_expr -> "*" rts_children`
-        RtsExpr4 { rts_children: SynRtsChildren },
+        V4 { rts_children: SynRtsChildren },
         /// `rts_expr -> "?" rts_children`
-        RtsExpr5 { rts_children: SynRtsChildren },
+        V5 { rts_children: SynRtsChildren },
         /// `rts_expr -> item`
-        RtsExpr6 { item: SynItem },
+        V6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxRtsChildren {
         /// `rts_children -> "(" rts_expr* ")"`
-        RtsChildren { star: SynRtsChildren1 },
+        V1 { star: SynRtsChildren1 },
     }
     #[derive(Debug)]
     pub enum CtxPrsExpr {
         /// `prs_expr -> prs_expr "+"`
-        PrsExpr1 { prs_expr: SynPrsExpr },
+        V1 { prs_expr: SynPrsExpr },
         /// `prs_expr -> prs_expr "*"`
-        PrsExpr2 { prs_expr: SynPrsExpr },
+        V2 { prs_expr: SynPrsExpr },
         /// `prs_expr -> prs_expr "?"`
-        PrsExpr3 { prs_expr: SynPrsExpr },
+        V3 { prs_expr: SynPrsExpr },
         /// `prs_expr -> prs_expr prs_expr`
-        PrsExpr4 { prs_expr: [SynPrsExpr; 2] },
+        V4 { prs_expr: [SynPrsExpr; 2] },
         /// `prs_expr -> prs_expr "|" prs_expr`
-        PrsExpr5 { prs_expr: [SynPrsExpr; 2] },
+        V5 { prs_expr: [SynPrsExpr; 2] },
         /// `prs_expr -> "(" prs_expr ")"`
-        PrsExpr6 { prs_expr: SynPrsExpr },
+        V6 { prs_expr: SynPrsExpr },
         /// `prs_expr -> item`
-        PrsExpr7 { item: SynItem },
+        V7 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
         /// `item -> Nonterminal`
-        Item1 { nonterminal: String },
+        V1 { nonterminal: String },
         /// `item -> NTx`
-        Item2 { ntx: String },
+        V2 { ntx: String },
         /// `item -> Terminal`
-        Item3 { terminal: String },
+        V3 { terminal: String },
         /// `item -> TerminalCst`
-        Item4 { terminalcst: String },
+        V4 { terminalcst: String },
         /// `item -> Tx`
-        Item5 { tx: String },
+        V5 { tx: String },
         /// `item -> Empty`
-        Item6 { empty: String },
+        V6 { empty: String },
         /// `item -> LTag`
-        Item7 { ltag: String },
+        V7 { ltag: String },
         /// `item -> "<P>"`
-        Item8,
+        V8,
         /// `item -> "<R>"`
-        Item9,
+        V9,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -931,31 +931,31 @@ pub mod rtsgen_parser {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
-        fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+        fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_decls(&mut self) {}
-        fn exit_decls(&mut self, _ctx: CtxDecls) -> SynDecls;
+        fn exit_decls(&mut self, ctx: CtxDecls) -> SynDecls;
         fn init_decl_iter(&mut self) {}
         fn exit_decl_iter(&mut self, _ctx: CtxDeclIter) {}
         fn init_decl(&mut self) {}
-        fn exit_decl(&mut self, _ctx: CtxDecl) -> SynDecl;
+        fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl;
         fn init_decl_terminal(&mut self) {}
-        fn exit_decl_terminal(&mut self, _ctx: CtxDeclTerminal) -> SynDeclTerminal;
+        fn exit_decl_terminal(&mut self, ctx: CtxDeclTerminal) -> SynDeclTerminal;
         fn init_ruleset(&mut self) {}
-        fn exit_ruleset(&mut self, _ctx: CtxRuleset) -> SynRuleset;
+        fn exit_ruleset(&mut self, ctx: CtxRuleset) -> SynRuleset;
         fn init_rule_iter(&mut self) {}
         fn exit_rule_iter(&mut self, _ctx: CtxRuleIter) {}
         fn init_rule(&mut self) {}
-        fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+        fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_rule_nt(&mut self) {}
-        fn exit_rule_nt(&mut self, _ctx: CtxRuleNt) -> SynRuleNt;
+        fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt;
         fn init_rts_expr(&mut self) {}
-        fn exit_rts_expr(&mut self, _ctx: CtxRtsExpr) -> SynRtsExpr;
+        fn exit_rts_expr(&mut self, ctx: CtxRtsExpr) -> SynRtsExpr;
         fn init_rts_children(&mut self) {}
-        fn exit_rts_children(&mut self, _ctx: CtxRtsChildren) -> SynRtsChildren;
+        fn exit_rts_children(&mut self, ctx: CtxRtsChildren) -> SynRtsChildren;
         fn init_prs_expr(&mut self) {}
-        fn exit_prs_expr(&mut self, _ctx: CtxPrsExpr) -> SynPrsExpr;
+        fn exit_prs_expr(&mut self, ctx: CtxPrsExpr) -> SynPrsExpr;
         fn init_item(&mut self) {}
-        fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
+        fn exit_item(&mut self, ctx: CtxItem) -> SynItem;
     }
 
     pub struct Wrapper<T> {
@@ -1108,24 +1108,24 @@ pub mod rtsgen_parser {
         fn exit_file(&mut self) {
             let ruleset = self.stack.pop().unwrap().get_ruleset();
             let decls = self.stack.pop().unwrap().get_decls();
-            let val = self.listener.exit_file(CtxFile::File { decls, ruleset });
+            let val = self.listener.exit_file(CtxFile::V1 { decls, ruleset });
             self.stack.push(SynValue::File(val));
         }
 
         fn exit_decls(&mut self) {
-            let val = self.listener.exit_decls(CtxDecls::Decls);
+            let val = self.listener.exit_decls(CtxDecls::V1);
             self.stack.push(SynValue::Decls(val));
         }
 
         fn exit_decl_iter(&mut self) {
             let decl = self.stack.pop().unwrap().get_decl();
-            self.listener.exit_decl_iter(CtxDeclIter::DeclIter { decl });
+            self.listener.exit_decl_iter(CtxDeclIter::V1 { decl });
         }
 
         fn exit_decl(&mut self) {
             let star = self.stack.pop().unwrap().get_decl1();
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let val = self.listener.exit_decl(CtxDecl::Decl { decl_terminal, star });
+            let val = self.listener.exit_decl(CtxDecl::V1 { decl_terminal, star });
             self.stack.push(SynValue::Decl(val));
         }
 
@@ -1147,11 +1147,11 @@ pub mod rtsgen_parser {
                 51 => {
                     let terminalcst = self.stack_t.pop().unwrap();
                     let terminal = self.stack_t.pop().unwrap();
-                    CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst }
+                    CtxDeclTerminal::V1 { terminal, terminalcst }
                 }
                 52 => {
                     let terminal = self.stack_t.pop().unwrap();
-                    CtxDeclTerminal::DeclTerminal2 { terminal }
+                    CtxDeclTerminal::V2 { terminal }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_decl_terminal")
             };
@@ -1160,13 +1160,13 @@ pub mod rtsgen_parser {
         }
 
         fn exit_ruleset(&mut self) {
-            let val = self.listener.exit_ruleset(CtxRuleset::Ruleset);
+            let val = self.listener.exit_ruleset(CtxRuleset::V1);
             self.stack.push(SynValue::Ruleset(val));
         }
 
         fn exit_rule_iter(&mut self) {
             let rule = self.stack.pop().unwrap().get_rule();
-            self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule });
+            self.listener.exit_rule_iter(CtxRuleIter::V1 { rule });
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -1174,12 +1174,12 @@ pub mod rtsgen_parser {
                 53 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
-                    CtxRule::Rule2 { rule_nt, prs_expr }
+                    CtxRule::V2 { rule_nt, prs_expr }
                 }
                 54 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
-                    CtxRule::Rule1 { rule_nt, rts_expr }
+                    CtxRule::V1 { rule_nt, rts_expr }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
@@ -1189,7 +1189,7 @@ pub mod rtsgen_parser {
 
         fn exit_rule_nt(&mut self) {
             let nonterminal = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_rule_nt(CtxRuleNt::RuleNt { nonterminal });
+            let val = self.listener.exit_rule_nt(CtxRuleNt::V1 { nonterminal });
             self.stack.push(SynValue::RuleNt(val));
         }
 
@@ -1197,27 +1197,27 @@ pub mod rtsgen_parser {
             let ctx = match alt_id {
                 11 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
-                    CtxRtsExpr::RtsExpr1 { rts_children }
+                    CtxRtsExpr::V1 { rts_children }
                 }
                 12 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
-                    CtxRtsExpr::RtsExpr2 { rts_children }
+                    CtxRtsExpr::V2 { rts_children }
                 }
                 13 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
-                    CtxRtsExpr::RtsExpr3 { rts_children }
+                    CtxRtsExpr::V3 { rts_children }
                 }
                 14 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
-                    CtxRtsExpr::RtsExpr4 { rts_children }
+                    CtxRtsExpr::V4 { rts_children }
                 }
                 15 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
-                    CtxRtsExpr::RtsExpr5 { rts_children }
+                    CtxRtsExpr::V5 { rts_children }
                 }
                 16 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRtsExpr::RtsExpr6 { item }
+                    CtxRtsExpr::V6 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rts_expr")
             };
@@ -1227,7 +1227,7 @@ pub mod rtsgen_parser {
 
         fn exit_rts_children(&mut self) {
             let star = self.stack.pop().unwrap().get_rts_children1();
-            let val = self.listener.exit_rts_children(CtxRtsChildren::RtsChildren { star });
+            let val = self.listener.exit_rts_children(CtxRtsChildren::V1 { star });
             self.stack.push(SynValue::RtsChildren(val));
         }
 
@@ -1248,25 +1248,25 @@ pub mod rtsgen_parser {
             let ctx = match alt_id {
                 32 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr1 { prs_expr }
+                    CtxPrsExpr::V1 { prs_expr }
                 }
                 33 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr2 { prs_expr }
+                    CtxPrsExpr::V2 { prs_expr }
                 }
                 34 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr3 { prs_expr }
+                    CtxPrsExpr::V3 { prs_expr }
                 }
                 35 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr4 { prs_expr: [prs_expr_1, prs_expr_2] }
+                    CtxPrsExpr::V4 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
                 36 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr5 { prs_expr: [prs_expr_1, prs_expr_2] }
+                    CtxPrsExpr::V5 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr1")
             };
@@ -1278,11 +1278,11 @@ pub mod rtsgen_parser {
             let ctx = match alt_id {
                 49 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
-                    CtxPrsExpr::PrsExpr6 { prs_expr }
+                    CtxPrsExpr::V6 { prs_expr }
                 }
                 50 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxPrsExpr::PrsExpr7 { item }
+                    CtxPrsExpr::V7 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr6")
             };
@@ -1294,37 +1294,37 @@ pub mod rtsgen_parser {
             let ctx = match alt_id {
                 19 => {
                     let nonterminal = self.stack_t.pop().unwrap();
-                    CtxItem::Item1 { nonterminal }
+                    CtxItem::V1 { nonterminal }
                 }
                 20 => {
                     let ntx = self.stack_t.pop().unwrap();
-                    CtxItem::Item2 { ntx }
+                    CtxItem::V2 { ntx }
                 }
                 21 => {
                     let terminal = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { terminal }
+                    CtxItem::V3 { terminal }
                 }
                 22 => {
                     let terminalcst = self.stack_t.pop().unwrap();
-                    CtxItem::Item4 { terminalcst }
+                    CtxItem::V4 { terminalcst }
                 }
                 23 => {
                     let tx = self.stack_t.pop().unwrap();
-                    CtxItem::Item5 { tx }
+                    CtxItem::V5 { tx }
                 }
                 24 => {
                     let empty = self.stack_t.pop().unwrap();
-                    CtxItem::Item6 { empty }
+                    CtxItem::V6 { empty }
                 }
                 25 => {
                     let ltag = self.stack_t.pop().unwrap();
-                    CtxItem::Item7 { ltag }
+                    CtxItem::V7 { ltag }
                 }
                 26 => {
-                    CtxItem::Item8
+                    CtxItem::V8
                 }
                 27 => {
-                    CtxItem::Item9
+                    CtxItem::V9
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };

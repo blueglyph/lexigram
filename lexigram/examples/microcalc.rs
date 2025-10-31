@@ -303,56 +303,56 @@ pub mod microcalc_parser {
     #[derive(Debug)]
     pub enum CtxProgram {
         /// `program -> function+`
-        Program { plus: SynProgram1 },
+        V1 { plus: SynProgram1 },
     }
     #[derive(Debug)]
     pub enum CtxFunction {
         /// `function -> "def" Id "(" fun_params ")" "{" instruction+ "}"`
-        Function { id: String, fun_params: SynFunParams, plus: SynFunction1 },
+        V1 { id: String, fun_params: SynFunParams, plus: SynFunction1 },
     }
     #[derive(Debug)]
     pub enum CtxFunParams {
         /// `fun_params -> Id ("," Id)*`
-        FunParams1 { id: String, star: SynFunParams1 },
+        V1 { id: String, star: SynFunParams1 },
         /// `fun_params -> ε`
-        FunParams2,
+        V2,
     }
     #[derive(Debug)]
     pub enum CtxInstruction {
         /// `instruction -> "let" Id "=" expr ";"`
-        Instruction1 { id: String, expr: SynExpr },
+        V1 { id: String, expr: SynExpr },
         /// `instruction -> "return" expr ";"`
-        Instruction2 { expr: SynExpr },
+        V2 { expr: SynExpr },
         /// `instruction -> "print" expr ";"`
-        Instruction3 { expr: SynExpr },
+        V3 { expr: SynExpr },
     }
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> "-" expr`
-        Expr1 { expr: SynExpr },
+        V1 { expr: SynExpr },
         /// `expr -> expr "*" expr`
-        Expr2 { expr: [SynExpr; 2] },
+        V2 { expr: [SynExpr; 2] },
         /// `expr -> expr <P> "/" expr`
-        Expr3 { expr: [SynExpr; 2] },
+        V3 { expr: [SynExpr; 2] },
         /// `expr -> expr "+" expr`
-        Expr4 { expr: [SynExpr; 2] },
+        V4 { expr: [SynExpr; 2] },
         /// `expr -> expr <P> "-" expr`
-        Expr5 { expr: [SynExpr; 2] },
+        V5 { expr: [SynExpr; 2] },
         /// `expr -> "(" expr ")"`
-        Expr6 { expr: SynExpr },
+        V6 { expr: SynExpr },
         /// `expr -> Id "(" fun_args ")"`
-        Expr7 { id: String, fun_args: SynFunArgs },
+        V7 { id: String, fun_args: SynFunArgs },
         /// `expr -> Id`
-        Expr8 { id: String },
+        V8 { id: String },
         /// `expr -> Num`
-        Expr9 { num: String },
+        V9 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxFunArgs {
         /// `fun_args -> expr ("," expr)*`
-        FunArgs1 { expr: SynExpr, star: SynFunArgs1 },
+        V1 { expr: SynExpr, star: SynFunArgs1 },
         /// `fun_args -> ε`
-        FunArgs2,
+        V2,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -425,17 +425,17 @@ pub mod microcalc_parser {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _program: SynProgram) {}
         fn init_program(&mut self) {}
-        fn exit_program(&mut self, _ctx: CtxProgram) -> SynProgram;
+        fn exit_program(&mut self, ctx: CtxProgram) -> SynProgram;
         fn init_function(&mut self) {}
-        fn exit_function(&mut self, _ctx: CtxFunction) -> SynFunction;
+        fn exit_function(&mut self, ctx: CtxFunction) -> SynFunction;
         fn init_fun_params(&mut self) {}
-        fn exit_fun_params(&mut self, _ctx: CtxFunParams) -> SynFunParams;
+        fn exit_fun_params(&mut self, ctx: CtxFunParams) -> SynFunParams;
         fn init_instruction(&mut self) {}
-        fn exit_instruction(&mut self, _ctx: CtxInstruction) -> SynInstruction;
+        fn exit_instruction(&mut self, ctx: CtxInstruction) -> SynInstruction;
         fn init_expr(&mut self) {}
-        fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
         fn init_fun_args(&mut self) {}
-        fn exit_fun_args(&mut self, _ctx: CtxFunArgs) -> SynFunArgs;
+        fn exit_fun_args(&mut self, ctx: CtxFunArgs) -> SynFunArgs;
     }
 
     pub struct Wrapper<T> {
@@ -563,7 +563,7 @@ pub mod microcalc_parser {
 
         fn exit_program(&mut self) {
             let plus = self.stack.pop().unwrap().get_program1();
-            let val = self.listener.exit_program(CtxProgram::Program { plus });
+            let val = self.listener.exit_program(CtxProgram::V1 { plus });
             self.stack.push(SynValue::Program(val));
         }
 
@@ -584,7 +584,7 @@ pub mod microcalc_parser {
             let plus = self.stack.pop().unwrap().get_function1();
             let fun_params = self.stack.pop().unwrap().get_fun_params();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_function(CtxFunction::Function { id, fun_params, plus });
+            let val = self.listener.exit_function(CtxFunction::V1 { id, fun_params, plus });
             self.stack.push(SynValue::Function(val));
         }
 
@@ -606,10 +606,10 @@ pub mod microcalc_parser {
                 2 => {
                     let star = self.stack.pop().unwrap().get_fun_params1();
                     let id = self.stack_t.pop().unwrap();
-                    CtxFunParams::FunParams1 { id, star }
+                    CtxFunParams::V1 { id, star }
                 }
                 3 => {
-                    CtxFunParams::FunParams2
+                    CtxFunParams::V2
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_fun_params")
             };
@@ -635,15 +635,15 @@ pub mod microcalc_parser {
                 4 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
-                    CtxInstruction::Instruction1 { id, expr }
+                    CtxInstruction::V1 { id, expr }
                 }
                 5 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxInstruction::Instruction2 { expr }
+                    CtxInstruction::V2 { expr }
                 }
                 6 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxInstruction::Instruction3 { expr }
+                    CtxInstruction::V3 { expr }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
             };
@@ -656,22 +656,22 @@ pub mod microcalc_parser {
                 16 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr2 { expr: [expr_1, expr_2] }
+                    CtxExpr::V2 { expr: [expr_1, expr_2] }
                 }
                 17 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr3 { expr: [expr_1, expr_2] }
+                    CtxExpr::V3 { expr: [expr_1, expr_2] }
                 }
                 18 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr4 { expr: [expr_1, expr_2] }
+                    CtxExpr::V4 { expr: [expr_1, expr_2] }
                 }
                 19 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr5 { expr: [expr_1, expr_2] }
+                    CtxExpr::V5 { expr: [expr_1, expr_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
@@ -683,24 +683,24 @@ pub mod microcalc_parser {
             let ctx = match alt_id {
                 25 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr6 { expr }
+                    CtxExpr::V6 { expr }
                 }
                 26 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::Expr1 { expr }
+                    CtxExpr::V1 { expr }
                 }
                 28 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr9 { num }
+                    CtxExpr::V9 { num }
                 }
                 33 => {
                     let fun_args = self.stack.pop().unwrap().get_fun_args();
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr7 { id, fun_args }
+                    CtxExpr::V7 { id, fun_args }
                 }
                 34 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::Expr8 { id }
+                    CtxExpr::V8 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr4")
             };
@@ -713,10 +713,10 @@ pub mod microcalc_parser {
                 8 => {
                     let star = self.stack.pop().unwrap().get_fun_args1();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxFunArgs::FunArgs1 { expr, star }
+                    CtxFunArgs::V1 { expr, star }
                 }
                 9 => {
-                    CtxFunArgs::FunArgs2
+                    CtxFunArgs::V2
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_fun_args")
             };

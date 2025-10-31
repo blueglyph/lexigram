@@ -1614,7 +1614,7 @@ impl ParserGen {
                     };
                     if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
                         if f_valued {
-                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) -> {};", self.get_nt_type(fnt as VarId)));
+                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}) -> {};", self.get_nt_type(fnt as VarId)));
                         } else {
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) {{}}"));
                         }

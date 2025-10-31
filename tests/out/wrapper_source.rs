@@ -91,9 +91,9 @@ pub(crate) mod rules_13_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _s: SynS) {}
         fn init_s(&mut self) {}
-        fn exit_s(&mut self, _ctx: CtxS) -> SynS;
+        fn exit_s(&mut self, ctx: CtxS) -> SynS;
         fn init_val(&mut self) {}
-        fn exit_val(&mut self, _ctx: CtxVal) -> SynVal;
+        fn exit_val(&mut self, ctx: CtxVal) -> SynVal;
     }
 
     pub struct Wrapper<T> {
@@ -260,7 +260,7 @@ pub(crate) mod rules_102_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -410,7 +410,7 @@ pub(crate) mod rules_103_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -575,9 +575,9 @@ pub(crate) mod rules_104_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -751,9 +751,9 @@ pub(crate) mod rules_105_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -935,9 +935,9 @@ pub(crate) mod rules_106_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -1272,7 +1272,7 @@ pub(crate) mod rules_108_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -1416,7 +1416,7 @@ pub(crate) mod rules_150_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -1595,9 +1595,9 @@ pub(crate) mod rules_152_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -1820,9 +1820,9 @@ pub(crate) mod rules_153_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -2000,15 +2000,15 @@ pub(crate) mod rules_153_1 {
             }
 
             fn exit_a(&mut self, ctx: CtxA) -> SynA {
-                let CtxA::A { a, plus, f } = ctx;
+                let CtxA::V1 { a, plus, f } = ctx;
                 let mut val = vec![];
                 val.push(a);
                 val.extend(plus.0.into_iter()
                     .map(|choice| {
                         match choice {
-                            SynA1Item::Ch1 { b } => format!("b({b})"),
-                            SynA1Item::Ch2 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
-                            SynA1Item::Ch3 { e } => format!("e({e})"),
+                            SynA1Item::V1 { b } => format!("b({b})"),
+                            SynA1Item::V2 { b: [SynB(b_1), SynB(b_2)], c: [c_1, c_2], b1 } => format!("d({b_1}), c({c_1}), d({b_2}), b({b1}), c({c_2})", ),
+                            SynA1Item::V3 { e } => format!("e({e})"),
                         }
                 }));
                 val.push(f);
@@ -2016,7 +2016,7 @@ pub(crate) mod rules_153_1 {
             }
 
             fn exit_b(&mut self, ctx: CtxB) -> SynB {
-                let CtxB::B { d } = ctx;
+                let CtxB::V1 { d } = ctx;
                 SynB(d)
             }
         }
@@ -2126,9 +2126,9 @@ pub(crate) mod rules_200_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
     }
 
@@ -2288,7 +2288,7 @@ pub(crate) mod rules_200_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
         fn exit_i(&mut self, _ctx: CtxI) {}
     }
@@ -2435,9 +2435,9 @@ pub(crate) mod rules_201_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
         fn init_i(&mut self) -> SynMyI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynMyI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynMyI;
     }
 
     pub struct Wrapper<T> {
@@ -2589,7 +2589,7 @@ pub(crate) mod rules_201_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
         fn init_i(&mut self) {}
         fn exit_i(&mut self, _ctx: CtxI) {}
     }
@@ -2740,7 +2740,7 @@ pub(crate) mod rules_201_3 {
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
         fn init_i(&mut self) -> SynMyI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynMyI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynMyI;
     }
 
     pub struct Wrapper<T> {
@@ -2900,12 +2900,12 @@ pub(crate) mod rules_202_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -3082,9 +3082,9 @@ pub(crate) mod rules_206_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_j(&mut self) -> SynAiter;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynAiter;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynAiter;
         fn exitloop_j(&mut self, _star_it: &mut SynAiter) {}
     }
 
@@ -3280,15 +3280,15 @@ pub(crate) mod rules_208_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
         fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -3484,9 +3484,9 @@ pub(crate) mod rules_208_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
         fn init_j(&mut self) {}
         fn exit_j(&mut self, _ctx: CtxJ) {}
@@ -3668,7 +3668,7 @@ pub(crate) mod rules_208_3 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
         fn exit_i(&mut self, _ctx: CtxI) {}
         fn init_j(&mut self) {}
@@ -3987,7 +3987,7 @@ pub(crate) mod rules_210_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
         fn exit_i(&mut self, _ctx: CtxI) {}
     }
@@ -4135,9 +4135,9 @@ pub(crate) mod rules_211_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
     }
 
@@ -4316,9 +4316,9 @@ pub(crate) mod rules_250_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
     }
 
@@ -4489,9 +4489,9 @@ pub(crate) mod rules_251_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
     }
 
     pub struct Wrapper<T> {
@@ -4685,11 +4685,11 @@ pub(crate) mod rules_252_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -4928,11 +4928,11 @@ pub(crate) mod rules_253_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -5170,15 +5170,15 @@ pub(crate) mod rules_254_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
         fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -5407,11 +5407,11 @@ pub(crate) mod rules_256_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -5623,12 +5623,12 @@ pub(crate) mod rules_258_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn exitloop_i(&mut self, _star_it: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
         fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
     }
 
@@ -5873,11 +5873,11 @@ pub(crate) mod rules_259_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI) -> SynI;
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, _ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
     }
 
     pub struct Wrapper<T> {
@@ -6101,7 +6101,7 @@ pub(crate) mod rules_301_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _expr: SynExpr) {}
         fn init_expr(&mut self) {}
-        fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -6371,7 +6371,7 @@ pub(crate) mod rules_401_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _expr: SynExpr) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -6654,10 +6654,10 @@ pub(crate) mod rules_502_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
         fn exitloop_e(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
-        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
+        fn exit_f(&mut self, ctx: CtxF) -> SynF;
     }
 
     pub struct Wrapper<T> {
@@ -6819,7 +6819,7 @@ pub(crate) mod rules_502_2 {
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) {}
         fn init_f(&mut self) {}
-        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
+        fn exit_f(&mut self, ctx: CtxF) -> SynF;
     }
 
     pub struct Wrapper<T> {
@@ -6963,7 +6963,7 @@ pub(crate) mod rules_580_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
         fn exitloop_e(&mut self, _e: &mut SynE) {}
     }
 
@@ -7119,11 +7119,11 @@ pub(crate) mod rules_580_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // e -> e "!"
-                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
                     // e -> "-" e
-                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_prefix_op("-", ls),
                     // e -> Num
-                    CtxE::E3 { num } => LevelString(0, num),
+                    CtxE::V3 { num } => LevelString(0, num),
                 })
             }
         }
@@ -7229,7 +7229,7 @@ pub(crate) mod rules_581_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) -> SynE;
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
         fn exitloop_e(&mut self, _e: &mut SynE) {}
     }
 
@@ -7392,11 +7392,11 @@ pub(crate) mod rules_581_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // e -> e "!"
-                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
                     // e -> <L> "-" e
-                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_prefix_op("-", ls),
                     // e -> Num
-                    CtxE::E3 { e: SynE(ls), num } => LevelString(0, num),
+                    CtxE::V3 { e: SynE(ls), num } => LevelString(0, num),
                 })
             }
         }
@@ -7506,7 +7506,7 @@ pub(crate) mod rules_600_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -7679,7 +7679,7 @@ pub(crate) mod rules_603_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -7833,13 +7833,13 @@ pub(crate) mod rules_603_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V3 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -7935,7 +7935,7 @@ pub(crate) mod rules_604_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8089,13 +8089,13 @@ pub(crate) mod rules_604_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> "!" e`
-                    CtxE::E2 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -8191,7 +8191,7 @@ pub(crate) mod rules_605_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8345,13 +8345,13 @@ pub(crate) mod rules_605_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> "!" e`
-                    CtxE::E1 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V1 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> e "*" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -8447,7 +8447,7 @@ pub(crate) mod rules_606_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8596,13 +8596,13 @@ pub(crate) mod rules_606_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> <R> e "!" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -8698,7 +8698,7 @@ pub(crate) mod rules_607_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8848,13 +8848,13 @@ pub(crate) mod rules_607_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> <R> e "!" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -8950,7 +8950,7 @@ pub(crate) mod rules_608_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9103,13 +9103,13 @@ pub(crate) mod rules_608_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> <R> e "!" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> e "*" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -9205,7 +9205,7 @@ pub(crate) mod rules_609_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9353,13 +9353,13 @@ pub(crate) mod rules_609_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> e "!"`
-                    CtxE::E3 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::V3 { e: SynE(ls) } => ls_suffix_op("!", ls),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -9455,7 +9455,7 @@ pub(crate) mod rules_610_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9604,13 +9604,13 @@ pub(crate) mod rules_610_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "!"`
-                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_suffix_op("!", ls),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -9706,7 +9706,7 @@ pub(crate) mod rules_611_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9858,13 +9858,13 @@ pub(crate) mod rules_611_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "!"`
-                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
                     // `e -> e "*" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -9960,7 +9960,7 @@ pub(crate) mod rules_612_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10113,13 +10113,13 @@ pub(crate) mod rules_612_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "!" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> e "*" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -10215,7 +10215,7 @@ pub(crate) mod rules_613_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10364,13 +10364,13 @@ pub(crate) mod rules_613_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> <P> e "!" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -10466,7 +10466,7 @@ pub(crate) mod rules_614_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10616,13 +10616,13 @@ pub(crate) mod rules_614_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> <P> e "!" e`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
                     // `e -> e "+" e`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -10718,7 +10718,7 @@ pub(crate) mod rules_630_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10868,13 +10868,13 @@ pub(crate) mod rules_630_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+"`
-                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_suffix_op("+", ls),
                     // `e -> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V3 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -10970,7 +10970,7 @@ pub(crate) mod rules_631_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11120,13 +11120,13 @@ pub(crate) mod rules_631_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> e "+"`
-                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_suffix_op("+", ls),
                     // `e -> <R> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V3 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -11222,7 +11222,7 @@ pub(crate) mod rules_632_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11372,13 +11372,13 @@ pub(crate) mod rules_632_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
-                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `e -> <R> e "+"`
-                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    CtxE::V2 { e: SynE(ls) } => ls_suffix_op("+", ls),
                     // `e -> "!" e`
-                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    CtxE::V3 { e: SynE(ls) } => ls_prefix_op("!", ls),
                     // `e -> Num`
-                    CtxE::E4 { num } => LevelString(0, num),
+                    CtxE::V4 { num } => LevelString(0, num),
                 })
             }
         }
@@ -11725,7 +11725,7 @@ pub(crate) mod rules_640_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11905,17 +11905,17 @@ pub(crate) mod rules_640_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
-                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
                     // `E -> E * E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `E -> E / E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
                     // `E -> E + E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `E -> E - E`
-                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    CtxE::V5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
-                    CtxE::E6 { id } => LevelString(0, id),
+                    CtxE::V6 { id } => LevelString(0, id),
                 })
             }
         }
@@ -12048,7 +12048,7 @@ pub(crate) mod rules_641_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -12228,17 +12228,17 @@ pub(crate) mod rules_641_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
-                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
                     // `E -> E * E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `E -> E / E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
                     // `E -> E + E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `E -> E - E`
-                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    CtxE::V5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
-                    CtxE::E6 { id } => LevelString(0, id),
+                    CtxE::V6 { id } => LevelString(0, id),
                 })
             }
         }
@@ -12371,7 +12371,7 @@ pub(crate) mod rules_642_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -12551,17 +12551,17 @@ pub(crate) mod rules_642_1 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
-                    CtxE::E1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
                     // `E -> E * E`
-                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::V2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
                     // `E -> E / E`
-                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    CtxE::V3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
                     // `E -> E + E`
-                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::V4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
                     // `E -> E - E`
-                    CtxE::E5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    CtxE::V5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
-                    CtxE::E6 { id } => LevelString(0, id),
+                    CtxE::V6 { id } => LevelString(0, id),
                 })
             }
         }
@@ -12684,7 +12684,7 @@ pub(crate) mod rules_650_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -12832,7 +12832,7 @@ pub(crate) mod rules_705_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -13000,7 +13000,7 @@ pub(crate) mod rules_820_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
@@ -13167,7 +13167,7 @@ pub(crate) mod rules_821_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
@@ -13335,7 +13335,7 @@ pub(crate) mod rules_810_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -13498,7 +13498,7 @@ pub(crate) mod rules_811_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -13668,7 +13668,7 @@ pub(crate) mod rules_835_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -13848,7 +13848,7 @@ pub(crate) mod rules_862_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _expr: SynExpr) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -14004,9 +14004,9 @@ pub(crate) mod rules_862_1 {
             fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr {
                 let (mut e, num) = match ctx {
                     // expr -> <L> Num "^" expr
-                    CtxExpr::Expr1 { expr: SynExpr(e), num } => (e, num),
+                    CtxExpr::V1 { expr: SynExpr(e), num } => (e, num),
                     // expr -> Num
-                    CtxExpr::Expr2 { expr: SynExpr(e), num } => (e, num),
+                    CtxExpr::V2 { expr: SynExpr(e), num } => (e, num),
                 };
                 e.push(num);
                 SynExpr(e)
@@ -14115,7 +14115,7 @@ pub(crate) mod rules_870_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
@@ -14276,7 +14276,7 @@ pub(crate) mod rules_871_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
@@ -14662,35 +14662,35 @@ pub(crate) mod rules_901_1 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
-        fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+        fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_file_item(&mut self) {}
-        fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem;
+        fn exit_file_item(&mut self, ctx: CtxFileItem) -> SynFileItem;
         fn init_header(&mut self) {}
-        fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader;
+        fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
         fn init_declaration(&mut self) {}
-        fn exit_declaration(&mut self, _ctx: CtxDeclaration) -> SynDeclaration;
+        fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration;
         fn init_option(&mut self) {}
-        fn exit_option(&mut self, _ctx: CtxOption) -> SynOption;
+        fn exit_option(&mut self, ctx: CtxOption) -> SynOption;
         fn init_rule(&mut self) {}
-        fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+        fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_actions(&mut self) {}
-        fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions;
+        fn exit_actions(&mut self, ctx: CtxActions) -> SynActions;
         fn init_action(&mut self) {}
-        fn exit_action(&mut self, _ctx: CtxAction) -> SynAction;
+        fn exit_action(&mut self, ctx: CtxAction) -> SynAction;
         fn init_match(&mut self) {}
-        fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch;
+        fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch;
         fn init_alt_items(&mut self) {}
-        fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems;
+        fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems;
         fn init_alt_item(&mut self) {}
-        fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem;
+        fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem;
         fn init_repeat_item(&mut self) {}
-        fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem;
+        fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem;
         fn init_item(&mut self) {}
-        fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
+        fn exit_item(&mut self, ctx: CtxItem) -> SynItem;
         fn init_char_set(&mut self) {}
-        fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet;
+        fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet;
         fn init_char_set_one(&mut self) {}
-        fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne;
+        fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne;
     }
 
     pub struct Wrapper<T> {

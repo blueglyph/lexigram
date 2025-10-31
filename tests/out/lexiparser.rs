@@ -38,129 +38,129 @@ pub(crate) mod lexiparser {
     #[derive(Debug)]
     pub enum CtxFile {
         /// `file -> header file_item*`
-        File1 { header: SynHeader, star: SynFile1 },
+        V1 { header: SynHeader, star: SynFile1 },
         /// `file -> file_item*`
-        File2 { star: SynFile1 },
+        V2 { star: SynFile1 },
     }
     #[derive(Debug)]
     pub enum CtxFileItem {
         /// `file_item -> option`
-        FileItem1 { option: SynOption },
+        V1 { option: SynOption },
         /// `file_item -> declaration`
-        FileItem2 { declaration: SynDeclaration },
+        V2 { declaration: SynDeclaration },
         /// `file_item -> rule`
-        FileItem3 { rule: SynRule },
+        V3 { rule: SynRule },
     }
     #[derive(Debug)]
     pub enum CtxHeader {
         /// `header -> "lexicon" Id ";"`
-        Header { id: String },
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxDeclaration {
         /// `declaration -> "mode" Id ";"`
-        Declaration { id: String },
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxOption {
         /// `option -> "channels" "{" Id ("," Id)* "}"`
-        Option { id: String, star: SynOption1 },
+        V1 { id: String, star: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
         /// `rule -> "fragment" Id ":" match ";"`
-        Rule1 { id: String, match1: SynMatch },
+        V1 { id: String, match1: SynMatch },
         /// `rule -> Id ":" match "->" actions ";"`
-        Rule2 { id: String, match1: SynMatch, actions: SynActions },
+        V2 { id: String, match1: SynMatch, actions: SynActions },
         /// `rule -> Id ":" match ";"`
-        Rule3 { id: String, match1: SynMatch },
+        V3 { id: String, match1: SynMatch },
     }
     #[derive(Debug)]
     pub enum CtxActions {
         /// `actions -> action ("," action)*`
-        Actions { action: SynAction, star: SynActions1 },
+        V1 { action: SynAction, star: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
         /// `action -> "mode" "(" Id ")"`
-        Action1 { id: String },
+        V1 { id: String },
         /// `action -> "push" "(" Id ")"`
-        Action2 { id: String },
+        V2 { id: String },
         /// `action -> "pop"`
-        Action3,
+        V3,
         /// `action -> "skip"`
-        Action4,
+        V4,
         /// `action -> "more"`
-        Action5,
+        V5,
         /// `action -> "type" "(" Id ")"`
-        Action6 { id: String },
+        V6 { id: String },
         /// `action -> "channel" "(" Id ")"`
-        Action7 { id: String },
+        V7 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxMatch {
         /// `match -> alt_items`
-        Match { alt_items: SynAltItems },
+        V1 { alt_items: SynAltItems },
     }
     #[derive(Debug)]
     pub enum CtxAltItems {
         /// `alt_items -> alt_item ("|" alt_item)*`
-        AltItems { alt_item: SynAltItem, star: SynAltItems1 },
+        V1 { alt_item: SynAltItem, star: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
         /// `alt_item -> repeat_item+`
-        AltItem { plus: SynAltItem1 },
+        V1 { plus: SynAltItem1 },
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
         /// `repeat_item -> item "*" "?"`
-        RepeatItem1 { item: SynItem },
+        V1 { item: SynItem },
         /// `repeat_item -> item "*"`
-        RepeatItem2 { item: SynItem },
+        V2 { item: SynItem },
         /// `repeat_item -> item "+" "?"`
-        RepeatItem3 { item: SynItem },
+        V3 { item: SynItem },
         /// `repeat_item -> item "+"`
-        RepeatItem4 { item: SynItem },
+        V4 { item: SynItem },
         /// `repeat_item -> item "?"`
-        RepeatItem5 { item: SynItem },
+        V5 { item: SynItem },
         /// `repeat_item -> item`
-        RepeatItem6 { item: SynItem },
+        V6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
         /// `item -> Id`
-        Item1 { id: String },
+        V1 { id: String },
         /// `item -> CharLit ".." CharLit`
-        Item2 { charlit: [String; 2] },
+        V2 { charlit: [String; 2] },
         /// `item -> CharLit`
-        Item3 { charlit: String },
+        V3 { charlit: String },
         /// `item -> StrLit`
-        Item4 { strlit: String },
+        V4 { strlit: String },
         /// `item -> char_set`
-        Item5 { char_set: SynCharSet },
+        V5 { char_set: SynCharSet },
         /// `item -> "(" alt_items ")"`
-        Item6 { alt_items: SynAltItems },
+        V6 { alt_items: SynAltItems },
         /// `item -> "~" item`
-        Item7 { item: SynItem },
+        V7 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
         /// `char_set -> "[" char_set_one+ "]"`
-        CharSet1 { plus: SynCharSet1 },
+        V1 { plus: SynCharSet1 },
         /// `char_set -> "."`
-        CharSet2,
+        V2,
         /// `char_set -> FixedSet`
-        CharSet3 { fixedset: String },
+        V3 { fixedset: String },
     }
     #[derive(Debug)]
     pub enum CtxCharSetOne {
         /// `char_set_one -> SetChar "-" SetChar`
-        CharSetOne1 { setchar: [String; 2] },
+        V1 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
-        CharSetOne2 { setchar: String },
+        V2 { setchar: String },
         /// `char_set_one -> FixedSet`
-        CharSetOne3 { fixedset: String },
+        V3 { fixedset: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -290,35 +290,35 @@ pub(crate) mod lexiparser {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
-        fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+        fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_file_item(&mut self) {}
-        fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem;
+        fn exit_file_item(&mut self, ctx: CtxFileItem) -> SynFileItem;
         fn init_header(&mut self) {}
-        fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader;
+        fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
         fn init_declaration(&mut self) {}
-        fn exit_declaration(&mut self, _ctx: CtxDeclaration) -> SynDeclaration;
+        fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration;
         fn init_option(&mut self) {}
-        fn exit_option(&mut self, _ctx: CtxOption) -> SynOption;
+        fn exit_option(&mut self, ctx: CtxOption) -> SynOption;
         fn init_rule(&mut self) {}
-        fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+        fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_actions(&mut self) {}
-        fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions;
+        fn exit_actions(&mut self, ctx: CtxActions) -> SynActions;
         fn init_action(&mut self) {}
-        fn exit_action(&mut self, _ctx: CtxAction) -> SynAction;
+        fn exit_action(&mut self, ctx: CtxAction) -> SynAction;
         fn init_match(&mut self) {}
-        fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch;
+        fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch;
         fn init_alt_items(&mut self) {}
-        fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems;
+        fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems;
         fn init_alt_item(&mut self) {}
-        fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem;
+        fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem;
         fn init_repeat_item(&mut self) {}
-        fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem;
+        fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem;
         fn init_item(&mut self) {}
-        fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
+        fn exit_item(&mut self, ctx: CtxItem) -> SynItem;
         fn init_char_set(&mut self) {}
-        fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet;
+        fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet;
         fn init_char_set_one(&mut self) {}
-        fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne;
+        fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne;
     }
 
     pub struct Wrapper<T> {
@@ -489,11 +489,11 @@ pub(crate) mod lexiparser {
                 0 => {
                     let star = self.stack.pop().unwrap().get_file1();
                     let header = self.stack.pop().unwrap().get_header();
-                    CtxFile::File1 { header, star }
+                    CtxFile::V1 { header, star }
                 }
                 1 => {
                     let star = self.stack.pop().unwrap().get_file1();
-                    CtxFile::File2 { star }
+                    CtxFile::V2 { star }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
@@ -518,15 +518,15 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 2 => {
                     let option = self.stack.pop().unwrap().get_option();
-                    CtxFileItem::FileItem1 { option }
+                    CtxFileItem::V1 { option }
                 }
                 3 => {
                     let declaration = self.stack.pop().unwrap().get_declaration();
-                    CtxFileItem::FileItem2 { declaration }
+                    CtxFileItem::V2 { declaration }
                 }
                 4 => {
                     let rule = self.stack.pop().unwrap().get_rule();
-                    CtxFileItem::FileItem3 { rule }
+                    CtxFileItem::V3 { rule }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
@@ -536,20 +536,20 @@ pub(crate) mod lexiparser {
 
         fn exit_header(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_header(CtxHeader::Header { id });
+            let val = self.listener.exit_header(CtxHeader::V1 { id });
             self.stack.push(SynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_declaration(CtxDeclaration::Declaration { id });
+            let val = self.listener.exit_declaration(CtxDeclaration::V1 { id });
             self.stack.push(SynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_option(CtxOption::Option { id, star });
+            let val = self.listener.exit_option(CtxOption::V1 { id, star });
             self.stack.push(SynValue::Option(val));
         }
 
@@ -571,18 +571,18 @@ pub(crate) mod lexiparser {
                 8 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule1 { id, match1 }
+                    CtxRule::V1 { id, match1 }
                 }
                 43 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule2 { id, match1, actions }
+                    CtxRule::V2 { id, match1, actions }
                 }
                 44 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::Rule3 { id, match1 }
+                    CtxRule::V3 { id, match1 }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
@@ -593,7 +593,7 @@ pub(crate) mod lexiparser {
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
             let action = self.stack.pop().unwrap().get_action();
-            let val = self.listener.exit_actions(CtxActions::Actions { action, star });
+            let val = self.listener.exit_actions(CtxActions::V1 { action, star });
             self.stack.push(SynValue::Actions(val));
         }
 
@@ -614,28 +614,28 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action1 { id }
+                    CtxAction::V1 { id }
                 }
                 12 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action2 { id }
+                    CtxAction::V2 { id }
                 }
                 13 => {
-                    CtxAction::Action3
+                    CtxAction::V3
                 }
                 14 => {
-                    CtxAction::Action4
+                    CtxAction::V4
                 }
                 15 => {
-                    CtxAction::Action5
+                    CtxAction::V5
                 }
                 16 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action6 { id }
+                    CtxAction::V6 { id }
                 }
                 17 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::Action7 { id }
+                    CtxAction::V7 { id }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
@@ -645,14 +645,14 @@ pub(crate) mod lexiparser {
 
         fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
-            let val = self.listener.exit_match(CtxMatch::Match { alt_items });
+            let val = self.listener.exit_match(CtxMatch::V1 { alt_items });
             self.stack.push(SynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let val = self.listener.exit_alt_items(CtxAltItems::AltItems { alt_item, star });
+            let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star });
             self.stack.push(SynValue::AltItems(val));
         }
 
@@ -671,7 +671,7 @@ pub(crate) mod lexiparser {
 
         fn exit_alt_item(&mut self) {
             let plus = self.stack.pop().unwrap().get_alt_item1();
-            let val = self.listener.exit_alt_item(CtxAltItem::AltItem { plus });
+            let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus });
             self.stack.push(SynValue::AltItem(val));
         }
 
@@ -692,27 +692,27 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem5 { item }
+                    CtxRepeatItem::V5 { item }
                 }
                 48 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem6 { item }
+                    CtxRepeatItem::V6 { item }
                 }
                 57 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem3 { item }
+                    CtxRepeatItem::V3 { item }
                 }
                 58 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem4 { item }
+                    CtxRepeatItem::V4 { item }
                 }
                 59 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem1 { item }
+                    CtxRepeatItem::V1 { item }
                 }
                 60 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::RepeatItem2 { item }
+                    CtxRepeatItem::V2 { item }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
@@ -724,32 +724,32 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
-                    CtxItem::Item6 { alt_items }
+                    CtxItem::V6 { alt_items }
                 }
                 23 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item7 { item }
+                    CtxItem::V7 { item }
                 }
                 24 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxItem::Item1 { id }
+                    CtxItem::V1 { id }
                 }
                 26 => {
                     let strlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item4 { strlit }
+                    CtxItem::V4 { strlit }
                 }
                 27 => {
                     let char_set = self.stack.pop().unwrap().get_char_set();
-                    CtxItem::Item5 { char_set }
+                    CtxItem::V5 { char_set }
                 }
                 49 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::Item2 { charlit: [charlit_1, charlit_2] }
+                    CtxItem::V2 { charlit: [charlit_1, charlit_2] }
                 }
                 50 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { charlit }
+                    CtxItem::V3 { charlit }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
@@ -761,14 +761,14 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 28 => {
                     let plus = self.stack.pop().unwrap().get_char_set1();
-                    CtxCharSet::CharSet1 { plus }
+                    CtxCharSet::V1 { plus }
                 }
                 29 => {
-                    CtxCharSet::CharSet2
+                    CtxCharSet::V2
                 }
                 30 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSet::CharSet3 { fixedset }
+                    CtxCharSet::V3 { fixedset }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
@@ -793,16 +793,16 @@ pub(crate) mod lexiparser {
             let ctx = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne3 { fixedset }
+                    CtxCharSetOne::V3 { fixedset }
                 }
                 51 => {
                     let setchar_2 = self.stack_t.pop().unwrap();
                     let setchar_1 = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne1 { setchar: [setchar_1, setchar_2] }
+                    CtxCharSetOne::V1 { setchar: [setchar_1, setchar_2] }
                 }
                 52 => {
                     let setchar = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::CharSetOne2 { setchar }
+                    CtxCharSetOne::V2 { setchar }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };
