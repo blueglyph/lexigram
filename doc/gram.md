@@ -137,26 +137,50 @@ prod_atom:
 
 ## Overview of the Listener Interface
 
-LexiGram produces the source code of a parser from the language lexicon and grammar. The parser interfaces with the user code through a listener object, which is written by the user and which must implement a custom trait generated together with the parser code. That listener is given to the parser before processing the text and can be recovered after.
+Lexigram produces the source code of a parser from the language lexicon and grammar. The parser interfaces with the user code through a listener object, which is written by the user and which must implement a custom trait generated together with the parser code. That listener is given to the parser before processing the text and can be recovered after.
 
 Each nonterminal (rule name) can be associated to a value of a user-defined type. The parser calls a trait method bound to each nonterminal once its rule has been fully parsed, and the user implementation code of the method returns the nonterminal value based on the given context, which includes the values of the rule items: other nonterminals and variable tokens like string and numerical literals.
 
 As an example, let's consider a simple lexicon and grammar. `Id` and `Num` are variable tokens representing a identifier name and a numerical value, respectively, and the grammar defines two rules for the nonterminals `s` and `val`:
 
 ```
-// lexicon
+// lexicon file
 Equal : "=";                // fixed token
 Exit  : "exit";             // fixed token
 Return: "return";           // fixed token
 Id    : [a-z][a-z0-9]*;     // variable token
 Num   : [1-9][0-9]*;        // variable token
  
-// grammar
+// grammar file
 s:   Id Equal val | Exit | Return val;
 val: Id | Num;
 ```
 
-### Init and Exit Methods
+### Notation
+
+Below, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
+
+```
+expr -> expr "+" expr | <P> expr "-" expr | Id | Num
+```
+
+* As in Lexigram's grammar, the nonterminals are in lowercase and the terminals (tokens) begin with an uppercase letter. The attributes, like `<P>`, are the same.
+* Unlike Lexigram's grammar, the terminals don't need to be defined separately: the string literals represent a fixed token, like `+`, and identifiers beginning with an uppercase letter implicitly represent variable tokens, like `Id` and `Num`.
+
+The equivalent Lexigram definitions for the above example could be:
+
+```
+// lexicon file
+Add   : "+";
+Sub   : "-";
+Id    : [a-z][a-z0-9]*;
+Num   : [1-9][0-9]*;
+
+// grammar file
+expr: expr Add expr | <P> expr Sub expr | Id | Num;
+```
+
+### Init and exit Methods
 
 Gram generates the following listener trait, that the user must implement on a listener object:
 
@@ -203,9 +227,9 @@ let val = listener.exit_val(CtxVal::V2 { num: "5".to_string() });
 let s = listener.exit_s(CtxS::V3 { val });
 ```
 
-Each nonterminal can have a value, but it's not mandatory. This choice is specified in the options given to LexiGram when it generates the parser source code. If the nonterminal `s` has a value, `exit_s` is generated with a return value of type `SynS`, this type being defined by the user. If `s` has no value, `exit_s` has no return value and the trait definition includes a default empty implementation.
+Each nonterminal can have a value, but it's not mandatory. This choice is specified in the options given to Lexigram when it generates the parser source code. If the nonterminal `s` has a value, `exit_s` is generated with a return value of type `SynS`, this type being defined by the user. If `s` has no value, `exit_s` has no return value and the trait definition includes a default empty implementation.
 
-### Other General Methods
+### Other general methods
 
 There are a few other methods that the parser calls in some circumstances:
 
@@ -271,9 +295,9 @@ The listener isn't given directly to the parser; it's given to a wrapper, which 
 
 ## Grammar Transformations
 
-LexiGram accepts non-LL(1) grammars if it's able to transforme them to LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
+Lexigram accepts non-LL(1) grammars if it's able to transforme them to LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
 
-The transformations done by LexiGram are:
+The transformations done by Lexigram are:
 * `?` operator: `a -> X?` becomes `X | ε`
 * `*` operators: `a -> X*` becomes `a -> a1`  `a1 -> X a1 | ε`
 * `+` operators: `a -> X+` becomes `a -> a1`  `a1 -> X a1 | X`
@@ -293,10 +317,19 @@ Secondly, in right-recursive rules, which don't need to be transformed since it'
 
 The motivation behind the `<L>` versions is offering the ability to parse a potentially infinite stream without storing all the intermediate items, or being able to produce an immediate output before reaching the end of the sequence in the stream.
 
-## Simple Repetitions with + and *
+## Base cases
+
+### Repetitions with *
 
 ```
 a -> A B* C
+```
+
+is transformed into
+
+```
+a -> A a_1 C
+a_1 -> B a_1 | ε    
 ```
 
 The generated code is as follows:
@@ -319,10 +352,42 @@ pub trait TestListener {
 * `init_a` is called before the rule is parsed.
 * `exit_a` is called after `a -> A B* C` is parsed. The repetition is available in the `star` field, which wraps a vector containing all the parsed values.
 
-## `<L>` Repetitions with + and *
+### Repetitions with +
 
 ```
-a -> A (<L> B)* C
+a -> A B+ C
+```
+
+is transformed into
+
+```
+a -> A a_1 C
+a_1 -> B a_2
+a_2 -> a_1 | ε    
+```
+
+The generated code is very similar to the `*` repetition:
+
+```rust
+pub enum CtxA {
+    /// `a -> A B+ C`
+    V1 { a: String, plus: SynA1, c: String },
+}
+
+/// Computed `B+` array in `a -> A  ►► B+ ◄◄  C`
+pub struct SynA1(pub Vec<String>);
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+}
+```
+
+### Repetitions with * and `<L>` attribute
+
+```
+a -> A (<L=i> B)* C
 ```
 
 is transformed into
@@ -331,6 +396,8 @@ is transformed into
 a -> A i C
 i -> B i | ε    
 ```
+
+Note that the nonterminal used to represent the iterations must be defined by the user, since its type is user-defined (here, `i` of type `SynI`).
 
 The generated code is as follows:
 
@@ -357,16 +424,58 @@ pub trait TestListener {
 
 * `init_a` is called before the rule `a` is parsed.
 * `init_i` is called before the rule `i` is parsed for the first time. This is a good place to initialize the whole series; the method must return the accumulator variable that will be updated at each iteration.
-* `exit_i` is called after parsing each item of the repetition. It receives the current value of the accumulator in `star_it` and the values of the parsed items, here `b`. It must return the updated accumulator.
+* `exit_i` is called after parsing each item of the repetition, if there are any item. It receives the current value of the accumulator in `star_it` and the values of the parsed items, here `b`. It must return the updated accumulator.
 * `exitloop_i` is called after the last iteration. It can be used if the accumulator requires post-processing once the whole series has been parsed.
 
-## Simple right recursion
+### Repetitions with + and `<L>` attribute
+
+```
+a -> A (<L=i> B)+ C
+```
+
+is transformed into
+
+```
+a -> A i C
+i -> B a_1
+a_1 -> i | ε  
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxA {
+    /// `a -> A (<L> B)+ C`
+    V1 { a: String, plus: SynI, c: String },
+}
+
+pub enum CtxI {
+    /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
+    V1 { plus_it: SynI, b: String, last_iteration: bool },
+}
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
+    fn init_i(&mut self) -> SynI;
+    fn exit_i(&mut self, ctx: CtxI) -> SynI;
+}
+```
+
+The differences from a repetition with `<L>` * are:
+* A `last_iteration` field that flags the last iteration, when the `a_1 -> ε` alternative is reached. 
+* No `exitloop_i` method, which has been replaced by the flag above because the last iteration contains the same data as the previous iterations.
+* `exit_i` is sure to be called at least once.
+* The accumulator field is named `plus_it` instead of `star_it`.
+
+### Right recursion
 
 ```
 expr -> Id "." expr | "(" Num ")"
 ```
 
-The generated code is as follows:
+Right-recursive rules don't need to be modified. The generated code is as follows:
 
 ```rust
 pub enum CtxExpr {
@@ -383,7 +492,7 @@ pub trait TestListener {
 }
 ```
 
-## `<L>` right recursion
+### Right recursion with `<L>` attribute
 
 ```
 expr -> <L> Id "." expr | "(" Num ")"
@@ -406,7 +515,9 @@ pub trait TestListener {
 }
 ```
 
-## Left recursion
+Contrary to repetitions, the user mustn't define a name in the attribute, since there is no transformation nor any associated nonterminal (said differently, the nonterminal associated with the attribute is the nonterminal of the rule, so there's no need to specify it).
+
+### Left recursion
 
 ```
 e -> f | e "." Id
@@ -445,7 +556,7 @@ This is similar to an `<L>` repetition, except the initialization part. The accu
   * If there are iterations of the recursive alternative, `exit_e` is called for each iteration, with the current value of the accumulator in context and the parsed values of that iteration. It must return the updated accumulator. 
 * `exitloop_e` is called after the last iteration. It can be used if the accumulator requires post-processing once the whole series has been parsed.
 
-## Left factorization
+### Left factorization
 
 ```
 a -> A | A B | A B C | A B D | E
@@ -493,3 +604,253 @@ pub trait TestListener {
     fn exit_a(&mut self, ctx: CtxA) -> SynA;
 }
 ```
+
+## Advanced cases
+
+### Ambiguous left and right recursion
+
+Rules that are both left- and right-recursive are ambiguous in an LL(1) grammar, since they don't define the precedence nor the associativity. The typical use of such rules are for expressions containing binary operators.
+
+Lexigram automatically transforms those rules using the Clarke method, which preserves the precedence and left-/right-associativity. The same rule can contain binary and prefixed / suffixed unary operators (e.g. `expr "+" expr`, `"-" expr` and `expr "?"`, respectively).
+
+The precedence is determined by the order in which the operators are defined in the rule:
+
+* The alternatives defined first have higher precedence; in this example, `*` has higher precedence than `+`
+
+  `expr -> expr "*" expr | expr "+" expr | Num`
+
+
+* The `<P>` attribute indicates an operator with the same level of precedence as the previous one on its left. For example, it can be used in a rule like
+
+  `expr -> expr "+" expr | <P> expr "-" expr | Id | Num`
+
+By default, binary operators are left-associative. The `<R>` attribute indicates a right-associative operator. For example,
+
+  `expr -> <R> expr "^" expr | expr "*" expr | expr "/" expr | Num`
+
+
+The attributes can be placed anywhere in the rule alternative, but we usually place them at the beginning to be consistent.
+
+The rule
+
+```
+e -> e "*" e | <R> e "!" e | e "+" e | Num
+```
+
+is transformed into 
+
+```
+e -> e_4 e_1      
+e_1 -> "*" e_4 e_1 | "!" e_2 e_1 | "+" e_2 e_1 | ε          
+e_2 -> e_4 e_3    
+e_3 -> "*" e_4 e_3 | "!" e_2 e_3 | ε          
+e_4 -> Num        
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxE {
+    /// `e -> e "*" e`
+    V1 { e: [SynE; 2] },
+    /// `e -> <R> e "!" e`
+    V2 { e: [SynE; 2] },
+    /// `e -> e "+" e`
+    V3 { e: [SynE; 2] },
+    /// `e -> Num`
+    V4 { num: String },
+}
+
+pub trait TestListener {
+    // ...
+    fn init_e(&mut self) {}
+    fn exit_e(&mut self, ctx: CtxE) -> SynE;
+}
+```
+
+Since there are two identical symbols in the same alternatives, they are regrouped in an array `e: [SynE; 2]`, where `e[0]` is the leftmost nonterminal and `e[1]` is the rightmost one.
+
+The first variant `V1` is related to the operator of highest precedence, and the last variant is related to the lowest precedence.
+
+### Repetitions of longer strings of symbols
+
+```
+a -> (b A b B A)+
+```
+
+is transformed into
+
+```
+a -> a_1            
+a_1 -> b A b B A a_2
+a_2 -> a_1 | ε            
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxA {
+    /// `a -> (b A b B A)+`
+    V1 { plus: SynA1 },
+}
+
+/// Computed `(b A b B A)+` array in `a ->  ►► (b A b B A)+ ◄◄ `
+pub struct SynA1(pub Vec<SynA1Item>);
+
+/// `b A b B A` item in `a -> ( ►► b A b B A ◄◄ )+`
+pub struct SynA1Item { pub b: [SynB; 2], pub a: [String; 2], pub b1: String }
+
+pub trait TestListener {
+    // ..
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+}
+```
+
+In comparison to the base `*` repetition, we see that the type of the items in the list, `SynA1Item`, is a `struct` rather than a string. The same symbols have been regrouped in arrays: 
+* `b: [SynB; 2]` for the two nonterminals `b`.
+* `a: [String; 2]` for the two tokens `A` (note that the field must be lowercase, despite representing a token), which contain a string.
+
+Also, the token `B` is represented by `b1`, since the name `b` was already taken. The fields are in the same order as the first symbol they represent in the rule; here, `b` is first, `A` second, and `B` third. Their type is another indication that helps set them apart: the type of a token is a string, while a nonterminal has a custom type whose name begins by "Syn", for _synthesized_.
+
+### Nested repetitions
+
+```
+a -> (A (b ",")* ";")* C
+```
+
+is transformed into
+
+```
+a -> a_2 C          
+b -> B              
+a_1 -> b "," a_1 | ε            
+a_2 -> A a_1 ";" a_2 | ε            
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxA {
+    /// `a -> (A (b ",")* ";")* C`
+    V1 { star: SynA2, c: String },
+}
+
+/// Computed `(b ",")*` array in `a -> (A  ►► (b ",")* ◄◄  ";")* C`
+pub struct SynA1(pub Vec<SynB>);
+
+/// Computed `(A (b ",")* ";")*` array in `a ->  ►► (A (b ",")* ";")* ◄◄  C`
+pub struct SynA2(pub Vec<SynA2Item>);
+
+/// `A (b ",")* ";"` item in `a -> ( ►► A (b ",")* ";" ◄◄ )* C`
+pub struct SynA2Item { pub a: String, pub star: SynA1 }
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+}
+```
+
+When a repetitions is nested in another, the resulting vector becomes a field of the outer repetition's type. Here, `SynA2Item::star` of type `SynA1` contains a `Vec<SynB>`, where `SynB` contains the only data of the inner loop, which is the nonterminal `b`. Each generated type has a doc comment that emphasizes the part of the original rule it represents between "►►" and "◄◄" arrows.
+
+It's also possible to nest any combination of non-`<L>` and `<L>` repetitions. The principle is always the same: non-`<L>` repetitions are represented by a `Vec` of values gathered automatically by the parser, and an `<L>` repetition is managed manually by the user through extra nonterminal `init`/`exit` methods and is represented by a user-defined type.
+
+### Alternatives in repetitions
+
+```
+a -> A (B | b C b B C | E)* F
+```
+
+is transformed into
+
+```
+a -> A a_1 F        
+a_1 -> B a_1 | b C b B C a_1 | E a_1 | ε            
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxA {
+    /// `a -> A (B | b C b B C | E)* F`
+    V1 { a: String, star: SynA1, f: String },
+}
+
+pub enum CtxB {
+    /// `b -> D`
+    V1 { d: String },
+}
+
+/// Computed `(B | b C b B C | E)*` array in `a -> A  ►► (B | b C b B C | E)* ◄◄  F`
+pub struct SynA1(pub Vec<SynA1Item>);
+
+pub enum SynA1Item {
+    /// `B` item in `a -> A ( ►► B ◄◄  | b C b B C | E)* F`
+    V1 { b: String },
+    /// `b C b B C` item in `a -> A (B |  ►► b C b B C ◄◄  | E)* F`
+    V2 { b: [SynB; 2], c: [String; 2], b1: String },
+    /// `E` item in `a -> A (B | b C b B C |  ►► E ◄◄ )* F`
+    V3 { e: String },
+}
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+}
+```
+
+Since each iteration can be one of 3 strings of symbols, its type `SynA1Item` is an enum with 3 variants, each containing the corresponding data.
+
+### Alternatives in repetitions with `<L>` attribute
+
+```
+a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G
+```
+
+is transformed into:
+
+```
+a -> A i G      
+i -> j E i | F i | ε          
+j -> b C b B C j | D j | ε          
+```
+
+The generated code is as follows:
+
+```rust
+pub enum CtxA {
+    /// `a -> A (<L> (<L> b C b B C | D)* E | F)* G`
+    V1 { a: String, star: SynI, g: String },
+}
+
+pub enum CtxI {
+    /// `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
+    V1 { star_it: SynI, star: SynJ, e: String },
+    /// `F` iteration in `a -> A (<L> (<L> b C b B C | D)* E |  ►► F ◄◄ )* G`
+    V2 { star_it: SynI, f: String },
+}
+
+pub enum CtxJ {
+    /// `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
+    V1 { star_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
+    /// `D` iteration in `a -> A (<L> (<L> b C b B C |  ►► D ◄◄ )* E | F)* G`
+    V2 { star_it: SynJ, d: String },
+}
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+    fn init_i(&mut self) -> SynI;
+    fn exit_i(&mut self, ctx: CtxI) -> SynI;
+    fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+    fn init_j(&mut self) -> SynJ;
+    fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+    fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
+}
+```
+
+Notes:
+* In case of `<L> +` repetitions, a `last_iteration` boolean field flags the last repetition instead of a `exitloop_*` method call, as seen before. 
