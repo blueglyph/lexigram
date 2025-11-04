@@ -11,6 +11,34 @@ pub(crate) mod code_13_1 {
     #[derive(Debug, PartialEq)] pub struct SynVal();
 }
 
+pub(crate) mod code_14_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+    /// User-defined type for `c`
+    #[derive(Debug, PartialEq)] pub struct SynC();
+}
+
+pub(crate) mod code_14_2 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_14_3 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `c`
+    #[derive(Debug, PartialEq)] pub struct SynC();
+}
+
+pub(crate) mod code_14_4 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
 pub(crate) mod code_102_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();

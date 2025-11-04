@@ -527,12 +527,13 @@ mod wrapper_source {
             HasValue,                       // which symbols have a value
             BTreeMap<VarId, Vec<AltId>>, // expected alt groups
         )> = vec![
-            // -----------------------------------------------------------------------------
+            // ---------------------------------------------------------------------------
             // a -> A B
             (1, false, false, 0, btreemap![
             ], btreemap![
                 0 => symbols![t 0, t 1],                //  0: a -> A B | ◄0 B! A! | A B
             ], Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- NT/T simple mix
             // s -> Id "=" val | "exit" | "return" val
             // val -> Id | Num
@@ -546,6 +547,39 @@ mod wrapper_source {
                 3 => symbols![t 0],                     //  3: val -> Id         | ◄3 Id!           | Id
                 4 => symbols![t 4],                     //  4: val -> Num        | ◄4 Num!          | Num
             ], Default, btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
+
+            // --------------------------------------------------------------------------- NT with/without value
+            // a -> b c | c
+            // b -> Op c
+            // c -> Id
+            (14, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1, nt 2],              //  0: a -> b c  | ◄0 ►c ►b  | b c
+                1 => symbols![nt 2],                    //  1: a -> c    | ◄1 ►c     | c
+                2 => symbols![t 0, nt 2],               //  2: b -> Op c | ◄2 ►c Op! | Op c
+                3 => symbols![t 1],                     //  3: c -> Id   | ◄3 Id!    | Id
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3]]),
+            (14, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: a -> b c  | ◄0 ►c ►b  | b
+                1 => symbols![],                        //  1: a -> c    | ◄1 ►c     |
+                2 => symbols![t 0],                     //  2: b -> Op c | ◄2 ►c Op! | Op
+                3 => symbols![t 1],                     //  3: c -> Id   | ◄3 Id!    | Id
+            ], Set(symbols![nt 0, nt 1]), btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3]]),
+            (14, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2],                    //  0: a -> b c  | ◄0 ►c ►b  | c
+                1 => symbols![nt 2],                    //  1: a -> c    | ◄1 ►c     | c
+                2 => symbols![t 0, nt 2],               //  2: b -> Op c | ◄2 ►c Op! | Op c
+                3 => symbols![t 1],                     //  3: c -> Id   | ◄3 Id!    | Id
+            ], Set(symbols![nt 0, nt 2]), btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3]]),
+            (14, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![],                        //  0: a -> b c  | ◄0 ►c ►b  |
+                1 => symbols![],                        //  1: a -> c    | ◄1 ►c     |
+                2 => symbols![t 0],                     //  2: b -> Op c | ◄2 ►c Op! | Op
+                3 => symbols![t 1],                     //  3: c -> Id   | ◄3 Id!    | Id
+            ], Set(symbols![nt 0]), btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3]]),
 
             // --------------------------------------------------------------------------- +_or_*
             // a -> A B* C
@@ -2056,7 +2090,7 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
-        const TEST_SOURCE: bool = true;
+        const TEST_SOURCE: bool = false;
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result

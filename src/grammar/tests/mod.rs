@@ -51,6 +51,9 @@ impl TestRules {
                        r#"b -> B;"#],   // b should be dropped
             13 => vec![r#"s -> Id "=" val | "exit" | "return" val;"#,
                        r#"val -> Id | Num;"#],
+            14 => vec![r#"a -> b c | c;"#,
+                       r#"b -> Op c;"#,
+                       r#"c -> Id;"#],
             // empty
             30 => vec![r#"a -> A B ε C ε;"#],
             31 => vec![r#"a -> A B | C ε | ε | D | ε | <P> ε | <R> <P>;"#],
