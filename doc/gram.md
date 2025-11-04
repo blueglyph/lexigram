@@ -1,4 +1,4 @@
-# Grammar Syntax
+# Grammar Syntax and Code Generation
 
 ## Overview
 
@@ -116,6 +116,30 @@ prod_atom:
 
 # Code Generation
 
+### Notation
+
+Outside proper lexicon and grammar Lexigram sources, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
+
+```
+expr -> expr "+" expr | <P> expr "-" expr | Id | Num
+```
+
+* As in Lexigram's grammar, the nonterminals are in lowercase and the terminals (tokens) begin with an uppercase letter. The attributes, like `<P>`, are the same.
+* Unlike Lexigram's grammar, the terminals don't need to be defined separately: the string literals represent a fixed token, like `+`, and identifiers beginning with an uppercase letter implicitly represent variable tokens, like `Id` and `Num`.
+
+The equivalent Lexigram definitions for the above example could be:
+
+```
+// lexicon file
+Add   : "+";
+Sub   : "-";
+Id    : [a-z][a-z0-9]*;
+Num   : [1-9][0-9]*;
+
+// grammar file
+expr: expr Add expr | <P> expr Sub expr | Id | Num;
+```
+
 ## Overview of the Listener Interface
 
 Lexigram produces the source code of a parser from the language lexicon and grammar. The parser interfaces with the user code through a listener object, which is written by the user and which must implement a custom trait generated together with the parser code. That listener is given to the parser before processing the text and can be recovered after.
@@ -170,6 +194,8 @@ pub enum CtxVal {
     V2 { num: String },
 }
 ```
+
+To make it easier to read, we omit the Rust attributes generated for each type, typically `#[derive(Debug)])`, which might be necessary for the user.
 
 For simple rules like above, a first call is made when the next rule is determined by the parser; for example, if the "return" token is received when `s` is one of the potential next nonterminals, the rule `s -> Return val` is selected and the `init_s(&mut self)` method is called. It can be used to initialize any data before the rule is actually parsed, so before any subrules is triggered, like `val`. There are default empty implementations for the initialization methods, so they're optional.
 
@@ -250,29 +276,120 @@ return Ok(());
 
 The listener isn't given directly to the parser; it's given to a wrapper, which is part of the generated source code, then a mutable reference of that wrapper is given to the `parse` method. This is covered in details later.  
 
-### Notation
+### Nonterminal with/without a value
 
-Outside proper lexicon and grammar Lexigram sources, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
+In a [previous section](#overview-of-the-listener-interface), we said that nonterminals could have a value, but this isn't mandatory. When a nonterminal has no value, the generated code still includes `init` and `exit` methods, but the nonterminals are not represented in the contexts of other nonterminals that include them.
 
-```
-expr -> expr "+" expr | <P> expr "-" expr | Id | Num
-```
-
-* As in Lexigram's grammar, the nonterminals are in lowercase and the terminals (tokens) begin with an uppercase letter. The attributes, like `<P>`, are the same.
-* Unlike Lexigram's grammar, the terminals don't need to be defined separately: the string literals represent a fixed token, like `+`, and identifiers beginning with an uppercase letter implicitly represent variable tokens, like `Id` and `Num`.
-
-The equivalent Lexigram definitions for the above example could be:
+For example, consider the following rules:
 
 ```
-// lexicon file
-Add   : "+";
-Sub   : "-";
-Id    : [a-z][a-z0-9]*;
-Num   : [1-9][0-9]*;
-
-// grammar file
-expr: expr Add expr | <P> expr Sub expr | Id | Num;
+a -> b c | c
+b -> Op c
+c -> Id
 ```
+
+where `Op` and `Id` are variable tokens that contain string data.
+
+If both `b` and `c` have a value, the following code is generated:
+
+```rust
+pub enum CtxA {
+    /// `a -> b c`
+    V1 { b: SynB, c: SynC },
+    /// `a -> c`
+    V2 { c: SynC },
+}
+
+pub enum CtxB {
+    /// `b -> Op c`
+    V1 { op: String, c: SynC },
+}
+
+pub enum CtxC {
+    /// `c -> Id`
+    V1 { id: String },
+}
+
+pub trait TestListener {
+    // ... (other general methods)
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+    fn init_b(&mut self) {}
+    fn exit_b(&mut self, ctx: CtxB) -> SynB;
+    fn init_c(&mut self) {}
+    fn exit_c(&mut self, ctx: CtxC) -> SynC;
+}
+```
+
+As expected, the context given for the first alternative of `a` includes the data for the nonterminals `b` and `c`, with user-defined types `SynB` and `SynC`, while the second alternative only includes `c`. Similarly, `CtxB` includes a field for the `c` nonterminal.
+
+If `c` has no value, the code becomes:
+
+```rust
+pub enum CtxA {
+    /// `a -> b c`
+    V1 { b: SynB },
+    /// `a -> c`
+    V2,
+}
+
+pub enum CtxB {
+    /// `b -> c Op`
+    V1 { op: String },
+}
+
+pub enum CtxC {
+    /// `c -> Id`
+    V1 { id: String },
+}
+
+pub trait TestListener {
+    // ... (other general methods)
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+    fn init_b(&mut self) {}
+    fn exit_b(&mut self, ctx: CtxB) -> SynB;
+    fn init_c(&mut self) {}
+    fn exit_c(&mut self, _ctx: CtxC) {}
+}
+```
+
+The variant `CtxA::V2` is empty since there is no data, but it still exists so that the user knows which alternative of the `a` rule was parsed.
+
+The trait still allows for callbacks before and after `c` is parsed, but there is no return value. This also makes the implementation of `exit_c` optional, so a default empty implementation is provided.
+
+If both `b` and `c` have no value, the code becomes:
+
+```rust
+pub enum CtxA {
+    /// `a -> b c`
+    V1,
+    /// `a -> c`
+    V2,
+}
+
+pub enum CtxB {
+    /// `b -> c Op`
+    V1 { op: String },
+}
+
+pub enum CtxC {
+    /// `c -> Id`
+    V1 { id: String },
+}
+
+pub trait TestListener {
+    // ...
+    fn init_a(&mut self) {}
+    fn exit_a(&mut self, ctx: CtxA) -> SynA;
+    fn init_b(&mut self) {}
+    fn exit_b(&mut self, _ctx: CtxB) {}
+    fn init_c(&mut self) {}
+    fn exit_c(&mut self, _ctx: CtxC) {}
+}
+```
+
+Here, all the variants of the `CtxA` context are empty. If `a` only had one alternative, the context would still have one empty variant, even though it carries no information at all. It would be generated to keep the API consistent, but it could be ignored entirely.
 
 ## Grammar Transformations
 
