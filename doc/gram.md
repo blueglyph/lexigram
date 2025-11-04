@@ -21,36 +21,17 @@ prod:
 ;
 ```
 
-The first production rule, `rule` in the example above, defines the top element of the text to parse. The parser
-doesn't expect anything else in the stream once the top production rule has been matched with the stream content,
-so it will trigger an error if there are extra tokens in the stream. The `EOF` symbol can be explicitly stated
-in the production rules, as if it had to match the end of the stream, but it's optional since it's automatically
-done by the parser by default.
+The first production rule, `rule` in the example above, defines the top element of the text to parse. The parser doesn't expect anything else in the stream once the top production rule has been matched with the stream content, so it will trigger an error if there are extra tokens in the stream. The `EOF` symbol can be explicitly stated in the production rules, as if it had to match the end of the stream, but it's optional since it's automatically done by the parser by default.
 
-Before and after parsing each production rule, a specific user callback function is called: `init_<name>(...)` before
-and `exit_<name>(...)` after, where `<name>` is usually the name of the rule. If the production rule has a value, 
-meaning if the user wants to associate that grammatical element with a custom value, the exit (and sometimes the init)
-function must return a value, that will be used to represent that element when it's present in upper production rules.
+Before and after parsing each production rule, a specific user callback function is called: `init_<name>(...)` before and `exit_<name>(...)` after, where `<name>` is usually the name of the rule. If the production rule has a value, meaning if the user wants to associate that grammatical element with a custom value, the exit (and sometimes the init)function must return a value, that will be used to represent that element when it's present in upper production rules.
 
-In the example above, `init_rule(...)` is called before parsing the `prod` item, which lets the user setup any data;
-for example if it is required when parsing the `prod_term` rules - maybe a custom vector in which they will be
-stored. After the content of `prod` and the final `Semicolon` have been parsed, `exit_rule(...)` is called, giving in 
-argument the contextual information about items parsed or scanned in the production rule; here, `Id` because it has a 
-variable content (the lexer gives the actual text of that ID), and `prod`, which has been given a value by the user when
-it was parsed and the `exit_prod(...)` function was called. When a production rules has alternative production factors,
-like `prod` above, the contextual information given by the `exit_prod(...)` function specifies which alternative
-has been parsed, for the user's convenience.
+In the example above, `init_rule(...)` is called before parsing the `prod` item, which lets the user setup any data; for example if it is required when parsing the `prod_term` rules - maybe a custom vector in which they will be stored. After the content of `prod` and the final `Semicolon` have been parsed, `exit_rule(...)` is called, giving in argument the contextual information about items parsed or scanned in the production rule; here, `Id` because it has a variable content (the lexer gives the actual text of that ID), and `prod`, which has been given a value by the user when it was parsed and the `exit_prod(...)` function was called. When a production rules has alternative production factors, like `prod` above, the contextual information given by the `exit_prod(...)` function specifies which alternative has been parsed, for the user's convenience.
 
-The stream may be an infinite one; for example if the parser is processing a log file out of a process running
-indefinitely. In that case, one production rule must feature a repetition over the items that repeat indefinitely:
-a `+`, `*`, or a left / right recursion. In the case of `+`, `*`, and right recursion over very long or infinite
-series of items, it's advised to use an `<L>`-form, which directly processes each item without intermediate
-storage to comply with the grammar priority:
+The stream may be an infinite one; for example if the parser is processing a log file out of a process running indefinitely. In that case, one production rule must feature a repetition over the items that repeat indefinitely:a `+`, `*`, or a left / right recursion. In the case of `+`, `*`, and right recursion over very long or infinite series of items, it's advised to use an `<L>`-form, which directly processes each item without intermediate storage to comply with the grammar priority:
  * by default, `+` and `*` parse all the items before calling the user code back with the array of all those items
  * by default, a right recursion parses all the items, stacking them, then calls the user code back starting with the last item (since the tree is built bottom-up)
 
-Using the `<L>`-form tells the parser that those rules are implemented a little differently for the benefit of a low
-latency (and memory footprint):
+Using the `<L>`-form tells the parser that those rules are implemented a little differently for the benefit of a low latency (and memory footprint):
  * `+` and `*` parse each item, calling the user code back with the item and the result from the previous iteration (or the initial call). No array is used. The name of the callback for the individual items can be specified with the form `<L=Id>`. By default, the name is formed by adding a postfix to the production rule name where the `+` or `*` is used (for example, in `List: (Id)+`, it could be `id1`).
  * a right recursion parses each item, calling the user code back with the item and the result from the previous iteration (or the initial call).
 
@@ -154,30 +135,6 @@ Num   : [1-9][0-9]*;        // variable token
 // grammar file
 s:   Id Equal val | Exit | Return val;
 val: Id | Num;
-```
-
-### Notation
-
-Below, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
-
-```
-expr -> expr "+" expr | <P> expr "-" expr | Id | Num
-```
-
-* As in Lexigram's grammar, the nonterminals are in lowercase and the terminals (tokens) begin with an uppercase letter. The attributes, like `<P>`, are the same.
-* Unlike Lexigram's grammar, the terminals don't need to be defined separately: the string literals represent a fixed token, like `+`, and identifiers beginning with an uppercase letter implicitly represent variable tokens, like `Id` and `Num`.
-
-The equivalent Lexigram definitions for the above example could be:
-
-```
-// lexicon file
-Add   : "+";
-Sub   : "-";
-Id    : [a-z][a-z0-9]*;
-Num   : [1-9][0-9]*;
-
-// grammar file
-expr: expr Add expr | <P> expr Sub expr | Id | Num;
 ```
 
 ### Init and exit Methods
@@ -293,6 +250,30 @@ return Ok(());
 
 The listener isn't given directly to the parser; it's given to a wrapper, which is part of the generated source code, then a mutable reference of that wrapper is given to the `parse` method. This is covered in details later.  
 
+### Notation
+
+Outside proper lexicon and grammar Lexigram sources, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
+
+```
+expr -> expr "+" expr | <P> expr "-" expr | Id | Num
+```
+
+* As in Lexigram's grammar, the nonterminals are in lowercase and the terminals (tokens) begin with an uppercase letter. The attributes, like `<P>`, are the same.
+* Unlike Lexigram's grammar, the terminals don't need to be defined separately: the string literals represent a fixed token, like `+`, and identifiers beginning with an uppercase letter implicitly represent variable tokens, like `Id` and `Num`.
+
+The equivalent Lexigram definitions for the above example could be:
+
+```
+// lexicon file
+Add   : "+";
+Sub   : "-";
+Id    : [a-z][a-z0-9]*;
+Num   : [1-9][0-9]*;
+
+// grammar file
+expr: expr Add expr | <P> expr Sub expr | Id | Num;
+```
+
 ## Grammar Transformations
 
 Lexigram accepts non-LL(1) grammars if it's able to transforme them to LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
@@ -349,6 +330,7 @@ pub trait TestListener {
 }
 ```
 
+Sequencing of the operations:
 * `init_a` is called before the rule is parsed.
 * `exit_a` is called after `a -> A B* C` is parsed. The repetition is available in the `star` field, which wraps a vector containing all the parsed values.
 
