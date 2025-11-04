@@ -1082,12 +1082,12 @@ pub(crate) mod rules_106_2 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (A (b ",")* ";")* C`
-        A { star: SynA2, c: String },
+        V1 { star: SynA2, c: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
         /// `b -> B`
-        B { b: String },
+        V1 { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1117,7 +1117,7 @@ pub(crate) mod rules_106_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
@@ -1209,7 +1209,7 @@ pub(crate) mod rules_106_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
-            let val = self.listener.exit_a(CtxA::A { star, c });
+            let val = self.listener.exit_a(CtxA::V1 { star, c });
             self.stack.push(SynValue::A(val));
         }
 
@@ -1220,14 +1220,15 @@ pub(crate) mod rules_106_2 {
 
         fn exit_a2(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let mut star_it = self.stack.pop().unwrap().get_a2();
-            star_it.0.push(a);
-            self.stack.push(SynValue::A2(star_it));
+            let Some(SynValue::A2(SynA2(star_it))) = self.stack.last_mut() else {
+                panic!("unexpected SynA2 item on wrapper stack");
+            };
+            star_it.push(a);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::B { b });
+            self.listener.exit_b(CtxB::V1 { b });
         }
     }
 

@@ -632,15 +632,15 @@ mod wrapper_source {
                 4 => symbols![nt 3, t 0, nt 2],         //  4: a_2 -> A a_1 ";" a_2 | ●a_2 ◄4 ";" ►a_1 A! | a_2 A a_1
                 5 => symbols![nt 3],                    //  5: a_2 -> ε             | ◄5                  | a_2
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
-            // (106, true, false, 0, btreemap![
-            // ], btreemap![
-            //     0 => symbols![nt 3, t 3],               //  0: a -> a_2 C           | ◄0 C! ►a_2          | a_2 C
-            //     1 => symbols![t 4],                     //  1: b -> B               | ◄1 B!               | B
-            //     2 => symbols![],                        //  2: a_1 -> b "," a_1     | ●a_1 ◄2 "," ►b      |
-            //     3 => symbols![],                        //  3: a_1 -> ε             | ◄3                  |
-            //     4 => symbols![nt 3, t 0],               //  4: a_2 -> A a_1 ";" a_2 | ●a_2 ◄4 ";" ►a_1 A! | a_2 A
-            //     5 => symbols![nt 3],                    //  5: a_2 -> ε             | ◄5                  | a_2
-            // ], Set(symbols![nt 0]), btreemap![0 => vec![0], 1 => vec![1]]),
+            (106, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 3, t 3],               //  0: a -> a_2 C           | ◄0 C! ►a_2          | a_2 C
+                1 => symbols![t 4],                     //  1: b -> B               | ◄1 B!               | B
+                2 => symbols![],                        //  2: a_1 -> b "," a_1     | ●a_1 ◄2 "," ►b      |
+                3 => symbols![],                        //  3: a_1 -> ε             | ◄3                  |
+                4 => symbols![nt 3, t 0],               //  4: a_2 -> A a_1 ";" a_2 | ●a_2 ◄4 ";" ►a_1 A! | a_2 A
+                5 => symbols![nt 3],                    //  5: a_2 -> ε             | ◄5                  | a_2
+            ], Set(symbols![nt 0]), btreemap![0 => vec![0], 1 => vec![1]]),
 
             // a -> A "B"* C
             // NT flags:
