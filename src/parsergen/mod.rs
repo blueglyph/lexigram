@@ -961,7 +961,7 @@ impl ParserGen {
                                         } else {
                                             if is_nt_repeat && indices.is_empty() {
                                                 // iterator variable in a + * loop (visible with <L>, for ex)
-                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus_it".to_string() } else { "star_it".to_string() }
+                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
                                             } else {
                                                 // reference to a + * result
                                                 if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
@@ -1711,7 +1711,7 @@ impl ParserGen {
                         if has_value {
                             let endpoints = child_repeat_endpoints.get(var).unwrap();
                             let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
-                            let vec_name = if is_plus { "plus_it" } else { "star_it" };
+                            let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
                             let val_name = if endpoints.len() > 1 {
                                 // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
                                 src_wrapper_impl.push(format!("        let val = match alt_id {{"));
@@ -2012,8 +2012,8 @@ impl ParserGen {
                                   }
                                   fn exit_a_iter(&mut self) {
                                       let b = self.stack_t.pop().unwrap();
-                                      let star_it = self.stack.pop().unwrap().get_a_iter();
-                                      let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
+                                      let star_acc = self.stack.pop().unwrap().get_a_iter();
+                                      let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_acc, b });
                                       self.stack.push(SynValue::AIter(val));
                                   }
                                   // ...

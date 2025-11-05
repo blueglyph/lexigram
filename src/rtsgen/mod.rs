@@ -1136,10 +1136,10 @@ pub mod rtsgen_parser {
 
         fn exit_decl1(&mut self) {
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let Some(SynValue::Decl1(SynDecl1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynDecl1 item on wrapper stack");
             };
-            star_it.push(decl_terminal);
+            star_acc.push(decl_terminal);
         }
 
         fn exit_decl_terminal(&mut self, alt_id: AltId) {
@@ -1238,10 +1238,10 @@ pub mod rtsgen_parser {
 
         fn exit_rts_children1(&mut self) {
             let rts_expr = self.stack.pop().unwrap().get_rts_expr();
-            let Some(SynValue::RtsChildren1(SynRtsChildren1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::RtsChildren1(SynRtsChildren1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynRtsChildren1 item on wrapper stack");
             };
-            star_it.push(rts_expr);
+            star_acc.push(rts_expr);
         }
 
         fn exit_prs_expr1(&mut self, alt_id: AltId) {

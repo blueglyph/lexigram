@@ -1044,10 +1044,10 @@ pub(crate) mod rules_102_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(b);
+            star_acc.push(b);
         }
     }
 
@@ -1196,10 +1196,10 @@ pub(crate) mod rules_103_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(b);
+            plus_acc.push(b);
         }
     }
 
@@ -1366,10 +1366,10 @@ pub(crate) mod rules_104_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(val);
+            star_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -1544,10 +1544,10 @@ pub(crate) mod rules_105_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(val);
+            plus_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -1725,10 +1725,10 @@ pub(crate) mod rules_106_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(b);
+            star_acc.push(b);
         }
 
         fn init_a2(&mut self) {
@@ -1740,10 +1740,10 @@ pub(crate) mod rules_106_1 {
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
             let val = SynA2Item { a, star };
-            let Some(SynValue::A2(SynA2(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA2 item on wrapper stack");
             };
-            star_it.push(val);
+            star_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -1907,10 +1907,10 @@ pub(crate) mod rules_106_2 {
 
         fn exit_a2(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A2(SynA2(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA2 item on wrapper stack");
             };
-            star_it.push(a);
+            star_acc.push(a);
         }
 
         fn exit_b(&mut self) {
@@ -2210,10 +2210,10 @@ pub(crate) mod rules_150_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(val);
+            star_acc.push(val);
         }
     }
 
@@ -2404,10 +2404,10 @@ pub(crate) mod rules_152_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(val);
+            star_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -2635,10 +2635,10 @@ pub(crate) mod rules_153_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(val);
+            plus_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -2785,7 +2785,7 @@ pub(crate) mod rules_200_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-        V1 { star_it: SynI, b: String },
+        V1 { star_acc: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -2817,7 +2817,7 @@ pub(crate) mod rules_200_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -2914,14 +2914,14 @@ pub(crate) mod rules_200_1 {
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_it, b });
+            let star_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b });
             self.stack.push(SynValue::I(val));
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
     }
 
@@ -3094,7 +3094,7 @@ pub(crate) mod rules_201_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        V1 { plus_it: SynMyI, b: String, last_iteration: bool },
+        V1 { plus_acc: SynMyI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3225,8 +3225,8 @@ pub(crate) mod rules_201_1 {
         fn exit_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
-            let plus_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { plus_it, b, last_iteration });
+            let plus_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration });
             self.stack.push(SynValue::I(val));
         }
     }
@@ -3398,7 +3398,7 @@ pub(crate) mod rules_201_3 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        V1 { plus_it: SynMyI, b: String, last_iteration: bool },
+        V1 { plus_acc: SynMyI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3522,8 +3522,8 @@ pub(crate) mod rules_201_3 {
         fn exit_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
-            let plus_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { plus_it, b, last_iteration });
+            let plus_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration });
             self.stack.push(SynValue::I(val));
         }
     }
@@ -3549,7 +3549,7 @@ pub(crate) mod rules_202_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> b A b B A` iteration in `a -> ( ►► <L> b A b B A ◄◄ )*`
-        V1 { star_it: SynI, b: [SynB; 2], a: [String; 2], b1: String },
+        V1 { star_acc: SynI, b: [SynB; 2], a: [String; 2], b1: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -3591,7 +3591,7 @@ pub(crate) mod rules_202_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -3694,14 +3694,14 @@ pub(crate) mod rules_202_1 {
             let b_2 = self.stack.pop().unwrap().get_b();
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
-            let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_it, b: [b_1, b_2], a: [a_1, a_2], b1 });
+            let star_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 });
             self.stack.push(SynValue::I(val));
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
 
         fn exit_b(&mut self) {
@@ -3732,7 +3732,7 @@ pub(crate) mod rules_206_1 {
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> B ","` iteration in `a -> (A ( ►► <L> B "," ◄◄ )* ";")* C`
-        V1 { star_it: SynAiter, b: String },
+        V1 { star_acc: SynAiter, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3773,7 +3773,7 @@ pub(crate) mod rules_206_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_j(&mut self) -> SynAiter;
         fn exit_j(&mut self, ctx: CtxJ) -> SynAiter;
-        fn exitloop_j(&mut self, _star_it: &mut SynAiter) {}
+        fn exitloop_j(&mut self, _star_acc: &mut SynAiter) {}
     }
 
     pub struct Wrapper<T> {
@@ -3872,14 +3872,14 @@ pub(crate) mod rules_206_1 {
 
         fn exit_j(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::V1 { star_it, b });
+            let star_acc = self.stack.pop().unwrap().get_j();
+            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b });
             self.stack.push(SynValue::J(val));
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_j(star_it);
+            let SynValue::J(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_j(star_acc);
         }
 
         fn init_a1(&mut self) {
@@ -3891,10 +3891,10 @@ pub(crate) mod rules_206_1 {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
             let val = SynA1Item { a, star };
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(val);
+            star_acc.push(val);
         }
     }
 
@@ -3919,12 +3919,12 @@ pub(crate) mod rules_208_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        V1 { star_it: SynI, a: String, star: SynJ },
+        V1 { star_acc: SynI, a: String, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-        V1 { star_it: SynJ, b: SynB },
+        V1 { star_acc: SynJ, b: SynB },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -3971,10 +3971,10 @@ pub(crate) mod rules_208_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
+        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -4078,14 +4078,14 @@ pub(crate) mod rules_208_1 {
         fn exit_i(&mut self) {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_it, a, star });
+            let star_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, a, star });
             self.stack.push(SynValue::I(val));
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
 
         fn init_j(&mut self) {
@@ -4095,14 +4095,14 @@ pub(crate) mod rules_208_1 {
 
         fn exit_j(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
-            let star_it = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::V1 { star_it, b });
+            let star_acc = self.stack.pop().unwrap().get_j();
+            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b });
             self.stack.push(SynValue::J(val));
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_j(star_it);
+            let SynValue::J(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_j(star_acc);
         }
 
         fn exit_b(&mut self) {
@@ -4133,7 +4133,7 @@ pub(crate) mod rules_208_2 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-        V1 { star_it: SynI, a: String },
+        V1 { star_acc: SynI, a: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
@@ -4175,7 +4175,7 @@ pub(crate) mod rules_208_2 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
         fn init_j(&mut self) {}
         fn exit_j(&mut self, _ctx: CtxJ) {}
         fn init_b(&mut self) {}
@@ -4280,14 +4280,14 @@ pub(crate) mod rules_208_2 {
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_it, a });
+            let star_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, a });
             self.stack.push(SynValue::I(val));
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
 
         fn exit_j(&mut self) {
@@ -4794,7 +4794,7 @@ pub(crate) mod rules_211_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `B <L>` iteration in `a -> A A ( ►► B <L> ◄◄ )* C | A C ( ►► B <L> ◄◄ )* C`
-        V1 { star_it: SynI, b: String },
+        V1 { star_acc: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -4826,7 +4826,7 @@ pub(crate) mod rules_211_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -4940,14 +4940,14 @@ pub(crate) mod rules_211_1 {
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_it, b });
+            let star_acc = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b });
             self.stack.push(SynValue::I(val));
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
     }
 
@@ -4973,9 +4973,9 @@ pub(crate) mod rules_250_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
-        V1 { star_it: SynI, a: String },
+        V1 { star_acc: SynI, a: String },
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`
-        V2 { star_it: SynI, b: String },
+        V2 { star_acc: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5007,7 +5007,7 @@ pub(crate) mod rules_250_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -5105,13 +5105,13 @@ pub(crate) mod rules_250_1 {
             let ctx = match alt_id {
                 1 => {
                     let a = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_it, a }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { star_acc, a }
                 }
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_it, b }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { star_acc, b }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5120,8 +5120,8 @@ pub(crate) mod rules_250_1 {
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
     }
 
@@ -5146,9 +5146,9 @@ pub(crate) mod rules_251_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
-        V1 { plus_it: SynI, a: String, last_iteration: bool },
+        V1 { plus_acc: SynI, a: String, last_iteration: bool },
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
-        V2 { plus_it: SynI, b: String, last_iteration: bool },
+        V2 { plus_acc: SynI, b: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5282,14 +5282,14 @@ pub(crate) mod rules_251_1 {
                 3 | 4 => {
                     let last_iteration = alt_id == 4;
                     let a = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_it, a, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { plus_acc, a, last_iteration }
                 }
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
                     let b = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_it, b, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { plus_acc, b, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5319,9 +5319,9 @@ pub(crate) mod rules_252_1 {
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b C b B C` iteration in `a -> A (( ►► <L> b C b B C ◄◄  | D)+ E | F)+ G`
-        V1 { plus_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
+        V1 { plus_acc: SynJ, b: [SynB; 2], c: [String; 2], b1: String, last_iteration: bool },
         /// `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
-        V2 { plus_it: SynJ, d: String, last_iteration: bool },
+        V2 { plus_acc: SynJ, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -5491,8 +5491,8 @@ pub(crate) mod rules_252_1 {
                 6 | 7 => {
                     let last_iteration = alt_id == 7;
                     let d = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { plus_it, d, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V2 { plus_acc, d, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
@@ -5501,8 +5501,8 @@ pub(crate) mod rules_252_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { plus_it, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V1 { plus_acc, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -5528,10 +5528,10 @@ pub(crate) mod rules_252_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(val);
+            plus_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -5562,9 +5562,9 @@ pub(crate) mod rules_253_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> (b C b B C | D)+ E` iteration in `a -> A ( ►► <L> (b C b B C | D)+ E ◄◄  | F)+ G`
-        V1 { plus_it: SynI, plus: SynA1, e: String, last_iteration: bool },
+        V1 { plus_acc: SynI, plus: SynA1, e: String, last_iteration: bool },
         /// `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
-        V2 { plus_it: SynI, f: String, last_iteration: bool },
+        V2 { plus_acc: SynI, f: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -5734,15 +5734,15 @@ pub(crate) mod rules_253_1 {
                 6 | 7 => {
                     let last_iteration = alt_id == 7;
                     let f = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_it, f, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { plus_acc, f, last_iteration }
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_a1();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_it, plus, e, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { plus_acc, plus, e, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5771,10 +5771,10 @@ pub(crate) mod rules_253_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(val);
+            plus_acc.push(val);
         }
 
         fn exit_b(&mut self) {
@@ -5805,16 +5805,16 @@ pub(crate) mod rules_254_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
-        V1 { star_it: SynI, star: SynJ, e: String },
+        V1 { star_acc: SynI, star: SynJ, e: String },
         /// `F` iteration in `a -> A (<L> (<L> b C b B C | D)* E |  ►► F ◄◄ )* G`
-        V2 { star_it: SynI, f: String },
+        V2 { star_acc: SynI, f: String },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
-        V1 { star_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
+        V1 { star_acc: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
         /// `D` iteration in `a -> A (<L> (<L> b C b B C |  ►► D ◄◄ )* E | F)* G`
-        V2 { star_it: SynJ, d: String },
+        V2 { star_acc: SynJ, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -5861,10 +5861,10 @@ pub(crate) mod rules_254_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
+        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -5973,13 +5973,13 @@ pub(crate) mod rules_254_1 {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_j();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_it, star, e }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { star_acc, star, e }
                 }
                 2 => {
                     let f = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_it, f }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { star_acc, f }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -5988,8 +5988,8 @@ pub(crate) mod rules_254_1 {
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
 
         fn init_j(&mut self) {
@@ -6005,13 +6005,13 @@ pub(crate) mod rules_254_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { star_it, b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    let star_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V1 { star_acc, b: [b_1, b_2], c: [c_1, c_2], b1 }
                 }
                 5 => {
                     let d = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { star_it, d }
+                    let star_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V2 { star_acc, d }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -6020,8 +6020,8 @@ pub(crate) mod rules_254_1 {
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_j(star_it);
+            let SynValue::J(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_j(star_acc);
         }
 
         fn exit_b(&mut self) {
@@ -6052,11 +6052,11 @@ pub(crate) mod rules_256_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
-        V1 { plus_it: SynI, b: String, a: String, last_iteration: bool },
+        V1 { plus_acc: SynI, b: String, a: String, last_iteration: bool },
         /// `B A C b` iteration in `a -> A (<L> B A |  ►► B A C b ◄◄  | D)+ E`
-        V2 { plus_it: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
+        V2 { plus_acc: SynI, b: String, a: String, c: String, b1: SynB, last_iteration: bool },
         /// `D` iteration in `a -> A (<L> B A | B A C b |  ►► D ◄◄ )+ E`
-        V3 { plus_it: SynI, d: String, last_iteration: bool },
+        V3 { plus_acc: SynI, d: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxB {
@@ -6210,14 +6210,14 @@ pub(crate) mod rules_256_1 {
                     let last_iteration = alt_id == 6;
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_it, b, a, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { plus_acc, b, a, last_iteration }
                 }
                 7 | 8 => {
                     let last_iteration = alt_id == 8;
                     let d = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { plus_it, d, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V3 { plus_acc, d, last_iteration }
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
@@ -6225,8 +6225,8 @@ pub(crate) mod rules_256_1 {
                     let c = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_it, b, a, c, b1, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { plus_acc, b, a, c, b1, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -6262,22 +6262,22 @@ pub(crate) mod rules_258_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)*)*`
-        V1 { star_it: SynI, a: String },
+        V1 { star_acc: SynI, a: String },
         /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | D (<L> E | E F | G)*)*`
-        V2 { star_it: SynI, a: String, b: String },
+        V2 { star_acc: SynI, a: String, b: String },
         /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | D (<L> E | E F | G)*)*`
-        V3 { star_it: SynI, c: String },
+        V3 { star_acc: SynI, c: String },
         /// `D (<L> E | E F | G)*` iteration in `a -> (<L> A | A B | C |  ►► D (<L> E | E F | G)* ◄◄ )*`
-        V4 { star_it: SynI, d: String, star: SynJ },
+        V4 { star_acc: SynI, d: String, star: SynJ },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)*)*`
-        V1 { star_it: SynJ, e: String },
+        V1 { star_acc: SynJ, e: String },
         /// `E F` iteration in `a -> (<L> A | A B | C | D (<L> E |  ►► E F ◄◄  | G)*)*`
-        V2 { star_it: SynJ, e: String, f: String },
+        V2 { star_acc: SynJ, e: String, f: String },
         /// `G` iteration in `a -> (<L> A | A B | C | D (<L> E | E F |  ►► G ◄◄ )*)*`
-        V3 { star_it: SynJ, g: String },
+        V3 { star_acc: SynJ, g: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6314,10 +6314,10 @@ pub(crate) mod rules_258_1 {
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
+        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
     }
 
     pub struct Wrapper<T> {
@@ -6425,25 +6425,25 @@ pub(crate) mod rules_258_1 {
             let ctx = match alt_id {
                 2 => {
                     let c = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { star_it, c }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V3 { star_acc, c }
                 }
                 3 => {
                     let star = self.stack.pop().unwrap().get_j();
                     let d = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V4 { star_it, d, star }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V4 { star_acc, d, star }
                 }
                 8 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_it, a, b }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { star_acc, a, b }
                 }
                 9 => {
                     let a = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_it, a }
+                    let star_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { star_acc, a }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -6452,8 +6452,8 @@ pub(crate) mod rules_258_1 {
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_it);
+            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_acc);
         }
 
         fn init_j(&mut self) {
@@ -6465,19 +6465,19 @@ pub(crate) mod rules_258_1 {
             let ctx = match alt_id {
                 6 => {
                     let g = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V3 { star_it, g }
+                    let star_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V3 { star_acc, g }
                 }
                 10 => {
                     let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { star_it, e, f }
+                    let star_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V2 { star_acc, e, f }
                 }
                 11 => {
                     let e = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { star_it, e }
+                    let star_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V1 { star_acc, e }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -6486,8 +6486,8 @@ pub(crate) mod rules_258_1 {
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_j(star_it);
+            let SynValue::J(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_j(star_acc);
         }
     }
 
@@ -6512,22 +6512,22 @@ pub(crate) mod rules_259_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)+)+`
-        V1 { plus_it: SynI, a: String, last_iteration: bool },
+        V1 { plus_acc: SynI, a: String, last_iteration: bool },
         /// `A B` iteration in `a -> (<L> A |  ►► A B ◄◄  | C | D (<L> E | E F | G)+)+`
-        V2 { plus_it: SynI, a: String, b: String, last_iteration: bool },
+        V2 { plus_acc: SynI, a: String, b: String, last_iteration: bool },
         /// `C` iteration in `a -> (<L> A | A B |  ►► C ◄◄  | D (<L> E | E F | G)+)+`
-        V3 { plus_it: SynI, c: String, last_iteration: bool },
+        V3 { plus_acc: SynI, c: String, last_iteration: bool },
         /// `D (<L> E | E F | G)+` iteration in `a -> (<L> A | A B | C |  ►► D (<L> E | E F | G)+ ◄◄ )+`
-        V4 { plus_it: SynI, d: String, plus: SynJ, last_iteration: bool },
+        V4 { plus_acc: SynI, d: String, plus: SynJ, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxJ {
         /// `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)+)+`
-        V1 { plus_it: SynJ, e: String, last_iteration: bool },
+        V1 { plus_acc: SynJ, e: String, last_iteration: bool },
         /// `E F` iteration in `a -> (<L> A | A B | C | D (<L> E |  ►► E F ◄◄  | G)+)+`
-        V2 { plus_it: SynJ, e: String, f: String, last_iteration: bool },
+        V2 { plus_acc: SynJ, e: String, f: String, last_iteration: bool },
         /// `G` iteration in `a -> (<L> A | A B | C | D (<L> E | E F |  ►► G ◄◄ )+)+`
-        V3 { plus_it: SynJ, g: String, last_iteration: bool },
+        V3 { plus_acc: SynJ, g: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6684,28 +6684,28 @@ pub(crate) mod rules_259_1 {
                 7 | 8 => {
                     let last_iteration = alt_id == 8;
                     let a = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_it, a, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V1 { plus_acc, a, last_iteration }
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
                     let c = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { plus_it, c, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V3 { plus_acc, c, last_iteration }
                 }
                 11 | 12 => {
                     let last_iteration = alt_id == 12;
                     let plus = self.stack.pop().unwrap().get_j();
                     let d = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V4 { plus_it, d, plus, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V4 { plus_acc, d, plus, last_iteration }
                 }
                 18 | 19 => {
                     let last_iteration = alt_id == 19;
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_it, a, b, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_i();
+                    CtxI::V2 { plus_acc, a, b, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
@@ -6723,21 +6723,21 @@ pub(crate) mod rules_259_1 {
                 14 | 15 => {
                     let last_iteration = alt_id == 15;
                     let e = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { plus_it, e, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V1 { plus_acc, e, last_iteration }
                 }
                 16 | 17 => {
                     let last_iteration = alt_id == 17;
                     let g = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V3 { plus_it, g, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V3 { plus_acc, g, last_iteration }
                 }
                 20 | 21 => {
                     let last_iteration = alt_id == 21;
                     let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
-                    let plus_it = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { plus_it, e, f, last_iteration }
+                    let plus_acc = self.stack.pop().unwrap().get_j();
+                    CtxJ::V2 { plus_acc, e, f, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
@@ -13787,10 +13787,10 @@ pub(crate) mod rules_820_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(a);
+            star_acc.push(a);
         }
 
         fn exit_a2(&mut self) {
@@ -13955,10 +13955,10 @@ pub(crate) mod rules_821_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(a);
+            plus_acc.push(a);
         }
 
         fn exit_a2(&mut self) {
@@ -14131,10 +14131,10 @@ pub(crate) mod rules_810_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            star_it.push(a);
+            star_acc.push(a);
         }
     }
 
@@ -14296,10 +14296,10 @@ pub(crate) mod rules_811_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(a);
+            plus_acc.push(a);
         }
     }
 
@@ -14452,10 +14452,10 @@ pub(crate) mod rules_835_1 {
 
         fn exit_a1(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
-            plus_it.push(num);
+            plus_acc.push(num);
         }
 
         fn exit_a2(&mut self, alt_id: AltId) {
@@ -15568,10 +15568,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_file1(&mut self) {
             let file_item = self.stack.pop().unwrap().get_file_item();
-            let Some(SynValue::File1(SynFile1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynFile1 item on wrapper stack");
             };
-            star_it.push(file_item);
+            star_acc.push(file_item);
         }
 
         fn exit_file_item(&mut self, alt_id: AltId) {
@@ -15620,10 +15620,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(SynValue::Option1(SynOption1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynOption1 item on wrapper stack");
             };
-            star_it.push(id);
+            star_acc.push(id);
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -15664,10 +15664,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
-            let Some(SynValue::Actions1(SynActions1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynActions1 item on wrapper stack");
             };
-            star_it.push(action);
+            star_acc.push(action);
         }
 
         fn exit_action(&mut self, alt_id: AltId) {
@@ -15723,10 +15723,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let Some(SynValue::AltItems1(SynAltItems1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynAltItems1 item on wrapper stack");
             };
-            star_it.push(alt_item);
+            star_acc.push(alt_item);
         }
 
         fn exit_alt_item(&mut self) {
@@ -15742,10 +15742,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_item1(&mut self) {
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-            let Some(SynValue::AltItem1(SynAltItem1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynAltItem1 item on wrapper stack");
             };
-            plus_it.push(repeat_item);
+            plus_acc.push(repeat_item);
         }
 
         fn exit_repeat_item(&mut self, alt_id: AltId) {
@@ -15843,10 +15843,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_char_set1(&mut self) {
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
-            let Some(SynValue::CharSet1(SynCharSet1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynCharSet1 item on wrapper stack");
             };
-            plus_it.push(char_set_one);
+            plus_acc.push(char_set_one);
         }
 
         fn exit_char_set_one(&mut self, alt_id: AltId) {

@@ -574,10 +574,10 @@ pub mod microcalc_parser {
 
         fn exit_program1(&mut self) {
             let function = self.stack.pop().unwrap().get_function();
-            let Some(SynValue::Program1(SynProgram1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::Program1(SynProgram1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynProgram1 item on wrapper stack");
             };
-            plus_it.push(function);
+            plus_acc.push(function);
         }
 
         fn exit_function(&mut self) {
@@ -595,10 +595,10 @@ pub mod microcalc_parser {
 
         fn exit_function1(&mut self) {
             let instruction = self.stack.pop().unwrap().get_instruction();
-            let Some(SynValue::Function1(SynFunction1(plus_it))) = self.stack.last_mut() else {
+            let Some(SynValue::Function1(SynFunction1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynFunction1 item on wrapper stack");
             };
-            plus_it.push(instruction);
+            plus_acc.push(instruction);
         }
 
         fn exit_fun_params(&mut self, alt_id: AltId) {
@@ -624,10 +624,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(SynValue::FunParams1(SynFunParams1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::FunParams1(SynFunParams1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynFunParams1 item on wrapper stack");
             };
-            star_it.push(id);
+            star_acc.push(id);
         }
 
         fn exit_instruction(&mut self, alt_id: AltId) {
@@ -731,10 +731,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            let Some(SynValue::FunArgs1(SynFunArgs1(star_it))) = self.stack.last_mut() else {
+            let Some(SynValue::FunArgs1(SynFunArgs1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynFunArgs1 item on wrapper stack");
             };
-            star_it.push(expr);
+            star_acc.push(expr);
         }
     }
 

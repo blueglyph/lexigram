@@ -508,7 +508,7 @@ pub enum CtxA {
 
 pub enum CtxI {
     /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-    V1 { star_it: SynI, b: String },
+    V1 { star_acc: SynI, b: String },
 }
 
 pub trait TestListener {
@@ -517,13 +517,13 @@ pub trait TestListener {
     fn exit_a(&mut self, ctx: CtxA) -> SynA;
     fn init_i(&mut self) -> SynI;
     fn exit_i(&mut self, ctx: CtxI) -> SynI;
-    fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+    fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
 }
 ```
 
 * `init_a` is called before the rule `a` is parsed.
 * `init_i` is called before the rule `i` is parsed for the first time. This is a good place to initialize the whole series; the method must return the accumulator variable that will be updated at each iteration.
-* `exit_i` is called after parsing each item of the repetition, if there are any item. It receives the current value of the accumulator in `star_it` and the values of the parsed items, here `b`. It must return the updated accumulator.
+* `exit_i` is called after parsing each item of the repetition, if there are any item. It receives the current value of the accumulator in `star_acc` and the values of the parsed items, here `b`. It must return the updated accumulator.
 * `exitloop_i` is called after the last iteration. It can be used if the accumulator requires post-processing once the whole series has been parsed.
 
 ### Repetitions with + and `<L>` attribute
@@ -550,7 +550,7 @@ pub enum CtxA {
 
 pub enum CtxI {
     /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-    V1 { plus_it: SynI, b: String, last_iteration: bool },
+    V1 { plus_acc: SynI, b: String, last_iteration: bool },
 }
 
 pub trait TestListener {
@@ -566,7 +566,7 @@ The differences from a repetition with `<L>` * are:
 * A `last_iteration` field that flags the last iteration, when the `a_1 -> ε` alternative is reached. 
 * No `exitloop_i` method, which has been replaced by the flag above because the last iteration contains the same data as the previous iterations.
 * `exit_i` is sure to be called at least once.
-* The accumulator field is named `plus_it` instead of `star_it`.
+* The accumulator field is named `plus_acc` instead of `star_acc`.
 
 ### Right recursion
 
@@ -926,16 +926,16 @@ pub enum CtxA {
 
 pub enum CtxI {
     /// `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
-    V1 { star_it: SynI, star: SynJ, e: String },
+    V1 { star_acc: SynI, star: SynJ, e: String },
     /// `F` iteration in `a -> A (<L> (<L> b C b B C | D)* E |  ►► F ◄◄ )* G`
-    V2 { star_it: SynI, f: String },
+    V2 { star_acc: SynI, f: String },
 }
 
 pub enum CtxJ {
     /// `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
-    V1 { star_it: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
+    V1 { star_acc: SynJ, b: [SynB; 2], c: [String; 2], b1: String },
     /// `D` iteration in `a -> A (<L> (<L> b C b B C |  ►► D ◄◄ )* E | F)* G`
-    V2 { star_it: SynJ, d: String },
+    V2 { star_acc: SynJ, d: String },
 }
 
 pub trait TestListener {
@@ -944,10 +944,10 @@ pub trait TestListener {
     fn exit_a(&mut self, ctx: CtxA) -> SynA;
     fn init_i(&mut self) -> SynI;
     fn exit_i(&mut self, ctx: CtxI) -> SynI;
-    fn exitloop_i(&mut self, _star_it: &mut SynI) {}
+    fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
     fn init_j(&mut self) -> SynJ;
     fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-    fn exitloop_j(&mut self, _star_it: &mut SynJ) {}
+    fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
 }
 ```
 

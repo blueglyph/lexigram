@@ -385,10 +385,10 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_term1(&mut self) {
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let Some(SynValue::ProdTerm1(SynProdTerm1(star_it))) = self.stack.last_mut() else {
+        let Some(SynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynProdTerm1 item on wrapper stack");
         };
-        star_it.push(prod_factor);
+        star_acc.push(prod_factor);
     }
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {
