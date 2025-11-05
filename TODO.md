@@ -10,6 +10,7 @@
   - [x] ~~split test files~~  
   - [x] ~~create rtsgen and TestRules type to create GrTree/RTS/PRS~~
   - [x] ~~update all tests (or almost) that rely on build_rts and build_prs~~
+- [x] ~~check generated code consistency~~
 - [x] ~~more coherency in functions/methods that create source code (names, location)~~
   - Name conventions:
     - build:  creates object by consuming self (or non-method that creates object)
@@ -66,6 +67,10 @@
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~
+  - (as an option?) move accumulator from context to `&mut star_acc` / `&mut plus_acc` in
+    - [ ] Repetitions with *+ and `<L>` attribute: `init_i` gives the first value, then `exit_<NT>(&mut self, &mut star_acc, ctx: Ctx<NT>)` (no return value)
+    - [ ] Right recursion with `<L>` attribute: same
+    - (Left/right recursion: cumbersome because init should return an accumulator without knowing the 1st independent alternative + binary ambiguous cases)
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
