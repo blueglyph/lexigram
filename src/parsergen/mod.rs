@@ -9,7 +9,7 @@ use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol,
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
-use crate::parser::{OpCode, Parser};
+use crate::parser::{OpCode, Parser, SpanNbr};
 use crate::segments::{Seg, Segments};
 
 pub(crate) mod tests;
@@ -45,6 +45,10 @@ impl OpCode {
 
     pub fn is_empty(&self) -> bool {
         matches!(self, OpCode::Empty)
+    }
+
+    pub fn has_span(&self) -> bool {
+        matches!(self, OpCode::T(_) | OpCode::NT(_))
     }
 
     pub fn matches(&self, s: Symbol) -> bool {
@@ -206,6 +210,11 @@ impl TryBuildFrom<ParserGen> for ParserTables {
 
 pub static DEFAULT_LISTENER_NAME: &str = "Parser";
 
+fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
+    let count = opcode.iter().filter(|op| op.has_span()).count();
+    count.try_into().expect(&format!("# span = {count} > {}", SpanNbr::MAX))
+}
+
 #[derive(Debug)]
 pub struct ParserGen {
     parsing_table: LLParsingTable,
@@ -218,6 +227,7 @@ pub struct ParserGen {
     origin: Origin<VarId, FromPRS>,
     item_ops: HashMap<AltId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
+    span_nbrs: Vec<SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
     used_libs: StructLibs,
@@ -266,6 +276,7 @@ impl ParserGen {
             origin,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
+            span_nbrs: Vec::new(),
             start,
             nt_conversion,
             used_libs: StructLibs::new(),
@@ -275,6 +286,7 @@ impl ParserGen {
             include_alts: true,
         };
         builder.make_opcodes();
+        builder.make_span_nbrs();
         builder
     }
 
@@ -575,6 +587,28 @@ impl ParserGen {
             if VERBOSE { println!("  -> {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             self.opcodes.push(opcode);
         }
+    }
+
+    fn make_span_nbrs(&mut self) {
+        let mut span_nbrs = vec![0 as SpanNbr; self.parsing_table.alts.len()];
+        for (alt_id, (var_id, _)) in self.parsing_table.alts.iter().enumerate() {
+            let opcode = &self.opcodes[alt_id];
+            let mut span_nbr = span_nbrs[alt_id] + count_span_nbr(&opcode);
+            // println!("[{alt_id}]: {} + {} -> {span_nbr}", span_nbrs[alt_id], count_span_nbr(&opcode));
+            if self.nt_has_all_flags(*var_id, ruleflag::PARENT_L_FACTOR) {
+                if let Some(OpCode::NT(nt)) = opcode.get(0) {
+                    span_nbr -= 1;
+                    for a_id in self.var_alts[*nt as usize].iter() {
+                        span_nbrs[*a_id as usize] += span_nbr;
+                        // println!("- [{a_id}] += {span_nbr} -> {}", span_nbrs[*a_id as usize]);
+                    }
+                    // println!(" -> [{alt_id}] = 0");
+                    span_nbr = 0;
+                }
+            }
+            span_nbrs[alt_id] = span_nbr;
+        }
+        self.span_nbrs = span_nbrs;
     }
 
     fn get_group_alts(&self, g: &Vec<VarId>) -> Vec<(VarId, AltId)> {
@@ -2073,6 +2107,7 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
                 cols.extend([
                     format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
+                    format!("| {}", &builder.span_nbrs[a_id as usize]),
                     format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
                 ]);
                 Some(cols)
@@ -2080,7 +2115,7 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
                 None
             }
         }).to_vec();
-    let widths = if show_symbols { vec![40, 0, 0, 0] } else { vec![16, 0, 0] };
+    let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0] };
     for l in columns_to_str(fields, Some(widths)) {
         println!("{:indent$}{l}", "", indent = indent)
     }

@@ -24,6 +24,8 @@ pub enum OpCode {
 #[derive(PartialEq, Debug)]
 pub enum Call { Enter, Loop, Exit, End }
 
+pub type SpanNbr = u16;
+
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
     fn switch(&mut self, _call: Call, _nt: VarId, _alt_id: AltId, _t_data: Option<Vec<String>>) {}
