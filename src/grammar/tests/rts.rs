@@ -44,6 +44,7 @@ fn ruletreeset_to_str() {
         (31, 0, None, None, r#"A B | C ε | ε | D | ε | <P> ε | <R> <P>"#),
         (32, 0, None, None, r#"<P> ε | <R> <P>"#),
         (35, 0, None, None, r#"ε"#),
+        (104, 0, None, None, "(b A b B A)*"),
         (200, 0, None, None, "A (<L=i> B)* C"),
         (200, 0, None, Some(3), "A ( ►► <L=i> B ◄◄ )* C"),
         (200, 0, Some(3), None, "<L=i> B"),
@@ -94,8 +95,6 @@ fn cleanup_tree() {
         (36, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
         // A | ε
         (37, None, (Some((false, true)), "A | ε"), (Some((false, true)), "A")),
-        // (A B)*
-        (104, Some(3), (None, "(A B)*"), (None, "(A B)*")),
     ];
     const VERBOSE: bool = false;
     const VERBOSE_SOLUTION: bool = false;
@@ -209,12 +208,12 @@ fn rts_normalize() {
         (103, //   a -> A B+ C
          btreemap![0 => r#"a -> A a_1 C"#, 1 => r#"a_1 -> B a_1 | B"#],
          btreemap![0 => r#"a -> A B+ C"#]),
-        (104, //   a -> (A B)*
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A B a_1 | ε"#],
-         btreemap![0 => r#"a -> (A B)*"#]),
-        (105, //   a -> (A B)+
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A B a_1 | A B"#],
-         btreemap![0 => r#"a -> (A B)+"#]),
+        (104, //   a -> (b A b B A)*;   b -> C
+         btreemap![0 => r#"a -> a_1"#, 1 => r#"b -> C"#, 2 => r#"a_1 -> b A b B A a_1 | ε"#],
+         btreemap![0 => r#"a -> (b A b B A)*"#, 1 => r#"b -> C"#]),
+        (105, //   a -> (b A b B A)+;   b -> C
+         btreemap![0 => r#"a -> a_1"#, 1 => r#"b -> C"#, 2 => r#"a_1 -> b A b B A a_1 | b A b B A"#],
+         btreemap![0 => r#"a -> (b A b B A)+"#, 1 => r#"b -> C"#]),
         (106, //   a -> (A (b ",")* ";")* C;   b -> B
          btreemap![0 => r#"a -> a_2 C"#, 1 => r#"b -> B"#, 2 => r#"a_1 -> b "," a_1 | ε"#, 3 => r#"a_2 -> A a_1 ";" a_2 | ε"#],
          btreemap![0 => r#"a -> (A (b ",")* ";")* C"#, 1 => r#"b -> B"#]),
@@ -233,12 +232,12 @@ fn rts_normalize() {
         (201, //   a -> A (<L=i> B)+ C
          btreemap![0 => r#"a -> A i C"#, 1 => r#"i -> <L> B i | <L> B"#],
          btreemap![0 => r#"a -> A (<L=i> B)+ C"#]),
-        (202, //   a -> (<L=i> A B)*
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A B i | ε"#],
-         btreemap![0 => r#"a -> (<L=i> A B)*"#]),
-        (203, //   a -> (<L=i> A B)+
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A B i | <L> A B"#],
-         btreemap![0 => r#"a -> (<L=i> A B)+"#]),
+        (202, //   a -> (<L=i> b A b B A)*;   b -> C
+         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> b A b B A i | ε"#, 2 => r#"b -> C"#],
+         btreemap![0 => r#"a -> (<L=i> b A b B A)*"#, 1 => r#"i -> <empty>"#, 2 => r#"b -> C"#]),
+        (203, //   a -> (<L=i> b A b B A)+;   b -> C
+         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> b A b B A i | <L> b A b B A"#, 2 => r#"b -> C"#],
+         btreemap![0 => r#"a -> (<L=i> b A b B A)+"#, 1 => r#"i -> <empty>"#, 2 => r#"b -> C"#]),
         (204, //   a -> (<L=i> A (B ",")* ";")*
          btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A a_1 ";" i | ε"#, 2 => r#"a_1 -> B "," a_1 | ε"#],
          btreemap![0 => r#"a -> (<L=i> A (B ",")* ";")*"#]),

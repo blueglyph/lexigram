@@ -243,7 +243,7 @@ impl GramParserListener for GramListener {
     // ;
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
         if self.verbose { println!("- exit_header({ctx:?}"); }
-        let CtxHeader::Header { id } = ctx;
+        let CtxHeader::V1 { id } = ctx;
         self.name = id;
         SynHeader()
     }
@@ -271,14 +271,14 @@ impl GramParserListener for GramListener {
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         let curr_nt = self.curr_nt.take().unwrap();
         let id = match ctx {
-            CtxRule::Rule1 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
-            CtxRule::Rule2 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
+            CtxRule::V1 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
                 if curr_nt > 0 {
                     self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_name.as_ref().unwrap()));
                 }
                 // we don't add Symbol::End to the tree because it's not necessary nor, in fact, even allowed)
                 id
             }
+            CtxRule::V2 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
         };
         tree.set_root(id);
         if self.rules.len() < curr_nt as usize {
@@ -291,7 +291,7 @@ impl GramParserListener for GramListener {
 
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
-        let CtxRuleName::RuleName { id: name } = ctx;
+        let CtxRuleName::V1 { id: name } = ctx;
         self.curr_name = Some(name.clone());
         let Some(nt) = self.add_nt_symbol(&name) else {
             self.abort = true;
@@ -313,8 +313,8 @@ impl GramParserListener for GramListener {
         if self.verbose { println!("exit_prod({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
-            CtxProd::Prod1 { prod_term } => prod_term.0,            // first iteration
-            CtxProd::Prod2 { prod, prod_term } => {                   // next iterations
+            CtxProd::V1 { prod_term } => prod_term.0,               // first iteration
+            CtxProd::V2 { prod, prod_term } => {                    // next iterations
                 if matches!(tree.get(prod.0), &GrNode::Or) {
                     // if there's already an |, adds another child
                     tree.attach_child(prod.0, prod_term.0);
@@ -334,7 +334,7 @@ impl GramParserListener for GramListener {
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
         if self.verbose { println!("exit_prod_term({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let CtxProdTerm::ProdTerm { star: SynProdTerm1(factors) } = ctx;
+        let CtxProdTerm::V1 { star: SynProdTerm1(factors) } = ctx;
         let pt = factors.into_iter().map(|SynProdFactor(t)| t).to_vec();
         let id = match pt.len() {
             0 => tree.add(None, GrNode::Symbol(Symbol::Empty)),
@@ -351,10 +351,10 @@ impl GramParserListener for GramListener {
         if self.verbose { println!("exit_prod_factor_rep({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let (id, l_check) = match ctx {
-            CtxProdFactor::ProdFactor1 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Plus, factor_item), true),   // prodAtom +
-            CtxProdFactor::ProdFactor2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
-            CtxProdFactor::ProdFactor3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
-            CtxProdFactor::ProdFactor4 { prod_atom: SynProdAtom(factor_item) } => (factor_item, false),                                  // prodAtom
+            CtxProdFactor::V1 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Plus, factor_item), true),   // prodAtom +
+            CtxProdFactor::V2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
+            CtxProdFactor::V3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
+            CtxProdFactor::V4 { prod_atom: SynProdAtom(factor_item) } => (factor_item, false),                                  // prodAtom
         };
         if l_check {
             self.post_check.push(PostCheck::RepeatChildLform { node: id, var: self.curr_nt.unwrap() });
@@ -372,7 +372,7 @@ impl GramParserListener for GramListener {
     fn exit_prod_atom(&mut self, ctx: CtxProdAtom) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
         let id = match ctx {
-            CtxProdAtom::ProdAtom1 { id } => {                  // factor_item -> Id
+            CtxProdAtom::V1 { id } => {                  // factor_item -> Id
                 match self.symbols.get(&id) {
                     Some(s @ Symbol::NT(_)) |
                     Some(s @ Symbol::T(_)) => self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)),
@@ -389,7 +389,7 @@ impl GramParserListener for GramListener {
                     }
                 }
             }
-            CtxProdAtom::ProdAtom2 { lform } => {               // factor_item -> Lform
+            CtxProdAtom::V2 { lform } => {               // factor_item -> Lform
                 let name_maybe = if lform.len() > 3 {
                     let name = lform[3..lform.len() - 1].to_string();
                     if &name == self.curr_name.as_ref().unwrap() {
@@ -429,13 +429,13 @@ impl GramParserListener for GramListener {
                 };
                 self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt))
             }
-            CtxProdAtom::ProdAtom3 => {                         // factor_item -> <R>
+            CtxProdAtom::V3 => {                         // factor_item -> <R>
                 self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
             }
-            CtxProdAtom::ProdAtom4 => {                         // factor_item -> <P>
+            CtxProdAtom::V4 => {                         // factor_item -> <P>
                 self.curr.as_mut().unwrap().add(None, GrNode::PrecEq)
             }
-            CtxProdAtom::ProdAtom5 { prod } => prod.0,          // factor_item -> ( prod )
+            CtxProdAtom::V5 { prod } => prod.0,          // factor_item -> ( prod )
         };
         SynProdAtom(id)
     }

@@ -51,6 +51,9 @@ impl TestRules {
                        r#"b -> B;"#],   // b should be dropped
             13 => vec![r#"s -> Id "=" val | "exit" | "return" val;"#,
                        r#"val -> Id | Num;"#],
+            14 => vec![r#"a -> b c | c;"#,
+                       r#"b -> Op c;"#,
+                       r#"c -> Id;"#],
             // empty
             30 => vec![r#"a -> A B ε C ε;"#],
             31 => vec![r#"a -> A B | C ε | ε | D | ε | <P> ε | <R> <P>;"#],
@@ -67,17 +70,16 @@ impl TestRules {
             101 => vec![r#"a -> A+;"#],
             102 => vec![r#"a -> A B* C;"#],
             103 => vec![r#"a -> A B+ C;"#],
-            104 => vec![r#"a -> (A B)*;"#],
-            105 => vec![r#"a -> (A B)+;"#],
+            104 => vec![r#"a -> (b A b B A)*; b -> C; "#],
+            105 => vec![r#"a -> (b A b B A)+; b -> C; "#],
             106 => vec![r#"a -> (A (b ",")* ";")* C; b -> B;"#],
             107 => vec![r#"a -> (A (b ",")+ ";")+ C; b -> B;"#],
             108 => vec![r#"a -> A "B"* C;"#],
 
-            // TODO (not yet fully supported in parsergen)
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
-            152 => vec![r#"a -> A (B | C D | E)* F;"#],
-            153 => vec![r#"a -> A (B | C D | E)+ F;"#],
+            152 => vec![r#"a -> A (B | b C b B C | E)* F; b -> D;"#],
+            153 => vec![r#"a -> A (B | b C b B C | E)+ F; b -> D;"#],
             154 => vec![r#"a -> (A | A B | C)*;"#],
             155 => vec![r#"a -> (A | A B | C)+;"#],
             156 => vec![r#"a -> A ( (B C | D)* E | F)* G;"#],
@@ -87,8 +89,8 @@ impl TestRules {
             // -----------------------------------------------------------------------------
             200 => vec![r#"a -> A (<L=i> B)* C;"#],
             201 => vec![r#"a -> A (<L=i> B)+ C;"#],
-            202 => vec![r#"a -> (<L=i> A B)*;"#],
-            203 => vec![r#"a -> (<L=i> A B)+;"#],
+            202 => vec![r#"a -> (<L=i> b A b B A)*; b -> C;"#],
+            203 => vec![r#"a -> (<L=i> b A b B A)+; b -> C;"#],
             204 => vec![r#"a -> (<L=i> A (      B ",")* ";")*;"#],
             205 => vec![r#"a -> (<L=i> A (      B ",")+ ";")+;"#],
             206 => vec![r#"a -> (      A (<L=j> B ",")* ";")* C;"#],
@@ -98,15 +100,16 @@ impl TestRules {
             210 => vec![r#"a -> A (<L=i> "B")* C;"#],
             211 => vec![r#"a -> A (A | C) (B <L=i>)* C;"#],
 
-            // TODO (not yet fully supported in parsergen)
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
-            252 => vec![r#"a -> A (      (<L=j> B C | D)+ E | F)+ G;"#],
-            253 => vec![r#"a -> A (<L=i> (      B C | D)+ E | F)+ G;"#],
-            254 => vec![r#"a -> A (<L=i> (<L=j> B C | D)* E | F)* G;"#],
-            255 => vec![r#"a -> A (<L=i> (<L=j> B C | D)+ E | F)+ G;"#],
-            256 => vec![r#"a -> A (<L=i> B A | B A C | D)+ E;"#],
-            257 => vec![r#"a -> (A | A B | C)+;"#],
+            252 => vec![r#"a -> A (      (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
+            253 => vec![r#"a -> A (<L=i> (      b C b B C | D)+ E | F)+ G; b -> H;"#],
+            254 => vec![r#"a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G; b -> H;"#],
+            255 => vec![r#"a -> A (<L=i> (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
+            256 => vec![r#"a -> A (<L=i> B A | B A C b | D)+ E; b-> F;"#],
+            257 => vec![r#"a -> (<L=i> A | A B A | C)+;"#],
+            258 => vec![r#"a -> (<L=i> A | A B | C | D (<L=j> E | E F | G)* )*;"#],
+            259 => vec![r#"a -> (<L=i> A | A B | C | D (<L=j> E | E F | G)+ )+;"#],
 
             // 3xx = rrec: simple
             // -----------------------------------------------------------------------------
@@ -208,8 +211,8 @@ impl TestRules {
             835 => vec![r#"a -> a "x" a | a "*" "[" Num+ "]" | "-" a | Id;"#],
 
             // 1xx/2xx and 7xx lfact
-            840 => vec![r#"a -> (A B | A C)*;"#],   // TODO (not yet fully supported in parsergen)
-            841 => vec![r#"a -> (A B | A C)+;"#],   // TODO (not yet fully supported in parsergen)
+            840 => vec![r#"a -> (A B | A C)*;"#],
+            841 => vec![r#"a -> (A B | A C)+;"#],
 
             842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
             843 => vec![r#"a -> A+ B+ | A+ C+;"#],  // TODO: is it possible to factorize this?

@@ -11,6 +11,34 @@ pub(crate) mod code_13_1 {
     #[derive(Debug, PartialEq)] pub struct SynVal();
 }
 
+pub(crate) mod code_14_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+    /// User-defined type for `c`
+    #[derive(Debug, PartialEq)] pub struct SynC();
+}
+
+pub(crate) mod code_14_2 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_14_3 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `c`
+    #[derive(Debug, PartialEq)] pub struct SynC();
+}
+
+pub(crate) mod code_14_4 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
 pub(crate) mod code_102_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
@@ -19,6 +47,20 @@ pub(crate) mod code_102_1 {
 pub(crate) mod code_103_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_104_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_105_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
 }
 
 pub(crate) mod code_106_1 {
@@ -46,11 +88,8 @@ pub(crate) mod code_150_1 {
 pub(crate) mod code_152_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
-pub(crate) mod code_153_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
 }
 
 pub(crate) mod code_200_1 {
@@ -80,6 +119,15 @@ pub(crate) mod code_201_2 {
 pub(crate) mod code_201_3 {
     /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
     #[derive(Debug, PartialEq)] pub struct SynMyI();
+}
+
+pub(crate) mod code_202_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> b A b B A` iteration in `a -> ( ►► <L> b A b B A ◄◄ )*`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
 }
 
 pub(crate) mod code_206_1 {
@@ -142,11 +190,60 @@ pub(crate) mod code_251_1 {
     #[derive(Debug, PartialEq)] pub struct SynI();
 }
 
+pub(crate) mod code_252_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
+    #[derive(Debug, PartialEq)] pub struct SynJ();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_253_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_254_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
+    #[derive(Debug, PartialEq)] pub struct SynJ();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
 pub(crate) mod code_256_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
-    /// User-defined type for `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C | D)+ E`
+    /// User-defined type for `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
     #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_258_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `i -> <alt 1 NOT FOUND>`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `j -> <alt 5 NOT FOUND>`
+    #[derive(Debug, PartialEq)] pub struct SynJ();
+}
+
+pub(crate) mod code_259_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)+)+`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)+)+`
+    #[derive(Debug, PartialEq)] pub struct SynJ();
 }
 
 pub(crate) mod code_301_1 {

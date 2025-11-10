@@ -35,67 +35,67 @@ pub fn build_parser() -> Parser<'static> {
 #[derive(Debug)]
 pub enum CtxFile {
     /// `file -> header rules`
-    File { header: SynHeader, rules: SynRules },
+    V1 { header: SynHeader, rules: SynRules },
 }
 #[derive(Debug)]
 pub enum CtxHeader {
     /// `header -> "grammar" Id ";"`
-    Header { id: String },
+    V1 { id: String },
 }
 #[derive(Debug)]
 pub enum CtxRules {
     /// `rules -> rule`
-    Rules1 { rule: SynRule },
+    V1 { rule: SynRule },
     /// `rules -> rules rule`
-    Rules2 { rules: SynRules, rule: SynRule },
+    V2 { rules: SynRules, rule: SynRule },
 }
 #[derive(Debug)]
 pub enum CtxRule {
-    /// `rule -> rule_name ":" prod ";"`
-    Rule1 { rule_name: SynRuleName, prod: SynProd },
     /// `rule -> rule_name ":" prod "EOF" ";"`
-    Rule2 { rule_name: SynRuleName, prod: SynProd },
+    V1 { rule_name: SynRuleName, prod: SynProd },
+    /// `rule -> rule_name ":" prod ";"`
+    V2 { rule_name: SynRuleName, prod: SynProd },
 }
 #[derive(Debug)]
 pub enum CtxRuleName {
     /// `rule_name -> Id`
-    RuleName { id: String },
+    V1 { id: String },
 }
 #[derive(Debug)]
 pub enum CtxProd {
     /// `prod -> prod_term`
-    Prod1 { prod_term: SynProdTerm },
+    V1 { prod_term: SynProdTerm },
     /// `prod -> prod "|" prod_term`
-    Prod2 { prod: SynProd, prod_term: SynProdTerm },
+    V2 { prod: SynProd, prod_term: SynProdTerm },
 }
 #[derive(Debug)]
 pub enum CtxProdTerm {
     /// `prod_term -> prod_factor*`
-    ProdTerm { star: SynProdTerm1 },
+    V1 { star: SynProdTerm1 },
 }
 #[derive(Debug)]
 pub enum CtxProdFactor {
     /// `prod_factor -> prod_atom "+"`
-    ProdFactor1 { prod_atom: SynProdAtom },
-    /// `prod_factor -> prod_atom "?"`
-    ProdFactor2 { prod_atom: SynProdAtom },
+    V1 { prod_atom: SynProdAtom },
     /// `prod_factor -> prod_atom "*"`
-    ProdFactor3 { prod_atom: SynProdAtom },
+    V2 { prod_atom: SynProdAtom },
+    /// `prod_factor -> prod_atom "?"`
+    V3 { prod_atom: SynProdAtom },
     /// `prod_factor -> prod_atom`
-    ProdFactor4 { prod_atom: SynProdAtom },
+    V4 { prod_atom: SynProdAtom },
 }
 #[derive(Debug)]
 pub enum CtxProdAtom {
     /// `prod_atom -> Id`
-    ProdAtom1 { id: String },
+    V1 { id: String },
     /// `prod_atom -> Lform`
-    ProdAtom2 { lform: String },
+    V2 { lform: String },
     /// `prod_atom -> "<R>"`
-    ProdAtom3,
+    V3,
     /// `prod_atom -> "<P>"`
-    ProdAtom4,
+    V4,
     /// `prod_atom -> "(" prod ")"`
-    ProdAtom5 { prod: SynProd },
+    V5 { prod: SynProd },
 }
 
 // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -165,25 +165,25 @@ pub trait GramParserListener {
     fn get_mut_log(&mut self) -> &mut impl Logger;
     fn exit(&mut self, _file: SynFile) {}
     fn init_file(&mut self) {}
-    fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+    fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
     fn init_header(&mut self) {}
-    fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader;
+    fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
     fn init_rules(&mut self) {}
-    fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules;
+    fn exit_rules(&mut self, ctx: CtxRules) -> SynRules;
     fn exitloop_rules(&mut self, _rules: &mut SynRules) {}
     fn init_rule(&mut self) {}
-    fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
     fn init_rule_name(&mut self) {}
-    fn exit_rule_name(&mut self, _ctx: CtxRuleName) -> SynRuleName;
+    fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName;
     fn init_prod(&mut self) {}
-    fn exit_prod(&mut self, _ctx: CtxProd) -> SynProd;
+    fn exit_prod(&mut self, ctx: CtxProd) -> SynProd;
     fn exitloop_prod(&mut self, _prod: &mut SynProd) {}
     fn init_prod_term(&mut self) {}
-    fn exit_prod_term(&mut self, _ctx: CtxProdTerm) -> SynProdTerm;
+    fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm;
     fn init_prod_factor(&mut self) {}
-    fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor;
+    fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor;
     fn init_prod_atom(&mut self) {}
-    fn exit_prod_atom(&mut self, _ctx: CtxProdAtom) -> SynProdAtom;
+    fn exit_prod_atom(&mut self, ctx: CtxProdAtom) -> SynProdAtom;
 }
 
 pub struct Wrapper<T> {
@@ -302,26 +302,26 @@ impl<T: GramParserListener> Wrapper<T> {
     fn exit_file(&mut self) {
         let rules = self.stack.pop().unwrap().get_rules();
         let header = self.stack.pop().unwrap().get_header();
-        let val = self.listener.exit_file(CtxFile::File { header, rules });
+        let val = self.listener.exit_file(CtxFile::V1 { header, rules });
         self.stack.push(SynValue::File(val));
     }
 
     fn exit_header(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_header(CtxHeader::Header { id });
+        let val = self.listener.exit_header(CtxHeader::V1 { id });
         self.stack.push(SynValue::Header(val));
     }
 
     fn inter_rules(&mut self) {
         let rule = self.stack.pop().unwrap().get_rule();
-        let val = self.listener.exit_rules(CtxRules::Rules1 { rule });
+        let val = self.listener.exit_rules(CtxRules::V1 { rule });
         self.stack.push(SynValue::Rules(val));
     }
 
     fn exit_rules1(&mut self) {
         let rule = self.stack.pop().unwrap().get_rule();
         let rules = self.stack.pop().unwrap().get_rules();
-        let val = self.listener.exit_rules(CtxRules::Rules2 { rules, rule });
+        let val = self.listener.exit_rules(CtxRules::V2 { rules, rule });
         self.stack.push(SynValue::Rules(val));
     }
 
@@ -335,12 +335,12 @@ impl<T: GramParserListener> Wrapper<T> {
             19 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
-                CtxRule::Rule1 { rule_name, prod }
+                CtxRule::V2 { rule_name, prod }
             }
             20 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
-                CtxRule::Rule2 { rule_name, prod }
+                CtxRule::V1 { rule_name, prod }
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
         };
@@ -350,20 +350,20 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_rule_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_rule_name(CtxRuleName::RuleName { id });
+        let val = self.listener.exit_rule_name(CtxRuleName::V1 { id });
         self.stack.push(SynValue::RuleName(val));
     }
 
     fn inter_prod(&mut self) {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
-        let val = self.listener.exit_prod(CtxProd::Prod1 { prod_term });
+        let val = self.listener.exit_prod(CtxProd::V1 { prod_term });
         self.stack.push(SynValue::Prod(val));
     }
 
     fn exit_prod1(&mut self) {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
         let prod = self.stack.pop().unwrap().get_prod();
-        let val = self.listener.exit_prod(CtxProd::Prod2 { prod, prod_term });
+        let val = self.listener.exit_prod(CtxProd::V2 { prod, prod_term });
         self.stack.push(SynValue::Prod(val));
     }
 
@@ -374,7 +374,7 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_term(&mut self) {
         let star = self.stack.pop().unwrap().get_prod_term1();
-        let val = self.listener.exit_prod_term(CtxProdTerm::ProdTerm { star });
+        let val = self.listener.exit_prod_term(CtxProdTerm::V1 { star });
         self.stack.push(SynValue::ProdTerm(val));
     }
 
@@ -385,28 +385,29 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_term1(&mut self) {
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let mut star_it = self.stack.pop().unwrap().get_prod_term1();
-        star_it.0.push(prod_factor);
-        self.stack.push(SynValue::ProdTerm1(star_it));
+        let Some(SynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
+            panic!("unexpected SynProdTerm1 item on wrapper stack");
+        };
+        star_acc.push(prod_factor);
     }
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
             21 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor1 { prod_atom }
+                CtxProdFactor::V1 { prod_atom }
             }
             22 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor2 { prod_atom }
+                CtxProdFactor::V3 { prod_atom }
             }
             23 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor3 { prod_atom }
+                CtxProdFactor::V2 { prod_atom }
             }
             24 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
-                CtxProdFactor::ProdFactor4 { prod_atom }
+                CtxProdFactor::V4 { prod_atom }
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_prod_factor")
         };
@@ -418,21 +419,21 @@ impl<T: GramParserListener> Wrapper<T> {
         let ctx = match alt_id {
             8 => {
                 let id = self.stack_t.pop().unwrap();
-                CtxProdAtom::ProdAtom1 { id }
+                CtxProdAtom::V1 { id }
             }
             9 => {
                 let lform = self.stack_t.pop().unwrap();
-                CtxProdAtom::ProdAtom2 { lform }
+                CtxProdAtom::V2 { lform }
             }
             10 => {
-                CtxProdAtom::ProdAtom3
+                CtxProdAtom::V3
             }
             11 => {
-                CtxProdAtom::ProdAtom4
+                CtxProdAtom::V4
             }
             12 => {
                 let prod = self.stack.pop().unwrap().get_prod();
-                CtxProdAtom::ProdAtom5 { prod }
+                CtxProdAtom::V5 { prod }
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_prod_atom")
         };

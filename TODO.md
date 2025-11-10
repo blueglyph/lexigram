@@ -6,17 +6,19 @@
 - [x] ~~review coherency in Symbol::to_str*, associated traits, OpCode::*.to_str*, ...~~
   - [x] ~~add unit tests~~
   - [x] ~~unify the names~~
-- [x] clean-up of the unit & integration tests
+- [x] ~~clean-up of the unit & integration tests~~
   - [x] ~~split test files~~  
   - [x] ~~create rtsgen and TestRules type to create GrTree/RTS/PRS~~
-  - [ ] update all tests (or almost) that rely on build_rts and build_prs
+  - [x] ~~update all tests (or almost) that rely on build_rts and build_prs~~
+- [x] ~~check generated code consistency~~
 - [x] ~~more coherency in functions/methods that create source code (names, location)~~
   - Name conventions:
     - build:  creates object by consuming self (or non-method that creates object)
     - make:   sets fields or creates object without consuming self
     - gen:    creates string source code
     - write:  writes source code into file
-- [ ] split huge files (
+- [ ] change ParserGen::item_ops to array instead of dictionary
+- [ ] split huge files
   - [ ] dfa
   - [ ] grammar
     - [ ] make GrTree a proper wrapper type + methods
@@ -67,6 +69,10 @@
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~
   - [ ] support `(a | b)*` (with or without `<L>`)
+  - (as an option?) move accumulator from context to `&mut star_acc` / `&mut plus_acc` in
+    - [ ] Repetitions with *+ and `<L>` attribute: `init_i` gives the first value, then `exit_<NT>(&mut self, &mut star_acc, ctx: Ctx<NT>)` (no return value)
+    - [ ] Right recursion with `<L>` attribute: same
+    - (Left/right recursion: cumbersome because init should return an accumulator without knowing the 1st independent alternative + binary ambiguous cases)
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
