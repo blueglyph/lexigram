@@ -66,6 +66,7 @@
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~
+  - [ ] support `(a | b)*` (with or without `<L>`)
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
