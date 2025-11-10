@@ -68,7 +68,7 @@
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~
-  - [ ] support `(a | b)*` (with or without `<L>`)
+  - [x] ~~support `(a | b)*` (with or without `<L>`)~~
   - (as an option?) move accumulator from context to `&mut star_acc` / `&mut plus_acc` in
     - [ ] Repetitions with *+ and `<L>` attribute: `init_i` gives the first value, then `exit_<NT>(&mut self, &mut star_acc, ctx: Ctx<NT>)` (no return value)
     - [ ] Right recursion with `<L>` attribute: same
