@@ -116,7 +116,7 @@ prod_atom:
 
 # Code Generation
 
-### Notation
+## Notation
 
 Outside proper lexicon and grammar Lexigram sources, we often represent rules with a slightly different syntax than Lexigram's grammar syntax, for the sake of simplicity. These examples can be distinguished by the `->` symbol used when a nonterminal rule is defined:
 
@@ -391,7 +391,7 @@ pub trait TestListener {
 
 Here, all the variants of the `CtxA` context are empty. If `a` only had one alternative, the context would still have one empty variant, even though it carries no information at all. It would be generated to keep the API consistent, but it could be ignored entirely.
 
-## Grammar Transformations
+## Base Grammar Transformations
 
 Lexigram accepts non-LL(1) grammars if it's able to transforme them to LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
 
@@ -415,9 +415,9 @@ Secondly, in right-recursive rules, which don't need to be transformed since it'
 
 The motivation behind the `<L>` versions is offering the ability to parse a potentially infinite stream without storing all the intermediate items, or being able to produce an immediate output before reaching the end of the sequence in the stream.
 
-## Base cases
-
 ### Repetitions with *
+
+<!-- 102 -->
 
 ```
 a -> A B* C
@@ -453,6 +453,8 @@ Sequencing of the operations:
 
 ### Repetitions with +
 
+<!-- 103 -->
+
 ```
 a -> A B+ C
 ```
@@ -484,6 +486,8 @@ pub trait TestListener {
 ```
 
 ### Repetitions with * and `<L>` attribute
+
+<!-- 200 -->
 
 ```
 a -> A (<L=i> B)* C
@@ -528,6 +532,8 @@ pub trait TestListener {
 
 ### Repetitions with + and `<L>` attribute
 
+<!-- 201 -->
+
 ```
 a -> A (<L=i> B)+ C
 ```
@@ -570,6 +576,8 @@ The differences from a repetition with `<L>` * are:
 
 ### Right recursion
 
+<!-- 301 -->
+
 ```
 expr -> Id "." expr | "(" Num ")"
 ```
@@ -592,6 +600,8 @@ pub trait TestListener {
 ```
 
 ### Right recursion with `<L>` attribute
+
+<!-- 401 -->
 
 ```
 expr -> <L> Id "." expr | "(" Num ")"
@@ -617,6 +627,8 @@ pub trait TestListener {
 Contrary to repetitions, the user mustn't define a name in the attribute, since there is no transformation nor any associated nonterminal (said differently, the nonterminal associated with the attribute is the nonterminal of the rule, so there's no need to specify it).
 
 ### Left recursion
+
+<!-- 502 -->
 
 ```
 e -> f | e "." Id
@@ -656,6 +668,8 @@ This is similar to an `<L>` repetition, except the initialization part. The accu
 * `exitloop_e` is called after the last iteration. It can be used if the accumulator requires post-processing once the whole series has been parsed.
 
 ### Left factorization
+
+<!-- 705 -->
 
 ```
 a -> A | A B | A B C | A B D | E
@@ -704,7 +718,7 @@ pub trait TestListener {
 }
 ```
 
-## Advanced cases
+## Advanced Transformations
 
 ### Ambiguous left and right recursion
 
@@ -731,6 +745,8 @@ By default, binary operators are left-associative. The `<R>` attribute indicates
 The attributes can be placed anywhere in the rule alternative, but we usually place them at the beginning to be consistent.
 
 The rule
+
+<!-- 607 -->
 
 ```
 e -> e "*" e | <R> e "!" e | e "+" e | Num
@@ -773,6 +789,8 @@ The first variant `V1` is related to the operator of highest precedence, and the
 
 ### Repetitions of longer strings of symbols
 
+<!-- 105 -->
+
 ```
 a -> (b A b B A)+
 ```
@@ -813,6 +831,8 @@ In comparison to the base `*` repetition, we see that the type of the items in t
 Also, the token `B` is represented by `b1`, since the name `b` was already taken. The fields are in the same order as the first symbol they represent in the rule; here, `b` is first, `A` second, and `B` third. Their type is another indication that helps set them apart: the type of a token is a string, while a nonterminal has a custom type whose name begins by "Syn", for _synthesized_.
 
 ### Nested repetitions
+
+<!-- 106 -->
 
 ```
 a -> (A (b ",")* ";")* C
@@ -856,6 +876,8 @@ When a repetitions is nested in another, the resulting vector becomes a field of
 It's also possible to nest any combination of non-`<L>` and `<L>` repetitions. The principle is always the same: non-`<L>` repetitions are represented by a `Vec` of values gathered automatically by the parser, and an `<L>` repetition is managed manually by the user through extra nonterminal `init`/`exit` methods and is represented by a user-defined type.
 
 ### Alternatives in repetitions
+
+<!-- 152 -->
 
 ```
 a -> A (B | b C b B C | E)* F
@@ -903,6 +925,8 @@ pub trait TestListener {
 Since each iteration can be one of 3 strings of symbols, its type `SynA1Item` is an enum with 3 variants, each containing the corresponding data.
 
 ### Alternatives in repetitions with `<L>` attribute
+
+<!-- 254 -->
 
 ```
 a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G

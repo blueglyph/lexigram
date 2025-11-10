@@ -17,6 +17,7 @@
     - make:   sets fields or creates object without consuming self
     - gen:    creates string source code
     - write:  writes source code into file
+- [ ] change ParserGen::item_ops to array instead of dictionary
 - [ ] split huge files
   - [ ] dfa
   - [ ] grammar
