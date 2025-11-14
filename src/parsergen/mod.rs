@@ -227,6 +227,8 @@ pub struct ParserGen {
     origin: Origin<VarId, FromPRS>,
     item_ops: HashMap<AltId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
+    /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
+    gen_span_params: bool,
     span_nbrs: Vec<SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
@@ -276,6 +278,7 @@ impl ParserGen {
             origin,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
+            gen_span_params: false,
             span_nbrs: Vec::new(),
             start,
             nt_conversion,
@@ -361,6 +364,11 @@ impl ParserGen {
             } else {
             }
         }
+    }
+
+    /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.
+    pub fn set_gen_span_params(&mut self, gen_span_params: bool) {
+        self.gen_span_params = gen_span_params;
     }
 
     #[inline]
@@ -1945,6 +1953,9 @@ impl ParserGen {
         src.push(format!("    stack: Vec<SynValue>,"));
         src.push(format!("    max_stack: usize,"));
         src.push(format!("    stack_t: Vec<String>,"));
+        if self.gen_span_params {
+            src.push(format!("    stack_span: Vec<PosSpan>,"));
+        }
         src.push(format!("}}"));
         src.push(format!(""));
         src.push(format!("impl<T: {}Listener> ListenerWrapper for Wrapper<T> {{", self.name));
@@ -2003,6 +2014,12 @@ impl ParserGen {
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger {{"));
         src.push(format!("        self.listener.get_mut_log()"));
         src.push(format!("    }}"));
+        if self.gen_span_params {
+            src.push(format!(""));
+            src.push(format!("    fn push_span(&mut self, span: PosSpan) {{"));
+            src.push(format!("        self.stack_span.push(span);"));
+            src.push(format!("    }}"));
+        }
         src.push(format!("}}"));
 
         src.add_space();

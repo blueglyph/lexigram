@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use crate::{CollectJoin, FixedSymTable, SymInfoTable};
 use crate::dfa::TokenId;
 use crate::grammar::{Alternative, Symbol, VarId, AltId};
-use crate::lexer::{CaretCol, CaretLine};
+use crate::lexer::{Pos, PosSpan};
 use crate::log::Logger;
 
 pub(crate) mod tests;
@@ -36,11 +36,13 @@ pub trait ListenerWrapper {
     fn abort(&mut self) {}
     /// Gets access to the listener's log to report possible errors and information about the parsing.
     fn get_mut_log(&mut self) -> &mut impl Logger;
+    /// Pushes a location span onto the (optional) span stack
+    fn push_span(&mut self, _span: PosSpan) {}
 }
 
 // ---------------------------------------------------------------------------------------------
 
-pub type ParserToken = (TokenId, String, CaretCol, CaretLine);
+pub type ParserToken = (TokenId, String, PosSpan);
 
 #[derive(PartialEq, Debug)]
 pub enum ParserError {
@@ -180,12 +182,12 @@ impl<'a> Parser<'a> {
         loop {
             if advance_stream {
                 stream_n += 1;
-                (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| {
-                    stream_pos = Some((line, col));
+                (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
+                    stream_pos = Some(span.start());
                     (Symbol::T(t), s)
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end
-                    if let Some((_t, s, _line, _col)) = stream.next() {
+                    if let Some((_t, s, _span)) = stream.next() {
                         (Symbol::Empty, s)
                     } else {
                         (Symbol::End, String::new())
@@ -196,7 +198,7 @@ impl<'a> Parser<'a> {
             if VERBOSE {
                 println!("{:-<40}", "");
                 println!("input ({stream_n}{}): {}   stack_t: [{}]   stack: [{}]   current: {}",
-                         if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
+                         if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
                          stream_sym.to_str_ext(sym_table, &stream_str),
                          stack_t.join(", "),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "),
@@ -239,7 +241,7 @@ impl<'a> Parser<'a> {
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
                         let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
                                           stack_sym.to_str(sym_table),
-                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                                          if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
@@ -273,7 +275,7 @@ impl<'a> Parser<'a> {
                         } else {
                             if alt_id < error_skip_alt_id {
                                 recover_mode = false;
-                                let pos_str = if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
+                                let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
                                 wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
                                                                        stream_sym.to_str(self.get_symbol_table())));
                                 if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
@@ -314,7 +316,7 @@ impl<'a> Parser<'a> {
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if !recover_mode && sk != sr {
                         let msg = format!("syntax error: found input '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                                          if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
@@ -334,7 +336,7 @@ impl<'a> Parser<'a> {
                         if VERBOSE { println!("!T {} <-> {}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if sk == sr {
                             recover_mode = false;
-                            let pos_str = if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
+                            let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
                             wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
                                                                    stream_sym.to_str(self.get_symbol_table())));
                             if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
@@ -371,7 +373,7 @@ impl<'a> Parser<'a> {
                 (_, _) => {
                     wrapper.get_mut_log().add_error(format!("unexpected syntax error: input '{}' while expecting '{}'{}",
                                                             stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                                            if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                                                            if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedError);
                 }

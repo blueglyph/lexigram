@@ -115,7 +115,7 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
-            let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _col, _line)| {
+            let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _pos_span)| {
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                 (tok, text)
             }).unzip();
@@ -147,7 +147,7 @@ fn regexgen_stability() {
         let mut mode1 = false;
         let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer
             .tokens()
-            .filter_map(|(tok, ch, text, _col, _line)| if ch == 0 {
+            .filter_map(|(tok, ch, text, _pos_span)| if ch == 0 {
                 source2.push_str(&text);
                 if VERBOSE { println!("{} {text}", if mode1 { "1" } else { " " }); }
                 if &text == "[" {
@@ -171,7 +171,7 @@ fn regexgen_stability() {
         lexer.attach_stream(stream2);
         let (tokens2, texts2): (Vec<TokenId>, Vec<String>) = lexer
             .tokens()
-            .filter_map(|(tok, ch, text, _col, _line)| if ch == 0 { Some((tok, text)) } else { None })
+            .filter_map(|(tok, ch, text, _pos_span)| if ch == 0 { Some((tok, text)) } else { None })
             .unzip();
         assert_eq!(tokens, tokens2, "failed for opt={opt:?}");
         assert_eq!(texts, texts2, "failed for opt={opt:?}");

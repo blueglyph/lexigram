@@ -53,8 +53,8 @@ impl MCalc<'_, '_> {
     pub fn parse(&mut self, text: String) -> Result<BufLog, BufLog> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
         if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
             self.wrapper.get_listener_mut().get_mut_log().add_error(e.to_string());

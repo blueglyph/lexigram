@@ -61,11 +61,11 @@ impl<R: Read> Lexi<'_, '_, R> {
         if !self.is_built {
             // we keep track of the built state because some unit tests are calling build() directly
             self.is_built = true;
-            let tokens = self.lexilexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-                panic!("unexpected channel {ch} from Lexi while parsing a lexicon, line {line} col {col}, \"{text}\"")
-            ).inspect(|(tok, text, line, col)| {
+            let tokens = self.lexilexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+                panic!("unexpected channel {ch} from Lexi while parsing a lexicon at {pos_span}, \"{text}\"")
+            ).inspect(|(tok, text, pos_span)| {
                 if Self::VERBOSE_DETAILS {
-                    println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
+                    println!("TOKEN: pos {pos_span}, Id {tok:?}, \"{text}\"");
                 }
             });
             if self.lexiparser.parse_stream(&mut self.wrapper, tokens).is_ok() {

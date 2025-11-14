@@ -60,8 +60,8 @@ impl RtsGen<'_, '_> {
         let mut wrapper = Wrapper::new(RGListener::new(self.t_name_dictionary.as_ref()), VERBOSE_WRAPPER);
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
         let _ = self.parser.parse_stream(&mut wrapper, tokens); // errors are written in the log, so we can dismiss the error here
         let listener = wrapper.give_listener();

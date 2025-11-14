@@ -13,8 +13,8 @@ use super::*;
 
 #[test]
 fn lexer_simple() {
-    fn eval(result: &Result<Option<(TokenId, ChannelId, String, CaretCol, CaretLine)>, LexerError>, verbose: bool)
-        -> Option<(TokenId, ChannelId, String, CaretCol, CaretLine)>
+    fn eval(result: &Result<Option<(TokenId, ChannelId, String, PosSpan)>, LexerError>, verbose: bool)
+        -> Option<(TokenId, ChannelId, String, PosSpan)>
     {
         match result {
             Ok(Some(token_ch)) => {
@@ -85,7 +85,7 @@ fn lexer_simple() {
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
                 let result = lexer.get_token();
-                let token = eval(&result, VERBOSE);
+                let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.0.0, span.0.1));
                 assert_eq!(token, Some((exp_token, 0, output.to_string(), 1, 1)), "test {} failed for input '{}'", test_id, escape_string(input));
                 lexer.detach_stream();
             }
@@ -95,7 +95,7 @@ fn lexer_simple() {
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
             let result = lexer.get_token();
-            let token = eval(&result, VERBOSE);
+            let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.0.0, span.0.1));
             assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
                 assert_eq!(e.get_pos(), expected_pos, "test {} failed for input '{}', wrong pos, {:?}", test_id, escape_string(input), e);
@@ -111,9 +111,10 @@ fn lexer_simple() {
             while lexer.is_open() {
                 let token = &lexer.get_token();
                 let t = eval(token, false);
-                if let Some((tok, ch, _text, line, col)) = t {
+                if let Some((tok, ch, _text, pos_span)) = t {
                     if VERBOSE { print!(" {}, #{}", tok, ch); }
-                    result.push((tok, line, col));
+                    let start = pos_span.start();
+                    result.push((tok, start.line(), start.col()));
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                 } else {
                     assert_eq!(t, None);
@@ -128,10 +129,11 @@ fn lexer_simple() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
-            let result = lexer.tokens().map(|(tok, ch, _text, line, col)| {
+            let result = lexer.tokens().map(|(tok, ch, _text, pos_span)| {
                 if VERBOSE { print!(" {}, #{}", tok, ch); }
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                (tok, line, col)
+                let start = pos_span.start();
+                (tok, start.line(), start.col())
             }).to_vec();
             if VERBOSE { println!(); }
             assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
@@ -260,19 +262,19 @@ fn lexer_modes() {
     let tests = vec![
         (1, vec![
             // no error
-            (" 10 20 30", vec![(0, 1, 2), (0, 1, 5), (0, 1, 8)], vec!["10", "20", "30"]),
-            (" 10 20 ", vec![(0, 1, 2), (0, 1, 5)], vec!["10", "20"]),
-            (" 5 /* bla bla */ 6\n \n 7", vec![(0, 1, 2), (0, 1, 18), (0, 3, 2)], vec!["5", "6", "7"]),
+            (" 10 20 30", vec![(0, 1, 2, 3), (0, 1, 5, 6), (0, 1, 8, 9)], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![(0, 1, 2, 3), (0, 1, 5, 6)], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6\n \n 75", vec![(0, 1, 2, 2), (0, 1, 18, 18), (0, 3, 2, 3)], vec!["5", "6", "75"]),
         ]),
         (2, vec![
             // no error
-            (" 10 20 30", vec![(0, 1, 2), (0, 1, 5), (0, 1, 8)], vec!["10", "20", "30"]),
-            (" 10 20 ", vec![(0, 1, 2), (0, 1, 5)], vec!["10", "20"]),
-            (" 5 /* bla bla */ 6\n \n 7", vec![(0, 1, 2), (0, 1, 18), (0, 3, 2)], vec!["5", "6", "7"]),
+            (" 10 20 30", vec![(0, 1, 2, 3), (0, 1, 5, 6), (0, 1, 8, 9)], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![(0, 1, 2, 3), (0, 1, 5, 6)], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6\n \n 75", vec![(0, 1, 2, 2), (0, 1, 18, 18), (0, 3, 2, 3)], vec!["5", "6", "75"]),
         ]),
         (3, vec![
-            ("'hello'.", vec![(1, 1, 1), (0, 1, 8)], vec!["'hello'", "."]),
-            (".", vec![(0, 1, 1)], vec!["."]),
+            ("'hello'.", vec![(1, 1, 1, 7), (0, 1, 8, 8)], vec!["'hello'", "."]),
+            (".", vec![(0, 1, 1, 1)], vec!["."]),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -284,10 +286,11 @@ fn lexer_modes() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
-            let (tokens, texts): (Vec<(TokenId, i32, i32)>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, line, col)| {
-                if VERBOSE { print!(" ({tok}, \"{text}\")") }
+            let (tokens, texts): (Vec<(TokenId, i32, i32, i32)>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, span)| {
+                if VERBOSE { print!(" ({tok}, \"{text}\", {span})") }
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                ((tok, line as i32, col as i32), text, )
+                let (start, end) = (span.start(), span.end());
+                ((tok, start.line() as i32, start.col() as i32, end.col() as i32), text)
             }).unzip();
             if VERBOSE { println!(); }
             assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
@@ -394,7 +397,7 @@ mod lexer_source1 {
                 if VERBOSE { print!("\"{}\":", escape_string(input)); }
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
-                let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _col, _line)| {
+                let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _span)| {
                     if VERBOSE { print!(" ({tok}, \"{text}\")")}
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                     (tok, text)

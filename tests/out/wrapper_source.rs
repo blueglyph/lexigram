@@ -2660,7 +2660,7 @@ pub(crate) mod rules_153_1 {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use super::*;
         use lexigram_lib::log::{BufLog, LogStatus};
 
@@ -2733,9 +2733,11 @@ pub(crate) mod rules_153_1 {
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).filter_map(|(i, w)| {
                     if !stop_lexer {
                         // use the first letter to find a terminal
+                        let pos = Pos(1, i);
+                        let pos_span = PosSpan(pos, pos);
                         let first = w.chars().next().unwrap_or('?').to_ascii_uppercase();
                         if let Some(s) = symbols.get(&first) {
-                            Some((*s, w.to_string(), 1, i))
+                            Some((*s, w.to_string(), pos_span))
                         } else {
                             stop_lexer = true;
                             None
@@ -7771,7 +7773,7 @@ pub(crate) mod rules_580_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::{BufLog, LogStatus};
         use crate::integration::parser_examples::listener1::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op};
@@ -7842,11 +7844,13 @@ pub(crate) mod rules_580_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if w.chars().next().unwrap().is_ascii_digit() {
-                            (num_id, w.to_string(), 1, i)
+                            (num_id, w.to_string(), pos_span)
                         } else {
                             panic!("IDs not supported")
                         }
@@ -8043,7 +8047,7 @@ pub(crate) mod rules_581_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::{BufLog, LogStatus};
         use crate::integration::parser_examples::listener1::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op, LevelString};
@@ -8115,14 +8119,16 @@ pub(crate) mod rules_581_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if let Some(s) = symbols.get(w) {
-                            (*s, w.to_string(), 1, i)
+                            (*s, w.to_string(), pos_span)
                         } else {
                             if w.chars().next().unwrap().is_ascii_digit() {
-                                (num_id, w.to_string(), 1, i)
+                                (num_id, w.to_string(), pos_span)
                             } else {
                                 panic!("IDs not supported")
                             }
@@ -12100,7 +12106,7 @@ pub mod precedence_type {
     use iter_index::IndexerIterator;
     use lexigram_lib::dfa::TokenId;
     use lexigram_lib::grammar::Symbol;
-    use lexigram_lib::lexer::CaretCol;
+    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::BufLog;
     use lexigram_lib::parser::{ListenerWrapper, Parser, ParserError, ParserToken};
     use crate::out::wrapper_source::level_string::LevelString;
@@ -12116,18 +12122,20 @@ pub mod precedence_type {
         input.chars().index_start::<CaretCol>(1).filter(|(_, c)| !c.is_ascii_whitespace())
         // input.split_ascii_whitespace().index_start::<CaretCol>(1)
             .map(|(i, w)| {
+                let pos = Pos(1, i);
+                let pos_span = PosSpan(pos, pos);
                 if let Some(s) = symbols.get(&w.to_string()) {
-                    (*s, w.to_string(), 1, i)
+                    (*s, w.to_string(), pos_span)
                 } else {
                     // if w.chars().next().unwrap().is_ascii_digit() {
                     if w.is_ascii_digit() {
-                        (TOK_NUM, w.to_string(), 1, i)
+                        (TOK_NUM, w.to_string(), pos_span)
                     } else {
-                        (TOK_ID, w.to_string(), 1, i)
+                        (TOK_ID, w.to_string(), pos_span)
                     }
                 }
             })
-            .inspect(|(tok, s, l, c)| { if VERBOSE { println!("STREAM: pos={l:3}:{c:3}, tok={tok}, s={s:?}"); } })
+            .inspect(|(tok, s, pos_span)| { if VERBOSE { println!("STREAM: pos={pos_span}, tok={tok}, s={s:?}"); } })
     }
 
     pub struct Tester<W: ListenerWrapper> {
@@ -12561,7 +12569,7 @@ pub(crate) mod rules_640_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::{BufLog, LogStatus};
         use crate::integration::parser_examples::listener2::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
@@ -12650,14 +12658,16 @@ pub(crate) mod rules_640_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if w.chars().next().unwrap().is_ascii_digit() {
-                            // (num_id, w.to_string(), 1, i)
+                            // (num_id, w.to_string(), pos_span)
                             panic!("numbers not supported")
                         } else {
-                            (id_id, w.to_string(), 1, i)
+                            (id_id, w.to_string(), pos_span)
                         }
                     }
                 });
@@ -12884,7 +12894,7 @@ pub(crate) mod rules_641_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::{BufLog, LogStatus};
         use crate::integration::parser_examples::listener3::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
@@ -12973,14 +12983,16 @@ pub(crate) mod rules_641_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if w.chars().next().unwrap().is_ascii_digit() {
-                            // (num_id, w.to_string(), 1, i)
+                            // (num_id, w.to_string(), pos_span)
                             panic!("numbers not supported")
                         } else {
-                            (id_id, w.to_string(), 1, i)
+                            (id_id, w.to_string(), pos_span)
                         }
                     }
                 });
@@ -13207,7 +13219,7 @@ pub(crate) mod rules_642_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::{BufLog, LogStatus};
         use crate::integration::parser_examples::listener4::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
@@ -13296,14 +13308,16 @@ pub(crate) mod rules_642_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if w.chars().next().unwrap().is_ascii_digit() {
-                            // (num_id, w.to_string(), 1, i)
+                            // (num_id, w.to_string(), pos_span)
                             panic!("numbers not supported")
                         } else {
-                            (id_id, w.to_string(), 1, i)
+                            (id_id, w.to_string(), pos_span)
                         }
                     }
                 });
@@ -14650,7 +14664,7 @@ pub(crate) mod rules_862_1 {
         use iter_index::IndexerIterator;
         use lexigram_lib::dfa::TokenId;
         use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
         use lexigram_lib::log::BufLog;
         use crate::integration::parser_examples::listener5::build_parser;
         use super::*;
@@ -14727,11 +14741,13 @@ pub(crate) mod rules_862_1 {
             for (input, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan(pos, pos);
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), 1, i)
+                        (*s, w.to_string(), pos_span)
                     } else {
                         if w.chars().next().unwrap().is_ascii_digit() {
-                            (num_id, w.to_string(), 1, i)
+                            (num_id, w.to_string(), pos_span)
                         } else {
                             panic!("'{w}' input not recognized")
                         }

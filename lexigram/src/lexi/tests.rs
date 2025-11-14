@@ -350,8 +350,8 @@ mod simple {
                 lexer.attach_stream(stream);
                 let tokens = lexer.tokens().to_vec();
                 if VERBOSE {
-                    for (tokenid, channelid, string, caretline, caretcol) in &tokens {
-                        println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
+                    for (tokenid, channelid, string, pos_span) in &tokens {
+                        println!("- {tokenid}, {channelid}, {string}, {pos_span}")
                     }
                     if lexer.has_error() {
                         println!("{:?}", lexer.get_error());
@@ -363,7 +363,7 @@ mod simple {
                 }
                 lexer.detach_stream();
                 let result_tokens = tokens.into_iter()
-                    .map(|(tokenid, channelid, string, _, _)| (channelid, tokenid, string))
+                    .map(|(tokenid, channelid, string, _)| (channelid, tokenid, string))
                     .to_vec();
                 if VERBOSE {
                     println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
@@ -440,8 +440,8 @@ mod simple {
                 };
                 let result_valid = valid_segments.and_then(|s| Some(s.to_string()));
                 if VERBOSE {
-                    for (tokenid, channelid, string, caretline, caretcol) in &tokens {
-                        println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
+                    for (tokenid, channelid, string, pos_span) in &tokens {
+                        println!("- {tokenid}, {channelid}, {string}, {pos_span}")
                     }
                     println!(" => {:?}", lexer.get_error());
                     if let Some(s) = &result_valid {
@@ -450,7 +450,7 @@ mod simple {
                 }
                 lexer.detach_stream();
                 let result_tokens = tokens.into_iter()
-                    .map(|(tokenid, channelid, string, _, _)| (channelid, tokenid, string))
+                    .map(|(tokenid, channelid, string, _)| (channelid, tokenid, string))
                     .to_vec();
                 if VERBOSE {
                     println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
