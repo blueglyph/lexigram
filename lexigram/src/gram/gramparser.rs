@@ -163,21 +163,24 @@ pub trait GramParserListener {
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
     fn get_mut_log(&mut self) -> &mut impl Logger;
-    fn exit(&mut self, _file: SynFile) {}
+    #[allow(unused)]
+    fn exit(&mut self, file: SynFile) {}
     fn init_file(&mut self) {}
     fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
     fn init_header(&mut self) {}
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
     fn init_rules(&mut self) {}
     fn exit_rules(&mut self, ctx: CtxRules) -> SynRules;
-    fn exitloop_rules(&mut self, _rules: &mut SynRules) {}
+    #[allow(unused)]
+    fn exitloop_rules(&mut self, rules: &mut SynRules) {}
     fn init_rule(&mut self) {}
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
     fn init_rule_name(&mut self) {}
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName;
     fn init_prod(&mut self) {}
     fn exit_prod(&mut self, ctx: CtxProd) -> SynProd;
-    fn exitloop_prod(&mut self, _prod: &mut SynProd) {}
+    #[allow(unused)]
+    fn exitloop_prod(&mut self, prod: &mut SynProd) {}
     fn init_prod_term(&mut self) {}
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm;
     fn init_prod_factor(&mut self) {}

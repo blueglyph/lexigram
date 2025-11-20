@@ -1661,7 +1661,8 @@ impl ParserGen {
                         if f_valued {
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}) -> {};", self.get_nt_type(fnt as VarId)));
                         } else {
-                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) {{}}"));
+                            src_listener_decl.push(format!("    #[allow(unused)]"));
+                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}) {{}}"));
                         }
                     }
                     let all_exit_alts = if is_ambig_1st_child {
@@ -1874,7 +1875,8 @@ impl ParserGen {
                             let (variant, _, fnname) = &nt_name[info.owner as usize];
                             let typ = self.get_nt_type(info.owner);
                             let varname = &info.name;
-                            src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, _{varname}: &mut {typ}) {{}}"));
+                            src_listener_decl.push(format!("    #[allow(unused)]"));
+                            src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
                             let (v, pf) = &self.parsing_table.alts[a as usize];
                             let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
                                 self.full_alt_str(a, None, false)
@@ -1935,15 +1937,17 @@ impl ParserGen {
         src.push(format!("    fn check_abort_request(&self) -> bool {{ false }}"));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
         if self.nt_value[self.start as usize] {
-            src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
+            src.push(format!("    #[allow(unused)]"));
+            src.push(format!("    fn exit(&mut self, {}: {}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
         } else {
             src.push(format!("    fn exit(&mut self) {{}}"));
         }
         /*
                               fn init_a(&mut self) {}
-                              fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+                              fn exit_a(&mut self, ctx: CtxA) -> SynA;
                               fn init_a_iter(&mut self) -> SynAIter;
-                              fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+                              #[allow(unused)]
+                              fn exit_a_iter(&mut self, ctx: CtxAIter) -> SynAIter {};
         */
         src.extend(src_listener_decl);
         src.push(format!("}}"));

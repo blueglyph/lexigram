@@ -929,13 +929,15 @@ pub mod rtsgen_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _file: SynFile) {}
+        #[allow(unused)]
+        fn exit(&mut self, file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_decls(&mut self) {}
         fn exit_decls(&mut self, ctx: CtxDecls) -> SynDecls;
         fn init_decl_iter(&mut self) {}
-        fn exit_decl_iter(&mut self, _ctx: CtxDeclIter) {}
+        #[allow(unused)]
+        fn exit_decl_iter(&mut self, ctx: CtxDeclIter) {}
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl;
         fn init_decl_terminal(&mut self) {}
@@ -943,7 +945,8 @@ pub mod rtsgen_parser {
         fn init_ruleset(&mut self) {}
         fn exit_ruleset(&mut self, ctx: CtxRuleset) -> SynRuleset;
         fn init_rule_iter(&mut self) {}
-        fn exit_rule_iter(&mut self, _ctx: CtxRuleIter) {}
+        #[allow(unused)]
+        fn exit_rule_iter(&mut self, ctx: CtxRuleIter) {}
         fn init_rule(&mut self) {}
         fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_rule_nt(&mut self) {}

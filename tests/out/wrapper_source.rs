@@ -89,7 +89,8 @@ pub(crate) mod rules_13_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _s: SynS) {}
+        #[allow(unused)]
+        fn exit(&mut self, s: SynS) {}
         fn init_s(&mut self) {}
         fn exit_s(&mut self, ctx: CtxS) -> SynS;
         fn init_val(&mut self) {}
@@ -279,7 +280,8 @@ pub(crate) mod rules_14_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -458,13 +460,15 @@ pub(crate) mod rules_14_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
         fn init_c(&mut self) {}
-        fn exit_c(&mut self, _ctx: CtxC) {}
+        #[allow(unused)]
+        fn exit_c(&mut self, ctx: CtxC) {}
     }
 
     pub struct Wrapper<T> {
@@ -633,11 +637,13 @@ pub(crate) mod rules_14_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
         fn init_c(&mut self) {}
         fn exit_c(&mut self, ctx: CtxC) -> SynC;
     }
@@ -806,13 +812,16 @@ pub(crate) mod rules_14_4 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
         fn init_c(&mut self) {}
-        fn exit_c(&mut self, _ctx: CtxC) {}
+        #[allow(unused)]
+        fn exit_c(&mut self, ctx: CtxC) {}
     }
 
     pub struct Wrapper<T> {
@@ -970,7 +979,8 @@ pub(crate) mod rules_102_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -1125,7 +1135,8 @@ pub(crate) mod rules_103_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -1295,7 +1306,8 @@ pub(crate) mod rules_104_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1476,7 +1488,8 @@ pub(crate) mod rules_105_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1665,7 +1678,8 @@ pub(crate) mod rules_106_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1852,11 +1866,13 @@ pub(crate) mod rules_106_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
     }
 
     pub struct Wrapper<T> {
@@ -2013,7 +2029,8 @@ pub(crate) mod rules_108_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -2162,7 +2179,8 @@ pub(crate) mod rules_150_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -2346,7 +2364,8 @@ pub(crate) mod rules_152_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -2576,7 +2595,8 @@ pub(crate) mod rules_153_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -2889,12 +2909,14 @@ pub(crate) mod rules_200_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -3056,11 +3078,13 @@ pub(crate) mod rules_200_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
-        fn exit_i(&mut self, _ctx: CtxI) {}
+        #[allow(unused)]
+        fn exit_i(&mut self, ctx: CtxI) {}
     }
 
     pub struct Wrapper<T> {
@@ -3208,7 +3232,8 @@ pub(crate) mod rules_201_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynMyA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
         fn init_i(&mut self) -> SynMyI;
@@ -3367,11 +3392,13 @@ pub(crate) mod rules_201_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynMyA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
         fn init_i(&mut self) {}
-        fn exit_i(&mut self, _ctx: CtxI) {}
+        #[allow(unused)]
+        fn exit_i(&mut self, ctx: CtxI) {}
     }
 
     pub struct Wrapper<T> {
@@ -3523,7 +3550,8 @@ pub(crate) mod rules_201_3 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) {}
+        #[allow(unused)]
+        fn exit_a(&mut self, ctx: CtxA) {}
         fn init_i(&mut self) -> SynMyI;
         fn exit_i(&mut self, ctx: CtxI) -> SynMyI;
     }
@@ -3688,12 +3716,14 @@ pub(crate) mod rules_202_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -3875,12 +3905,14 @@ pub(crate) mod rules_206_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_j(&mut self) -> SynAiter;
         fn exit_j(&mut self, ctx: CtxJ) -> SynAiter;
-        fn exitloop_j(&mut self, _star_acc: &mut SynAiter) {}
+        #[allow(unused)]
+        fn exitloop_j(&mut self, star_acc: &mut SynAiter) {}
     }
 
     pub struct Wrapper<T> {
@@ -4078,15 +4110,18 @@ pub(crate) mod rules_208_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
+        #[allow(unused)]
+        fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -4287,16 +4322,20 @@ pub(crate) mod rules_208_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) {}
-        fn exit_j(&mut self, _ctx: CtxJ) {}
+        #[allow(unused)]
+        fn exit_j(&mut self, ctx: CtxJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
     }
 
     pub struct Wrapper<T> {
@@ -4476,15 +4515,19 @@ pub(crate) mod rules_208_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
-        fn exit_i(&mut self, _ctx: CtxI) {}
+        #[allow(unused)]
+        fn exit_i(&mut self, ctx: CtxI) {}
         fn init_j(&mut self) {}
-        fn exit_j(&mut self, _ctx: CtxJ) {}
+        #[allow(unused)]
+        fn exit_j(&mut self, ctx: CtxJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
     }
 
     pub struct Wrapper<T> {
@@ -4648,13 +4691,17 @@ pub(crate) mod rules_208_4 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) {}
+        #[allow(unused)]
+        fn exit_a(&mut self, ctx: CtxA) {}
         fn init_i(&mut self) {}
-        fn exit_i(&mut self, _ctx: CtxI) {}
+        #[allow(unused)]
+        fn exit_i(&mut self, ctx: CtxI) {}
         fn init_j(&mut self) {}
-        fn exit_j(&mut self, _ctx: CtxJ) {}
+        #[allow(unused)]
+        fn exit_j(&mut self, ctx: CtxJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) {}
+        #[allow(unused)]
+        fn exit_b(&mut self, ctx: CtxB) {}
     }
 
     pub struct Wrapper<T> {
@@ -4805,11 +4852,13 @@ pub(crate) mod rules_210_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) {}
-        fn exit_i(&mut self, _ctx: CtxI) {}
+        #[allow(unused)]
+        fn exit_i(&mut self, ctx: CtxI) {}
     }
 
     pub struct Wrapper<T> {
@@ -4958,12 +5007,14 @@ pub(crate) mod rules_211_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -5144,12 +5195,14 @@ pub(crate) mod rules_250_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -5322,7 +5375,8 @@ pub(crate) mod rules_251_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
@@ -5523,7 +5577,8 @@ pub(crate) mod rules_252_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_j(&mut self) -> SynJ;
@@ -5771,7 +5826,8 @@ pub(crate) mod rules_253_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
@@ -6018,15 +6074,18 @@ pub(crate) mod rules_254_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
+        #[allow(unused)]
+        fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
         fn exit_b(&mut self, ctx: CtxB) -> SynB;
     }
@@ -6260,7 +6319,8 @@ pub(crate) mod rules_256_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
@@ -6481,15 +6541,18 @@ pub(crate) mod rules_258_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, ctx: CtxI) -> SynI;
-        fn exitloop_i(&mut self, _star_acc: &mut SynI) {}
+        #[allow(unused)]
+        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
         fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
-        fn exitloop_j(&mut self, _star_acc: &mut SynJ) {}
+        #[allow(unused)]
+        fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
     }
 
     pub struct Wrapper<T> {
@@ -6736,7 +6799,8 @@ pub(crate) mod rules_259_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn init_i(&mut self) -> SynI;
@@ -6969,7 +7033,8 @@ pub(crate) mod rules_301_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _expr: SynExpr) {}
+        #[allow(unused)]
+        fn exit(&mut self, expr: SynExpr) {}
         fn init_expr(&mut self) {}
         fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
@@ -7112,7 +7177,8 @@ pub(crate) mod rules_301_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_expr(&mut self) {}
-        fn exit_expr(&mut self, _ctx: CtxExpr) {}
+        #[allow(unused)]
+        fn exit_expr(&mut self, ctx: CtxExpr) {}
     }
 
     pub struct Wrapper<T> {
@@ -7249,7 +7315,8 @@ pub(crate) mod rules_401_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _expr: SynExpr) {}
+        #[allow(unused)]
+        fn exit(&mut self, expr: SynExpr) {}
         fn init_expr(&mut self) -> SynExpr;
         fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
@@ -7397,7 +7464,8 @@ pub(crate) mod rules_401_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_expr(&mut self) {}
-        fn exit_expr(&mut self, _ctx: CtxExpr) {}
+        #[allow(unused)]
+        fn exit_expr(&mut self, ctx: CtxExpr) {}
     }
 
     pub struct Wrapper<T> {
@@ -7542,10 +7610,12 @@ pub(crate) mod rules_502_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
-        fn exitloop_e(&mut self, _e: &mut SynE) {}
+        #[allow(unused)]
+        fn exitloop_e(&mut self, e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, ctx: CtxF) -> SynF;
     }
@@ -7712,7 +7782,8 @@ pub(crate) mod rules_502_2 {
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) {}
+        #[allow(unused)]
+        fn exit_e(&mut self, ctx: CtxE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, ctx: CtxF) -> SynF;
     }
@@ -7861,10 +7932,12 @@ pub(crate) mod rules_580_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
-        fn exitloop_e(&mut self, _e: &mut SynE) {}
+        #[allow(unused)]
+        fn exitloop_e(&mut self, e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -8134,10 +8207,12 @@ pub(crate) mod rules_581_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) -> SynE;
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
-        fn exitloop_e(&mut self, _e: &mut SynE) {}
+        #[allow(unused)]
+        fn exitloop_e(&mut self, e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -8418,7 +8493,8 @@ pub(crate) mod rules_600_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -8596,7 +8672,8 @@ pub(crate) mod rules_603_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -8857,7 +8934,8 @@ pub(crate) mod rules_604_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -9118,7 +9196,8 @@ pub(crate) mod rules_605_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -9379,7 +9458,8 @@ pub(crate) mod rules_606_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -9635,7 +9715,8 @@ pub(crate) mod rules_607_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -9892,7 +9973,8 @@ pub(crate) mod rules_608_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -10152,7 +10234,8 @@ pub(crate) mod rules_609_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -10407,7 +10490,8 @@ pub(crate) mod rules_610_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -10663,7 +10747,8 @@ pub(crate) mod rules_611_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -10922,7 +11007,8 @@ pub(crate) mod rules_612_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -11182,7 +11268,8 @@ pub(crate) mod rules_613_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -11438,7 +11525,8 @@ pub(crate) mod rules_614_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -11695,7 +11783,8 @@ pub(crate) mod rules_630_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -11952,7 +12041,8 @@ pub(crate) mod rules_631_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -12209,7 +12299,8 @@ pub(crate) mod rules_632_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -12719,7 +12810,8 @@ pub(crate) mod rules_640_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -12899,13 +12991,12 @@ pub(crate) mod rules_640_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE, span: PosSpan) {
+            fn exit(&mut self, e: SynE) {
                 self.result = Some(e.0.get_string());
-                self.log.add_note(format!("--> {span}"))
             }
 
-            fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE {
-                let val = match ctx {
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
                     // `E -> - E`
                     CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
                     // `E -> E * E`
@@ -12918,9 +13009,7 @@ pub(crate) mod rules_640_1 {
                     CtxE::V5 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
                     // `E -> ID`
                     CtxE::V6 { id } => LevelString(0, id),
-                };
-                self.log.add_note(format!("{} -> {}", val.1, spans.into_iter().join(", ")));
-                SynE(val)
+                })
             }
         }
 
@@ -12954,7 +13043,7 @@ pub(crate) mod rules_640_1 {
                 ("a + + b", None),
                 ("a - - b", Some("a - (- b)")),
             ];
-            const VERBOSE: bool = true;
+            const VERBOSE: bool = false;
             const VERBOSE_LISTENER: bool = false;
             let id_id = 4;
 
@@ -13052,7 +13141,8 @@ pub(crate) mod rules_641_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -13382,7 +13472,8 @@ pub(crate) mod rules_642_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _e: SynE) {}
+        #[allow(unused)]
+        fn exit(&mut self, e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
@@ -13702,7 +13793,8 @@ pub(crate) mod rules_650_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -13855,7 +13947,8 @@ pub(crate) mod rules_705_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -14028,10 +14121,12 @@ pub(crate) mod rules_820_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
-        fn exitloop_a(&mut self, _a: &mut SynA) {}
+        #[allow(unused)]
+        fn exitloop_a(&mut self, a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -14200,10 +14295,12 @@ pub(crate) mod rules_821_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
-        fn exitloop_a(&mut self, _a: &mut SynA) {}
+        #[allow(unused)]
+        fn exitloop_a(&mut self, a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -14373,7 +14470,8 @@ pub(crate) mod rules_810_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -14541,7 +14639,8 @@ pub(crate) mod rules_811_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -14716,7 +14815,8 @@ pub(crate) mod rules_835_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
     }
@@ -14901,7 +15001,8 @@ pub(crate) mod rules_862_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _expr: SynExpr) {}
+        #[allow(unused)]
+        fn exit(&mut self, expr: SynExpr) {}
         fn init_expr(&mut self) -> SynExpr;
         fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
     }
@@ -15175,10 +15276,12 @@ pub(crate) mod rules_870_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
-        fn exitloop_a(&mut self, _a: &mut SynA) {}
+        #[allow(unused)]
+        fn exitloop_a(&mut self, a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -15341,10 +15444,12 @@ pub(crate) mod rules_871_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
-        fn exitloop_a(&mut self, _a: &mut SynA) {}
+        #[allow(unused)]
+        fn exitloop_a(&mut self, a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -15732,7 +15837,8 @@ pub(crate) mod rules_901_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _file: SynFile) {}
+        #[allow(unused)]
+        fn exit(&mut self, file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_file_item(&mut self) {}

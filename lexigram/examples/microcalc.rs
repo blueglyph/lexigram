@@ -423,7 +423,8 @@ pub mod microcalc_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _program: SynProgram) {}
+        #[allow(unused)]
+        fn exit(&mut self, program: SynProgram) {}
         fn init_program(&mut self) {}
         fn exit_program(&mut self, ctx: CtxProgram) -> SynProgram;
         fn init_function(&mut self) {}

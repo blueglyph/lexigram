@@ -288,7 +288,8 @@ pub(crate) mod lexiparser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _file: SynFile) {}
+        #[allow(unused)]
+        fn exit(&mut self, file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_file_item(&mut self) {}
