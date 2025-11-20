@@ -1294,6 +1294,9 @@ impl ParserGen {
             "lexigram_lib::CollectJoin", "lexigram_lib::grammar::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
             "lexigram_lib::grammar::AltId", "lexigram_lib::log::Logger",
         ]);
+        if self.gen_span_params {
+            self.used_libs.add("lexigram_lib::lexer::PosSpan");
+        }
 
         let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();
         let pinfo = &self.parsing_table;
@@ -2025,7 +2028,10 @@ impl ParserGen {
         src.add_space();
         src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
         src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
-        src.push(format!("        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
+        src.push(format!(
+            "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){} }}",
+            if self.gen_span_params { ", stack_span: Vec::new()" } else { "" }
+        ));
         src.push(format!("    }}"));
         src.push(format!(""));
         src.push(format!("    pub fn get_listener(&self) -> &T {{"));

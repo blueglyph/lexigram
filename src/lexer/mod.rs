@@ -19,7 +19,7 @@ pub type CaretCol = u64;
 pub type CaretLine = u64;
 
 /// `Pos(line, col)`
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Pos(pub CaretLine, pub CaretCol);
 
 impl Pos {
@@ -32,35 +32,85 @@ impl Pos {
     }
 }
 
-/// `PosSpan(start, end)`, where `start` and `end` are [Pos].
+/// `PosSpan` defines a text selection where `first` and `last` are the [position](Pos) of the first and last character.
+/// When `first` > `last`, no text is selected.
 #[derive(Clone, PartialEq, Debug)]
-pub struct PosSpan(pub Pos, pub Pos);
+pub struct PosSpan {
+    first: Pos,
+    last: Pos,
+}
 
 impl PosSpan {
-    pub fn start(&self) -> Pos {
-        self.0
+    #[inline(always)]
+    pub fn new(first: Pos, last: Pos) -> Self {
+        PosSpan { first, last }
     }
 
-    pub fn end(&self) -> Pos {
-        self.1
+    #[inline(always)]
+    pub fn empty() -> Self {
+        PosSpan { first: Pos(1, 1), last: Pos(0, 0) }
+    }
+
+    pub fn take(&mut self) -> PosSpan {
+        std::mem::take(self)
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.first > self.last
+    }
+
+    #[inline(always)]
+    pub fn is_not_empty(&self) -> bool {
+        self.first <= self.last
+    }
+
+    pub fn first(&self) -> Option<Pos> {
+        if self.is_not_empty() { Some(self.first) } else { None }
+    }
+
+    pub fn first_forced(&self) -> Pos {
+        if self.is_not_empty() { self.first } else { panic!("span is empty") }
+    }
+
+    pub fn last(&self) -> Option<Pos> {
+        if self.is_not_empty() { Some(self.last) } else { None }
+    }
+
+    pub fn last_forced(&self) -> Pos {
+        if self.is_not_empty() { self.last } else { panic!("span is empty") }
     }
 }
 
 impl AddAssign<&PosSpan> for PosSpan {
     fn add_assign(&mut self, rhs: &Self) {
-        self.1 = rhs.1;
+        match (self.is_empty(), rhs.is_empty()) {
+            (true, false) => (self.first, self.last) = (rhs.first, rhs.last),
+            (false, false) => self.last = rhs.last,
+            _ => {}
+        }
+    }
+}
+
+impl Default for PosSpan {
+    fn default() -> Self {
+        PosSpan::empty()
     }
 }
 
 impl Display for PosSpan {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let (start, end) = (&self.0, &self.1);
-        if start == end {
-            write!(f, "{}:{}", start.0, start.1)
-        } else if start.0 == end.0 {
-            write!(f, "{}:{}-{}", start.0, start.1, end.1)
+        if self.is_not_empty() {
+            let (first, last) = (&self.first, &self.last);
+            if first == last {
+                write!(f, "{}:{}", first.0, first.1)
+            } else if first.0 == last.0 {
+                write!(f, "{}:{}-{}", first.0, first.1, last.1)
+            } else {
+                write!(f, "{}:{}-{}:{}", first.0, first.1, last.0, last.1)
+            }
         } else {
-            write!(f, "{}:{}-{}:{}", start.0, start.1, end.0, end.1)
+            write!(f, "<empty>")
         }
     }
 }
@@ -278,8 +328,8 @@ impl<'a, R: Read> Lexer<'a, R> {
         // if let Some(input) = self.input.as_mut() {
         if self.input.is_some() {
             let mut state = self.start_state;
-            let mut start_pos = Pos(self.line, self.col);
-            let mut end_pos = start_pos;
+            let mut first_pos = Pos(self.line, self.col);
+            let mut last_pos = first_pos;
             #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
             #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
@@ -345,10 +395,10 @@ impl<'a, R: Read> Lexer<'a, R> {
                         }
                         if let Some(token) = &terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, PosSpan(start_pos, end_pos))));
+                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, PosSpan::new(first_pos, last_pos))));
                         }
                         if !terminal.action.is_more() {
-                            start_pos = Pos(self.line, self.col);
+                            first_pos = Pos(self.line, self.col);
                         }
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => {}, state {}", terminal.action, self.start_state); }
@@ -387,7 +437,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                     if VERBOSE { println!(" => Err({})", self.error); }
                     return Err(self.error.clone());
                 } else {
-                    end_pos = Pos(self.line, self.col);
+                    last_pos = Pos(self.line, self.col);
                     if let Some(c) = c_opt {
                         text.push(c);
                         self.update_pos(c);
@@ -514,7 +564,7 @@ impl<'a, 'b, R: Read> Iterator for LexInterpretIter<'a, 'b, R> {
                     self.mode = LexInterpretIterMode::Normal;
                     let msg = format!("{}, scanned before = '{}'", self.lexer.get_error().to_string(), self.error_info.as_ref().unwrap().text);
                     let pos = Pos(info.line, info.col);
-                    Some((TokenId::MAX, 0, msg, PosSpan(pos, pos)))
+                    Some((TokenId::MAX, 0, msg, PosSpan::new(pos, pos)))
                 }
             }
         }

@@ -176,6 +176,7 @@ impl<'a> Parser<'a> {
         let mut stack_sym = stack.pop().unwrap();
         let mut stream_n = 0;
         let mut stream_pos = None;
+        let mut stream_span = PosSpan::empty();
         let mut stream_sym = Symbol::default(); // must set fake value to comply with borrow checker
         let mut stream_str = String::default(); // must set fake value to comply with borrow checker
         let mut advance_stream = true;
@@ -183,7 +184,8 @@ impl<'a> Parser<'a> {
             if advance_stream {
                 stream_n += 1;
                 (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
-                    stream_pos = Some(span.start());
+                    stream_pos = Some(span.first_forced());
+                    stream_span = span;
                     (Symbol::T(t), s)
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end
@@ -351,6 +353,7 @@ impl<'a> Parser<'a> {
                             stack_t.push(std::mem::take(&mut stream_str)); // must use take() to comply with borrow checker
                         }
                         stack_sym = stack.pop().unwrap();
+                        wrapper.push_span(stream_span.take());
                         advance_stream = true;
                     }
                 }

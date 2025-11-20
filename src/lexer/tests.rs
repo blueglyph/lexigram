@@ -85,7 +85,7 @@ fn lexer_simple() {
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
                 let result = lexer.get_token();
-                let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.0.0, span.0.1));
+                let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.first_forced().0, span.first_forced().1));
                 assert_eq!(token, Some((exp_token, 0, output.to_string(), 1, 1)), "test {} failed for input '{}'", test_id, escape_string(input));
                 lexer.detach_stream();
             }
@@ -95,7 +95,7 @@ fn lexer_simple() {
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
             let result = lexer.get_token();
-            let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.0.0, span.0.1));
+            let token = eval(&result, VERBOSE).map(|(id, ch, str, span)| (id, ch, str, span.first_forced().0, span.first_forced().1));
             assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
                 assert_eq!(e.get_pos(), expected_pos, "test {} failed for input '{}', wrong pos, {:?}", test_id, escape_string(input), e);
@@ -111,9 +111,9 @@ fn lexer_simple() {
             while lexer.is_open() {
                 let token = &lexer.get_token();
                 let t = eval(token, false);
-                if let Some((tok, ch, _text, pos_span)) = t {
+                if let Some((tok, ch, _text, span)) = t {
                     if VERBOSE { print!(" {}, #{}", tok, ch); }
-                    let start = pos_span.start();
+                    let start = span.first_forced();
                     result.push((tok, start.line(), start.col()));
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                 } else {
@@ -129,10 +129,10 @@ fn lexer_simple() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
-            let result = lexer.tokens().map(|(tok, ch, _text, pos_span)| {
+            let result = lexer.tokens().map(|(tok, ch, _text, span)| {
                 if VERBOSE { print!(" {}, #{}", tok, ch); }
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                let start = pos_span.start();
+                let start = span.first_forced();
                 (tok, start.line(), start.col())
             }).to_vec();
             if VERBOSE { println!(); }
@@ -289,7 +289,7 @@ fn lexer_modes() {
             let (tokens, texts): (Vec<(TokenId, i32, i32, i32)>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, span)| {
                 if VERBOSE { print!(" ({tok}, \"{text}\", {span})") }
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                let (start, end) = (span.start(), span.end());
+                let (start, end) = (span.first_forced(), span.last_forced());
                 ((tok, start.line() as i32, start.col() as i32, end.col() as i32), text)
             }).unzip();
             if VERBOSE { println!(); }

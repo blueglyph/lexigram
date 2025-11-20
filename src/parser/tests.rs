@@ -163,7 +163,7 @@ fn parser_parse_stream() {
                     if let Some(s) = symbols.get(&c_str) {
                         // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
                         let pos = Pos(1, i);
-                        Some((*s, c_str, PosSpan(pos, pos)))
+                        Some((*s, c_str, PosSpan::new(pos, pos)))
                     } else {
                         panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                     }
@@ -285,7 +285,7 @@ fn parser_parse_stream_id() {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
                 let pos = Pos(1, i);
-                let pos_span = PosSpan(pos, pos);
+                let pos_span = PosSpan::new(pos, pos);
                 if let Some(s) = symbols.get(w) {
                     (*s, w.to_string(), pos_span)
                 } else {
