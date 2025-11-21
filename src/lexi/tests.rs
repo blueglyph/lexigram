@@ -294,7 +294,7 @@ fn lexiparser_source() {
     if VERBOSE {
         builder.make_item_ops();
         print_flags(&builder, 0);
-        print_items(&builder, 0, false);
+        print_items(&builder, 0, false, false);
     }
     let result_src = builder.gen_source_code(4, true);
     if !cfg!(miri) {

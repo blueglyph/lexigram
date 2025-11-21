@@ -90,11 +90,11 @@ pub(crate) mod rules_13_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, s: SynS) {}
+        fn exit(&mut self, s: SynS, span: PosSpan) {}
         fn init_s(&mut self) {}
-        fn exit_s(&mut self, ctx: CtxS) -> SynS;
+        fn exit_s(&mut self, ctx: CtxS, spans: Vec<PosSpan>) -> SynS;
         fn init_val(&mut self) {}
-        fn exit_val(&mut self, ctx: CtxVal) -> SynVal;
+        fn exit_val(&mut self, ctx: CtxVal, spans: Vec<PosSpan>) -> SynVal;
     }
 
     pub struct Wrapper<T> {
@@ -180,42 +180,51 @@ pub(crate) mod rules_13_1 {
 
         fn exit(&mut self) {
             let s = self.stack.pop().unwrap().get_s();
-            self.listener.exit(s);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(s, span);
         }
 
         fn exit_s(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let val = self.stack.pop().unwrap().get_val();
                     let id = self.stack_t.pop().unwrap();
-                    CtxS::V1 { id, val }
+                    (3, CtxS::V1 { id, val })
                 }
                 1 => {
-                    CtxS::V2
+                    (1, CtxS::V2)
                 }
                 2 => {
                     let val = self.stack.pop().unwrap().get_val();
-                    CtxS::V3 { val }
+                    (2, CtxS::V3 { val })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_s")
             };
-            let val = self.listener.exit_s(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_s(ctx, spans);
             self.stack.push(SynValue::S(val));
         }
 
         fn exit_val(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 3 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxVal::V1 { id }
+                    (1, CtxVal::V1 { id })
                 }
                 4 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxVal::V2 { num }
+                    (1, CtxVal::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_val")
             };
-            let val = self.listener.exit_val(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_val(ctx, spans);
             self.stack.push(SynValue::Val(val));
         }
     }
@@ -281,13 +290,13 @@ pub(crate) mod rules_14_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
         fn init_c(&mut self) {}
-        fn exit_c(&mut self, ctx: CtxC) -> SynC;
+        fn exit_c(&mut self, ctx: CtxC, spans: Vec<PosSpan>) -> SynC;
     }
 
     pub struct Wrapper<T> {
@@ -373,36 +382,51 @@ pub(crate) mod rules_14_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let c = self.stack.pop().unwrap().get_c();
                     let b = self.stack.pop().unwrap().get_b();
-                    CtxA::V1 { b, c }
+                    (2, CtxA::V1 { b, c })
                 }
                 1 => {
                     let c = self.stack.pop().unwrap().get_c();
-                    CtxA::V2 { c }
+                    (1, CtxA::V2 { c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_b(&mut self) {
             let c = self.stack.pop().unwrap().get_c();
             let op = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { op, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { op, c }, spans);
             self.stack.push(SynValue::B(val));
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_c(CtxC::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_c(CtxC::V1 { id }, spans);
             self.stack.push(SynValue::C(val));
         }
     }
@@ -461,14 +485,14 @@ pub(crate) mod rules_14_2 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
         fn init_c(&mut self) {}
         #[allow(unused)]
-        fn exit_c(&mut self, ctx: CtxC) {}
+        fn exit_c(&mut self, ctx: CtxC, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -554,33 +578,48 @@ pub(crate) mod rules_14_2 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let b = self.stack.pop().unwrap().get_b();
-                    CtxA::V1 { b }
+                    (2, CtxA::V1 { b })
                 }
                 1 => {
-                    CtxA::V2
+                    (1, CtxA::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_b(&mut self) {
             let op = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { op });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { op }, spans);
             self.stack.push(SynValue::B(val));
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.listener.exit_c(CtxC::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_c(CtxC::V1 { id }, spans);
         }
     }
 
@@ -638,14 +677,14 @@ pub(crate) mod rules_14_3 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
         fn init_c(&mut self) {}
-        fn exit_c(&mut self, ctx: CtxC) -> SynC;
+        fn exit_c(&mut self, ctx: CtxC, spans: Vec<PosSpan>) -> SynC;
     }
 
     pub struct Wrapper<T> {
@@ -731,34 +770,49 @@ pub(crate) mod rules_14_3 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let c = self.stack.pop().unwrap().get_c();
-                    CtxA::V1 { c }
+                    (2, CtxA::V1 { c })
                 }
                 1 => {
                     let c = self.stack.pop().unwrap().get_c();
-                    CtxA::V2 { c }
+                    (1, CtxA::V2 { c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_b(&mut self) {
             let c = self.stack.pop().unwrap().get_c();
             let op = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { op, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { op, c }, spans);
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_c(CtxC::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_c(CtxC::V1 { id }, spans);
             self.stack.push(SynValue::C(val));
         }
     }
@@ -813,15 +867,15 @@ pub(crate) mod rules_14_4 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
         fn init_c(&mut self) {}
         #[allow(unused)]
-        fn exit_c(&mut self, ctx: CtxC) {}
+        fn exit_c(&mut self, ctx: CtxC, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -907,31 +961,46 @@ pub(crate) mod rules_14_4 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
-                    CtxA::V1
+                    (2, CtxA::V1)
                 }
                 1 => {
-                    CtxA::V2
+                    (1, CtxA::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_b(&mut self) {
             let op = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { op });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { op }, spans);
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.listener.exit_c(CtxC::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_c(CtxC::V1 { id }, spans);
         }
     }
 
@@ -980,9 +1049,9 @@ pub(crate) mod rules_102_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -1066,14 +1135,20 @@ pub(crate) mod rules_102_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1084,10 +1159,15 @@ pub(crate) mod rules_102_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let n = 2;
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
     }
 
@@ -1136,9 +1216,9 @@ pub(crate) mod rules_103_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -1224,14 +1304,20 @@ pub(crate) mod rules_103_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1242,10 +1328,15 @@ pub(crate) mod rules_103_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let n = 2;
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
     }
 
@@ -1307,11 +1398,11 @@ pub(crate) mod rules_104_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -1397,12 +1488,18 @@ pub(crate) mod rules_104_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::V1 { star });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1417,16 +1514,26 @@ pub(crate) mod rules_104_1 {
             let b_2 = self.stack.pop().unwrap().get_b();
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
+            let n = 6;
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { c });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1489,11 +1596,11 @@ pub(crate) mod rules_105_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -1581,12 +1688,18 @@ pub(crate) mod rules_105_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::V1 { plus });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1601,16 +1714,26 @@ pub(crate) mod rules_105_1 {
             let b_2 = self.stack.pop().unwrap().get_b();
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
+            let n = 6;
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { c });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1679,11 +1802,11 @@ pub(crate) mod rules_106_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -1772,13 +1895,19 @@ pub(crate) mod rules_106_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
-            let val = self.listener.exit_a(CtxA::V1 { star, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1789,10 +1918,15 @@ pub(crate) mod rules_106_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
+            let n = 3;
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn init_a2(&mut self) {
@@ -1803,16 +1937,26 @@ pub(crate) mod rules_106_1 {
         fn exit_a2(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let n = 4;
             let val = SynA2Item { a, star };
             let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA2 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { b }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1867,12 +2011,12 @@ pub(crate) mod rules_106_2 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -1961,13 +2105,19 @@ pub(crate) mod rules_106_2 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
-            let val = self.listener.exit_a(CtxA::V1 { star, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1978,15 +2128,25 @@ pub(crate) mod rules_106_2 {
 
         fn exit_a2(&mut self) {
             let a = self.stack_t.pop().unwrap();
+            let n = 4;
             let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA2 item on wrapper stack");
             };
             star_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { b }, spans);
         }
     }
 
@@ -2030,9 +2190,9 @@ pub(crate) mod rules_108_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -2116,13 +2276,19 @@ pub(crate) mod rules_108_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
             self.stack.push(SynValue::A(val));
         }
     }
@@ -2180,9 +2346,9 @@ pub(crate) mod rules_150_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -2267,12 +2433,18 @@ pub(crate) mod rules_150_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::V1 { star });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2282,14 +2454,14 @@ pub(crate) mod rules_150_1 {
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let val = match alt_id {
+            let (n, val) = match alt_id {
                 1 => {
                     let a = self.stack_t.pop().unwrap();
-                    SynA1Item::V1 { a }
+                    (2, SynA1Item::V1 { a })
                 }
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::V2 { b }
+                    (2, SynA1Item::V2 { b })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -2297,6 +2469,10 @@ pub(crate) mod rules_150_1 {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
     }
 
@@ -2365,11 +2541,11 @@ pub(crate) mod rules_152_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -2457,14 +2633,20 @@ pub(crate) mod rules_152_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let f = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, star, f });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, star, f }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2474,10 +2656,10 @@ pub(crate) mod rules_152_1 {
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let val = match alt_id {
+            let (n, val) = match alt_id {
                 2 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::V1 { b }
+                    (2, SynA1Item::V1 { b })
                 }
                 3 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -2485,11 +2667,11 @@ pub(crate) mod rules_152_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    (6, SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 })
                 }
                 4 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::V3 { e }
+                    (2, SynA1Item::V3 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -2497,11 +2679,20 @@ pub(crate) mod rules_152_1 {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { d });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { d }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -2596,11 +2787,11 @@ pub(crate) mod rules_153_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -2694,14 +2885,20 @@ pub(crate) mod rules_153_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let f = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, f });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, f }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2711,10 +2908,10 @@ pub(crate) mod rules_153_1 {
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let val = match alt_id {
+            let (n, val) = match alt_id {
                 5 | 6 => {
                     let b = self.stack_t.pop().unwrap();
-                    SynA1Item::V1 { b }
+                    (2, SynA1Item::V1 { b })
                 }
                 9 | 10 => {
                     let c_2 = self.stack_t.pop().unwrap();
@@ -2722,11 +2919,11 @@ pub(crate) mod rules_153_1 {
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    (6, SynA1Item::V2 { b: [b_1, b_2], c: [c_1, c_2], b1 })
                 }
                 7 | 8 => {
                     let e = self.stack_t.pop().unwrap();
-                    SynA1Item::V3 { e }
+                    (2, SynA1Item::V3 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -2734,11 +2931,20 @@ pub(crate) mod rules_153_1 {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { d });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { d }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -2778,11 +2984,11 @@ pub(crate) mod rules_153_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, a: SynA) {
+            fn exit(&mut self, a: SynA, _span: PosSpan) {
                 self.result = Some(a.0);
             }
 
-            fn exit_a(&mut self, ctx: CtxA) -> SynA {
+            fn exit_a(&mut self, ctx: CtxA, _spans: Vec<PosSpan>) -> SynA {
                 let CtxA::V1 { a, plus, f } = ctx;
                 let mut val = vec![];
                 val.push(a);
@@ -2798,7 +3004,7 @@ pub(crate) mod rules_153_1 {
                 SynA(val)
             }
 
-            fn exit_b(&mut self, ctx: CtxB) -> SynB {
+            fn exit_b(&mut self, ctx: CtxB, _spans: Vec<PosSpan>) -> SynB {
                 let CtxB::V1 { d } = ctx;
                 SynB(d)
             }
@@ -2910,11 +3116,11 @@ pub(crate) mod rules_200_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
@@ -3000,14 +3206,20 @@ pub(crate) mod rules_200_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3019,7 +3231,12 @@ pub(crate) mod rules_200_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b }, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -3079,12 +3296,12 @@ pub(crate) mod rules_200_2 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) {}
         #[allow(unused)]
-        fn exit_i(&mut self, ctx: CtxI) {}
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -3168,19 +3385,30 @@ pub(crate) mod rules_200_2 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::V1 { b });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_i(CtxI::V1 { b }, spans);
         }
     }
 
@@ -3233,11 +3461,11 @@ pub(crate) mod rules_201_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynMyA) {}
+        fn exit(&mut self, a: SynMyA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynMyA;
         fn init_i(&mut self) -> SynMyI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynMyI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynMyI;
     }
 
     pub struct Wrapper<T> {
@@ -3323,14 +3551,20 @@ pub(crate) mod rules_201_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3343,7 +3577,12 @@ pub(crate) mod rules_201_1 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration }, spans);
             self.stack.push(SynValue::I(val));
         }
     }
@@ -3393,12 +3632,12 @@ pub(crate) mod rules_201_2 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynMyA) {}
+        fn exit(&mut self, a: SynMyA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynMyA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynMyA;
         fn init_i(&mut self) {}
         #[allow(unused)]
-        fn exit_i(&mut self, ctx: CtxI) {}
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -3484,20 +3723,31 @@ pub(crate) mod rules_201_2 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::V1 { b, last_iteration });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_i(CtxI::V1 { b, last_iteration }, spans);
         }
     }
 
@@ -3548,12 +3798,13 @@ pub(crate) mod rules_201_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
         fn init_a(&mut self) {}
         #[allow(unused)]
-        fn exit_a(&mut self, ctx: CtxA) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) {}
         fn init_i(&mut self) -> SynMyI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynMyI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynMyI;
     }
 
     pub struct Wrapper<T> {
@@ -3593,7 +3844,8 @@ pub(crate) mod rules_201_3 {
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -3641,7 +3893,12 @@ pub(crate) mod rules_201_3 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_a(CtxA::V1 { a, plus, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
         }
 
         fn init_i(&mut self) {
@@ -3653,7 +3910,12 @@ pub(crate) mod rules_201_3 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration }, spans);
             self.stack.push(SynValue::I(val));
         }
     }
@@ -3717,15 +3979,15 @@ pub(crate) mod rules_202_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -3811,12 +4073,18 @@ pub(crate) mod rules_202_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { star });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3832,7 +4100,12 @@ pub(crate) mod rules_202_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let star_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 });
+            let n = 6;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 }, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -3843,7 +4116,12 @@ pub(crate) mod rules_202_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { c });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -3906,11 +4184,11 @@ pub(crate) mod rules_206_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_j(&mut self) -> SynAiter;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynAiter;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynAiter;
         #[allow(unused)]
         fn exitloop_j(&mut self, star_acc: &mut SynAiter) {}
     }
@@ -3999,13 +4277,19 @@ pub(crate) mod rules_206_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
-            let val = self.listener.exit_a(CtxA::V1 { star, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4017,7 +4301,12 @@ pub(crate) mod rules_206_1 {
         fn exit_j(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b }, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -4034,11 +4323,16 @@ pub(crate) mod rules_206_1 {
         fn exit_a1(&mut self) {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
+            let n = 4;
             let val = SynA1Item { a, star };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
     }
 
@@ -4111,19 +4405,19 @@ pub(crate) mod rules_208_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynJ;
         #[allow(unused)]
         fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -4212,13 +4506,19 @@ pub(crate) mod rules_208_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { star, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4231,7 +4531,12 @@ pub(crate) mod rules_208_1 {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, a, star });
+            let n = 4;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, a, star }, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -4248,7 +4553,12 @@ pub(crate) mod rules_208_1 {
         fn exit_j(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let star_acc = self.stack.pop().unwrap().get_j();
-            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b }, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -4259,7 +4569,12 @@ pub(crate) mod rules_208_1 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { b }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -4323,19 +4638,19 @@ pub(crate) mod rules_208_2 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) {}
         #[allow(unused)]
-        fn exit_j(&mut self, ctx: CtxJ) {}
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -4424,13 +4739,19 @@ pub(crate) mod rules_208_2 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { star, c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4442,7 +4763,12 @@ pub(crate) mod rules_208_2 {
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, a });
+            let n = 4;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, a }, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -4452,12 +4778,22 @@ pub(crate) mod rules_208_2 {
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::V1);
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_j(CtxJ::V1, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { b }, spans);
         }
     }
 
@@ -4516,18 +4852,18 @@ pub(crate) mod rules_208_3 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) {}
         #[allow(unused)]
-        fn exit_i(&mut self, ctx: CtxI) {}
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
         fn init_j(&mut self) {}
         #[allow(unused)]
-        fn exit_j(&mut self, ctx: CtxJ) {}
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -4616,27 +4952,48 @@ pub(crate) mod rules_208_3 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::V1 { a });
+            let n = 4;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_i(CtxI::V1 { a }, spans);
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::V1);
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_j(CtxJ::V1, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { b }, spans);
         }
     }
 
@@ -4689,19 +5046,20 @@ pub(crate) mod rules_208_4 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
         fn init_a(&mut self) {}
         #[allow(unused)]
-        fn exit_a(&mut self, ctx: CtxA) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) {}
         fn init_i(&mut self) {}
         #[allow(unused)]
-        fn exit_i(&mut self, ctx: CtxI) {}
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
         fn init_j(&mut self) {}
         #[allow(unused)]
-        fn exit_j(&mut self, ctx: CtxJ) {}
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
         fn init_b(&mut self) {}
         #[allow(unused)]
-        fn exit_b(&mut self, ctx: CtxB) {}
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -4744,7 +5102,8 @@ pub(crate) mod rules_208_4 {
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -4790,21 +5149,41 @@ pub(crate) mod rules_208_4 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            self.listener.exit_a(CtxA::V1 { c });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_a(CtxA::V1 { c }, spans);
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
-            self.listener.exit_i(CtxI::V1 { a });
+            let n = 4;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_i(CtxI::V1 { a }, spans);
         }
 
         fn exit_j(&mut self) {
-            self.listener.exit_j(CtxJ::V1);
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_j(CtxJ::V1, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            self.listener.exit_b(CtxB::V1 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_b(CtxB::V1 { b }, spans);
         }
     }
 
@@ -4853,12 +5232,12 @@ pub(crate) mod rules_210_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) {}
         #[allow(unused)]
-        fn exit_i(&mut self, ctx: CtxI) {}
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -4942,18 +5321,29 @@ pub(crate) mod rules_210_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
-            self.listener.exit_i(CtxI::V1);
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_i(CtxI::V1, spans);
         }
     }
 
@@ -5008,11 +5398,11 @@ pub(crate) mod rules_211_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
@@ -5101,28 +5491,33 @@ pub(crate) mod rules_211_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_i();
                     let a_2 = self.stack_t.pop().unwrap();
                     let a_1 = self.stack_t.pop().unwrap();
-                    CtxA::V1 { a: [a_1, a_2], star, c }
+                    (4, CtxA::V1 { a: [a_1, a_2], star, c })
                 }
                 4 => {
                     let c_2 = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_i();
                     let c_1 = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::V2 { a, c: [c_1, c_2], star }
+                    (4, CtxA::V2 { a, c: [c_1, c_2], star })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -5134,7 +5529,12 @@ pub(crate) mod rules_211_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(CtxI::V1 { star_acc, b }, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -5196,11 +5596,11 @@ pub(crate) mod rules_250_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
     }
@@ -5287,12 +5687,18 @@ pub(crate) mod rules_250_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { star });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -5302,20 +5708,24 @@ pub(crate) mod rules_250_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let a = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_acc, a }
+                    (2, CtxI::V1 { star_acc, a })
                 }
                 2 => {
                     let b = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_acc, b }
+                    (2, CtxI::V2 { star_acc, b })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -5376,11 +5786,11 @@ pub(crate) mod rules_251_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
     }
 
     pub struct Wrapper<T> {
@@ -5469,12 +5879,18 @@ pub(crate) mod rules_251_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { plus });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -5484,22 +5900,26 @@ pub(crate) mod rules_251_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 3 | 4 => {
                     let last_iteration = alt_id == 4;
                     let a = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_acc, a, last_iteration }
+                    (2, CtxI::V1 { plus_acc, a, last_iteration })
                 }
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
                     let b = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_acc, b, last_iteration }
+                    (2, CtxI::V2 { plus_acc, b, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
     }
@@ -5578,13 +5998,13 @@ pub(crate) mod rules_252_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynJ;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -5682,14 +6102,20 @@ pub(crate) mod rules_252_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, g });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, g }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -5699,12 +6125,12 @@ pub(crate) mod rules_252_1 {
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 6 | 7 => {
                     let last_iteration = alt_id == 7;
                     let d = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { plus_acc, d, last_iteration }
+                    (2, CtxJ::V2 { plus_acc, d, last_iteration })
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
@@ -5714,11 +6140,15 @@ pub(crate) mod rules_252_1 {
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
                     let plus_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { plus_acc, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration }
+                    (6, CtxJ::V1 { plus_acc, b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
-            let val = self.listener.exit_j(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -5728,15 +6158,15 @@ pub(crate) mod rules_252_1 {
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let val = match alt_id {
+            let (n, val) = match alt_id {
                 12 | 13 => {
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_j();
-                    SynA1Item::V1 { plus, e }
+                    (3, SynA1Item::V1 { plus, e })
                 }
                 10 | 11 => {
                     let f = self.stack_t.pop().unwrap();
-                    SynA1Item::V2 { f }
+                    (2, SynA1Item::V2 { f })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -5744,11 +6174,20 @@ pub(crate) mod rules_252_1 {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { h });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -5827,13 +6266,13 @@ pub(crate) mod rules_253_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -5931,14 +6370,20 @@ pub(crate) mod rules_253_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, g });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, g }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -5948,23 +6393,27 @@ pub(crate) mod rules_253_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 6 | 7 => {
                     let last_iteration = alt_id == 7;
                     let f = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_acc, f, last_iteration }
+                    (2, CtxI::V2 { plus_acc, f, last_iteration })
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
                     let e = self.stack_t.pop().unwrap();
                     let plus = self.stack.pop().unwrap().get_a1();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_acc, plus, e, last_iteration }
+                    (3, CtxI::V1 { plus_acc, plus, e, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -5974,18 +6423,18 @@ pub(crate) mod rules_253_1 {
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let val = match alt_id {
+            let (n, val) = match alt_id {
                 12 | 13 => {
                     let c_2 = self.stack_t.pop().unwrap();
                     let b1 = self.stack_t.pop().unwrap();
                     let b_2 = self.stack.pop().unwrap().get_b();
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
-                    SynA1Item::V1 { b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    (6, SynA1Item::V1 { b: [b_1, b_2], c: [c_1, c_2], b1 })
                 }
                 10 | 11 => {
                     let d = self.stack_t.pop().unwrap();
-                    SynA1Item::V2 { d }
+                    (2, SynA1Item::V2 { d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
@@ -5993,11 +6442,20 @@ pub(crate) mod rules_253_1 {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { h });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -6075,19 +6533,19 @@ pub(crate) mod rules_254_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynJ;
         #[allow(unused)]
         fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -6178,14 +6636,20 @@ pub(crate) mod rules_254_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let g = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, star, g });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, star, g }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6195,21 +6659,25 @@ pub(crate) mod rules_254_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_j();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_acc, star, e }
+                    (3, CtxI::V1 { star_acc, star, e })
                 }
                 2 => {
                     let f = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_acc, f }
+                    (2, CtxI::V2 { star_acc, f })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -6224,7 +6692,7 @@ pub(crate) mod rules_254_1 {
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 4 => {
                     let c_2 = self.stack_t.pop().unwrap();
                     let b1 = self.stack_t.pop().unwrap();
@@ -6232,16 +6700,20 @@ pub(crate) mod rules_254_1 {
                     let c_1 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack.pop().unwrap().get_b();
                     let star_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { star_acc, b: [b_1, b_2], c: [c_1, c_2], b1 }
+                    (6, CtxJ::V1 { star_acc, b: [b_1, b_2], c: [c_1, c_2], b1 })
                 }
                 5 => {
                     let d = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { star_acc, d }
+                    (2, CtxJ::V2 { star_acc, d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
-            let val = self.listener.exit_j(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -6252,7 +6724,12 @@ pub(crate) mod rules_254_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { h });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -6320,13 +6797,13 @@ pub(crate) mod rules_256_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         fn init_b(&mut self) {}
-        fn exit_b(&mut self, ctx: CtxB) -> SynB;
+        fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) -> SynB;
     }
 
     pub struct Wrapper<T> {
@@ -6420,14 +6897,20 @@ pub(crate) mod rules_256_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let e = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, e });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, e }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6437,19 +6920,19 @@ pub(crate) mod rules_256_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_acc, b, a, last_iteration }
+                    (3, CtxI::V1 { plus_acc, b, a, last_iteration })
                 }
                 7 | 8 => {
                     let last_iteration = alt_id == 8;
                     let d = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { plus_acc, d, last_iteration }
+                    (2, CtxI::V3 { plus_acc, d, last_iteration })
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
@@ -6458,17 +6941,26 @@ pub(crate) mod rules_256_1 {
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_acc, b, a, c, b1, last_iteration }
+                    (5, CtxI::V2 { plus_acc, b, a, c, b1, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
         fn exit_b(&mut self) {
             let f = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::V1 { f });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_b(CtxB::V1 { f }, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -6542,15 +7034,15 @@ pub(crate) mod rules_258_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         #[allow(unused)]
         fn exitloop_i(&mut self, star_acc: &mut SynI) {}
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynJ;
         #[allow(unused)]
         fn exitloop_j(&mut self, star_acc: &mut SynJ) {}
     }
@@ -6647,12 +7139,18 @@ pub(crate) mod rules_258_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { star });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6662,32 +7160,36 @@ pub(crate) mod rules_258_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 2 => {
                     let c = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { star_acc, c }
+                    (2, CtxI::V3 { star_acc, c })
                 }
                 3 => {
                     let star = self.stack.pop().unwrap().get_j();
                     let d = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V4 { star_acc, d, star }
+                    (3, CtxI::V4 { star_acc, d, star })
                 }
                 8 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { star_acc, a, b }
+                    (3, CtxI::V2 { star_acc, a, b })
                 }
                 9 => {
                     let a = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { star_acc, a }
+                    (2, CtxI::V1 { star_acc, a })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -6702,26 +7204,30 @@ pub(crate) mod rules_258_1 {
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 6 => {
                     let g = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V3 { star_acc, g }
+                    (2, CtxJ::V3 { star_acc, g })
                 }
                 10 => {
                     let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { star_acc, e, f }
+                    (3, CtxJ::V2 { star_acc, e, f })
                 }
                 11 => {
                     let e = self.stack_t.pop().unwrap();
                     let star_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { star_acc, e }
+                    (2, CtxJ::V1 { star_acc, e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
-            let val = self.listener.exit_j(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -6800,13 +7306,13 @@ pub(crate) mod rules_259_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI) -> SynI;
+        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
         fn init_j(&mut self) -> SynJ;
-        fn exit_j(&mut self, ctx: CtxJ) -> SynJ;
+        fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) -> SynJ;
     }
 
     pub struct Wrapper<T> {
@@ -6911,12 +7417,18 @@ pub(crate) mod rules_259_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_i();
-            let val = self.listener.exit_a(CtxA::V1 { plus });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6926,36 +7438,40 @@ pub(crate) mod rules_259_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 7 | 8 => {
                     let last_iteration = alt_id == 8;
                     let a = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V1 { plus_acc, a, last_iteration }
+                    (2, CtxI::V1 { plus_acc, a, last_iteration })
                 }
                 9 | 10 => {
                     let last_iteration = alt_id == 10;
                     let c = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V3 { plus_acc, c, last_iteration }
+                    (2, CtxI::V3 { plus_acc, c, last_iteration })
                 }
                 11 | 12 => {
                     let last_iteration = alt_id == 12;
                     let plus = self.stack.pop().unwrap().get_j();
                     let d = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V4 { plus_acc, d, plus, last_iteration }
+                    (3, CtxI::V4 { plus_acc, d, plus, last_iteration })
                 }
                 18 | 19 => {
                     let last_iteration = alt_id == 19;
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_i();
-                    CtxI::V2 { plus_acc, a, b, last_iteration }
+                    (3, CtxI::V2 { plus_acc, a, b, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
-            let val = self.listener.exit_i(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -6965,29 +7481,33 @@ pub(crate) mod rules_259_1 {
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 14 | 15 => {
                     let last_iteration = alt_id == 15;
                     let e = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V1 { plus_acc, e, last_iteration }
+                    (2, CtxJ::V1 { plus_acc, e, last_iteration })
                 }
                 16 | 17 => {
                     let last_iteration = alt_id == 17;
                     let g = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V3 { plus_acc, g, last_iteration }
+                    (2, CtxJ::V3 { plus_acc, g, last_iteration })
                 }
                 20 | 21 => {
                     let last_iteration = alt_id == 21;
                     let f = self.stack_t.pop().unwrap();
                     let e = self.stack_t.pop().unwrap();
                     let plus_acc = self.stack.pop().unwrap().get_j();
-                    CtxJ::V2 { plus_acc, e, f, last_iteration }
+                    (3, CtxJ::V2 { plus_acc, e, f, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
-            let val = self.listener.exit_j(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
     }
@@ -7034,9 +7554,9 @@ pub(crate) mod rules_301_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, expr: SynExpr) {}
+        fn exit(&mut self, expr: SynExpr, span: PosSpan) {}
         fn init_expr(&mut self) {}
-        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -7118,23 +7638,28 @@ pub(crate) mod rules_301_1 {
 
         fn exit(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            self.listener.exit(expr);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(expr, span);
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::V1 { id, expr }
+                    (3, CtxExpr::V1 { id, expr })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::V2 { num }
+                    (3, CtxExpr::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
-            let val = self.listener.exit_expr(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
     }
@@ -7175,10 +7700,11 @@ pub(crate) mod rules_301_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
         fn init_expr(&mut self) {}
         #[allow(unused)]
-        fn exit_expr(&mut self, ctx: CtxExpr) {}
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -7214,7 +7740,8 @@ pub(crate) mod rules_301_2 {
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -7259,18 +7786,22 @@ pub(crate) mod rules_301_2 {
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::V1 { id }
+                    (3, CtxExpr::V1 { id })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::V2 { num }
+                    (3, CtxExpr::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
-            self.listener.exit_expr(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_expr(ctx, spans);
         }
     }
 
@@ -7316,9 +7847,9 @@ pub(crate) mod rules_401_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, expr: SynExpr) {}
+        fn exit(&mut self, expr: SynExpr, span: PosSpan) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -7400,7 +7931,8 @@ pub(crate) mod rules_401_1 {
 
         fn exit(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            self.listener.exit(expr);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(expr, span);
         }
 
         fn init_expr(&mut self) {
@@ -7409,20 +7941,24 @@ pub(crate) mod rules_401_1 {
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::V1 { expr, id }
+                    (3, CtxExpr::V1 { expr, id })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::V2 { expr, num }
+                    (4, CtxExpr::V2 { expr, num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
-            let val = self.listener.exit_expr(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
     }
@@ -7462,10 +7998,11 @@ pub(crate) mod rules_401_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
         fn init_expr(&mut self) {}
         #[allow(unused)]
-        fn exit_expr(&mut self, ctx: CtxExpr) {}
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -7501,7 +8038,8 @@ pub(crate) mod rules_401_2 {
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -7546,18 +8084,22 @@ pub(crate) mod rules_401_2 {
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::V1 { id }
+                    (3, CtxExpr::V1 { id })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::V2 { num }
+                    (4, CtxExpr::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
-            self.listener.exit_expr(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_expr(ctx, spans);
         }
     }
 
@@ -7611,13 +8153,13 @@ pub(crate) mod rules_502_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
         #[allow(unused)]
         fn exitloop_e(&mut self, e: &mut SynE) {}
         fn init_f(&mut self) {}
-        fn exit_f(&mut self, ctx: CtxF) -> SynF;
+        fn exit_f(&mut self, ctx: CtxF, spans: Vec<PosSpan>) -> SynF;
     }
 
     pub struct Wrapper<T> {
@@ -7703,19 +8245,30 @@ pub(crate) mod rules_502_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
-            let val = self.listener.exit_e(CtxE::V1 { f });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V1 { f }, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::V2 { e, id });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V2 { e, id }, spans);
             self.stack.push(SynValue::E(val));
         }
 
@@ -7726,7 +8279,12 @@ pub(crate) mod rules_502_1 {
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_f(CtxF::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_f(CtxF::V1 { id }, spans);
             self.stack.push(SynValue::F(val));
         }
     }
@@ -7780,12 +8338,13 @@ pub(crate) mod rules_502_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
         fn init_e(&mut self) {}
         #[allow(unused)]
-        fn exit_e(&mut self, ctx: CtxE) {}
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) {}
         fn init_f(&mut self) {}
-        fn exit_f(&mut self, ctx: CtxF) -> SynF;
+        fn exit_f(&mut self, ctx: CtxF, spans: Vec<PosSpan>) -> SynF;
     }
 
     pub struct Wrapper<T> {
@@ -7825,7 +8384,8 @@ pub(crate) mod rules_502_2 {
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -7871,17 +8431,32 @@ pub(crate) mod rules_502_2 {
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
-            self.listener.exit_e(CtxE::V1 { f });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_e(CtxE::V1 { f }, spans);
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.listener.exit_e(CtxE::V2 { id });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_e(CtxE::V2 { id }, spans);
         }
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_f(CtxF::V1 { id });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_f(CtxF::V1 { id }, spans);
             self.stack.push(SynValue::F(val));
         }
     }
@@ -7933,9 +8508,9 @@ pub(crate) mod rules_580_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
         #[allow(unused)]
         fn exitloop_e(&mut self, e: &mut SynE) {}
     }
@@ -8022,28 +8597,38 @@ pub(crate) mod rules_580_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn inter_e(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V3 { num }
+                    (1, CtxE::V3 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::V1 { e });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V1 { e }, spans);
             self.stack.push(SynValue::E(val));
         }
 
@@ -8086,7 +8671,7 @@ pub(crate) mod rules_580_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -8094,7 +8679,7 @@ pub(crate) mod rules_580_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // e -> e "!"
                     CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
@@ -8208,9 +8793,9 @@ pub(crate) mod rules_581_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) -> SynE;
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
         #[allow(unused)]
         fn exitloop_e(&mut self, e: &mut SynE) {}
     }
@@ -8297,7 +8882,8 @@ pub(crate) mod rules_581_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn init_e(&mut self) {
@@ -8306,25 +8892,34 @@ pub(crate) mod rules_581_1 {
         }
 
         fn inter_e(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e, num }
+                    (2, CtxE::V3 { e, num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::V1 { e });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V1 { e }, spans);
             self.stack.push(SynValue::E(val));
         }
 
@@ -8367,7 +8962,7 @@ pub(crate) mod rules_581_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -8376,7 +8971,7 @@ pub(crate) mod rules_581_1 {
                 SynE(LevelString(0, "".to_string()))
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // e -> e "!"
                     CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
@@ -8494,9 +9089,9 @@ pub(crate) mod rules_600_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8581,19 +9176,30 @@ pub(crate) mod rules_600_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self) {
             let e_2 = self.stack.pop().unwrap().get_e();
             let e_1 = self.stack.pop().unwrap().get_e();
-            let val = self.listener.exit_e(CtxE::V1 { e: [e_1, e_2] });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V1 { e: [e_1, e_2] }, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V2 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V2 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -8673,9 +9279,9 @@ pub(crate) mod rules_603_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -8765,40 +9371,49 @@ pub(crate) mod rules_603_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e }
+                    (2, CtxE::V3 { e })
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -8823,7 +9438,7 @@ pub(crate) mod rules_603_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -8831,7 +9446,7 @@ pub(crate) mod rules_603_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -8935,9 +9550,9 @@ pub(crate) mod rules_604_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9027,40 +9642,49 @@ pub(crate) mod rules_604_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9085,7 +9709,7 @@ pub(crate) mod rules_604_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -9093,7 +9717,7 @@ pub(crate) mod rules_604_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -9197,9 +9821,9 @@ pub(crate) mod rules_605_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9289,40 +9913,49 @@ pub(crate) mod rules_605_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 7 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e }
+                    (2, CtxE::V1 { e })
                 }
                 8 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9347,7 +9980,7 @@ pub(crate) mod rules_605_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -9355,7 +9988,7 @@ pub(crate) mod rules_605_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> "!" e`
                     CtxE::V1 { e: SynE(ls) } => ls_prefix_op("!", ls),
@@ -9459,9 +10092,9 @@ pub(crate) mod rules_606_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9551,35 +10184,45 @@ pub(crate) mod rules_606_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9604,7 +10247,7 @@ pub(crate) mod rules_606_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -9612,7 +10255,7 @@ pub(crate) mod rules_606_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -9716,9 +10359,9 @@ pub(crate) mod rules_607_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9809,35 +10452,45 @@ pub(crate) mod rules_607_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9862,7 +10515,7 @@ pub(crate) mod rules_607_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -9870,7 +10523,7 @@ pub(crate) mod rules_607_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -9974,9 +10627,9 @@ pub(crate) mod rules_608_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10070,35 +10723,45 @@ pub(crate) mod rules_608_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10123,7 +10786,7 @@ pub(crate) mod rules_608_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -10131,7 +10794,7 @@ pub(crate) mod rules_608_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> <R> e "!" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
@@ -10235,9 +10898,9 @@ pub(crate) mod rules_609_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10327,34 +10990,44 @@ pub(crate) mod rules_609_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e }
+                    (2, CtxE::V3 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10379,7 +11052,7 @@ pub(crate) mod rules_609_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -10387,7 +11060,7 @@ pub(crate) mod rules_609_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -10491,9 +11164,9 @@ pub(crate) mod rules_610_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10584,34 +11257,44 @@ pub(crate) mod rules_610_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10636,7 +11319,7 @@ pub(crate) mod rules_610_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -10644,7 +11327,7 @@ pub(crate) mod rules_610_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -10748,9 +11431,9 @@ pub(crate) mod rules_611_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -10844,34 +11527,44 @@ pub(crate) mod rules_611_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e }
+                    (2, CtxE::V1 { e })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10896,7 +11589,7 @@ pub(crate) mod rules_611_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -10904,7 +11597,7 @@ pub(crate) mod rules_611_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "!"`
                     CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
@@ -11008,9 +11701,9 @@ pub(crate) mod rules_612_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11104,35 +11797,45 @@ pub(crate) mod rules_612_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11157,7 +11860,7 @@ pub(crate) mod rules_612_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -11165,7 +11868,7 @@ pub(crate) mod rules_612_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "!" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
@@ -11269,9 +11972,9 @@ pub(crate) mod rules_613_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11361,35 +12064,45 @@ pub(crate) mod rules_613_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11414,7 +12127,7 @@ pub(crate) mod rules_613_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -11422,7 +12135,7 @@ pub(crate) mod rules_613_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -11526,9 +12239,9 @@ pub(crate) mod rules_614_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11619,35 +12332,45 @@ pub(crate) mod rules_614_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_e(CtxE::V4 { num });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11672,7 +12395,7 @@ pub(crate) mod rules_614_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -11680,7 +12403,7 @@ pub(crate) mod rules_614_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -11784,9 +12507,9 @@ pub(crate) mod rules_630_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -11873,39 +12596,48 @@ pub(crate) mod rules_630_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e }
+                    (2, CtxE::V3 { e })
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11930,7 +12662,7 @@ pub(crate) mod rules_630_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -11938,7 +12670,7 @@ pub(crate) mod rules_630_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -12042,9 +12774,9 @@ pub(crate) mod rules_631_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -12131,39 +12863,48 @@ pub(crate) mod rules_631_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e }
+                    (2, CtxE::V3 { e })
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12188,7 +12929,7 @@ pub(crate) mod rules_631_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -12196,7 +12937,7 @@ pub(crate) mod rules_631_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -12300,9 +13041,9 @@ pub(crate) mod rules_632_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -12389,39 +13130,48 @@ pub(crate) mod rules_632_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e: [e_1, e_2] }
+                    (3, CtxE::V1 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e }
+                    (2, CtxE::V2 { e })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 4 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e }
+                    (2, CtxE::V3 { e })
                 }
                 5 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxE::V4 { num }
+                    (1, CtxE::V4 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12446,7 +13196,7 @@ pub(crate) mod rules_632_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.1);
             }
 
@@ -12454,7 +13204,7 @@ pub(crate) mod rules_632_1 {
                 self.result = None;
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `e -> e "*" e`
                     CtxE::V1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
@@ -12811,9 +13561,9 @@ pub(crate) mod rules_640_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -12906,50 +13656,59 @@ pub(crate) mod rules_640_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V4 { e: [e_1, e_2] }
+                    (3, CtxE::V4 { e: [e_1, e_2] })
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V5 { e: [e_1, e_2] }
+                    (3, CtxE::V5 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e }
+                    (2, CtxE::V1 { e })
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::V6 { id }
+                    (1, CtxE::V6 { id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12991,11 +13750,11 @@ pub(crate) mod rules_640_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.get_string());
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
                     CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
@@ -13142,9 +13901,9 @@ pub(crate) mod rules_641_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -13237,50 +13996,59 @@ pub(crate) mod rules_641_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V4 { e: [e_1, e_2] }
+                    (3, CtxE::V4 { e: [e_1, e_2] })
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V5 { e: [e_1, e_2] }
+                    (3, CtxE::V5 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e }
+                    (2, CtxE::V1 { e })
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::V6 { id }
+                    (1, CtxE::V6 { id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -13322,11 +14090,11 @@ pub(crate) mod rules_641_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.get_string());
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
                     CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
@@ -13473,9 +14241,9 @@ pub(crate) mod rules_642_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, e: SynE) {}
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
         fn init_e(&mut self) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -13568,50 +14336,59 @@ pub(crate) mod rules_642_1 {
 
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(e);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(e, span);
         }
 
         fn exit_e1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V2 { e: [e_1, e_2] }
+                    (3, CtxE::V2 { e: [e_1, e_2] })
                 }
                 2 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V3 { e: [e_1, e_2] }
+                    (3, CtxE::V3 { e: [e_1, e_2] })
                 }
                 3 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V4 { e: [e_1, e_2] }
+                    (3, CtxE::V4 { e: [e_1, e_2] })
                 }
                 4 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
-                    CtxE::V5 { e: [e_1, e_2] }
+                    (3, CtxE::V5 { e: [e_1, e_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::V1 { e }
+                    (2, CtxE::V1 { e })
                 }
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE::V6 { id }
+                    (1, CtxE::V6 { id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
-            let val = self.listener.exit_e(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -13653,11 +14430,11 @@ pub(crate) mod rules_642_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, e: SynE) {
+            fn exit(&mut self, e: SynE, _span: PosSpan) {
                 self.result = Some(e.0.get_string());
             }
 
-            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
                 SynE(match ctx {
                     // `E -> - E`
                     CtxE::V1 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
@@ -13794,9 +14571,9 @@ pub(crate) mod rules_650_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -13881,7 +14658,8 @@ pub(crate) mod rules_650_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a1(&mut self) {
@@ -13889,13 +14667,23 @@ pub(crate) mod rules_650_1 {
             let a_2 = self.stack.pop().unwrap().get_a();
             let a1 = self.stack_t.pop().unwrap();
             let a_1 = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::V1 { a: [a_1, a_2, a_3], a1 });
+            let n = 4;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a: [a_1, a_2, a_3], a1 }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a2(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V2 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
             self.stack.push(SynValue::A(val));
         }
     }
@@ -13948,9 +14736,9 @@ pub(crate) mod rules_705_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -14038,44 +14826,409 @@ pub(crate) mod rules_705_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
-                    CtxA::V5 { e }
+                    (1, CtxA::V5 { e })
                 }
                 3 => {
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::V1 { a }
+                    (1, CtxA::V1 { a })
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::V3 { a, b, c }
+                    (3, CtxA::V3 { a, b, c })
                 }
                 5 => {
                     let d = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::V4 { a, b, d }
+                    (3, CtxA::V4 { a, b, d })
                 }
                 6 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
-                    CtxA::V2 { a, b }
+                    (2, CtxA::V2 { a, b })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
     }
 
     // [wrapper source for rule 705 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+pub(crate) mod rules_810_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 810 #1, start a]
+
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_810_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> A* B a`
+        V1 { star: SynA1, b: String, a: SynA },
+        /// `a -> C`
+        V2 { c: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    /// Computed `A*` array in `a ->  ►► A* ◄◄  B a | C`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<String>);
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_a1(),                        // a_1
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 |                                         // a -> a_1 B a
+                        1 => self.exit_a(alt_id),                   // a -> C
+                        2 => self.exit_a1(),                        // a_1 -> A a_1
+                        3 => {}                                     // a_1 -> ε
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
+        }
+
+        fn exit_a(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                0 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    let b = self.stack_t.pop().unwrap();
+                    let star = self.stack.pop().unwrap().get_a1();
+                    (3, CtxA::V1 { star, b, a })
+                }
+                1 => {
+                    let c = self.stack_t.pop().unwrap();
+                    (1, CtxA::V2 { c })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let n = 2;
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+                panic!("unexpected SynA1 item on wrapper stack");
+            };
+            star_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+        }
+    }
+
+    // [wrapper source for rule 810 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+pub(crate) mod rules_811_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 811 #1, start a]
+
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_811_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> A+ B a`
+        V1 { plus: SynA1, b: String, a: SynA },
+        /// `a -> C`
+        V2 { c: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    /// Computed `A+` array in `a ->  ►► A+ ◄◄  B a | C`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<String>);
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused)]
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_a1(),                        // a_1
+                        2 => {}                                     // a_2
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 |                                         // a -> a_1 B a
+                        1 => self.exit_a(alt_id),                   // a -> C
+                        3 |                                         // a_2 -> a_1
+                        4 => self.exit_a1(),                        // a_2 -> ε
+                     /* 2 */                                        // a_1 -> A a_2 (never called)
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
+        }
+
+        fn exit_a(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                0 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    let b = self.stack_t.pop().unwrap();
+                    let plus = self.stack.pop().unwrap().get_a1();
+                    (3, CtxA::V1 { plus, b, a })
+                }
+                1 => {
+                    let c = self.stack_t.pop().unwrap();
+                    (1, CtxA::V2 { c })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let n = 2;
+            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+                panic!("unexpected SynA1 item on wrapper stack");
+            };
+            plus_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+        }
+    }
+
+    // [wrapper source for rule 811 #1, start a]
     // ------------------------------------------------------------
 }
 
@@ -14122,9 +15275,9 @@ pub(crate) mod rules_820_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         #[allow(unused)]
         fn exitloop_a(&mut self, a: &mut SynA) {}
     }
@@ -14213,12 +15366,18 @@ pub(crate) mod rules_820_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V2 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -14229,17 +15388,27 @@ pub(crate) mod rules_820_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
+            let n = 2;
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             star_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -14296,9 +15465,9 @@ pub(crate) mod rules_821_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         #[allow(unused)]
         fn exitloop_a(&mut self, a: &mut SynA) {}
     }
@@ -14388,12 +15557,18 @@ pub(crate) mod rules_821_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V2 { b });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -14404,17 +15579,27 @@ pub(crate) mod rules_821_1 {
 
         fn exit_a1(&mut self) {
             let a = self.stack_t.pop().unwrap();
+            let n = 2;
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -14425,346 +15610,6 @@ pub(crate) mod rules_821_1 {
     }
 
     // [wrapper source for rule 821 #1, start a]
-    // ------------------------------------------------------------
-}
-
-// ================================================================================
-
-pub(crate) mod rules_810_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule 810 #1, start a]
-
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_810_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// `a -> A* B a`
-        V1 { star: SynA1, b: String, a: SynA },
-        /// `a -> C`
-        V2 { c: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `A*` array in `a ->  ►► A* ◄◄  B a | C`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA1(pub Vec<String>);
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-        stack_span: Vec<PosSpan>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // a
-                        1 => self.init_a1(),                        // a_1
-                        _ => panic!("unexpected enter nonterminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match alt_id {
-                        0 |                                         // a -> a_1 B a
-                        1 => self.exit_a(alt_id),                   // a -> C
-                        2 => self.exit_a1(),                        // a_1 -> A a_1
-                        3 => {}                                     // a_1 -> ε
-                        _ => panic!("unexpected exit alternative id: {alt_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_listener_mut(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn give_listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
-        }
-
-        fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
-                0 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    let b = self.stack_t.pop().unwrap();
-                    let star = self.stack.pop().unwrap().get_a1();
-                    CtxA::V1 { star, b, a }
-                }
-                1 => {
-                    let c = self.stack_t.pop().unwrap();
-                    CtxA::V2 { c }
-                }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-
-        fn init_a1(&mut self) {
-            let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
-        }
-
-        fn exit_a1(&mut self) {
-            let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
-            };
-            star_acc.push(a);
-        }
-    }
-
-    // [wrapper source for rule 810 #1, start a]
-    // ------------------------------------------------------------
-}
-
-// ================================================================================
-
-pub(crate) mod rules_811_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule 811 #1, start a]
-
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_811_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// `a -> A+ B a`
-        V1 { plus: SynA1, b: String, a: SynA },
-        /// `a -> C`
-        V2 { c: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `A+` array in `a ->  ►► A+ ◄◄  B a | C`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA1(pub Vec<String>);
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-        stack_span: Vec<PosSpan>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // a
-                        1 => self.init_a1(),                        // a_1
-                        2 => {}                                     // a_2
-                        _ => panic!("unexpected enter nonterminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match alt_id {
-                        0 |                                         // a -> a_1 B a
-                        1 => self.exit_a(alt_id),                   // a -> C
-                        3 |                                         // a_2 -> a_1
-                        4 => self.exit_a1(),                        // a_2 -> ε
-                     /* 2 */                                        // a_1 -> A a_2 (never called)
-                        _ => panic!("unexpected exit alternative id: {alt_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_listener_mut(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn give_listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
-        }
-
-        fn exit_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
-                0 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    let b = self.stack_t.pop().unwrap();
-                    let plus = self.stack.pop().unwrap().get_a1();
-                    CtxA::V1 { plus, b, a }
-                }
-                1 => {
-                    let c = self.stack_t.pop().unwrap();
-                    CtxA::V2 { c }
-                }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-
-        fn init_a1(&mut self) {
-            let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
-        }
-
-        fn exit_a1(&mut self) {
-            let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
-            };
-            plus_acc.push(a);
-        }
-    }
-
-    // [wrapper source for rule 811 #1, start a]
     // ------------------------------------------------------------
 }
 
@@ -14816,9 +15661,9 @@ pub(crate) mod rules_835_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
     }
 
     pub struct Wrapper<T> {
@@ -14909,7 +15754,8 @@ pub(crate) mod rules_835_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn init_a1(&mut self) {
@@ -14919,43 +15765,56 @@ pub(crate) mod rules_835_1 {
 
         fn exit_a1(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let n = 2;
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynA1 item on wrapper stack");
             };
             plus_acc.push(num);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_a2(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 2 => {
                     let a_2 = self.stack.pop().unwrap().get_a();
                     let a_1 = self.stack.pop().unwrap().get_a();
-                    CtxA::V1 { a: [a_1, a_2] }
+                    (3, CtxA::V1 { a: [a_1, a_2] })
                 }
                 3 => {
                     let plus = self.stack.pop().unwrap().get_a1();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::V2 { a, plus }
+                    (5, CtxA::V2 { a, plus })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a2")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a3(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 5 => {
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::V3 { a }
+                    (2, CtxA::V3 { a })
                 }
                 6 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxA::V4 { id }
+                    (1, CtxA::V4 { id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a3")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
     }
@@ -15002,9 +15861,9 @@ pub(crate) mod rules_862_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, expr: SynExpr) {}
+        fn exit(&mut self, expr: SynExpr, span: PosSpan) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr;
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -15088,7 +15947,8 @@ pub(crate) mod rules_862_1 {
 
         fn exit(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            self.listener.exit(expr);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(expr, span);
         }
 
         fn init_expr(&mut self) {
@@ -15097,20 +15957,24 @@ pub(crate) mod rules_862_1 {
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 1 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::V1 { expr, num }
+                    (3, CtxExpr::V1 { expr, num })
                 }
                 2 => {
                     let num = self.stack_t.pop().unwrap();
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxExpr::V2 { expr, num }
+                    (2, CtxExpr::V2 { expr, num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
-            let val = self.listener.exit_expr(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
     }
@@ -15147,7 +16011,7 @@ pub(crate) mod rules_862_1 {
                 &mut self.log
             }
 
-            fn exit(&mut self, expr: SynExpr) {
+            fn exit(&mut self, expr: SynExpr, _span: PosSpan) {
                 let SynExpr(mut result) = expr;
                 while result.len() > 1 {
                     let r = result.pop().unwrap();
@@ -15162,7 +16026,7 @@ pub(crate) mod rules_862_1 {
                 SynExpr(vec![])
             }
 
-            fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr {
+            fn exit_expr(&mut self, ctx: CtxExpr, _spans: Vec<PosSpan>) -> SynExpr {
                 let (mut e, num) = match ctx {
                     // expr -> <L> Num "^" expr
                     CtxExpr::V1 { expr: SynExpr(e), num } => (e, num),
@@ -15277,9 +16141,9 @@ pub(crate) mod rules_870_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         #[allow(unused)]
         fn exitloop_a(&mut self, a: &mut SynA) {}
     }
@@ -15367,31 +16231,41 @@ pub(crate) mod rules_870_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn inter_a(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    CtxA::V2 { b, c }
+                    (2, CtxA::V2 { b, c })
                 }
                 4 => {
                     let d = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    CtxA::V3 { b, d }
+                    (2, CtxA::V3 { b, d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a1(&mut self) {
             let a1 = self.stack_t.pop().unwrap();
             let a = self.stack.pop().unwrap().get_a();
-            let val = self.listener.exit_a(CtxA::V1 { a, a1 });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V1 { a, a1 }, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15445,9 +16319,9 @@ pub(crate) mod rules_871_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, a: SynA) {}
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         #[allow(unused)]
         fn exitloop_a(&mut self, a: &mut SynA) {}
     }
@@ -15535,32 +16409,42 @@ pub(crate) mod rules_871_1 {
 
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(a, span);
         }
 
         fn inter_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::V3 { d });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(CtxA::V3 { d }, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 3 => {
                     let b = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::V1 { a, a1, b }
+                    (3, CtxA::V1 { a, a1, b })
                 }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::V2 { a, a1, c }
+                    (3, CtxA::V2 { a, a1, c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
-            let val = self.listener.exit_a(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15838,37 +16722,37 @@ pub(crate) mod rules_901_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn exit(&mut self, file: SynFile) {}
+        fn exit(&mut self, file: SynFile, span: PosSpan) {}
         fn init_file(&mut self) {}
-        fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
+        fn exit_file(&mut self, ctx: CtxFile, spans: Vec<PosSpan>) -> SynFile;
         fn init_file_item(&mut self) {}
-        fn exit_file_item(&mut self, ctx: CtxFileItem) -> SynFileItem;
+        fn exit_file_item(&mut self, ctx: CtxFileItem, spans: Vec<PosSpan>) -> SynFileItem;
         fn init_header(&mut self) {}
-        fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
+        fn exit_header(&mut self, ctx: CtxHeader, spans: Vec<PosSpan>) -> SynHeader;
         fn init_declaration(&mut self) {}
-        fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration;
+        fn exit_declaration(&mut self, ctx: CtxDeclaration, spans: Vec<PosSpan>) -> SynDeclaration;
         fn init_option(&mut self) {}
-        fn exit_option(&mut self, ctx: CtxOption) -> SynOption;
+        fn exit_option(&mut self, ctx: CtxOption, spans: Vec<PosSpan>) -> SynOption;
         fn init_rule(&mut self) {}
-        fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
+        fn exit_rule(&mut self, ctx: CtxRule, spans: Vec<PosSpan>) -> SynRule;
         fn init_actions(&mut self) {}
-        fn exit_actions(&mut self, ctx: CtxActions) -> SynActions;
+        fn exit_actions(&mut self, ctx: CtxActions, spans: Vec<PosSpan>) -> SynActions;
         fn init_action(&mut self) {}
-        fn exit_action(&mut self, ctx: CtxAction) -> SynAction;
+        fn exit_action(&mut self, ctx: CtxAction, spans: Vec<PosSpan>) -> SynAction;
         fn init_match(&mut self) {}
-        fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch;
+        fn exit_match(&mut self, ctx: CtxMatch, spans: Vec<PosSpan>) -> SynMatch;
         fn init_alt_items(&mut self) {}
-        fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems;
+        fn exit_alt_items(&mut self, ctx: CtxAltItems, spans: Vec<PosSpan>) -> SynAltItems;
         fn init_alt_item(&mut self) {}
-        fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem;
+        fn exit_alt_item(&mut self, ctx: CtxAltItem, spans: Vec<PosSpan>) -> SynAltItem;
         fn init_repeat_item(&mut self) {}
-        fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem;
+        fn exit_repeat_item(&mut self, ctx: CtxRepeatItem, spans: Vec<PosSpan>) -> SynRepeatItem;
         fn init_item(&mut self) {}
-        fn exit_item(&mut self, ctx: CtxItem) -> SynItem;
+        fn exit_item(&mut self, ctx: CtxItem, spans: Vec<PosSpan>) -> SynItem;
         fn init_char_set(&mut self) {}
-        fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet;
+        fn exit_char_set(&mut self, ctx: CtxCharSet, spans: Vec<PosSpan>) -> SynCharSet;
         fn init_char_set_one(&mut self) {}
-        fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne;
+        fn exit_char_set_one(&mut self, ctx: CtxCharSetOne, spans: Vec<PosSpan>) -> SynCharSetOne;
     }
 
     pub struct Wrapper<T> {
@@ -16036,23 +16920,28 @@ pub(crate) mod rules_901_1 {
 
         fn exit(&mut self) {
             let file = self.stack.pop().unwrap().get_file();
-            self.listener.exit(file);
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(file, span);
         }
 
         fn exit_file(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 0 => {
                     let star = self.stack.pop().unwrap().get_file1();
                     let header = self.stack.pop().unwrap().get_header();
-                    CtxFile::V1 { header, star }
+                    (2, CtxFile::V1 { header, star })
                 }
                 1 => {
                     let star = self.stack.pop().unwrap().get_file1();
-                    CtxFile::V2 { star }
+                    (1, CtxFile::V2 { star })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
-            let val = self.listener.exit_file(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_file(ctx, spans);
             self.stack.push(SynValue::File(val));
         }
 
@@ -16063,48 +16952,72 @@ pub(crate) mod rules_901_1 {
 
         fn exit_file1(&mut self) {
             let file_item = self.stack.pop().unwrap().get_file_item();
+            let n = 2;
             let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynFile1 item on wrapper stack");
             };
             star_acc.push(file_item);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_file_item(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 2 => {
                     let option = self.stack.pop().unwrap().get_option();
-                    CtxFileItem::V1 { option }
+                    (1, CtxFileItem::V1 { option })
                 }
                 3 => {
                     let declaration = self.stack.pop().unwrap().get_declaration();
-                    CtxFileItem::V2 { declaration }
+                    (1, CtxFileItem::V2 { declaration })
                 }
                 4 => {
                     let rule = self.stack.pop().unwrap().get_rule();
-                    CtxFileItem::V3 { rule }
+                    (1, CtxFileItem::V3 { rule })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
-            let val = self.listener.exit_file_item(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_file_item(ctx, spans);
             self.stack.push(SynValue::FileItem(val));
         }
 
         fn exit_header(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_header(CtxHeader::V1 { id });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_header(CtxHeader::V1 { id }, spans);
             self.stack.push(SynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_declaration(CtxDeclaration::V1 { id });
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_declaration(CtxDeclaration::V1 { id }, spans);
             self.stack.push(SynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_option(CtxOption::V1 { id, star });
+            let n = 5;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_option(CtxOption::V1 { id, star }, spans);
             self.stack.push(SynValue::Option(val));
         }
 
@@ -16115,40 +17028,54 @@ pub(crate) mod rules_901_1 {
 
         fn exit_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let n = 3;
             let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynOption1 item on wrapper stack");
             };
             star_acc.push(id);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 8 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::V1 { id, match1 }
+                    (5, CtxRule::V1 { id, match1 })
                 }
                 43 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::V2 { id, match1, actions }
+                    (6, CtxRule::V2 { id, match1, actions })
                 }
                 44 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
-                    CtxRule::V3 { id, match1 }
+                    (4, CtxRule::V3 { id, match1 })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
-            let val = self.listener.exit_rule(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_rule(ctx, spans);
             self.stack.push(SynValue::Rule(val));
         }
 
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
             let action = self.stack.pop().unwrap().get_action();
-            let val = self.listener.exit_actions(CtxActions::V1 { action, star });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_actions(CtxActions::V1 { action, star }, spans);
             self.stack.push(SynValue::Actions(val));
         }
 
@@ -16159,55 +17086,74 @@ pub(crate) mod rules_901_1 {
 
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
+            let n = 3;
             let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynActions1 item on wrapper stack");
             };
             star_acc.push(action);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_action(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 11 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::V1 { id }
+                    (4, CtxAction::V1 { id })
                 }
                 12 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::V2 { id }
+                    (4, CtxAction::V2 { id })
                 }
                 13 => {
-                    CtxAction::V3
+                    (1, CtxAction::V3)
                 }
                 14 => {
-                    CtxAction::V4
+                    (1, CtxAction::V4)
                 }
                 15 => {
-                    CtxAction::V5
+                    (1, CtxAction::V5)
                 }
                 16 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::V6 { id }
+                    (4, CtxAction::V6 { id })
                 }
                 17 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxAction::V7 { id }
+                    (4, CtxAction::V7 { id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
-            let val = self.listener.exit_action(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_action(ctx, spans);
             self.stack.push(SynValue::Action(val));
         }
 
         fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
-            let val = self.listener.exit_match(CtxMatch::V1 { alt_items });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_match(CtxMatch::V1 { alt_items }, spans);
             self.stack.push(SynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star });
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star }, spans);
             self.stack.push(SynValue::AltItems(val));
         }
 
@@ -16218,15 +17164,25 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
+            let n = 3;
             let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynAltItems1 item on wrapper stack");
             };
             star_acc.push(alt_item);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_alt_item(&mut self) {
             let plus = self.stack.pop().unwrap().get_alt_item1();
-            let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus });
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus }, spans);
             self.stack.push(SynValue::AltItem(val));
         }
 
@@ -16237,97 +17193,114 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_item1(&mut self) {
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+            let n = 2;
             let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynAltItem1 item on wrapper stack");
             };
             plus_acc.push(repeat_item);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_repeat_item(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V5 { item }
+                    (2, CtxRepeatItem::V5 { item })
                 }
                 48 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V6 { item }
+                    (1, CtxRepeatItem::V6 { item })
                 }
                 57 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V3 { item }
+                    (3, CtxRepeatItem::V3 { item })
                 }
                 58 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V4 { item }
+                    (2, CtxRepeatItem::V4 { item })
                 }
                 59 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V1 { item }
+                    (3, CtxRepeatItem::V1 { item })
                 }
                 60 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxRepeatItem::V2 { item }
+                    (2, CtxRepeatItem::V2 { item })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
-            let val = self.listener.exit_repeat_item(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_repeat_item(ctx, spans);
             self.stack.push(SynValue::RepeatItem(val));
         }
 
         fn exit_item(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
-                    CtxItem::V6 { alt_items }
+                    (3, CtxItem::V6 { alt_items })
                 }
                 23 => {
                     let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::V7 { item }
+                    (2, CtxItem::V7 { item })
                 }
                 24 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxItem::V1 { id }
+                    (1, CtxItem::V1 { id })
                 }
                 26 => {
                     let strlit = self.stack_t.pop().unwrap();
-                    CtxItem::V4 { strlit }
+                    (1, CtxItem::V4 { strlit })
                 }
                 27 => {
                     let char_set = self.stack.pop().unwrap().get_char_set();
-                    CtxItem::V5 { char_set }
+                    (1, CtxItem::V5 { char_set })
                 }
                 49 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::V2 { charlit: [charlit_1, charlit_2] }
+                    (3, CtxItem::V2 { charlit: [charlit_1, charlit_2] })
                 }
                 50 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::V3 { charlit }
+                    (1, CtxItem::V3 { charlit })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
-            let val = self.listener.exit_item(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_item(ctx, spans);
             self.stack.push(SynValue::Item(val));
         }
 
         fn exit_char_set(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 28 => {
                     let plus = self.stack.pop().unwrap().get_char_set1();
-                    CtxCharSet::V1 { plus }
+                    (3, CtxCharSet::V1 { plus })
                 }
                 29 => {
-                    CtxCharSet::V2
+                    (1, CtxCharSet::V2)
                 }
                 30 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSet::V3 { fixedset }
+                    (1, CtxCharSet::V3 { fixedset })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
-            let val = self.listener.exit_char_set(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_char_set(ctx, spans);
             self.stack.push(SynValue::CharSet(val));
         }
 
@@ -16338,30 +17311,39 @@ pub(crate) mod rules_901_1 {
 
         fn exit_char_set1(&mut self) {
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
+            let n = 2;
             let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
                 panic!("unexpected SynCharSet1 item on wrapper stack");
             };
             plus_acc.push(char_set_one);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
         }
 
         fn exit_char_set_one(&mut self, alt_id: AltId) {
-            let ctx = match alt_id {
+            let (n, ctx) = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::V3 { fixedset }
+                    (1, CtxCharSetOne::V3 { fixedset })
                 }
                 51 => {
                     let setchar_2 = self.stack_t.pop().unwrap();
                     let setchar_1 = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::V1 { setchar: [setchar_1, setchar_2] }
+                    (3, CtxCharSetOne::V1 { setchar: [setchar_1, setchar_2] })
                 }
                 52 => {
                     let setchar = self.stack_t.pop().unwrap();
-                    CtxCharSetOne::V2 { setchar }
+                    (1, CtxCharSetOne::V2 { setchar })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };
-            let val = self.listener.exit_char_set_one(ctx);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_char_set_one(ctx, spans);
             self.stack.push(SynValue::CharSetOne(val));
         }
     }
