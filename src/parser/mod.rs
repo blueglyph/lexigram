@@ -38,6 +38,12 @@ pub trait ListenerWrapper {
     fn get_mut_log(&mut self) -> &mut impl Logger;
     /// Pushes a location span onto the (optional) span stack
     fn push_span(&mut self, _span: PosSpan) {}
+    /// Checks that the stack is empty (the parser only checks that the stack is empty after successfully parsing a text)
+    fn is_stack_empty(&self) -> bool { true }
+    /// Checks that the stack_t is empty (the parser only checks that the stack is empty after successfully parsing a text)
+    fn is_stack_t_empty(&self) -> bool { true }
+    /// Checks that the stack_span is empty (the parser only checks that the stack is empty after successfully parsing a text)
+    fn is_stack_span_empty(&self) -> bool { true }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -389,6 +395,9 @@ impl<'a> Parser<'a> {
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
         assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).join(", "));
         if nbr_recovers == 0 {
+            assert!(wrapper.is_stack_empty(), "symbol stack isn't empty");
+            assert!(wrapper.is_stack_t_empty(), "text stack isn't empty");
+            assert!(wrapper.is_stack_span_empty(), "span stack isn't empty");
             Ok(())
         } else {
             // when nbr_recovers > 0, we know that at least one error has been reported to the log, no need to add one here

@@ -155,6 +155,18 @@ pub(crate) mod rules_13_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -357,6 +369,18 @@ pub(crate) mod rules_14_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -553,6 +577,18 @@ pub(crate) mod rules_14_2 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -745,6 +781,18 @@ pub(crate) mod rules_14_3 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -936,6 +984,18 @@ pub(crate) mod rules_14_4 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -1071,11 +1131,11 @@ pub(crate) mod rules_102_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -1112,6 +1172,18 @@ pub(crate) mod rules_102_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -1241,11 +1313,11 @@ pub(crate) mod rules_103_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -1284,6 +1356,18 @@ pub(crate) mod rules_103_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -1428,11 +1512,11 @@ pub(crate) mod rules_104_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         2 => self.init_a1(),                        // a_1
@@ -1471,6 +1555,18 @@ pub(crate) mod rules_104_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -1629,11 +1725,11 @@ pub(crate) mod rules_105_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         2 => self.init_a1(),                        // a_1
@@ -1674,6 +1770,18 @@ pub(crate) mod rules_105_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -1838,11 +1946,11 @@ pub(crate) mod rules_106_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2 | 3) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2 | 3) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         2 => self.init_a1(),                        // a_1
@@ -1884,6 +1992,18 @@ pub(crate) mod rules_106_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -2051,11 +2171,11 @@ pub(crate) mod rules_106_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2 | 3) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2 | 3) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         3 => self.init_a2(),                        // a_2
@@ -2097,6 +2217,18 @@ pub(crate) mod rules_106_2 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -2230,11 +2362,11 @@ pub(crate) mod rules_108_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => {}                                     // a_1
@@ -2271,6 +2403,18 @@ pub(crate) mod rules_108_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -2389,11 +2533,11 @@ pub(crate) mod rules_150_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -2431,6 +2575,18 @@ pub(crate) mod rules_150_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -2589,11 +2745,11 @@ pub(crate) mod rules_152_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         2 => self.init_a1(),                        // a_1
@@ -2634,6 +2790,18 @@ pub(crate) mod rules_152_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -2838,11 +3006,11 @@ pub(crate) mod rules_153_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         2 => self.init_a1(),                        // a_1
@@ -2889,6 +3057,18 @@ pub(crate) mod rules_153_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -3172,11 +3352,11 @@ pub(crate) mod rules_200_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -3213,6 +3393,18 @@ pub(crate) mod rules_200_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -3354,11 +3546,11 @@ pub(crate) mod rules_200_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
@@ -3395,6 +3587,18 @@ pub(crate) mod rules_200_2 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -3521,11 +3725,11 @@ pub(crate) mod rules_201_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -3564,6 +3768,18 @@ pub(crate) mod rules_201_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -3696,11 +3912,11 @@ pub(crate) mod rules_201_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
@@ -3739,6 +3955,18 @@ pub(crate) mod rules_201_2 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -3866,11 +4094,11 @@ pub(crate) mod rules_201_3 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -3910,6 +4138,18 @@ pub(crate) mod rules_201_3 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -4052,11 +4292,11 @@ pub(crate) mod rules_202_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -4095,6 +4335,18 @@ pub(crate) mod rules_202_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -4258,11 +4510,11 @@ pub(crate) mod rules_206_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_j(),                         // j
@@ -4302,6 +4554,18 @@ pub(crate) mod rules_206_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -4488,11 +4752,11 @@ pub(crate) mod rules_208_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -4534,6 +4798,18 @@ pub(crate) mod rules_208_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -4724,11 +5000,11 @@ pub(crate) mod rules_208_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -4770,6 +5046,18 @@ pub(crate) mod rules_208_2 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -4940,11 +5228,11 @@ pub(crate) mod rules_208_3 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
@@ -4986,6 +5274,18 @@ pub(crate) mod rules_208_3 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -5139,11 +5439,11 @@ pub(crate) mod rules_208_4 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
@@ -5186,6 +5486,18 @@ pub(crate) mod rules_208_4 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -5320,11 +5632,11 @@ pub(crate) mod rules_210_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
@@ -5361,6 +5673,18 @@ pub(crate) mod rules_210_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -5490,11 +5814,11 @@ pub(crate) mod rules_211_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -5534,6 +5858,18 @@ pub(crate) mod rules_211_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -5691,11 +6027,11 @@ pub(crate) mod rules_250_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -5733,6 +6069,18 @@ pub(crate) mod rules_250_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -5882,11 +6230,11 @@ pub(crate) mod rules_251_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -5928,6 +6276,18 @@ pub(crate) mod rules_251_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -6099,11 +6459,11 @@ pub(crate) mod rules_252_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 3) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 3) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_j(),                         // j
@@ -6154,6 +6514,18 @@ pub(crate) mod rules_252_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -6370,11 +6742,11 @@ pub(crate) mod rules_253_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 3) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 3) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -6425,6 +6797,18 @@ pub(crate) mod rules_253_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -6646,11 +7030,11 @@ pub(crate) mod rules_254_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -6694,6 +7078,18 @@ pub(crate) mod rules_254_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -6907,11 +7303,11 @@ pub(crate) mod rules_256_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -6958,6 +7354,18 @@ pub(crate) mod rules_256_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -7151,11 +7559,11 @@ pub(crate) mod rules_258_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -7203,6 +7611,18 @@ pub(crate) mod rules_258_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -7422,11 +7842,11 @@ pub(crate) mod rules_259_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1 | 2) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1 | 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
@@ -7484,6 +7904,18 @@ pub(crate) mod rules_259_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -7706,6 +8138,18 @@ pub(crate) mod rules_301_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -7855,6 +8299,18 @@ pub(crate) mod rules_301_2 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -7962,11 +8418,11 @@ pub(crate) mod rules_401_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 0) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 0) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.init_expr(),                      // expr
                         _ => panic!("unexpected enter nonterminal id: {nt}")
@@ -8001,6 +8457,18 @@ pub(crate) mod rules_401_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -8155,6 +8623,18 @@ pub(crate) mod rules_401_2 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -8315,6 +8795,18 @@ pub(crate) mod rules_502_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -8502,6 +8994,18 @@ pub(crate) mod rules_502_2 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -8667,6 +9171,18 @@ pub(crate) mod rules_580_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -8951,6 +9467,18 @@ pub(crate) mod rules_600_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -9145,6 +9673,18 @@ pub(crate) mod rules_603_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -9417,6 +9957,18 @@ pub(crate) mod rules_604_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -9687,6 +10239,18 @@ pub(crate) mod rules_605_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -9959,6 +10523,18 @@ pub(crate) mod rules_606_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -10226,6 +10802,18 @@ pub(crate) mod rules_607_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -10498,6 +11086,18 @@ pub(crate) mod rules_608_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -10765,6 +11365,18 @@ pub(crate) mod rules_609_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -11031,6 +11643,18 @@ pub(crate) mod rules_610_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -11302,6 +11926,18 @@ pub(crate) mod rules_611_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -11572,6 +12208,18 @@ pub(crate) mod rules_612_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -11838,6 +12486,18 @@ pub(crate) mod rules_613_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -12107,6 +12767,18 @@ pub(crate) mod rules_614_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -12370,6 +13042,18 @@ pub(crate) mod rules_630_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -12638,6 +13322,18 @@ pub(crate) mod rules_631_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -12904,6 +13600,18 @@ pub(crate) mod rules_632_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -13431,6 +14139,18 @@ pub(crate) mod rules_640_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -13770,6 +14490,18 @@ pub(crate) mod rules_641_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -14111,6 +14843,18 @@ pub(crate) mod rules_642_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -14433,6 +15177,18 @@ pub(crate) mod rules_650_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -14601,6 +15357,18 @@ pub(crate) mod rules_705_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -14737,11 +15505,11 @@ pub(crate) mod rules_810_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -14779,6 +15547,18 @@ pub(crate) mod rules_810_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -14919,11 +15699,11 @@ pub(crate) mod rules_811_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -14963,6 +15743,18 @@ pub(crate) mod rules_811_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -15105,11 +15897,11 @@ pub(crate) mod rules_820_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -15149,6 +15941,18 @@ pub(crate) mod rules_820_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -15298,11 +16102,11 @@ pub(crate) mod rules_821_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -15343,6 +16147,18 @@ pub(crate) mod rules_821_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -15495,11 +16311,11 @@ pub(crate) mod rules_835_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 1) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 1) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_a1(),                        // a_1
@@ -15543,6 +16359,18 @@ pub(crate) mod rules_835_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -15698,11 +16526,11 @@ pub(crate) mod rules_862_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 0) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 0) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.init_expr(),                      // expr
                         1 => {}                                     // expr_1
@@ -15739,6 +16567,18 @@ pub(crate) mod rules_862_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -16024,6 +16864,18 @@ pub(crate) mod rules_870_1 {
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -16201,6 +17053,18 @@ pub(crate) mod rules_871_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 
@@ -16590,11 +17454,11 @@ pub(crate) mod rules_901_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
-            if matches!(nt, 15 ..= 20) {
-                self.stack_span.push(PosSpan::empty());
-            }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 15 ..= 20) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_file(),             // file
                         15 => self.init_file1(),                    // file_1
@@ -16715,6 +17579,18 @@ pub(crate) mod rules_901_1 {
 
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
         }
     }
 

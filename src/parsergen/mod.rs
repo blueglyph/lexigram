@@ -2043,6 +2043,8 @@ impl ParserGen {
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
         src.push(format!("            self.stack_t.append(&mut t_data);"));
         src.push(format!("        }}"));
+        src.push(format!("        match call {{"));
+        src.push(format!("            Call::Enter => {{"));
         if self.gen_span_params {
             // adds span accumulator inits, using Segments to regroup them
             let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
@@ -2057,13 +2059,11 @@ impl ParserGen {
                 }
             }).join(" | ");
             if !pattern.is_empty() {
-                src.push(format!("        if matches!(nt, {pattern}) {{"));
-                src.push(format!("            self.stack_span.push(PosSpan::empty());"));
-                src.push(format!("        }}"));
+                src.push(format!("                if matches!(nt, {pattern}) {{"));
+                src.push(format!("                    self.stack_span.push(PosSpan::empty());"));
+                src.push(format!("                }}"));
             }
         }
-        src.push(format!("        match call {{"));
-        src.push(format!("            Call::Enter => {{"));
         src.push(format!("                match nt {{"));
         /*
                                               0 => self.listener.init_a(),                // A
@@ -2119,6 +2119,20 @@ impl ParserGen {
             src.push(format!(""));
             src.push(format!("    fn push_span(&mut self, span: PosSpan) {{"));
             src.push(format!("        self.stack_span.push(span);"));
+            src.push(format!("    }}"));
+        }
+        src.push(format!(""));
+        src.push(format!("    fn is_stack_empty(&self) -> bool {{"));
+        src.push(format!("        self.stack.is_empty()"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    fn is_stack_t_empty(&self) -> bool {{"));
+        src.push(format!("        self.stack_t.is_empty()"));
+        src.push(format!("    }}"));
+        if self.gen_span_params {
+            src.push(format!(""));
+            src.push(format!("    fn is_stack_span_empty(&self) -> bool {{"));
+            src.push(format!("        self.stack_span.is_empty()"));
             src.push(format!("    }}"));
         }
         src.push(format!("}}"));

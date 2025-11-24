@@ -1080,6 +1080,14 @@ pub mod rtsgen_parser {
         fn get_mut_log(&mut self) -> &mut impl Logger {
             self.listener.get_mut_log()
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
     }
 
     impl<T: RtsGenListener> Wrapper<T> {

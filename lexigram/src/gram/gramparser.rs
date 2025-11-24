@@ -274,6 +274,14 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
     fn get_mut_log(&mut self) -> &mut impl Logger {
         self.listener.get_mut_log()
     }
+
+    fn is_stack_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+
+    fn is_stack_t_empty(&self) -> bool {
+        self.stack_t.is_empty()
+    }
 }
 
 impl<T: GramParserListener> Wrapper<T> {
