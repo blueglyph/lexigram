@@ -161,8 +161,6 @@ impl TestRules {
             630 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" |     "!" e | Num;"#],
             631 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" | <R> "!" e | Num;"#],
             632 => vec![r#"[TOKENS0] e -> e "*" e | <R> e "+" |     "!" e | Num;"#],
-            // ----- <L> rrec (only allowed when no ambiguity)
-            634 => vec![r#"e -> e "+" | <L> "!" e | Num;"#],
 
             640 => vec![r#"e -> "-" e |     e ("*" | "/" <P>) e |     e ("+" | "-" <P>) e | Id;"#],
             641 => vec![r#"e -> "-" e | <R> e ("*" | "/" <P>) e | <R> e ("+" | "-" <P>) e | Id;"#],

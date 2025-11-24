@@ -502,11 +502,6 @@ fn prs_ll1_from() {
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
             r#"e_4 -> Num | Id"#,                               //
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
-        (634, vec![
-            // e -> e "+" | <L=e> "!" e | Num
-            r#"e -> "!" e | Num e_1"#,                          // right_rec | L-form | parent_left_rec
-            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
-        ], vec![642, 4], vec![None, Some(0)]),
         (650, vec![
             // a -> a A a a | B
             r#"a -> a_2 a_1"#,                                  // parent_left_rec | parent_amb
@@ -1376,9 +1371,14 @@ fn prs_grammar_notes() {
             vec![],
             vec!["e has an illegal flag L-Form"],
         ),
+        (
+            581,
+            vec![],
+            vec!["has incompatible rule alternatives"],
+        ),
         /* template:
         (
-            , 0,
+            0,
             vec![],
             vec![],
         ),

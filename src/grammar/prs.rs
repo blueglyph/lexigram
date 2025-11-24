@@ -932,6 +932,15 @@ impl<T> ProdRuleSet<T> {
                 }
             }
             prules.extend(extra_prods);
+            let incompatibility_flags = ruleflag::R_RECURSION | ruleflag::L_FORM | ruleflag::PARENT_L_RECURSION;
+            let incompatibility_str = "<L> right recursivity + left recursivity";
+            let flags = self.get_flags(var);
+            if flags & incompatibility_flags == incompatibility_flags {
+                let tree = &self.origin.trees[var as usize];
+                self.log.add_error(format!(
+                    "`{var_name} -> {}` has incompatible rule alternatives: {incompatibility_str}",
+                    grtree_to_str(tree, None, None, None, self.get_symbol_table(), false)));
+            }
         }
         if VERBOSE {
             println!("#prules: {}, #flags: {}, #parents:{}", prules.len(), self.flags.len(), self.parent.len());

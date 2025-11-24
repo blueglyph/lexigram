@@ -1071,6 +1071,9 @@ pub(crate) mod rules_102_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -1237,6 +1240,9 @@ pub(crate) mod rules_103_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -1421,6 +1427,9 @@ pub(crate) mod rules_104_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -1619,6 +1628,9 @@ pub(crate) mod rules_105_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -1825,6 +1837,9 @@ pub(crate) mod rules_106_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 2 | 3) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -2036,6 +2051,9 @@ pub(crate) mod rules_106_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 2 | 3) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -2212,6 +2230,9 @@ pub(crate) mod rules_108_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -2367,6 +2388,9 @@ pub(crate) mod rules_150_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -2564,6 +2588,9 @@ pub(crate) mod rules_152_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -2810,6 +2837,9 @@ pub(crate) mod rules_153_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -3142,6 +3172,9 @@ pub(crate) mod rules_200_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -3321,6 +3354,9 @@ pub(crate) mod rules_200_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -3484,6 +3520,9 @@ pub(crate) mod rules_201_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -3657,6 +3696,9 @@ pub(crate) mod rules_201_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -3823,6 +3865,9 @@ pub(crate) mod rules_201_3 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -4006,6 +4051,9 @@ pub(crate) mod rules_202_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -4209,6 +4257,9 @@ pub(crate) mod rules_206_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -4436,6 +4487,9 @@ pub(crate) mod rules_208_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -4670,6 +4724,9 @@ pub(crate) mod rules_208_2 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -4883,6 +4940,9 @@ pub(crate) mod rules_208_3 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -5079,6 +5139,9 @@ pub(crate) mod rules_208_4 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -5257,6 +5320,9 @@ pub(crate) mod rules_210_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -5423,6 +5489,9 @@ pub(crate) mod rules_211_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -5622,6 +5691,9 @@ pub(crate) mod rules_250_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -5809,6 +5881,9 @@ pub(crate) mod rules_251_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -6023,6 +6098,9 @@ pub(crate) mod rules_252_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 3) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -6291,6 +6369,9 @@ pub(crate) mod rules_253_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 3) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -6565,6 +6646,9 @@ pub(crate) mod rules_254_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -6823,6 +6907,9 @@ pub(crate) mod rules_256_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -7063,6 +7150,9 @@ pub(crate) mod rules_258_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -7331,6 +7421,9 @@ pub(crate) mod rules_259_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1 | 2) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -7868,6 +7961,9 @@ pub(crate) mod rules_401_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 0) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -8726,302 +8822,6 @@ pub(crate) mod rules_580_1 {
                             (num_id, w.to_string(), pos_span)
                         } else {
                             panic!("IDs not supported")
-                        }
-                    }
-                });
-                let mut listener = EListener::new();
-                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
-                let errors = match parser.parse_stream(&mut wrapper, stream) {
-                    Ok(_) => {
-                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
-                        None
-                    }
-                    Err(e) => {
-                        if VERBOSE { println!("parsing failed: {e}"); }
-                        Some(wrapper.listener.log.get_errors().map(|s| s.as_str()).to_vec())
-                    }
-                };
-                if VERBOSE {
-                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
-                    if !msg.is_empty() {
-                        println!("Messages:\n{msg}");
-                    }
-                }
-                let listener = wrapper.get_listener();
-                assert_eq!(listener.result, expected_result.map(|s| s.to_string()), "test failed for input {input}");
-            }
-        }
-    }
-}
-
-#[allow(unused)]
-pub(crate) mod rules_581_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule 581 #1, start e]
-
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_581_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxE {
-        /// `e -> e "!"`
-        V1 { e: SynE },
-        /// `e -> <L> "-" e`
-        V2 { e: SynE },
-        /// `e -> Num`
-        V3 { e: SynE, num: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
-    #[derive(Debug)]
-    enum SynValue { E(SynE) }
-
-    impl SynValue {
-        fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
-            val
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
-        fn exit(&mut self, e: SynE, span: PosSpan) {}
-        fn init_e(&mut self) -> SynE;
-        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
-        #[allow(unused)]
-        fn exitloop_e(&mut self, e: &mut SynE) {}
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-        stack_span: Vec<PosSpan>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.init_e(),                         // e
-                        1 => {}                                     // e_1
-                        _ => panic!("unexpected enter nonterminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match alt_id {
-                        0 |                                         // e -> <L> "-" e
-                        1 => self.inter_e(alt_id),                  // e -> <L> Num e_1
-                        2 => self.exit_e1(),                        // e_1 -> "!" e_1
-                        3 => self.exitloop_e1(),                    // e_1 -> ε
-                        _ => panic!("unexpected exit alternative id: {alt_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_listener_mut(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn give_listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let e = self.stack.pop().unwrap().get_e();
-            let span = self.stack_span.pop().unwrap();
-            self.listener.exit(e, span);
-        }
-
-        fn init_e(&mut self) {
-            let val = self.listener.init_e();
-            self.stack.push(SynValue::E(val));
-        }
-
-        fn inter_e(&mut self, alt_id: AltId) {
-            let (n, ctx) = match alt_id {
-                0 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    (2, CtxE::V2 { e })
-                }
-                1 => {
-                    let num = self.stack_t.pop().unwrap();
-                    let e = self.stack.pop().unwrap().get_e();
-                    (2, CtxE::V3 { e, num })
-                }
-                _ => panic!("unexpected alt id {alt_id} in fn inter_e")
-            };
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
-            let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
-        }
-
-        fn exit_e1(&mut self) {
-            let e = self.stack.pop().unwrap().get_e();
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V1 { e }, spans);
-            self.stack.push(SynValue::E(val));
-        }
-
-        fn exitloop_e1(&mut self) {
-            let SynValue::E(e) = self.stack.last_mut().unwrap();
-            self.listener.exitloop_e(e);
-        }
-    }
-
-    // [wrapper source for rule 581 #1, start e]
-    // ------------------------------------------------------------
-
-    mod test {
-        use std::collections::HashMap;
-        use iter_index::IndexerIterator;
-        use lexigram_lib::dfa::TokenId;
-        use lexigram_lib::grammar::Symbol;
-        use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-        use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener1::build_parser;
-        use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op, LevelString};
-        use super::*;
-
-        struct EListener {
-            log: BufLog,
-            result: Option<String>,
-        }
-
-        impl EListener {
-            fn new() -> Self {
-                EListener {
-                    log: BufLog::new(),
-                    result: None,
-                }
-            }
-        }
-
-        impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
-                &mut self.log
-            }
-
-            fn exit(&mut self, e: SynE, _span: PosSpan) {
-                self.result = Some(e.0.1);
-            }
-
-            fn init_e(&mut self) -> SynE {
-                self.result = None;
-                SynE(LevelString(0, "".to_string()))
-            }
-
-            fn exit_e(&mut self, ctx: CtxE, _spans: Vec<PosSpan>) -> SynE {
-                SynE(match ctx {
-                    // e -> e "!"
-                    CtxE::V1 { e: SynE(ls) } => ls_suffix_op("!", ls),
-                    // e -> <L> "-" e
-                    CtxE::V2 { e: SynE(ls) } => ls_prefix_op("-", ls),
-                    // e -> Num
-                    CtxE::V3 { e: SynE(ls), num } => LevelString(0, num),
-                })
-            }
-        }
-
-        #[test]
-        fn test() {
-            let sequences = vec![
-                // priority: e -> e "!" | <L> "-" e | Num
-                ("- - 0 ! !", Some("- (- ((0 !) !))")),
-                ("0 !", Some("0 !")),
-                ("- 0", Some("- 0")),
-                ("0", Some("0")),
-                ("- !", None),
-                ("-", None),
-                ("!", None),
-                ("", None),
-                ("- 0 0 !", None),
-            ];
-            const VERBOSE: bool = false;
-            const VERBOSE_LISTENER: bool = false;
-            let num_id = 2;
-
-            let mut parser = build_parser();
-            let table = parser.get_symbol_table().unwrap();
-            let symbols = (0..table.get_num_t() as TokenId)
-                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-                .collect::<HashMap<_, _>>();
-            for (input, expected_result) in sequences {
-                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                    let pos = Pos(1, i);
-                    let pos_span = PosSpan::new(pos, pos);
-                    if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), pos_span)
-                    } else {
-                        if let Some(s) = symbols.get(w) {
-                            (*s, w.to_string(), pos_span)
-                        } else {
-                            if w.chars().next().unwrap().is_ascii_digit() {
-                                (num_id, w.to_string(), pos_span)
-                            } else {
-                                panic!("IDs not supported")
-                            }
                         }
                     }
                 });
@@ -14937,6 +14737,9 @@ pub(crate) mod rules_810_1 {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
+            }
             match call {
                 Call::Enter => {
                     match nt {
@@ -15115,6 +14918,9 @@ pub(crate) mod rules_811_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -15298,6 +15104,9 @@ pub(crate) mod rules_820_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -15488,6 +15297,9 @@ pub(crate) mod rules_821_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -15682,6 +15494,9 @@ pub(crate) mod rules_835_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 1) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -15882,6 +15697,9 @@ pub(crate) mod rules_862_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 0) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {
@@ -16771,6 +16589,9 @@ pub(crate) mod rules_901_1 {
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
+            }
+            if matches!(nt, 15 ..= 20) {
+                self.stack_span.push(PosSpan::empty());
             }
             match call {
                 Call::Enter => {

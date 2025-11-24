@@ -1556,6 +1556,7 @@ impl ParserGen {
         let mut src_listener_decl = Vec::<String>::new();
         let mut src_wrapper_impl = Vec::<String>::new();
         let mut exit_fixer = NameFixer::new();
+        let mut span_init = HashSet::<VarId>::new();
 
         // we proceed by var parent, then all alts in each parent/children group
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
@@ -1609,6 +1610,7 @@ impl ParserGen {
                     let (nu, nl, npl) = &nt_name[nt];
                     init_nt_done.insert(*var);
                     if has_value && self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                        span_init.insert(*var);
                         src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
@@ -1622,6 +1624,7 @@ impl ParserGen {
                     }
                 } else {
                     if flags & ruleflag::CHILD_REPEAT != 0 {
+                        span_init.insert(*var);
                         if has_value {
                             init_nt_done.insert(*var);
                             src_wrapper_impl.push(String::new());
@@ -2040,6 +2043,25 @@ impl ParserGen {
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
         src.push(format!("            self.stack_t.append(&mut t_data);"));
         src.push(format!("        }}"));
+        if self.gen_span_params {
+            // adds span accumulator inits, using Segments to regroup them
+            let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
+            seg_span.normalize();
+            let pattern = seg_span.into_iter().map(|Seg(a, b)| {
+                if a == b {
+                    a.to_string()
+                } else if b == a + 1 {
+                    format!("{a} | {b}")
+                } else {
+                    format!("{a} ..= {b}")
+                }
+            }).join(" | ");
+            if !pattern.is_empty() {
+                src.push(format!("        if matches!(nt, {pattern}) {{"));
+                src.push(format!("            self.stack_span.push(PosSpan::empty());"));
+                src.push(format!("        }}"));
+            }
+        }
         src.push(format!("        match call {{"));
         src.push(format!("            Call::Enter => {{"));
         src.push(format!("                match nt {{"));

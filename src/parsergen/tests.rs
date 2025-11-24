@@ -1423,21 +1423,6 @@ mod wrapper_source {
                 3 => (1, symbols![nt 0]),               //  3: e_1 -> ε       | ◄3           | 1 | e
             ], Default, btreemap![0 => vec![0, 1]]),
 
-            // e -> e "!" | <L=e> "-" e | Num
-            // NT flags:
-            //  - e: right_rec | L-form | parent_left_rec (642)
-            //  - e_1: child_left_rec (4)
-            // parents:
-            //  - e_1 -> e
-            (581, true, false, 0, btreemap![
-                0 => "SynE".to_string(),
-            ], btreemap![
-                0 => (2, symbols![nt 0]),               //  0: e -> "-" e     | ●e ◄0 "-"    | 2 | e
-                1 => (2, symbols![nt 0, t 2]),          //  1: e -> Num e_1   | ►e_1 ◄1 Num! | 2 | e Num
-                2 => (2, symbols![nt 0]),               //  2: e_1 -> "!" e_1 | ●e_1 ◄2 "!"  | 2 | e
-                3 => (1, symbols![nt 0]),               //  3: e_1 -> ε       | ◄3           | 1 | e
-            ], Default, btreemap![0 => vec![0, 1]]),
-
             // --------------------------------------------------------------------------- left_rec ambig
 
             // e -> e "+" e | Num
@@ -2119,6 +2104,13 @@ mod wrapper_source {
                     .map(|(i, (s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", "));
                 println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str(true)], 4));
             }
+            if !ll1.has_no_errors() {
+                if VERBOSE {
+                    println!("## LL(1) build errors:\n{}", ll1.get_log());
+                    num_errors += 1;
+                    continue;
+                }
+            }
             let original_str = get_original_str(&ll1, 12);
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             builder.set_gen_span_params(true);
@@ -2375,13 +2367,6 @@ mod wrapper_source {
             // e -> e "!" | "-" e | Num
             (580, vec![
                 Some(r#"e -> "-" e"#),            // 0: e -> "-" e
-                Some(r#"e -> Num"#),              // 1: e -> Num e_1
-                Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
-                None,                             // 3: e_1 -> ε
-            ]),
-            // e -> e "!" | <L=e> "-" e | Num
-            (581, vec![
-                Some(r#"e -> <L> "-" e"#),        // 0: e -> "-" e
                 Some(r#"e -> Num"#),              // 1: e -> Num e_1
                 Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
                 None,                             // 3: e_1 -> ε
