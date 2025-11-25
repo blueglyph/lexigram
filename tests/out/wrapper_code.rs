@@ -372,7 +372,7 @@ pub(crate) mod code_705_1 {
 }
 
 pub(crate) mod code_580_1 {
-    use crate::out::wrapper_source::level_string::LevelString;
+    use crate::integration::wrappers::level_string::LevelString;
 
     /// User-defined type for `e`
     #[derive(Debug, PartialEq)] pub struct SynE(pub LevelString);
