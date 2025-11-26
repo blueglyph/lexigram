@@ -36,8 +36,8 @@ impl Pos {
 /// When `first` > `last`, no text is selected.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PosSpan {
-    first: Pos,
-    last: Pos,
+    pub first: Pos,
+    pub last: Pos,
 }
 
 impl PosSpan {

@@ -6,7 +6,7 @@
 use std::io::Cursor;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::io::CharReader;
-use lexigram_lib::lexer::{Lexer, PosSpan, TokenSpliterator};
+use lexigram_lib::lexer::{Lexer, Pos, PosSpan, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use crate::listener_types::*;
@@ -37,15 +37,16 @@ fn main() {
 // -------------------------------------------------------------------------
 // minimalist parser, top level
 
-pub struct PanDemo<'l, 'p> {
+pub struct PanDemo<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
-    wrapper: Wrapper<PanDemoListener>,
+    wrapper: Wrapper<PanDemoListener<'ls>>,
+    lines: Vec<String>,
 }
 
-impl<'l> PanDemo<'l, '_> {
+impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
     pub fn parse_text(text: &str) -> Result<BufLog, BufLog> {
-        let mcalc = PanDemo::new();
+        let mut mcalc = PanDemo::new();
         mcalc.parse(text)
     }
 
@@ -53,12 +54,14 @@ impl<'l> PanDemo<'l, '_> {
         let lexer = build_lexer();
         let parser = build_parser();
         let wrapper = Wrapper::new(PanDemoListener::new(), VERBOSE_WRAPPER);
-        PanDemo { lexer, parser, wrapper }
+        PanDemo { lexer, parser, wrapper, lines: vec![] }
     }
 
-    pub fn parse(mut self, text: &'l str) -> Result<BufLog, BufLog> {
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<BufLog, BufLog> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
+        self.lines = text.lines().map(|l| l.to_string()).collect();
+        self.wrapper.get_listener_mut().attach_lines(&self.lines);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
@@ -67,8 +70,8 @@ impl<'l> PanDemo<'l, '_> {
         }
         let log = std::mem::take(&mut self.wrapper.get_listener_mut().log);
         if log.has_no_errors() {
-            let listener = self.wrapper.give_listener();
-            println!("Spans:\n{}", listener.spans.into_iter().map(|s| format!("- {s}")).join("\n"));
+            let listener = self.wrapper.get_listener();
+            println!("Spans:\n{}", listener.spans.iter().map(|s| format!("- {s}")).join("\n"));
             Ok(log)
         } else {
             Err(log)
@@ -78,24 +81,47 @@ impl<'l> PanDemo<'l, '_> {
 
 // listener implementation
 
-struct PanDemoListener {
+struct PanDemoListener<'ls> {
     log: BufLog,
     abort: bool,
-    spans: Vec<String>
+    spans: Vec<String>,
+    lines: Option<&'ls Vec<String>>,
 }
 
-impl PanDemoListener {
+impl<'ls> PanDemoListener<'ls> {
     fn new() -> Self {
         PanDemoListener {
             log: BufLog::new(),
             abort: false,
             spans: vec![],
+            lines: None,
+        }
+    }
+
+    fn attach_lines(&mut self, lines: &'ls Vec<String>) {
+        self.lines = Some(lines);
+    }
+
+    fn get_text_span(&self, span: &PosSpan) -> String {
+        if span.is_empty() { return String::new() }
+        let &PosSpan { first: Pos(l1, c1), last: Pos(l2, c2) } = span;
+        if l1 == l2 {
+            self.lines.unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).take((c2 - c1) as usize + 1).collect()
+        } else {
+            let mut result = self.lines.unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).collect::<String>();
+            for i in (l1 as usize)..(l2 as usize) {
+                result.push('\n');
+                result.push_str(&self.lines.unwrap()[i]);
+            }
+            result.push('\n');
+            result.push_str(&self.lines.unwrap()[l2 as usize - 1].chars().take(c2 as usize).collect::<String>());
+            result
         }
     }
 }
 
 #[allow(unused)]
-impl PandemoniumListener for PanDemoListener {
+impl PandemoniumListener for PanDemoListener<'_> {
     fn check_abort_request(&self) -> bool {
         self.abort
     }
@@ -108,7 +134,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText {
-        self.spans.push(format!("exit_text({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_text({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxText::V1 => {} // text -> (<L> example)*
         }
@@ -116,14 +142,14 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {
-        self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxI::V1 { example: SynExample() } => {}
         }
     }
 
     fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample {
-        self.spans.push(format!("exit_example({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_example({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxExample::V1 { star: SynStar() } => {}
             CtxExample::V2 { plus: SynPlus() } => {}
@@ -138,7 +164,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar {
-        self.spans.push(format!("exit_star({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_star({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxStar::V1 { id, num, star: SynStar1(star) } => {}
         }
@@ -146,7 +172,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_plus(&mut self, ctx: CtxPlus, spans: Vec<PosSpan>) -> SynPlus {
-        self.spans.push(format!("exit_plus({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_plus({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxPlus::V1 { id, num, plus: SynPlus1(plus) } => {}
         }
@@ -154,7 +180,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
-        self.spans.push(format!("exit_l_star({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_star({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLStar::V1 { id, num } => {}
         }
@@ -162,14 +188,14 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) {
-        self.spans.push(format!("exit_l_star_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_star_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLStarI::V1 { num } => {}
         }
     }
 
     fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus {
-        self.spans.push(format!("exit_l_plus({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_plus({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLPlus::V1 { id, num } => {}
         }
@@ -177,14 +203,14 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_l_plus_i(&mut self, ctx: CtxLPlusI, spans: Vec<PosSpan>) {
-        self.spans.push(format!("exit_l_plus_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_plus_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLPlusI::V1 { num, last_iteration } => {}
         }
     }
 
     fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec {
-        self.spans.push(format!("exit_rrec({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxRrec::V1 { id, num, rrec_i: SynRrecI() } => {}
         }
@@ -192,7 +218,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_l_rrec(&mut self, ctx: CtxLRrec, spans: Vec<PosSpan>) -> SynLRrec {
-        self.spans.push(format!("exit_l_rrec({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLRrec::V1 { id, num, l_rrec_i: SynLRrecI() } => {}
         }
@@ -200,7 +226,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_lrec(&mut self, ctx: CtxLrec, spans: Vec<PosSpan>) -> SynLrec {
-        self.spans.push(format!("exit_lrec({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_lrec({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLrec::V1 { id, lrec_i: SynLrecI() } => {}
         }
@@ -208,7 +234,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_amb(&mut self, ctx: CtxAmb, spans: Vec<PosSpan>) -> SynAmb {
-        self.spans.push(format!("exit_amb({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_amb({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxAmb::V1 { id, amb_i: SynAmbI() } => {}
         }
@@ -216,7 +242,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) -> SynRrecI {
-        self.spans.push(format!("exit_rrec_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxRrecI::V1 { num, rrec_i: SynRrecI() } => {}
             CtxRrecI::V2 => {}
@@ -229,7 +255,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI {
-        self.spans.push(format!("exit_l_rrec_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_l_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLRrecI::V1 { l_rrec_i: SynLRrecI(), num } => {}
             CtxLRrecI::V2 { l_rrec_i: SynLRrecI() } => {}
@@ -238,7 +264,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI {
-        self.spans.push(format!("exit_lrec_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_lrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             CtxLrecI::V1 { lrec_i: SynLrecI(), num } => {}
             CtxLrecI::V2 { num } => {}
@@ -250,7 +276,7 @@ impl PandemoniumListener for PanDemoListener {
     }
 
     fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) -> SynAmbI {
-        self.spans.push(format!("exit_amb_i({})", spans.into_iter().map(|s| s.to_string()).join(", ")));
+        self.spans.push(format!("exit_amb_i({})", spans.into_iter().map(|s| format!("{:?}", self.get_text_span(&s))).join(", ")));
         match ctx {
             // `amb_i -> <R> amb_i "^" amb_i`
             CtxAmbI::V1 { amb_i: [SynAmbI(), SynAmbI()] } => {}
