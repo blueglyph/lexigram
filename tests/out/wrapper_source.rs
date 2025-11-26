@@ -13,8 +13,8 @@ pub(crate) mod rules_13_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 13 #1, start s]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
-    use crate::out::wrapper_code::code_13_1::*;
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_13_1::*;
 
     #[derive(Debug)]
     pub enum CtxS {
@@ -219,7 +219,7 @@ pub(crate) mod rules_14_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_1::*;
 
     #[derive(Debug)]
@@ -402,23 +402,25 @@ pub(crate) mod rules_14_1 {
         fn exit_b(&mut self) {
             let c = self.stack.pop().unwrap().get_c();
             let op = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { op, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { op, c }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_c(CtxC::V1 { id }, spans);
+            let val = self.listener.exit_c(ctx, spans);
             self.stack.push(SynValue::C(val));
         }
     }
@@ -431,7 +433,7 @@ pub(crate) mod rules_14_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #2, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_2::*;
 
     #[derive(Debug)]
@@ -607,23 +609,25 @@ pub(crate) mod rules_14_2 {
 
         fn exit_b(&mut self) {
             let op = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { op };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { op }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_c(CtxC::V1 { id }, spans);
+            self.listener.exit_c(ctx, spans);
         }
     }
 
@@ -635,7 +639,7 @@ pub(crate) mod rules_14_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #3, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_3::*;
 
     #[derive(Debug)]
@@ -813,22 +817,24 @@ pub(crate) mod rules_14_3 {
         fn exit_b(&mut self) {
             let c = self.stack.pop().unwrap().get_c();
             let op = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { op, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { op, c }, spans);
+            self.listener.exit_b(ctx, spans);
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_c(CtxC::V1 { id }, spans);
+            let val = self.listener.exit_c(ctx, spans);
             self.stack.push(SynValue::C(val));
         }
     }
@@ -841,7 +847,7 @@ pub(crate) mod rules_14_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #4, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_4::*;
 
     #[derive(Debug)]
@@ -1013,22 +1019,24 @@ pub(crate) mod rules_14_4 {
 
         fn exit_b(&mut self) {
             let op = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { op };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { op }, spans);
+            self.listener.exit_b(ctx, spans);
         }
 
         fn exit_c(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_c(CtxC::V1 { id }, spans);
+            self.listener.exit_c(ctx, spans);
         }
     }
 
@@ -1042,7 +1050,7 @@ pub(crate) mod rules_102_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 102 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_102_1::*;
 
     #[derive(Debug)]
@@ -1186,12 +1194,13 @@ pub(crate) mod rules_102_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1224,7 +1233,7 @@ pub(crate) mod rules_103_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 103 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_103_1::*;
 
     #[derive(Debug)]
@@ -1370,12 +1379,13 @@ pub(crate) mod rules_103_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1408,7 +1418,7 @@ pub(crate) mod rules_104_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 104 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_104_1::*;
 
     #[derive(Debug)]
@@ -1567,12 +1577,13 @@ pub(crate) mod rules_104_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
+            let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1601,12 +1612,13 @@ pub(crate) mod rules_104_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1621,7 +1633,7 @@ pub(crate) mod rules_105_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 105 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_105_1::*;
 
     #[derive(Debug)]
@@ -1782,12 +1794,13 @@ pub(crate) mod rules_105_1 {
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_a1();
+            let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -1816,12 +1829,13 @@ pub(crate) mod rules_105_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -1836,7 +1850,7 @@ pub(crate) mod rules_106_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_106_1::*;
 
     #[derive(Debug)]
@@ -2005,12 +2019,13 @@ pub(crate) mod rules_106_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
+            let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2054,12 +2069,13 @@ pub(crate) mod rules_106_1 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { b }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -2074,7 +2090,7 @@ pub(crate) mod rules_106_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #2, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_106_2::*;
 
     #[derive(Debug)]
@@ -2230,12 +2246,13 @@ pub(crate) mod rules_106_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
+            let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2259,12 +2276,13 @@ pub(crate) mod rules_106_2 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { b }, spans);
+            self.listener.exit_b(ctx, spans);
         }
     }
 
@@ -2278,7 +2296,7 @@ pub(crate) mod rules_108_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 108 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_108_1::*;
 
     #[derive(Debug)]
@@ -2416,12 +2434,13 @@ pub(crate) mod rules_108_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
     }
@@ -2437,7 +2456,7 @@ pub(crate) mod rules_150_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 150 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_150_1::*;
 
     #[derive(Debug)]
@@ -2587,12 +2606,13 @@ pub(crate) mod rules_150_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_a1();
+            let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2635,7 +2655,7 @@ pub(crate) mod rules_152_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 152 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_152_1::*;
 
     #[derive(Debug)]
@@ -2804,12 +2824,13 @@ pub(crate) mod rules_152_1 {
             let f = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, f };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, star, f }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -2850,12 +2871,13 @@ pub(crate) mod rules_152_1 {
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { d }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -2876,7 +2898,7 @@ pub(crate) mod rules_153_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 153 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 6;
@@ -2935,7 +2957,7 @@ pub(crate) mod rules_153_1 {
     }
 
     #[derive(Debug)]
-    pub enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
@@ -3076,12 +3098,13 @@ pub(crate) mod rules_153_1 {
             let f = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, f };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, f }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3122,12 +3145,13 @@ pub(crate) mod rules_153_1 {
 
         fn exit_b(&mut self) {
             let d = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { d }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -3142,7 +3166,7 @@ pub(crate) mod rules_200_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_200_1::*;
 
     #[derive(Debug)]
@@ -3294,12 +3318,13 @@ pub(crate) mod rules_200_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3311,12 +3336,13 @@ pub(crate) mod rules_200_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { star_acc, b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -3336,7 +3362,7 @@ pub(crate) mod rules_200_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #2, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_200_2::*;
 
     #[derive(Debug)]
@@ -3482,23 +3508,25 @@ pub(crate) mod rules_200_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxI::V1 { b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_i(CtxI::V1 { b }, spans);
+            self.listener.exit_i(ctx, spans);
         }
     }
 
@@ -3512,7 +3540,7 @@ pub(crate) mod rules_201_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_1::*;
 
     #[derive(Debug)]
@@ -3664,12 +3692,13 @@ pub(crate) mod rules_201_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -3682,12 +3711,13 @@ pub(crate) mod rules_201_1 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { plus_acc, b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
     }
@@ -3702,7 +3732,7 @@ pub(crate) mod rules_201_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #2, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_2::*;
 
     #[derive(Debug)]
@@ -3850,24 +3880,26 @@ pub(crate) mod rules_201_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxI::V1 { b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_i(CtxI::V1 { b, last_iteration }, spans);
+            self.listener.exit_i(ctx, spans);
         }
     }
 
@@ -3881,7 +3913,7 @@ pub(crate) mod rules_201_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #3, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_3::*;
 
     #[derive(Debug)]
@@ -4028,12 +4060,13 @@ pub(crate) mod rules_201_3 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
+            self.listener.exit_a(ctx, spans);
         }
 
         fn init_i(&mut self) {
@@ -4045,12 +4078,13 @@ pub(crate) mod rules_201_3 {
             let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { plus_acc, b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { plus_acc, b, last_iteration }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
     }
@@ -4065,7 +4099,7 @@ pub(crate) mod rules_202_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 202 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_202_1::*;
 
     #[derive(Debug)]
@@ -4229,12 +4263,13 @@ pub(crate) mod rules_202_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4250,12 +4285,13 @@ pub(crate) mod rules_202_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let star_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -4266,12 +4302,13 @@ pub(crate) mod rules_202_1 {
 
         fn exit_b(&mut self) {
             let c = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { c }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -4286,7 +4323,7 @@ pub(crate) mod rules_206_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 206 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_206_1::*;
 
     #[derive(Debug)]
@@ -4449,12 +4486,13 @@ pub(crate) mod rules_206_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
+            let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4466,12 +4504,13 @@ pub(crate) mod rules_206_1 {
         fn exit_j(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_j();
+            let ctx = CtxJ::V1 { star_acc, b };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b }, spans);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -4511,7 +4550,7 @@ pub(crate) mod rules_208_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_1::*;
 
     #[derive(Debug)]
@@ -4693,12 +4732,13 @@ pub(crate) mod rules_208_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4711,12 +4751,13 @@ pub(crate) mod rules_208_1 {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { star_acc, a, star };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, a, star }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -4733,12 +4774,13 @@ pub(crate) mod rules_208_1 {
         fn exit_j(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let star_acc = self.stack.pop().unwrap().get_j();
+            let ctx = CtxJ::V1 { star_acc, b };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_j(CtxJ::V1 { star_acc, b }, spans);
+            let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
 
@@ -4749,12 +4791,13 @@ pub(crate) mod rules_208_1 {
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { b }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -4769,7 +4812,7 @@ pub(crate) mod rules_208_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #2, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_2::*;
 
     #[derive(Debug)]
@@ -4941,12 +4984,13 @@ pub(crate) mod rules_208_2 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -4958,12 +5002,13 @@ pub(crate) mod rules_208_2 {
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { star_acc, a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, a }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -4973,22 +5018,24 @@ pub(crate) mod rules_208_2 {
         }
 
         fn exit_j(&mut self) {
+            let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_j(CtxJ::V1, spans);
+            self.listener.exit_j(ctx, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { b }, spans);
+            self.listener.exit_b(ctx, spans);
         }
     }
 
@@ -5002,7 +5049,7 @@ pub(crate) mod rules_208_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #3, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_3::*;
 
     #[derive(Debug)]
@@ -5168,42 +5215,46 @@ pub(crate) mod rules_208_3 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxI::V1 { a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_i(CtxI::V1 { a }, spans);
+            self.listener.exit_i(ctx, spans);
         }
 
         fn exit_j(&mut self) {
+            let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_j(CtxJ::V1, spans);
+            self.listener.exit_j(ctx, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { b }, spans);
+            self.listener.exit_b(ctx, spans);
         }
     }
 
@@ -5218,7 +5269,9 @@ pub(crate) mod rules_208_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #4, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_208_4::*;
+
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
@@ -5372,41 +5425,45 @@ pub(crate) mod rules_208_4 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_a(CtxA::V1 { c }, spans);
+            self.listener.exit_a(ctx, spans);
         }
 
         fn exit_i(&mut self) {
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxI::V1 { a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_i(CtxI::V1 { a }, spans);
+            self.listener.exit_i(ctx, spans);
         }
 
         fn exit_j(&mut self) {
+            let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_j(CtxJ::V1, spans);
+            self.listener.exit_j(ctx, spans);
         }
 
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_b(CtxB::V1 { b }, spans);
+            self.listener.exit_b(ctx, spans);
         }
     }
 
@@ -5420,7 +5477,7 @@ pub(crate) mod rules_210_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 210 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_210_1::*;
 
     #[derive(Debug)]
@@ -5566,22 +5623,24 @@ pub(crate) mod rules_210_1 {
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_i(&mut self) {
+            let ctx = CtxI::V1;
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_i(CtxI::V1, spans);
+            self.listener.exit_i(ctx, spans);
         }
     }
 
@@ -5595,7 +5654,7 @@ pub(crate) mod rules_211_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 211 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_211_1::*;
 
     #[derive(Debug)]
@@ -5782,12 +5841,13 @@ pub(crate) mod rules_211_1 {
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_i();
+            let ctx = CtxI::V1 { star_acc, b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_i(CtxI::V1 { star_acc, b }, spans);
+            let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
 
@@ -5808,7 +5868,7 @@ pub(crate) mod rules_250_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 250 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_250_1::*;
 
     #[derive(Debug)]
@@ -5961,12 +6021,13 @@ pub(crate) mod rules_250_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6013,7 +6074,7 @@ pub(crate) mod rules_251_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 251 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_251_1::*;
 
     #[derive(Debug)]
@@ -6168,12 +6229,13 @@ pub(crate) mod rules_251_1 {
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6217,7 +6279,7 @@ pub(crate) mod rules_252_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 252 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_252_1::*;
 
     #[derive(Debug)]
@@ -6408,12 +6470,13 @@ pub(crate) mod rules_252_1 {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, g }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6480,12 +6543,13 @@ pub(crate) mod rules_252_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -6500,7 +6564,7 @@ pub(crate) mod rules_253_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 253 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_253_1::*;
 
     #[derive(Debug)]
@@ -6691,12 +6755,13 @@ pub(crate) mod rules_253_1 {
             let g = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, g }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -6763,12 +6828,13 @@ pub(crate) mod rules_253_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -6783,7 +6849,7 @@ pub(crate) mod rules_254_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 254 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_254_1::*;
 
     #[derive(Debug)]
@@ -6972,12 +7038,13 @@ pub(crate) mod rules_254_1 {
             let g = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, star, g }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -7052,12 +7119,13 @@ pub(crate) mod rules_254_1 {
 
         fn exit_b(&mut self) {
             let h = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { h }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -7072,7 +7140,7 @@ pub(crate) mod rules_256_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 256 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_256_1::*;
 
     #[derive(Debug)]
@@ -7248,12 +7316,13 @@ pub(crate) mod rules_256_1 {
             let e = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, e };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, e }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -7298,12 +7367,13 @@ pub(crate) mod rules_256_1 {
 
         fn exit_b(&mut self) {
             let f = self.stack_t.pop().unwrap();
+            let ctx = CtxB::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_b(CtxB::V1 { f }, spans);
+            let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
     }
@@ -7318,7 +7388,7 @@ pub(crate) mod rules_258_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 258 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_258_1::*;
 
     #[derive(Debug)]
@@ -7503,12 +7573,13 @@ pub(crate) mod rules_258_1 {
 
         fn exit_a(&mut self) {
             let star = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { star }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -7605,7 +7676,7 @@ pub(crate) mod rules_259_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 259 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_259_1::*;
 
     #[derive(Debug)]
@@ -7796,12 +7867,13 @@ pub(crate) mod rules_259_1 {
 
         fn exit_a(&mut self) {
             let plus = self.stack.pop().unwrap().get_i();
+            let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { plus }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -7895,7 +7967,7 @@ pub(crate) mod rules_301_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #1, start expr]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_301_1::*;
 
     #[derive(Debug)]
@@ -8060,7 +8132,9 @@ pub(crate) mod rules_301_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #2, start expr]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_301_2::*;
+
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> Id "." expr`
@@ -8210,7 +8284,7 @@ pub(crate) mod rules_401_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #1, start expr]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_401_1::*;
 
     #[derive(Debug)]
@@ -8383,7 +8457,9 @@ pub(crate) mod rules_401_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #2, start expr]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_401_2::*;
+
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Id "." expr`
@@ -8532,7 +8608,7 @@ pub(crate) mod rules_502_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_502_1::*;
 
     #[derive(Debug)]
@@ -8683,24 +8759,26 @@ pub(crate) mod rules_502_1 {
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
+            let ctx = CtxE::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V1 { f }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let e = self.stack.pop().unwrap().get_e();
+            let ctx = CtxE::V2 { e, id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V2 { e, id }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
@@ -8711,12 +8789,13 @@ pub(crate) mod rules_502_1 {
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxF::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_f(CtxF::V1 { id }, spans);
+            let val = self.listener.exit_f(ctx, spans);
             self.stack.push(SynValue::F(val));
         }
     }
@@ -8731,7 +8810,7 @@ pub(crate) mod rules_502_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #2, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_502_2::*;
 
     #[derive(Debug)]
@@ -8875,32 +8954,35 @@ pub(crate) mod rules_502_2 {
 
         fn inter_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
+            let ctx = CtxE::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_e(CtxE::V1 { f }, spans);
+            self.listener.exit_e(ctx, spans);
         }
 
         fn exit_e1(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V2 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            self.listener.exit_e(CtxE::V2 { id }, spans);
+            self.listener.exit_e(ctx, spans);
         }
 
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxF::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_f(CtxF::V1 { id }, spans);
+            let val = self.listener.exit_f(ctx, spans);
             self.stack.push(SynValue::F(val));
         }
     }
@@ -8916,7 +8998,7 @@ pub(crate) mod rules_580_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 580 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_580_1::*;
 
     #[derive(Debug)]
@@ -9077,12 +9159,13 @@ pub(crate) mod rules_580_1 {
 
         fn exit_e1(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
+            let ctx = CtxE::V1 { e };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V1 { e }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
@@ -9103,7 +9186,7 @@ pub(crate) mod rules_600_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 600 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_600_1::*;
 
     #[derive(Debug)]
@@ -9241,23 +9324,25 @@ pub(crate) mod rules_600_1 {
         fn exit_e1(&mut self) {
             let e_2 = self.stack.pop().unwrap().get_e();
             let e_1 = self.stack.pop().unwrap().get_e();
+            let ctx = CtxE::V1 { e: [e_1, e_2] };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V1 { e: [e_1, e_2] }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
 
         fn exit_e2(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V2 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V2 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -9276,7 +9361,7 @@ pub(crate) mod rules_603_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 603 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -9560,7 +9645,7 @@ pub(crate) mod rules_604_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 604 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -9843,7 +9928,7 @@ pub(crate) mod rules_605_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 605 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10126,7 +10211,7 @@ pub(crate) mod rules_606_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 606 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10324,12 +10409,13 @@ pub(crate) mod rules_606_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10405,7 +10491,7 @@ pub(crate) mod rules_607_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 607 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10604,12 +10690,13 @@ pub(crate) mod rules_607_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10685,7 +10772,7 @@ pub(crate) mod rules_608_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 608 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -10887,12 +10974,13 @@ pub(crate) mod rules_608_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -10968,7 +11056,7 @@ pub(crate) mod rules_609_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 609 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11165,12 +11253,13 @@ pub(crate) mod rules_609_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11246,7 +11335,7 @@ pub(crate) mod rules_610_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 610 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11444,12 +11533,13 @@ pub(crate) mod rules_610_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11525,7 +11615,7 @@ pub(crate) mod rules_611_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 611 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -11726,12 +11816,13 @@ pub(crate) mod rules_611_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -11807,7 +11898,7 @@ pub(crate) mod rules_612_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 612 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -12009,12 +12100,13 @@ pub(crate) mod rules_612_1 {
 
         fn exit_e6(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12090,7 +12182,7 @@ pub(crate) mod rules_613_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 613 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -12288,12 +12380,13 @@ pub(crate) mod rules_613_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12369,7 +12462,7 @@ pub(crate) mod rules_614_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 614 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -12568,12 +12661,13 @@ pub(crate) mod rules_614_1 {
 
         fn exit_e4(&mut self) {
             let num = self.stack_t.pop().unwrap();
+            let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_e(CtxE::V4 { num }, spans);
+            let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
     }
@@ -12649,7 +12743,7 @@ pub(crate) mod rules_630_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 630 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -12928,7 +13022,7 @@ pub(crate) mod rules_631_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 631 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13207,7 +13301,7 @@ pub(crate) mod rules_632_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 632 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, CollectJoin, FixedSymTable};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13496,7 +13590,9 @@ pub(crate) mod rules_640_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 640 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_640_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -13714,7 +13810,9 @@ pub(crate) mod rules_641_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 641 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_641_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -13932,7 +14030,9 @@ pub(crate) mod rules_642_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 642 #1, start e]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_642_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -14144,7 +14244,7 @@ pub(crate) mod rules_650_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 650 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_650_1::*;
 
     #[derive(Debug)]
@@ -14284,23 +14384,25 @@ pub(crate) mod rules_650_1 {
             let a_2 = self.stack.pop().unwrap().get_a();
             let a1 = self.stack_t.pop().unwrap();
             let a_1 = self.stack.pop().unwrap().get_a();
+            let ctx = CtxA::V1 { a: [a_1, a_2, a_3], a1 };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a: [a_1, a_2, a_3], a1 }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
         fn exit_a2(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
     }
@@ -14315,7 +14417,7 @@ pub(crate) mod rules_705_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 705 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_705_1::*;
 
     #[derive(Debug)]
@@ -14507,7 +14609,7 @@ pub(crate) mod rules_810_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 810 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_810_1::*;
 
     #[derive(Debug)]
@@ -14701,7 +14803,7 @@ pub(crate) mod rules_811_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 811 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_811_1::*;
 
     #[derive(Debug)]
@@ -14897,7 +14999,7 @@ pub(crate) mod rules_820_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 820 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_820_1::*;
 
     #[derive(Debug)]
@@ -15046,12 +15148,13 @@ pub(crate) mod rules_820_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15077,12 +15180,13 @@ pub(crate) mod rules_820_1 {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
+            let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, star, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15102,7 +15206,7 @@ pub(crate) mod rules_821_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 821 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_821_1::*;
 
     #[derive(Debug)]
@@ -15252,12 +15356,13 @@ pub(crate) mod rules_821_1 {
 
         fn inter_a(&mut self) {
             let b = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V2 { b }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15283,12 +15388,13 @@ pub(crate) mod rules_821_1 {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack.pop().unwrap().get_a();
+            let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, plus, c }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15309,7 +15415,7 @@ pub(crate) mod rules_835_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 835 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_835_1::*;
 
     #[derive(Debug)]
@@ -15533,7 +15639,7 @@ pub(crate) mod rules_862_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 862 #1, start expr]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_862_1::*;
 
     #[derive(Debug)]
@@ -15708,7 +15814,7 @@ pub(crate) mod rules_870_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 870 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_870_1::*;
 
     #[derive(Debug)]
@@ -15873,12 +15979,13 @@ pub(crate) mod rules_870_1 {
         fn exit_a1(&mut self) {
             let a1 = self.stack_t.pop().unwrap();
             let a = self.stack.pop().unwrap().get_a();
+            let ctx = CtxA::V1 { a, a1 };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V1 { a, a1 }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -15898,7 +16005,7 @@ pub(crate) mod rules_871_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 871 #1, start a]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_871_1::*;
 
     #[derive(Debug)]
@@ -16040,12 +16147,13 @@ pub(crate) mod rules_871_1 {
 
         fn inter_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V3 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_a(CtxA::V3 { d }, spans);
+            let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
 
@@ -16090,7 +16198,7 @@ pub(crate) mod rules_901_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 901 #1, start file]
 
-    use lexigram_lib::{grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}, CollectJoin};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_901_1::*;
 
     #[derive(Debug)]
@@ -16629,35 +16737,38 @@ pub(crate) mod rules_901_1 {
 
         fn exit_header(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxHeader::V1 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_header(CtxHeader::V1 { id }, spans);
+            let val = self.listener.exit_header(ctx, spans);
             self.stack.push(SynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxDeclaration::V1 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_declaration(CtxDeclaration::V1 { id }, spans);
+            let val = self.listener.exit_declaration(ctx, spans);
             self.stack.push(SynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
             let id = self.stack_t.pop().unwrap();
+            let ctx = CtxOption::V1 { id, star };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_option(CtxOption::V1 { id, star }, spans);
+            let val = self.listener.exit_option(ctx, spans);
             self.stack.push(SynValue::Option(val));
         }
 
@@ -16710,12 +16821,13 @@ pub(crate) mod rules_901_1 {
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
             let action = self.stack.pop().unwrap().get_action();
+            let ctx = CtxActions::V1 { action, star };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_actions(CtxActions::V1 { action, star }, spans);
+            let val = self.listener.exit_actions(ctx, spans);
             self.stack.push(SynValue::Actions(val));
         }
 
@@ -16776,24 +16888,26 @@ pub(crate) mod rules_901_1 {
 
         fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
+            let ctx = CtxMatch::V1 { alt_items };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_match(CtxMatch::V1 { alt_items }, spans);
+            let val = self.listener.exit_match(ctx, spans);
             self.stack.push(SynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
             let alt_item = self.stack.pop().unwrap().get_alt_item();
+            let ctx = CtxAltItems::V1 { alt_item, star };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star }, spans);
+            let val = self.listener.exit_alt_items(ctx, spans);
             self.stack.push(SynValue::AltItems(val));
         }
 
@@ -16817,12 +16931,13 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_item(&mut self) {
             let plus = self.stack.pop().unwrap().get_alt_item1();
+            let ctx = CtxAltItem::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
-            let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus }, spans);
+            let val = self.listener.exit_alt_item(ctx, spans);
             self.stack.push(SynValue::AltItem(val));
         }
 

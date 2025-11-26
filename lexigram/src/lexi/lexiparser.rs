@@ -572,20 +572,23 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_header(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_header(CtxHeader::V1 { id });
+        let ctx = CtxHeader::V1 { id };
+        let val = self.listener.exit_header(ctx);
         self.stack.push(SynValue::Header(val));
     }
 
     fn exit_declaration(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_declaration(CtxDeclaration::V1 { id });
+        let ctx = CtxDeclaration::V1 { id };
+        let val = self.listener.exit_declaration(ctx);
         self.stack.push(SynValue::Declaration(val));
     }
 
     fn exit_option(&mut self) {
         let star = self.stack.pop().unwrap().get_option1();
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_option(CtxOption::V1 { id, star });
+        let ctx = CtxOption::V1 { id, star };
+        let val = self.listener.exit_option(ctx);
         self.stack.push(SynValue::Option(val));
     }
 
@@ -628,20 +631,23 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_rule_fragment_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_rule_fragment_name(CtxRuleFragmentName::V1 { id });
+        let ctx = CtxRuleFragmentName::V1 { id };
+        let val = self.listener.exit_rule_fragment_name(ctx);
         self.stack.push(SynValue::RuleFragmentName(val));
     }
 
     fn exit_rule_terminal_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_rule_terminal_name(CtxRuleTerminalName::V1 { id });
+        let ctx = CtxRuleTerminalName::V1 { id };
+        let val = self.listener.exit_rule_terminal_name(ctx);
         self.stack.push(SynValue::RuleTerminalName(val));
     }
 
     fn exit_actions(&mut self) {
         let star = self.stack.pop().unwrap().get_actions1();
         let action = self.stack.pop().unwrap().get_action();
-        let val = self.listener.exit_actions(CtxActions::V1 { action, star });
+        let ctx = CtxActions::V1 { action, star };
+        let val = self.listener.exit_actions(ctx);
         self.stack.push(SynValue::Actions(val));
     }
 
@@ -693,14 +699,16 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_match(&mut self) {
         let alt_items = self.stack.pop().unwrap().get_alt_items();
-        let val = self.listener.exit_match(CtxMatch::V1 { alt_items });
+        let ctx = CtxMatch::V1 { alt_items };
+        let val = self.listener.exit_match(ctx);
         self.stack.push(SynValue::Match(val));
     }
 
     fn exit_alt_items(&mut self) {
         let star = self.stack.pop().unwrap().get_alt_items1();
         let alt_item = self.stack.pop().unwrap().get_alt_item();
-        let val = self.listener.exit_alt_items(CtxAltItems::V1 { alt_item, star });
+        let ctx = CtxAltItems::V1 { alt_item, star };
+        let val = self.listener.exit_alt_items(ctx);
         self.stack.push(SynValue::AltItems(val));
     }
 
@@ -719,7 +727,8 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_alt_item(&mut self) {
         let plus = self.stack.pop().unwrap().get_alt_item1();
-        let val = self.listener.exit_alt_item(CtxAltItem::V1 { plus });
+        let ctx = CtxAltItem::V1 { plus };
+        let val = self.listener.exit_alt_item(ctx);
         self.stack.push(SynValue::AltItem(val));
     }
 

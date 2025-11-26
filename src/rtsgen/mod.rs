@@ -1119,24 +1119,28 @@ pub mod rtsgen_parser {
         fn exit_file(&mut self) {
             let ruleset = self.stack.pop().unwrap().get_ruleset();
             let decls = self.stack.pop().unwrap().get_decls();
-            let val = self.listener.exit_file(CtxFile::V1 { decls, ruleset });
+            let ctx = CtxFile::V1 { decls, ruleset };
+            let val = self.listener.exit_file(ctx);
             self.stack.push(SynValue::File(val));
         }
 
         fn exit_decls(&mut self) {
-            let val = self.listener.exit_decls(CtxDecls::V1);
+            let ctx = CtxDecls::V1;
+            let val = self.listener.exit_decls(ctx);
             self.stack.push(SynValue::Decls(val));
         }
 
         fn exit_decl_iter(&mut self) {
             let decl = self.stack.pop().unwrap().get_decl();
-            self.listener.exit_decl_iter(CtxDeclIter::V1 { decl });
+            let ctx = CtxDeclIter::V1 { decl };
+            self.listener.exit_decl_iter(ctx);
         }
 
         fn exit_decl(&mut self) {
             let star = self.stack.pop().unwrap().get_decl1();
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let val = self.listener.exit_decl(CtxDecl::V1 { decl_terminal, star });
+            let ctx = CtxDecl::V1 { decl_terminal, star };
+            let val = self.listener.exit_decl(ctx);
             self.stack.push(SynValue::Decl(val));
         }
 
@@ -1171,13 +1175,15 @@ pub mod rtsgen_parser {
         }
 
         fn exit_ruleset(&mut self) {
-            let val = self.listener.exit_ruleset(CtxRuleset::V1);
+            let ctx = CtxRuleset::V1;
+            let val = self.listener.exit_ruleset(ctx);
             self.stack.push(SynValue::Ruleset(val));
         }
 
         fn exit_rule_iter(&mut self) {
             let rule = self.stack.pop().unwrap().get_rule();
-            self.listener.exit_rule_iter(CtxRuleIter::V1 { rule });
+            let ctx = CtxRuleIter::V1 { rule };
+            self.listener.exit_rule_iter(ctx);
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -1200,7 +1206,8 @@ pub mod rtsgen_parser {
 
         fn exit_rule_nt(&mut self) {
             let nonterminal = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_rule_nt(CtxRuleNt::V1 { nonterminal });
+            let ctx = CtxRuleNt::V1 { nonterminal };
+            let val = self.listener.exit_rule_nt(ctx);
             self.stack.push(SynValue::RuleNt(val));
         }
 
@@ -1238,7 +1245,8 @@ pub mod rtsgen_parser {
 
         fn exit_rts_children(&mut self) {
             let star = self.stack.pop().unwrap().get_rts_children1();
-            let val = self.listener.exit_rts_children(CtxRtsChildren::V1 { star });
+            let ctx = CtxRtsChildren::V1 { star };
+            let val = self.listener.exit_rts_children(ctx);
             self.stack.push(SynValue::RtsChildren(val));
         }
 
