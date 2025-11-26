@@ -572,7 +572,8 @@ pub mod microcalc_parser {
 
         fn exit_program(&mut self) {
             let plus = self.stack.pop().unwrap().get_program1();
-            let val = self.listener.exit_program(CtxProgram::V1 { plus });
+            let ctx = CtxProgram::V1 { plus };
+            let val = self.listener.exit_program(ctx);
             self.stack.push(SynValue::Program(val));
         }
 
@@ -593,7 +594,8 @@ pub mod microcalc_parser {
             let plus = self.stack.pop().unwrap().get_function1();
             let fun_params = self.stack.pop().unwrap().get_fun_params();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_function(CtxFunction::V1 { id, fun_params, plus });
+            let ctx = CtxFunction::V1 { id, fun_params, plus };
+            let val = self.listener.exit_function(ctx);
             self.stack.push(SynValue::Function(val));
         }
 
