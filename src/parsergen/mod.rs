@@ -1900,13 +1900,14 @@ impl ParserGen {
                                 format!("Ctx{fnu}::{} {{ {ctx_params} }}", alt_info[a as usize].as_ref().unwrap().1)
                             };
                             if is_single {
+                                src_wrapper_impl.push(format!("        let ctx = {ctx};"));
                                 if self.gen_span_params {
                                     src_wrapper_impl.push(format!("        let n = {};", self.span_nbrs[a as usize]));
                                     src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
 
                                 }
                                 src_wrapper_impl.push(format!(
-                                    "        {}self.listener.exit_{fnpl}({ctx}{});",
+                                    "        {}self.listener.exit_{fnpl}(ctx{});",
                                     if a_has_value { "let val = " } else { "" },
                                     if self.gen_span_params { ", spans" } else { "" }));
                                 if a_has_value {
