@@ -28,7 +28,7 @@ amb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;
 
 fn main() {
     println!("{:=<80}\n{TXT1}\n{0:-<80}", "");
-    match PanDemo::parse_text(TXT1.to_string()) {
+    match PanDemo::parse_text(TXT1) {
         Ok(log) => println!("parsing successful\n{log}"),
         Err(log) => panic!("errors during parsing:\n{log}"),
     }
@@ -38,13 +38,13 @@ fn main() {
 // minimalist parser, top level
 
 pub struct PanDemo<'l, 'p> {
-    lexer: Lexer<'l, Cursor<String>>,
+    lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
     wrapper: Wrapper<PanDemoListener>,
 }
 
-impl PanDemo<'_, '_> {
-    pub fn parse_text(text: String) -> Result<BufLog, BufLog> {
+impl<'l> PanDemo<'l, '_> {
+    pub fn parse_text(text: &str) -> Result<BufLog, BufLog> {
         let mcalc = PanDemo::new();
         mcalc.parse(text)
     }
@@ -56,7 +56,7 @@ impl PanDemo<'_, '_> {
         PanDemo { lexer, parser, wrapper }
     }
 
-    pub fn parse(mut self, text: String) -> Result<BufLog, BufLog> {
+    pub fn parse(mut self, text: &'l str) -> Result<BufLog, BufLog> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
