@@ -13,8 +13,23 @@ use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
 use crate::pandemonium_parser::*;
 
+const VERBOSE: bool = true;
 const VERBOSE_WRAPPER: bool = false;
 
+fn main() {
+    println!("{:=<80}\n{TXT1}\n{0:-<80}", "");
+    let mut demo = PanDemo::new();
+    match demo.parse(TXT1) {
+        Ok((log, spans)) => {
+            println!("parsing successful\n{log}");
+            if VERBOSE { println!("Spans:\n{}", spans.iter().map(|s| format!("- {s}")).join("\n")); }
+            assert_eq!(spans, SPANS1);
+        },
+        Err(log) => panic!("errors during parsing:\n{log}"),
+    }
+}
+
+/// Text to parse
 static TXT1: &str = r#"
 star    Alpha   = 101, 110, 150;
 plus    Bravo   = 102, 120, 250;
@@ -26,13 +41,61 @@ lrec    Golf    = 107, 170, 750;
 amb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;
 "#;
 
-fn main() {
-    println!("{:=<80}\n{TXT1}\n{0:-<80}", "");
-    match PanDemo::parse_text(TXT1) {
-        Ok(log) => println!("parsing successful\n{log}"),
-        Err(log) => panic!("errors during parsing:\n{log}"),
-    }
-}
+/// Expected spans collected when parsing TXT1
+static SPANS1: &[&str] = &[
+    r#"exit_star("Alpha", "=", "101", ", 110, 150", ";")"#,
+    r#"exit_example("star", "Alpha   = 101, 110, 150;")"#,
+    r#"exit_i("", "star    Alpha   = 101, 110, 150;")"#,
+    r#"exit_plus("Bravo", "=", "102", ", 120, 250", ";")"#,
+    r#"exit_example("plus", "Bravo   = 102, 120, 250;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;", "plus    Bravo   = 102, 120, 250;")"#,
+    r#"exit_l_star_i("", ",", "130")"#,
+    r#"exit_l_star_i(", 130", ",", "350")"#,
+    r#"exit_l_star("Charlie", "=", "103", ", 130, 350", ";")"#,
+    r#"exit_example("l-star", "Charlie = 103, 130, 350;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nplus    Bravo   = 102, 120, 250;", "l-star  Charlie = 103, 130, 350;")"#,
+    r#"exit_l_plus_i("", ",", "140")"#,
+    r#"exit_l_plus_i(", 140", ",", "450")"#,
+    r#"exit_l_plus("Delta", "=", "104", ", 140, 450", ";")"#,
+    r#"exit_example("l-plus", "Delta   = 104, 140, 450;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-star  Charlie = 103, 130, 350;", "l-plus  Delta   = 104, 140, 450;")"#,
+    r#"exit_rrec_i(";")"#,
+    r#"exit_rrec_i(",", "550", ";")"#,
+    r#"exit_rrec_i(",", "150", ", 550;")"#,
+    r#"exit_rrec("Echo", "=", "105", ", 150, 550;")"#,
+    r#"exit_example("rrec", "Echo    = 105, 150, 550;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nl-plus  Delta   = 104, 140, 450;", "rrec    Echo    = 105, 150, 550;")"#,
+    r#"exit_l_rrec_i("", ",", "160")"#,
+    r#"exit_l_rrec_i(", 160", ",", "650")"#,
+    r#"exit_l_rrec_i(", 160, 650", ";")"#,
+    r#"exit_l_rrec("Foxtrot", "=", "106", ", 160, 650;")"#,
+    r#"exit_example("l-rrec", "Foxtrot = 106, 160, 650;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nrrec    Echo    = 105, 150, 550;", "l-rrec  Foxtrot = 106, 160, 650;")"#,
+    r#"exit_lrec_i("107")"#,
+    r#"exit_lrec_i("107", ",", "170")"#,
+    r#"exit_lrec_i("107, 170", ",", "750")"#,
+    r#"exit_lrec("Golf", "=", "107, 170, 750", ";")"#,
+    r#"exit_example("lrec", "Golf    = 107, 170, 750;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nl-rrec  Foxtrot = 106, 160, 650;", "lrec    Golf    = 107, 170, 750;")"#,
+    r#"exit_amb_i("5")"#,
+    r#"exit_amb_i("2")"#,
+    r#"exit_amb_i("6")"#,
+    r#"exit_amb_i("3")"#,
+    r#"exit_amb_i("2")"#,
+    r#"exit_amb_i("4")"#,
+    r#"exit_amb_i("2", "^", "4")"#,
+    r#"exit_amb_i("3", "^", "2^4")"#,
+    r#"exit_amb_i("81")"#,
+    r#"exit_amb_i("3^2^4", "/", "81")"#,
+    r#"exit_amb_i("6", "+", "3^2^4 / 81")"#,
+    r#"exit_amb_i("-", "6 + 3^2^4 / 81")"#,
+    r#"exit_amb_i("2", "*", "-6 + 3^2^4 / 81")"#,
+    r#"exit_amb_i("5", "-", "2*-6 + 3^2^4 / 81")"#,
+    r#"exit_amb("Hotel", "=", "5 - 2*-6 + 3^2^4 / 81", ";")"#,
+    r#"exit_example("amb", "Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\nlrec    Golf    = 107, 170, 750;", "amb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
+    r#"exit_text("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
+];
 
 // -------------------------------------------------------------------------
 // minimalist parser, top level
@@ -45,11 +108,6 @@ pub struct PanDemo<'l, 'p, 'ls> {
 }
 
 impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
-    pub fn parse_text(text: &str) -> Result<BufLog, BufLog> {
-        let mut mcalc = PanDemo::new();
-        mcalc.parse(text)
-    }
-
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
@@ -57,7 +115,7 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
         PanDemo { lexer, parser, wrapper, lines: vec![] }
     }
 
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<BufLog, BufLog> {
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<(BufLog, Vec<String>), BufLog> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         self.lines = text.lines().map(|l| l.to_string()).collect();
@@ -70,9 +128,9 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
         }
         let log = std::mem::take(&mut self.wrapper.get_listener_mut().log);
         if log.has_no_errors() {
-            let listener = self.wrapper.get_listener();
-            println!("Spans:\n{}", listener.spans.iter().map(|s| format!("- {s}")).join("\n"));
-            Ok(log)
+            let listener = self.wrapper.get_listener_mut();
+            let spans = std::mem::take(&mut listener.spans);
+            Ok((log, spans))
         } else {
             Err(log)
         }
