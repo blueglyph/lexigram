@@ -9,7 +9,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{Alternative, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::old_build_rts_prs::T;
 use crate::grammar::tests::old_build_rts_prs::build_prs;
-use crate::lexer::CaretCol;
+use crate::lexer::{CaretCol, Pos, PosSpan};
 use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
 use crate::parser::{ListenerWrapper, OpCode, Parser};
 use crate::parsergen::{ParserGen, ParserTables};
@@ -162,7 +162,8 @@ fn parser_parse_stream() {
                     let c_str = c.to_string();
                     if let Some(s) = symbols.get(&c_str) {
                         // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                        Some((*s, c_str, 1, i))
+                        let pos = Pos(1, i);
+                        Some((*s, c_str, PosSpan::new(pos, pos)))
                     } else {
                         panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                     }
@@ -283,13 +284,15 @@ fn parser_parse_stream_id() {
         for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                let pos = Pos(1, i);
+                let pos_span = PosSpan::new(pos, pos);
                 if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), 1, i)
+                    (*s, w.to_string(), pos_span)
                 } else {
                     if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string(), 1, i)
+                        (num_id, w.to_string(), pos_span)
                     } else {
-                        (id_id, w.to_string(), 1, i)
+                        (id_id, w.to_string(), pos_span)
                     }
                 }
             });

@@ -5,11 +5,115 @@ pub(crate) mod tests;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::io::Read;
+use std::ops::AddAssign;
 use crate::dfa::{ChannelId, StateId, Terminal, TokenId};
 use crate::escape_char;
 use crate::segments::{SegMap, Segments};
 use crate::io::{CharReader, UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
 use crate::lexergen::{char_to_group, GroupId};
+
+// ---------------------------------------------------------------------------------------------
+// Locations
+
+pub type CaretCol = u64;
+pub type CaretLine = u64;
+
+/// `Pos(line, col)`
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+pub struct Pos(pub CaretLine, pub CaretCol);
+
+impl Pos {
+    pub fn line(&self) -> CaretLine {
+        self.0
+    }
+
+    pub fn col(&self) -> CaretCol {
+        self.1
+    }
+}
+
+/// `PosSpan` defines a text selection where `first` and `last` are the [position](Pos) of the first and last character.
+/// When `first` > `last`, no text is selected.
+#[derive(Clone, PartialEq, Debug)]
+pub struct PosSpan {
+    pub first: Pos,
+    pub last: Pos,
+}
+
+impl PosSpan {
+    #[inline(always)]
+    pub fn new(first: Pos, last: Pos) -> Self {
+        PosSpan { first, last }
+    }
+
+    #[inline(always)]
+    pub fn empty() -> Self {
+        PosSpan { first: Pos(1, 1), last: Pos(0, 0) }
+    }
+
+    pub fn take(&mut self) -> PosSpan {
+        std::mem::take(self)
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.first > self.last
+    }
+
+    #[inline(always)]
+    pub fn is_not_empty(&self) -> bool {
+        self.first <= self.last
+    }
+
+    pub fn first(&self) -> Option<Pos> {
+        if self.is_not_empty() { Some(self.first) } else { None }
+    }
+
+    pub fn first_forced(&self) -> Pos {
+        if self.is_not_empty() { self.first } else { panic!("span is empty") }
+    }
+
+    pub fn last(&self) -> Option<Pos> {
+        if self.is_not_empty() { Some(self.last) } else { None }
+    }
+
+    pub fn last_forced(&self) -> Pos {
+        if self.is_not_empty() { self.last } else { panic!("span is empty") }
+    }
+}
+
+impl AddAssign<&PosSpan> for PosSpan {
+    fn add_assign(&mut self, rhs: &Self) {
+        match (self.is_empty(), rhs.is_empty()) {
+            (true, false) => (self.first, self.last) = (rhs.first, rhs.last),
+            (false, false) => self.last = rhs.last,
+            _ => {}
+        }
+    }
+}
+
+impl Default for PosSpan {
+    fn default() -> Self {
+        PosSpan::empty()
+    }
+}
+
+impl Display for PosSpan {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.is_not_empty() {
+            let (first, last) = (&self.first, &self.last);
+            if first == last {
+                write!(f, "{}:{}", first.0, first.1)
+            } else if first.0 == last.0 {
+                write!(f, "{}:{}-{}", first.0, first.1, last.1)
+            } else {
+                write!(f, "{}:{}-{}:{}", first.0, first.1, last.0, last.1)
+            }
+        } else {
+            write!(f, "<empty>")
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
@@ -79,10 +183,7 @@ impl LexerError {
     }
 }
 
-pub type CaretCol = u64;
-pub type CaretLine = u64;
-
-pub type LexerToken = (TokenId, ChannelId, String, CaretLine, CaretCol);
+pub type LexerToken = (TokenId, ChannelId, String, PosSpan);
 
 /// Lexical analyzer (lexer) based on tables, which scans a `Read` source and produces tokens.
 ///
@@ -188,11 +289,11 @@ impl<'a, R: Read> Lexer<'a, R> {
     //      if input.is_none
     //          return error
     //      state = start
+    //      startpos = endpos = self.(line, col)
     //      loop
     //          next char
     //          group       -> group == nbr_groups => unrecognized
     //          next_state  -> [normal] < first_end_state <= [accepting] <= nbr_states <= [invalid char]
-    //          line, col = self.(line, col)
     //          if next_state >= nbr_states || group >= nbr_groups (invalid char)
     //              if !EOS
     //                  rewind char
@@ -206,13 +307,14 @@ impl<'a, R: Read> Lexer<'a, R> {
     //                      start = n
     //                      state = n
     //                  if !skip
-    //                      return (token, channel, line, col)
-    //                  line, col = self.(line, col)
+    //                      return (token, channel, span(startpos, endpos))
+    //                  startpos = self.(line, col)
     //                  if !EOS
     //                      state = start
     //                      continue // skip
     //              return error/EOS
     //          else
+    //              endpos = self.(line, col)
     //              update self.(line, col)
     //              state = next_state
     //              pos++
@@ -226,7 +328,8 @@ impl<'a, R: Read> Lexer<'a, R> {
         // if let Some(input) = self.input.as_mut() {
         if self.input.is_some() {
             let mut state = self.start_state;
-            let (mut line, mut col) = (self.line, self.col);
+            let mut first_pos = Pos(self.line, self.col);
+            let mut last_pos = first_pos;
             #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
             #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
@@ -292,10 +395,10 @@ impl<'a, R: Read> Lexer<'a, R> {
                         }
                         if let Some(token) = &terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, line, col)));
+                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, PosSpan::new(first_pos, last_pos))));
                         }
                         if !terminal.action.is_more() {
-                            (line, col) = (self.line, self.col);
+                            first_pos = Pos(self.line, self.col);
                         }
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => {}, state {}", terminal.action, self.start_state); }
@@ -334,6 +437,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                     if VERBOSE { println!(" => Err({})", self.error); }
                     return Err(self.error.clone());
                 } else {
+                    last_pos = Pos(self.line, self.col);
                     if let Some(c) = c_opt {
                         text.push(c);
                         self.update_pos(c);
@@ -459,7 +563,8 @@ impl<'a, 'b, R: Read> Iterator for LexInterpretIter<'a, 'b, R> {
                     let info = self.error_info.as_ref().unwrap();
                     self.mode = LexInterpretIterMode::Normal;
                     let msg = format!("{}, scanned before = '{}'", self.lexer.get_error().to_string(), self.error_info.as_ref().unwrap().text);
-                    Some((TokenId::MAX, 0, msg, info.line, info.col))
+                    let pos = Pos(info.line, info.col);
+                    Some((TokenId::MAX, 0, msg, PosSpan::new(pos, pos)))
                 }
             }
         }
@@ -474,45 +579,45 @@ pub struct TokenSplit<I, F> {
     f: F
 }
 
-pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)> {
-    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
-    /// * the default channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
-    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, line, column)`
+pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, PosSpan)> {
+    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, PosSpan)`) based on the channel ID:
+    /// * the default channel 0 is output as another iterator on `(token, string, pos_span)`, suitable for the parser
+    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, pos_span)`
     ///
     /// ## Example
     /// ```ignore
-    /// let tokens = lexer.tokens().split_channel0(|(tok, ch, text, line, col)|
-    ///     println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")
+    /// let tokens = lexer.tokens().split_channel0(|(tok, ch, text, pos_span)|
+    ///     println!("TOKEN: channel {ch}, discarded, pos {pos_span}, Id {tok:?}, \"{text}\"")
     /// );
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
     fn split_channel0<F>(self, f: F) -> TokenSplit<Self, F>
     where Self: Sized,
-          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
+          F: FnMut((TokenId, ChannelId, String, PosSpan))
     {
         TokenSplit { iter: self, ch: 0, f }
     }
 
-    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
-    /// * the channel `channel` is output as another iterator on `(token, string, line, column)`, suitable for the parser
-    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, line, column)`
+    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, PosSpan)`) based on the channel ID:
+    /// * the channel `channel` is output as another iterator on `(token, string, pos_span)`, suitable for the parser
+    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, pos_span)`
     ///
     /// ## Example
     /// ```ignore
-    /// let tokens = lexer.tokens().split_channels(2, |(tok, ch, text, line, col)|
-    ///     println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")
+    /// let tokens = lexer.tokens().split_channels(2, |(tok, ch, text, pos_span)|
+    ///     println!("TOKEN: channel {ch}, discarded, pos {pos_span}, Id {tok:?}, \"{text}\"")
     /// );
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
     fn split_channels<F>(self, channel: ChannelId, f: F) -> TokenSplit<Self, F>
     where Self: Sized,
-          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
+          F: FnMut((TokenId, ChannelId, String, PosSpan))
     {
         TokenSplit { iter: self, ch: channel, f }
     }
 
-    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
-    /// * the default channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, PosSpan)`) based on the channel ID:
+    /// * the default channel 0 is output as another iterator on `(token, string, pos_span)`, suitable for the parser
     /// * other channels are discarded.
     ///
     /// ## Example
@@ -520,20 +625,20 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine
     /// let tokens = lexer.tokens().keep_channel0();
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
-    fn keep_channel0(self) -> impl Iterator<Item=(TokenId, String, CaretLine, CaretCol)>
+    fn keep_channel0(self) -> impl Iterator<Item=(TokenId, String, PosSpan)>
     where Self: Sized
     {
-        self.filter_map(|(token, ch, str, line, col)| {
+        self.filter_map(|(token, ch, str, pos_span)| {
             if ch == 0 {
-                Some((token, str, line, col))
+                Some((token, str, pos_span))
             } else {
                 None
             }
         })
     }
 
-    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
-    /// * channel `channel` is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, PosSpan)`) based on the channel ID:
+    /// * channel `channel` is output as another iterator on `(token, string, pos_span)`, suitable for the parser
     /// * other channels are discarded.
     ///
     /// ## Example
@@ -541,7 +646,7 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine
     /// let tokens = lexer.tokens().keep_channel(2);
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
-    fn keep_channel(self, channel: ChannelId) -> TokenSplit<Self, fn((TokenId, ChannelId, String, CaretLine, CaretCol))>
+    fn keep_channel(self, channel: ChannelId) -> TokenSplit<Self, fn((TokenId, ChannelId, String, PosSpan))>
     where Self: Sized
     {
         TokenSplit { iter: self, ch: channel, f: |_| {} }
@@ -549,12 +654,12 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine
 
     // or:
     //
-    // fn keep_channel(self, channel: ChannelId) -> impl Iterator<Item=(TokenId, String, CaretLine, CaretCol)>
+    // fn keep_channel(self, channel: ChannelId) -> impl Iterator<Item=(TokenId, String, PosSpan)>
     // where Self: Sized
     // {
-    //     self.filter_map(move |(token, ch, str, line, col)| {
+    //     self.filter_map(move |(token, ch, str, pos_span)| {
     //         if ch == channel {
-    //             Some((token, str, line, col))
+    //             Some((token, str, pos_span))
     //         } else {
     //             None
     //         }
@@ -563,17 +668,17 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine
 }
 
 impl<I, F> Iterator for TokenSplit<I, F>
-    where I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>,
-          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
+    where I: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>,
+          F: FnMut((TokenId, ChannelId, String, PosSpan))
 {
-    type Item = (TokenId, String, CaretLine, CaretCol);
+    type Item = (TokenId, String, PosSpan);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((token, ch, str, line, col)) = self.iter.next() {
+        if let Some((token, ch, str, pos_span)) = self.iter.next() {
             if ch == self.ch {
-                Some((token, str, line, col))
+                Some((token, str, pos_span))
             } else {
-                (self.f)((token, ch, str, line, col));
+                (self.f)((token, ch, str, pos_span));
                 None
             }
         } else {
@@ -582,4 +687,4 @@ impl<I, F> Iterator for TokenSplit<I, F>
     }
 }
 
-impl<I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>> TokenSpliterator for I {}
+impl<I: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>> TokenSpliterator for I {}

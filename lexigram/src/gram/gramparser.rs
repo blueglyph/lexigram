@@ -163,21 +163,24 @@ pub trait GramParserListener {
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
     fn get_mut_log(&mut self) -> &mut impl Logger;
-    fn exit(&mut self, _file: SynFile) {}
+    #[allow(unused)]
+    fn exit(&mut self, file: SynFile) {}
     fn init_file(&mut self) {}
     fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
     fn init_header(&mut self) {}
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
     fn init_rules(&mut self) {}
     fn exit_rules(&mut self, ctx: CtxRules) -> SynRules;
-    fn exitloop_rules(&mut self, _rules: &mut SynRules) {}
+    #[allow(unused)]
+    fn exitloop_rules(&mut self, rules: &mut SynRules) {}
     fn init_rule(&mut self) {}
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
     fn init_rule_name(&mut self) {}
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName;
     fn init_prod(&mut self) {}
     fn exit_prod(&mut self, ctx: CtxProd) -> SynProd;
-    fn exitloop_prod(&mut self, _prod: &mut SynProd) {}
+    #[allow(unused)]
+    fn exitloop_prod(&mut self, prod: &mut SynProd) {}
     fn init_prod_term(&mut self) {}
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm;
     fn init_prod_factor(&mut self) {}
@@ -271,6 +274,14 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
     fn get_mut_log(&mut self) -> &mut impl Logger {
         self.listener.get_mut_log()
     }
+
+    fn is_stack_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+
+    fn is_stack_t_empty(&self) -> bool {
+        self.stack_t.is_empty()
+    }
 }
 
 impl<T: GramParserListener> Wrapper<T> {
@@ -302,26 +313,30 @@ impl<T: GramParserListener> Wrapper<T> {
     fn exit_file(&mut self) {
         let rules = self.stack.pop().unwrap().get_rules();
         let header = self.stack.pop().unwrap().get_header();
-        let val = self.listener.exit_file(CtxFile::V1 { header, rules });
+        let ctx = CtxFile::V1 { header, rules };
+        let val = self.listener.exit_file(ctx);
         self.stack.push(SynValue::File(val));
     }
 
     fn exit_header(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_header(CtxHeader::V1 { id });
+        let ctx = CtxHeader::V1 { id };
+        let val = self.listener.exit_header(ctx);
         self.stack.push(SynValue::Header(val));
     }
 
     fn inter_rules(&mut self) {
         let rule = self.stack.pop().unwrap().get_rule();
-        let val = self.listener.exit_rules(CtxRules::V1 { rule });
+        let ctx = CtxRules::V1 { rule };
+        let val = self.listener.exit_rules(ctx);
         self.stack.push(SynValue::Rules(val));
     }
 
     fn exit_rules1(&mut self) {
         let rule = self.stack.pop().unwrap().get_rule();
         let rules = self.stack.pop().unwrap().get_rules();
-        let val = self.listener.exit_rules(CtxRules::V2 { rules, rule });
+        let ctx = CtxRules::V2 { rules, rule };
+        let val = self.listener.exit_rules(ctx);
         self.stack.push(SynValue::Rules(val));
     }
 
@@ -350,20 +365,23 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_rule_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
-        let val = self.listener.exit_rule_name(CtxRuleName::V1 { id });
+        let ctx = CtxRuleName::V1 { id };
+        let val = self.listener.exit_rule_name(ctx);
         self.stack.push(SynValue::RuleName(val));
     }
 
     fn inter_prod(&mut self) {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
-        let val = self.listener.exit_prod(CtxProd::V1 { prod_term });
+        let ctx = CtxProd::V1 { prod_term };
+        let val = self.listener.exit_prod(ctx);
         self.stack.push(SynValue::Prod(val));
     }
 
     fn exit_prod1(&mut self) {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
         let prod = self.stack.pop().unwrap().get_prod();
-        let val = self.listener.exit_prod(CtxProd::V2 { prod, prod_term });
+        let ctx = CtxProd::V2 { prod, prod_term };
+        let val = self.listener.exit_prod(ctx);
         self.stack.push(SynValue::Prod(val));
     }
 
@@ -374,7 +392,8 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_term(&mut self) {
         let star = self.stack.pop().unwrap().get_prod_term1();
-        let val = self.listener.exit_prod_term(CtxProdTerm::V1 { star });
+        let ctx = CtxProdTerm::V1 { star };
+        let val = self.listener.exit_prod_term(ctx);
         self.stack.push(SynValue::ProdTerm(val));
     }
 

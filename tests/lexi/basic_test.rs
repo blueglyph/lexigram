@@ -195,20 +195,20 @@ mod tests {
                     // 'match' returns the result and not the tokens because the token iterator has a different
                     // type in each case:
                     0 => {
-                        let tokens = lexer.tokens().split_channels(0, |(_tok, ch, text, line, col)|
-                            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\""),
-                        ).inspect(|(tok, text, line, col)| {
+                        let tokens = lexer.tokens().split_channels(0, |(_tok, ch, text, pos_span)|
+                            panic!("no channel {ch} in this test, {pos_span}, \"{text}\""),
+                        ).inspect(|(tok, text, pos_span)| {
                             result_tokens += 1;
-                            if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+                            if VERBOSE_DETAILS { println!("TOKEN: {pos_span}, Id {tok:?}, \"{text}\""); }
                         });
                         parser.parse_stream(&mut wrapper, tokens)
                     }
                     1 => {
-                        let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-                            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-                        ).inspect(|(tok, text, line, col)| {
+                        let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+                            panic!("no channel {ch} in this test, {pos_span}, \"{text}\"")
+                        ).inspect(|(tok, text, pos_span)| {
                             result_tokens += 1;
-                            if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+                            if VERBOSE_DETAILS { println!("TOKEN: {pos_span}, Id {tok:?}, \"{text}\""); }
                         });
                         parser.parse_stream(&mut wrapper, tokens)
                     }

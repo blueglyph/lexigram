@@ -60,8 +60,8 @@ impl RtsGen<'_, '_> {
         let mut wrapper = Wrapper::new(RGListener::new(self.t_name_dictionary.as_ref()), VERBOSE_WRAPPER);
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
         let _ = self.parser.parse_stream(&mut wrapper, tokens); // errors are written in the log, so we can dismiss the error here
         let listener = wrapper.give_listener();
@@ -929,13 +929,15 @@ pub mod rtsgen_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _file: SynFile) {}
+        #[allow(unused)]
+        fn exit(&mut self, file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
         fn init_decls(&mut self) {}
         fn exit_decls(&mut self, ctx: CtxDecls) -> SynDecls;
         fn init_decl_iter(&mut self) {}
-        fn exit_decl_iter(&mut self, _ctx: CtxDeclIter) {}
+        #[allow(unused)]
+        fn exit_decl_iter(&mut self, ctx: CtxDeclIter) {}
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl;
         fn init_decl_terminal(&mut self) {}
@@ -943,7 +945,8 @@ pub mod rtsgen_parser {
         fn init_ruleset(&mut self) {}
         fn exit_ruleset(&mut self, ctx: CtxRuleset) -> SynRuleset;
         fn init_rule_iter(&mut self) {}
-        fn exit_rule_iter(&mut self, _ctx: CtxRuleIter) {}
+        #[allow(unused)]
+        fn exit_rule_iter(&mut self, ctx: CtxRuleIter) {}
         fn init_rule(&mut self) {}
         fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_rule_nt(&mut self) {}
@@ -1077,6 +1080,14 @@ pub mod rtsgen_parser {
         fn get_mut_log(&mut self) -> &mut impl Logger {
             self.listener.get_mut_log()
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
     }
 
     impl<T: RtsGenListener> Wrapper<T> {
@@ -1108,24 +1119,28 @@ pub mod rtsgen_parser {
         fn exit_file(&mut self) {
             let ruleset = self.stack.pop().unwrap().get_ruleset();
             let decls = self.stack.pop().unwrap().get_decls();
-            let val = self.listener.exit_file(CtxFile::V1 { decls, ruleset });
+            let ctx = CtxFile::V1 { decls, ruleset };
+            let val = self.listener.exit_file(ctx);
             self.stack.push(SynValue::File(val));
         }
 
         fn exit_decls(&mut self) {
-            let val = self.listener.exit_decls(CtxDecls::V1);
+            let ctx = CtxDecls::V1;
+            let val = self.listener.exit_decls(ctx);
             self.stack.push(SynValue::Decls(val));
         }
 
         fn exit_decl_iter(&mut self) {
             let decl = self.stack.pop().unwrap().get_decl();
-            self.listener.exit_decl_iter(CtxDeclIter::V1 { decl });
+            let ctx = CtxDeclIter::V1 { decl };
+            self.listener.exit_decl_iter(ctx);
         }
 
         fn exit_decl(&mut self) {
             let star = self.stack.pop().unwrap().get_decl1();
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let val = self.listener.exit_decl(CtxDecl::V1 { decl_terminal, star });
+            let ctx = CtxDecl::V1 { decl_terminal, star };
+            let val = self.listener.exit_decl(ctx);
             self.stack.push(SynValue::Decl(val));
         }
 
@@ -1160,13 +1175,15 @@ pub mod rtsgen_parser {
         }
 
         fn exit_ruleset(&mut self) {
-            let val = self.listener.exit_ruleset(CtxRuleset::V1);
+            let ctx = CtxRuleset::V1;
+            let val = self.listener.exit_ruleset(ctx);
             self.stack.push(SynValue::Ruleset(val));
         }
 
         fn exit_rule_iter(&mut self) {
             let rule = self.stack.pop().unwrap().get_rule();
-            self.listener.exit_rule_iter(CtxRuleIter::V1 { rule });
+            let ctx = CtxRuleIter::V1 { rule };
+            self.listener.exit_rule_iter(ctx);
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -1189,7 +1206,8 @@ pub mod rtsgen_parser {
 
         fn exit_rule_nt(&mut self) {
             let nonterminal = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_rule_nt(CtxRuleNt::V1 { nonterminal });
+            let ctx = CtxRuleNt::V1 { nonterminal };
+            let val = self.listener.exit_rule_nt(ctx);
             self.stack.push(SynValue::RuleNt(val));
         }
 
@@ -1227,7 +1245,8 @@ pub mod rtsgen_parser {
 
         fn exit_rts_children(&mut self) {
             let star = self.stack.pop().unwrap().get_rts_children1();
-            let val = self.listener.exit_rts_children(CtxRtsChildren::V1 { star });
+            let ctx = CtxRtsChildren::V1 { star };
+            let val = self.listener.exit_rts_children(ctx);
             self.stack.push(SynValue::RtsChildren(val));
         }
 

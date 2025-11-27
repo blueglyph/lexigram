@@ -53,8 +53,8 @@ impl MCalc<'_, '_> {
     pub fn parse(&mut self, text: String) -> Result<BufLog, BufLog> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
         if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
             self.wrapper.get_listener_mut().get_mut_log().add_error(e.to_string());
@@ -423,7 +423,8 @@ pub mod microcalc_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _program: SynProgram) {}
+        #[allow(unused)]
+        fn exit(&mut self, program: SynProgram) {}
         fn init_program(&mut self) {}
         fn exit_program(&mut self, ctx: CtxProgram) -> SynProgram;
         fn init_function(&mut self) {}
@@ -533,6 +534,14 @@ pub mod microcalc_parser {
         fn get_mut_log(&mut self) -> &mut impl Logger {
             self.listener.get_mut_log()
         }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
     }
 
     impl<T: MicroCalcListener> Wrapper<T> {
@@ -563,7 +572,8 @@ pub mod microcalc_parser {
 
         fn exit_program(&mut self) {
             let plus = self.stack.pop().unwrap().get_program1();
-            let val = self.listener.exit_program(CtxProgram::V1 { plus });
+            let ctx = CtxProgram::V1 { plus };
+            let val = self.listener.exit_program(ctx);
             self.stack.push(SynValue::Program(val));
         }
 
@@ -584,7 +594,8 @@ pub mod microcalc_parser {
             let plus = self.stack.pop().unwrap().get_function1();
             let fun_params = self.stack.pop().unwrap().get_fun_params();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_function(CtxFunction::V1 { id, fun_params, plus });
+            let ctx = CtxFunction::V1 { id, fun_params, plus };
+            let val = self.listener.exit_function(ctx);
             self.stack.push(SynValue::Function(val));
         }
 

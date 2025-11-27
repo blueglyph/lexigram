@@ -16,3 +16,11 @@ test = true
 [[example]]
 name = "microcalc"
 test = true
+
+[[example]]
+name = "gen_pandemonium"
+test = true
+
+[[example]]
+name = "pandemonium"
+test = true

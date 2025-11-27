@@ -49,8 +49,8 @@ impl<R: Read> Gram<'_, '_, R> {
     }
 
     fn make(&mut self) -> Result<(), &BufLog> {
-        let tokens = self.gramlexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("unexpected channel {ch} from Gram while parsing a grammar, line {line} col {col}, \"{text}\"")
+        let tokens = self.gramlexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} from Gram while parsing a grammar at {pos_span}, \"{text}\"")
         );
         if let Err(e) = self.gramparser.parse_stream(&mut self.wrapper, tokens) {
             self.get_listener_mut().get_mut_log().add_error(e.to_string());
