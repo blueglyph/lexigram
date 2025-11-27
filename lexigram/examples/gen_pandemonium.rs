@@ -31,7 +31,7 @@ enum Action { Verify, Generate }
 fn main() {
     match gen_source(Action::Generate) {
         Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-        Err(build_error) => println!("{build_error}"),
+        Err(build_error) => panic!("{build_error}"),
     }
 }
 
@@ -104,7 +104,7 @@ mod tests {
     fn test_check_source() {
         match gen_source(Action::Verify) {
             Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(build_error) => println!("{build_error}"),
+            Err(build_error) => panic!("{build_error}"),
        }
     }
 }

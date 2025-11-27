@@ -11,6 +11,10 @@ example:
 |   L_Rrec l_rrec
 |   Lrec lrec
 |   Amb amb
+|   Star_A star_a
+|   Plus_A plus_a
+|   L_Star_A l_star_a
+|   L_Plus_A l_plus_a
 ;
 
 star:   Id Equal Num (Comma Num)* Semi;
@@ -21,6 +25,11 @@ rrec:   Id Equal Num rrec_i;
 l_rrec: Id Equal Num l_rrec_i;
 lrec:   Id Equal lrec_i Semi;
 amb:    Id Equal amb_i Semi;
+
+star_a:   Id Equal Lsbracket (Id | Num Colon Id)* Rsbracket Semi;
+plus_a:   Id Equal Lsbracket (Id | Num Colon Id)+ Rsbracket Semi;
+l_star_a: Id Equal Lsbracket (<L=l_star_a_i> Id | Num Colon Id)* Rsbracket Semi;
+l_plus_a: Id Equal Lsbracket (<L=l_plus_a_i> Id | Num Colon Id)+ Rsbracket Semi;
 
 rrec_i:
     Comma Num rrec_i

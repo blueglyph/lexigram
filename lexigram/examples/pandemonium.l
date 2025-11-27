@@ -11,10 +11,13 @@ Div                     : '/';
 Equal                   : '=';
 Exp                     : '^';
 Lpar                    : '(';
+Lsbracket               : '[';
 Mul                     : '*';
 Rpar                    : ')';
+Rsbracket               : ']';
 Sub                     : '-';
 
+Colon                   : ':';
 Comma                   : ',';
 Semi                    : ';';
 
@@ -26,6 +29,10 @@ L_Rrec                  : 'l-rrec';
 Rrec                    : 'rrec';
 Lrec                    : 'lrec';
 Amb                     : 'amb';
+Star_A                  : 'star-a';
+Plus_A                  : 'plus-a';
+L_Star_A                : 'l-star-a';
+L_Plus_A                : 'l-plus-a';
 
 SComment                : BlockComment              -> skip;
 SLineComment            : LineComment               -> skip;
