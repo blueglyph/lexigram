@@ -76,12 +76,14 @@
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
-  - [ ] attach token information (text, line / col) to context items
-    - [ ] replace SynVal by CtxVal in wrapper, with struct CtxVal { val: SynVal, text: String, line: usize, col: usize, .. }?
+  - [x] ~~attach token information (text, line / col) to context items~~
+    - [ ] pass also pos
+    - [ ] instead of passing (line, col, pos), pass indices to reference rolling collection of (line, col, pos)?
   - [ ] allow for references in Syn types (=> SynNT<'a>(&'a ValType), CtxRule<'a> { nt: SynNT<'a>, .. }, ...)
     - if possible at all, we need to verify that the lifetime >= wrapper's lifetime (and make the borrow checked understand it)
-  - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
-    - based on T names and the number of NTs? E * E = Mul2, E - E = Sub2, - E = Sub1, ... => easier if collected before transformation
+  - [x] ~~better names when creating enum options in contexts (ParserBuilder::source_wrapper)~~
+    - ~~based on T names and the number of NTs? E * E = Mul2, E - E = Sub2, - E = Sub1, ... => easier if collected before transformation~~
+    - now: based on order of occurrence in grammar
   - [ ] better names when creating children NTs (grammar/symbol_table)
 - robustness
   - [ ] error reporting when creating the parser
