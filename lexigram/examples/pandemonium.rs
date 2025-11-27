@@ -46,6 +46,12 @@ star-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];
 plus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];
 l-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];
 l-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];
+
+star    Mike     = 201;
+l-star  November = 202;
+rrec    Oscar    = 203;
+l-rrec  Papa     = 204;
+lrec    Quebec   = 205;
 "#;
 
 /// Expected spans collected when parsing TXT1
@@ -101,6 +107,7 @@ static SPANS1: &[&str] = &[
     r#"exit_amb("Hotel", "=", "5 - 2*-6 + 3^2^4 / 81", ";")"#,
     r#"exit_example("amb", "Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
     r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\nlrec    Golf    = 107, 170, 750;", "amb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
+
     r#"exit_star_a("India", "=", "[", "1:Alpha Beta 4:Delta Echo 10:Juliet", "]", ";")"#,
     r#"exit_example("star-a", "India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];")"#,
     r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;", "star-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];")"#,
@@ -119,7 +126,27 @@ static SPANS1: &[&str] = &[
     r#"exit_l_plus_a("Lima", "=", "[", "21:Uniform Victor 25:Yankee", "]", ";")"#,
     r#"exit_example("l-plus-a", "Lima   = [ 21:Uniform Victor 25:Yankee ];")"#,
     r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];", "l-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];")"#,
-    r#"exit_text("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];")"#,
+
+    r#"exit_star("Mike", "=", "201", "", ";")"#,
+    r#"exit_example("star", "Mike     = 201;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];", "star    Mike     = 201;")"#,
+    r#"exit_l_star("November", "=", "202", "", ";")"#,
+    r#"exit_example("l-star", "November = 202;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = 201;\nstar    Mike     = 201;", "l-star  November = 202;")"#,
+    r#"exit_rrec_i(";")"#,
+    r#"exit_rrec("Oscar", "=", "203", ";")"#,
+    r#"exit_example("rrec", "Oscar    = 203;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = 201;\nl-star  November = 202;\nl-star  November = 202;", "rrec    Oscar    = 203;")"#,
+    r#"exit_l_rrec_i("", ";")"#,
+    r#"exit_l_rrec("Papa", "=", "204", ";")"#,
+    r#"exit_example("l-rrec", "Papa     = 204;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = 201;\nl-star  November = 202;\nrrec    Oscar    = 203;\nrrec    Oscar    = 203;", "l-rrec  Papa     = 204;")"#,
+    r#"exit_lrec_i("205")"#,
+    r#"exit_lrec("Quebec", "=", "205", ";")"#,
+    r#"exit_example("lrec", "Quebec   = 205;")"#,
+    r#"exit_i("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = 201;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nl-rrec  Papa     = 204;", "lrec    Quebec   = 205;")"#,
+
+    r#"exit_text("star    Alpha   = 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = 201;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\nlrec    Quebec   = 205;")"#,
 ];
 
 // -------------------------------------------------------------------------
