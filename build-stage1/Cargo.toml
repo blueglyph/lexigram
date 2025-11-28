@@ -1,9 +1,9 @@
 [package]
 name = "build-stage1"
-version = "0.5.4"
+version = "0.6.0"
 edition = "2024"
 
 [dependencies]
-#lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.5.3", package = "lexigram" }
+#lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.6.0", package = "lexigram" }
 lexigram = { path = "../lexigram", package = "lexigram" }
 
