@@ -5,7 +5,7 @@
 
 use std::io::Cursor;
 use lexigram_lib::CollectJoin;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{Lexer, Pos, PosSpan, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::parser::Parser;

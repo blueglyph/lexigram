@@ -9,14 +9,14 @@ use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, Terminal};
 use crate::{escape_string, gnode, CollectJoin, General, SymbolTable, LL1};
 use crate::SymInfoTable;
-use crate::io::CharReader;
+use crate::char_reader::CharReader;
 use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
 use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
 use crate::parsergen::{print_flags, print_items, ParserGen};
-use crate::test_tools::{get_tagged_source, replace_tagged_source};
+use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
 // ---------------------------------------------------------------------------------------------
 // Lexer

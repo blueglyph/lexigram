@@ -6,7 +6,7 @@ use std::io::Cursor;
 use iter_index::IndexerIterator;
 use lexigram_lib::{CollectJoin, SymbolTable};
 use lexigram_lib::grammar::VarId;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexergen::{LexerGen, LexerTables};
 use lexigram_lib::log::{BuildFrom, BuildInto, LogReader, LogStatus};
 use crate::Lexi;
@@ -92,7 +92,7 @@ mod listener {
     use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::{AltId, ProdRuleSet, VarId};
-    use lexigram_lib::io::CharReader;
+    use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexer::TokenSpliterator;
     use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
     use lexigram_lib::{CollectJoin, LL1};

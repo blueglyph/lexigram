@@ -9,7 +9,7 @@ use std::ops::AddAssign;
 use crate::dfa::{ChannelId, StateId, Terminal, TokenId};
 use crate::escape_char;
 use crate::segments::{SegMap, Segments};
-use crate::io::{CharReader, UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
+use crate::char_reader::{CharReader, UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
 use crate::lexergen::{char_to_group, GroupId};
 
 // ---------------------------------------------------------------------------------------------

@@ -7,7 +7,7 @@ use std::collections::btree_map::{IntoIter, Iter};
 use std::iter::Sum;
 use std::ops::Bound::Included;
 use crate::{btreeset, CollectJoin, escape_char};
-use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
+use crate::char_reader::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
 
 // ---------------------------------------------------------------------------------------------
 // Segments

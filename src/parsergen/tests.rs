@@ -24,7 +24,7 @@ mod gen_integration {
     use crate::grammar::tests::TestRules;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
-    use crate::test_tools::{get_tagged_source, replace_tagged_source};
+    use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
     fn get_source(tr_id: u32, indent: usize, include_alts: bool, name: String) -> String {
         let rules = TestRules(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
@@ -488,7 +488,7 @@ mod wrapper_source {
     use crate::parser::SpanNbr;
     use crate::parsergen::tests::get_original_str;
     use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
-    use crate::test_tools::{get_tagged_source, replace_tagged_source};
+    use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
     #[allow(dead_code)] // All not used for now
     #[derive(Clone)]

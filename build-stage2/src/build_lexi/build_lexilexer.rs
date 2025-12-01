@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram_lib::lexergen::LexerGen;
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::dfa::{Dfa, DfaTables};
 use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
@@ -55,9 +55,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.6.0
-    // lexigram: 0.6.0
-    // build-stage1: 0.6.0
+    // lexigram_lib: 0.7.0
+    // lexigram: 0.7.0
+    // build-stage1: 0.7.0
 
     // [versions]
 
@@ -209,7 +209,7 @@ pub fn write_lexilexer() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::file_utils::get_tagged_source;
     use super::*;
 
     #[test]

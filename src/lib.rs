@@ -10,7 +10,7 @@ mod macros;
 mod take_until;
 mod cproduct;
 pub mod segments;
-pub mod io;
+pub mod char_reader;
 pub mod dfa;
 pub mod lexergen;
 pub mod lexer;
@@ -19,7 +19,7 @@ pub mod grammar;
 pub mod parsergen;
 pub mod parser;
 pub mod log;
-pub mod test_tools;
+pub mod file_utils;
 
 mod name_fixer;
 pub use name_fixer::{NameFixer, NameTransformer};

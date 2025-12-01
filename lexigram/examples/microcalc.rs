@@ -4,7 +4,7 @@
 // Simple parser based on microcalc lexicon and grammar
 
 use std::io::Cursor;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::parser::Parser;

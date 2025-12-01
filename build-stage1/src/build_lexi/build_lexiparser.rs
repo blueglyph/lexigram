@@ -6,8 +6,8 @@ use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
 use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::{LL1, SymbolTable};
-use lexigram_lib::io::CharReader;
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::char_reader::CharReader;
+use lexigram_lib::file_utils::replace_tagged_source;
 use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, VERSIONS_TAG};
 
 // -------------------------------------------------------------------------
@@ -102,7 +102,7 @@ pub fn write_lexiparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::file_utils::get_tagged_source;
     use super::*;
 
     #[test]

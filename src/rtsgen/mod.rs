@@ -15,7 +15,7 @@ use vectree::VecTree;
 use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
 use crate::dfa::TokenId;
 use crate::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
-use crate::io::CharReader;
+use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
 use crate::log::{BufLog, LogStatus, Logger};
 use crate::parser::Parser;

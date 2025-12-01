@@ -5,8 +5,8 @@ use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram::lexi::SymbolicDfa;
 use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
-use lexigram_lib::io::CharReader;
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::char_reader::CharReader;
+use lexigram_lib::file_utils::replace_tagged_source;
 use super::{BUILD_GRAMPARSER_FILENAME, GRAMLEXER_STAGE2_FILENAME, GRAMLEXER_LEXICON, GRAMLEXER_STAGE2_TAG, GRAM_SYM_T_TAG, VERSIONS_TAG};
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
@@ -63,7 +63,7 @@ pub fn write_gramlexer() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::file_utils::get_tagged_source;
     use super::*;
 
     #[test]

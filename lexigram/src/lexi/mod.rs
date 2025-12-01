@@ -2,7 +2,7 @@
 
 use std::io::Read;
 use lexigram_lib::dfa::Dfa;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, Logger, LogReader, LogStatus, TryBuildFrom};
 use lexigram_lib::parser::Parser;

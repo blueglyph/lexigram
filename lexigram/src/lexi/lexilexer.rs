@@ -223,7 +223,7 @@ mod test {
     use std::io::Cursor;
     use lexigram_lib::dfa::TokenId;
     use lexigram_lib::escape_string;
-    use lexigram_lib::io::CharReader;
+    use lexigram_lib::char_reader::CharReader;
     use crate::lexi::lexilexer::build_lexer;
 
     #[test]

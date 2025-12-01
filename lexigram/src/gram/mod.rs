@@ -4,7 +4,7 @@ use gramlexer::build_lexer;
 use gramparser::{build_parser, GramParserListener, Wrapper};
 use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Parser;

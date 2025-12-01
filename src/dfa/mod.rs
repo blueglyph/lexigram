@@ -1401,7 +1401,7 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use lexigram_lib::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
+    /// # use lexigram_lib::{dfa::*, node, char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
     /// # use lexigram_lib::segments::{Seg, Segments};
     /// assert_eq!(node!(chr 'a'), ReNode::char('a'));
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
@@ -1458,7 +1458,7 @@ pub mod macros {
     mod tests {
         use crate::{branch, btreemap};
         use crate::dfa::{graph_to_code, ActionOption, ModeOption, ReNode, Terminal};
-        use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
+        use crate::char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
         use crate::segments::{Seg, Segments};
 
         #[test]

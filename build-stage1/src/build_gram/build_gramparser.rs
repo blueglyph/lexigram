@@ -7,8 +7,8 @@ use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
 use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::{LL1, SymbolTable};
-use lexigram_lib::io::CharReader;
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::char_reader::CharReader;
+use lexigram_lib::file_utils::replace_tagged_source;
 use super::{GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_STAGE2_TAG, VERSIONS_TAG};
 
 // -------------------------------------------------------------------------
@@ -79,7 +79,7 @@ pub fn write_gramparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::file_utils::get_tagged_source;
     use super::*;
 
     #[test]

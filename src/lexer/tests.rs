@@ -309,7 +309,7 @@ mod lexer_source1 {
     use std::io::{Cursor, Read};
     use crate::dfa::{ModeOption, StateId, Terminal, TokenId};
     use crate::escape_string;
-    use crate::io::CharReader;
+    use crate::char_reader::CharReader;
     use crate::lexergen::GroupId;
     use crate::segments::{Seg, SegMap};
     use crate::lexer::Lexer;

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use lexigram_lib::{gnode, LL1};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
@@ -17,9 +17,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.6.0
-    // lexigram: 0.6.0
-    // build-stage1: 0.6.0
+    // lexigram_lib: 0.7.0
+    // lexigram: 0.7.0
+    // build-stage1: 0.7.0
 
     // [versions]
 
@@ -110,7 +110,7 @@ pub fn write_gramparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::file_utils::get_tagged_source;
     use super::*;
 
     #[test]

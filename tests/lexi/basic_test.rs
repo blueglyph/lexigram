@@ -158,7 +158,7 @@ impl LexiParserListener for LexiListener {
 mod tests {
     use std::io::Cursor;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::io::CharReader;
+    use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexi::LEXICON;
     use lexigram_lib::lexer::TokenSpliterator;
     use lexigram_lib::log::LogStatus;

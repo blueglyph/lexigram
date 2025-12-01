@@ -8,12 +8,12 @@ use std::io::BufReader;
 use lexigram::{Gram, Lexi};
 use lexigram::lexi::SymbolicDfa;
 use lexigram_lib::grammar::ProdRuleSet;
-use lexigram_lib::io::CharReader;
+use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::{BuildError, LL1};
 use lexigram_lib::log::{BufLog, LogStatus, TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
-use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
+use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
 
 static LEXICON_FILENAME: &str = "examples/microcalc.l";
 static GRAMMAR_FILENAME: &str = "examples/microcalc.g";
