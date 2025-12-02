@@ -17,6 +17,11 @@
     - make:   sets fields or creates object without consuming self
     - gen:    creates string source code
     - write:  writes source code into file
+- [ ] make binary application
+  - https://lib.rs/crates/rust-args-parser 
+  - https://lib.rs/crates/sarge
+  - https://lib.rs/crates/clappers
+  - (https://crates.io/crates/clap - too heavy?)
 - [ ] change ParserGen::item_ops to array instead of dictionary
 - [ ] split huge files
   - [ ] dfa
@@ -33,7 +38,6 @@
 
 - basic lexi
   - [x] ~~move 'make' methods from listener to Lexi~~ 
-  - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous lexicons
 - code generation
   - [x] ~~don't pour big ranges (.) into utf8 table~~
@@ -64,7 +68,6 @@
 
 - basic gram
   - parser text -> RuleTree
-  - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~

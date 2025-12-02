@@ -2,8 +2,6 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
-use std::fs::File;
-use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, AltId, NTConversion, Alternative, grtree_to_str, GrTreeExt};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};

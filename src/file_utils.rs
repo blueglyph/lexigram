@@ -46,22 +46,23 @@ impl Error for SrcTagError {
 pub fn get_tagged_source(filename: &str, tag: &str) -> Result<String, SrcTagError> {
     let file_tag = format!("[{tag}]");
     let file = File::open(filename)?;
-    let mut open_tag_found = false;
-    let mut close_tag_found = false;
+    let mut opening_tag_found = false;
+    let mut closing_tag_found = false;
     let result = BufReader::new(file).lines()
         .filter_map(|l| l.ok())
         .skip_while(|l| !l.contains(&file_tag))
+        .inspect(|_| opening_tag_found = true)
         .skip(2)
         .take_while(|l| !l.contains(&file_tag))
-        .inspect(|_| close_tag_found = true)
+        .inspect(|_| closing_tag_found = true)
         .map(|mut s| {
             s.truncate(s.trim_end().len());
             s
         })
         .join("\n"); // the last line won't end by `\n`, which removes the last empty line
-    if close_tag_found {
+    if closing_tag_found {
         Ok(result)
-    } else if open_tag_found {
+    } else if opening_tag_found {
         Err(SrcTagError::NoClosingTag)
     } else {
         Err(SrcTagError::NoTag)
