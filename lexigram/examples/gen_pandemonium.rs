@@ -77,8 +77,10 @@ fn gen_source(action: Action) -> Result<BufLog, BuildError> {
         Action::Verify => {
             assert!(log.has_no_errors(), "errors in the log:\n{log}");
             let expected = get_tagged_source(SOURCE_FILENAME, PARSER_TAG);
-            assert!(expected.is_some(), "didn't find the expected sources for comparison");
-            assert_eq!(parser_source, expected.unwrap());
+            match expected {
+                Ok(expected_source) => assert_eq!(parser_source, expected_source),
+                Err(e) => panic!("didn't find the expected sources for comparison: {e}"),
+            }
         }
         Action::Generate => {
             // - writes the source code between existing tags:

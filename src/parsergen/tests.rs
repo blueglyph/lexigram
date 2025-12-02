@@ -63,8 +63,8 @@ mod gen_integration {
             }
             match action {
                 Action::VerifySource => {
-                    let result = get_tagged_source(FILENAME, tag).ok_or_else(|| {
-                        println!("source not found for {id} / {tr_id} / {tag} ({name})");
+                    let result = get_tagged_source(FILENAME, tag).map_err(|e| {
+                        println!("source not found for {id} / {tr_id} / {tag} ({name}): {e}");
                         SourceTestError::SourceNotFound
                     })?;
                     if result != source {
@@ -2222,10 +2222,10 @@ mod wrapper_source {
             }
             let expected_src = if test_source && !cfg!(miri) {
                 let src = get_tagged_source(WRAPPER_FILENAME, &test_name);
-                if (TEST_SOURCE || REPLACE_SOURCE) && src.is_none() {
-                    println!("## couldn't find the source code");
+                if (TEST_SOURCE || REPLACE_SOURCE) && src.is_err() {
+                    println!("## couldn't find the source code: {}", src.as_ref().err().unwrap());
                 }
-                src
+                src.ok()
             } else {
                 None
             };

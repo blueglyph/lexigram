@@ -84,7 +84,7 @@ pub struct LL1;
 #[derive(Clone, Debug)]
 pub struct Normalized;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum BuildErrorSource {
     RuleTreeSet,
     Dfa,
@@ -96,7 +96,7 @@ pub enum BuildErrorSource {
     Gram,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BuildError {
     log: BufLog,
     source: BuildErrorSource,

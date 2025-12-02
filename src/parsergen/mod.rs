@@ -1163,17 +1163,6 @@ impl ParserGen {
     // - get the sources for the validation tests or print them / write them into a file.
     // The whole code isn't that big, so it's not a major issue.
 
-    pub fn write_source_code(&mut self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
-        let mut out: BufWriter<Box<dyn Write>> = match file {
-            Some(file) => BufWriter::new(Box::new(file)),
-            None => BufWriter::new(Box::new(std::io::stdout().lock()))
-        };
-        let source = self.gen_source_code(indent, true);
-        out.write(source.as_bytes())?;
-        // write!(out, "{source}");
-        Ok(())
-    }
-
     pub fn gen_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let mut parts = vec![];
         let mut tmp_parts = vec![self.source_build_parser()];
