@@ -39,6 +39,15 @@ pub enum CodeLocation {
 }
 
 impl CodeLocation {
+    pub fn get_type(&self) -> String {
+        match self {
+            CodeLocation::None => "no content".to_string(),
+            CodeLocation::File { filename } => format!("file '{filename}'"),
+            CodeLocation::FileTag { filename, tag } => format!("file '{filename}' / tag '{tag}'"),
+            CodeLocation::StdIO => "stdin/stdout".to_string(),
+        }
+    }
+
     pub fn read(&self) -> Result<Option<String>, SrcTagError> {
         match self {
             CodeLocation::None => Ok(None),
@@ -68,8 +77,6 @@ impl CodeLocation {
 
 #[derive(Clone, Debug)]
 pub struct Options {
-    /// Action performed
-    pub action: Action,
     /// Location of the generated/verified lexer code
     pub lexer_code: CodeLocation,
     /// Indentation of lexer source code
@@ -149,6 +156,15 @@ pub enum Specification {
 }
 
 impl Specification {
+    pub fn get_type(&self) -> String {
+        match self {
+            Specification::None => "no content".to_string(),
+            Specification::String(_) => "String text".to_string(),
+            Specification::File { filename } => format!("file '{filename}'"),
+            Specification::FileTag { filename, tag } => format!("file '{filename}' / tag '{tag}'"),
+        }
+    }
+
     pub fn get(self) -> Result<Option<String>, SrcTagError> {
         match self {
             Specification::None => Ok(None),
@@ -163,29 +179,29 @@ impl Specification {
 
 #[derive(Debug)]
 pub enum GenParserError {
-    Source(SrcTagError),
-    Build(BuildError),
+    Source(SrcTagError, String),
+    Build(BuildError, String),
     Mismatch(String),
     InvalidParameter(String),
 }
 
-impl From<SrcTagError> for GenParserError {
-    fn from(e: SrcTagError) -> Self {
-        GenParserError::Source(e)
-    }
-}
-
-impl From<BuildError> for GenParserError {
-    fn from(e: BuildError) -> Self {
-        GenParserError::Build(e)
-    }
-}
+// impl From<SrcTagError> for GenParserError {
+//     fn from(e: SrcTagError) -> Self {
+//         GenParserError::Source(e)
+//     }
+// }
+//
+// impl From<BuildError> for GenParserError {
+//     fn from(e: BuildError) -> Self {
+//         GenParserError::Build(e)
+//     }
+// }
 
 impl Display for GenParserError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            GenParserError::Source(s) => s.fmt(f),
-            GenParserError::Build(b) => b.fmt(f),
+            GenParserError::Source(s, context) => write!(f, "{context}: {s}"),
+            GenParserError::Build(b, context) => write!(f, "{context}: {b}"),
             GenParserError::Mismatch(s) => write!(f, "mismatch when verifying source code: {s}"),
             GenParserError::InvalidParameter(s) => write!(f, "invalid parameters: {s}"),
         }
@@ -195,8 +211,8 @@ impl Display for GenParserError {
 impl Error for GenParserError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            GenParserError::Source(e) => Some(e),
-            GenParserError::Build(b) => Some(b),
+            GenParserError::Source(e, _) => Some(e),
+            GenParserError::Build(b, _) => Some(b),
             GenParserError::Mismatch(_)
             | GenParserError::InvalidParameter(_) => None,
         }
@@ -204,20 +220,29 @@ impl Error for GenParserError {
 }
 
 pub fn try_gen_parser(lexer_spec: Specification, parser_spec: Specification, action: Action, options: Options) -> Result<BufLog, GenParserError> {
-    let lexicon_opt = lexer_spec.get()?;
+    let lexer_spec_type = lexer_spec.get_type();
+    let lexicon_opt = lexer_spec.get()
+        .map_err(|e| GenParserError::Source(e, format!("error while reading the lexicon ({lexer_spec_type})")))?;
     let Some(lexicon) = lexicon_opt else {
         return Err(GenParserError::InvalidParameter("cannot verify sources without any lexicon".to_string()))
     };
-    let grammar_opt = parser_spec.get()?;
-    let (lexer_source, parser_source_opt, log) = try_gen_source_code(lexicon, grammar_opt, &options)?;
+    let parser_spec_type = parser_spec.get_type();
+    let grammar_opt = parser_spec.get()
+        .map_err(|e| GenParserError::Source(e, format!("error while reading the grammar ({parser_spec_type})")))?;
+    let (lexer_source, parser_source_opt, log) = try_gen_source_code(lexicon, grammar_opt, &options)
+        .map_err(|e| GenParserError::Build(e, "error while building the parser".to_string()))?;
     match action {
         Action::Verify => {
-            if let Some(expected_lexer) = options.lexer_code.read()? {
+            if let Some(expected_lexer) = options.lexer_code.read()
+                .map_err(|e| GenParserError::Source(e, format!("error while reading the expected lexer code ({})", options.lexer_code.get_type())))?
+            {
                 if lexer_source != expected_lexer {
                     return Err(GenParserError::Mismatch("lexer sources differ".to_string()))
                 }
             }
-            if let Some(expected_parser) = options.parser_code.read()? {
+            if let Some(expected_parser) = options.parser_code.read()
+                .map_err(|e| GenParserError::Source(e, format!("error while reading the expected parser code ({})", options.parser_code.get_type())))?
+            {
                 if let Some(parser_source) = parser_source_opt {
                     if parser_source != expected_parser {
                         return Err(GenParserError::Mismatch("parser sources differ".to_string()));
@@ -229,9 +254,11 @@ pub fn try_gen_parser(lexer_spec: Specification, parser_spec: Specification, act
             Ok(log)
         }
         Action::Generate => {
-            options.lexer_code.write(&lexer_source)?;
+            options.lexer_code.write(&lexer_source)
+                .map_err(|e| GenParserError::Source(e, format!("error while writing the lexer code ({})", options.lexer_code.get_type())))?;
             if let Some(parser_source) = parser_source_opt {
-                options.parser_code.write(&parser_source)?;
+                options.parser_code.write(&parser_source)
+                    .map_err(|e| GenParserError::Source(e, format!("error while writing the parser code ({})", options.parser_code.get_type())))?;
             }
             Ok(log)
         }

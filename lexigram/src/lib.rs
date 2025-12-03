@@ -3,6 +3,7 @@
 pub mod lexi;
 pub mod gram;
 pub mod gen_parser;
+mod tests;
 
 // Main object:
 pub use lexi::Lexi;
