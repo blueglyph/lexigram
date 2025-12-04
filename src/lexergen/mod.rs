@@ -139,6 +139,7 @@ pub struct LexerGen {
     // internal
     log: BufLog,
     group_partition: Segments,   // for optimization
+    headers: Vec<String>,
 }
 
 impl LexerGen {
@@ -159,12 +160,19 @@ impl LexerGen {
             symbol_table: None,
             log: BufLog::new(),
             group_partition: Segments::empty(),
+            headers: Vec::new(),
         }
     }
 
-    // pub fn get_mut_log(&mut self) -> &mut BufLog {
-    //     &mut self.log
-    // }
+    #[inline]
+    pub fn add_header<T: Into<String>>(&mut self, header: T) {
+        self.headers.push(header.into());
+    }
+
+    #[inline]
+    pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
+        self.headers.extend(headers.into_iter().map(|s| s.into()));
+    }
 
     pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
         let mut lexergen = Self::new();
@@ -315,7 +323,11 @@ impl LexerGen {
     }
 
     fn lexer_source_code(&self) -> Vec<String> {
-        let mut source = Vec::<String>::new();
+        let mut source = self.headers.clone();
+
+        if !self.headers.is_empty() {
+            source.push(String::new());
+        }
 
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
