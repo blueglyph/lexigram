@@ -1004,7 +1004,6 @@ mod rules_862_1 {
         let symbols = (0..table.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(Some(table)), t))
             .collect::<HashMap<_, _>>();
-        println!("symbols = {symbols:?}");
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
