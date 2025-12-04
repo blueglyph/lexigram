@@ -237,6 +237,7 @@ pub struct ParserGen {
     span_nbrs: Vec<SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
+    headers: Vec<String>,
     used_libs: StructLibs,
     nt_type: HashMap<VarId, String>,
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
@@ -287,6 +288,7 @@ impl ParserGen {
             span_nbrs: Vec::new(),
             start,
             nt_conversion,
+            headers: Vec::new(),
             used_libs: StructLibs::new(),
             nt_type: HashMap::new(),
             nt_extra_info: HashMap::new(),
@@ -317,12 +319,22 @@ impl ParserGen {
     }
 
     #[inline]
-    pub fn add_lib(&mut self, lib: &str) {
+    pub fn add_header<T: Into<String>>(&mut self, header: T) {
+        self.headers.push(header.into());
+    }
+
+    #[inline]
+    pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
+        self.headers.extend(headers.into_iter().map(|s| s.into()));
+    }
+
+    #[inline]
+    pub fn add_lib<T: Into<String>>(&mut self, lib:T) {
         self.used_libs.add(lib);
     }
 
     #[inline]
-    pub fn extend_libs<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, libs: I) {
+    pub fn extend_libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) {
         self.used_libs.extend(libs);
     }
 
@@ -1163,6 +1175,9 @@ impl ParserGen {
 
     pub fn gen_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let mut parts = vec![];
+        if !self.headers.is_empty() {
+            parts.push(self.headers.clone());
+        }
         let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
             self.make_item_ops();

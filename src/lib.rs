@@ -258,11 +258,11 @@ impl StructLibs {
         StructLibs { libs: BTreeSet::new() }
     }
 
-    pub fn add(&mut self, lib: &str) {
-        self.libs.insert(lib.to_string());
+    pub fn add<T: Into<String>>(&mut self, lib: T) {
+        self.libs.insert(lib.into());
     }
 
-    pub fn extend<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, libs: I) {
+    pub fn extend<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) {
         self.libs.extend(libs.into_iter().map(|s| s.into()));
     }
 
