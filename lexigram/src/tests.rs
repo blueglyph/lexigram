@@ -43,6 +43,8 @@ fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
         lexer_indent: 0,
         parser_code: CodeLocation::File { filename: TEST1_PARSER_FILENAME.to_string() },
         parser_indent: 0,
+        lexer_headers: vec!["#![allow(unused)]".to_string()],
+        parser_headers: vec!["#![allow(unused)]".to_string()],
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,
@@ -54,7 +56,7 @@ fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
 /// Generates the lexer/parser files in [TEST1_LEXER_FILENAME] and [TEST1_PARSER_FILENAME] the first time when
 /// those files don't exist yet (visual check required).
 fn gen_init_file_to_file() {
-    match action_string_to_tag(Action::Generate) {
+    match action_file_to_file(Action::Generate) {
         Ok(log) => println!("{log}"),
         Err(e) => {
             panic!("first code generation: {e}")
@@ -116,6 +118,8 @@ fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
         lexer_indent: 0,
         parser_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_PARSER_TAG.to_string() },
         parser_indent: 0,
+        lexer_headers: Vec::new(),
+        parser_headers: Vec::new(),
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,
@@ -183,6 +187,8 @@ fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
         lexer_indent: 0,
         parser_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_PARSER_TAG.to_string() },
         parser_indent: 0,
+        lexer_headers: Vec::new(),
+        parser_headers: Vec::new(),
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,

@@ -85,6 +85,10 @@ pub struct Options {
     pub parser_code: CodeLocation,
     /// Indentation of parser source code
     pub parser_indent: usize,
+    /// Extra headers before the lexer code
+    pub lexer_headers: Vec<String>,
+    /// Extra headers before the parser code
+    pub parser_headers: Vec<String>,
     /// Extra `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
     pub extra_libs: Vec<String>,
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
@@ -107,6 +111,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
     lexgen.symbol_table = Some(symbol_table.clone());
+    lexgen.extend_headers(&options.lexer_headers);
     let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
     // // - writes the source code between existing tags:
@@ -129,6 +134,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         let mut builder = ParserGen::try_build_from(ll1)?;
         builder.set_parents_have_value();
         builder.set_include_alts(options.gen_parser_alts);
+        builder.extend_headers(&options.parser_headers);
         builder.extend_libs(options.extra_libs.clone());
         builder.set_gen_span_params(options.gen_span_params);
         let (parser_log, parser_src) = builder.try_gen_source_code(options.parser_indent, options.gen_wrapper)?;

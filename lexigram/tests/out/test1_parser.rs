@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
 

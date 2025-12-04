@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::collections::HashMap;
 use std::io::Read;
 use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
