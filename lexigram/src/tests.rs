@@ -11,11 +11,16 @@ const TEST1_GRAMMAR_FILENAME: &str = "data/test1.g";
 const TEST1_LEXER_FILENAME: &str = "tests/out/test1_lexer.rs";
 const TEST1_PARSER_FILENAME: &str = "tests/out/test1_parser.rs";
 const TEST1_TAGS_FILENAME: &str = "tests/out/test1_tags.rs";
-
 const TEST1_LEXICON_TAG: &str = "test1_lexicon_tag";
 const TEST1_GRAMMAR_TAG: &str = "test1_grammar_tag";
 const TEST1_LEXER_TAG: &str = "test1_lexer_tag";
 const TEST1_PARSER_TAG: &str = "test1_parser_tag";
+
+const TEST2_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
+// const TEST2_GRAMMAR_FILENAME: &str = "../build-rtsgen/src/rtsgen.g";
+const TEST2_TAGS_FILENAME: &str = "../src/rtsgen/mod.rs";
+const TEST2_LEXER_TAG: &str = "rtsgen_lexer";
+const TEST2_PARSER_TAG: &str = "rtsgen_parser";
 
 /// (Re)generates the initial content
 #[ignore]
@@ -66,6 +71,8 @@ fn gen_init_file_to_file() {
 
 /// Verifies that the destination files are created again and identical to their previous version
 /// (which was the reference).
+///
+/// This test is launched by test_all(). It can be launched individually for debugging purpose.
 #[ignore]
 #[test]
 fn test_file_to_file() {
@@ -141,6 +148,8 @@ fn gen_init_string_to_tag() {
 
 /// Verifies that the destination tag contents are created again and identical to their previous version
 /// (which was the reference).
+///
+/// This test is launched by test_all(). It can be launched individually for debugging purpose.
 #[ignore]
 #[test]
 fn test_string_to_tag() {
@@ -210,6 +219,8 @@ fn gen_init_tag_to_tag() {
 
 /// Verifies that the destination tag contents are created again and identical to their previous version
 /// (which was the reference).
+///
+/// This test is launched by test_all(). It can be launched individually for debugging purpose.
 #[ignore]
 #[test]
 fn test_tag_to_tag() {
@@ -244,4 +255,95 @@ fn test_tag_to_tag() {
     // compares the new files to their reference
     assert_eq!(result_lexer, expected_lexer);
     assert_eq!(result_parser, expected_parser);
+}
+
+#[test]
+fn bad_params() {
+    let opt_empty = Options {
+        lexer_code: CodeLocation::File { filename: String::new() },
+        lexer_indent: 0,
+        parser_code: CodeLocation::File { filename: String::new() },
+        parser_indent: 0,
+        lexer_headers: vec![],
+        parser_headers: vec![],
+        extra_libs: vec![],
+        gen_parser_alts: false,
+        gen_wrapper: false,
+        gen_span_params: false,
+    };
+    let opt_fake = Options {
+        lexer_code: CodeLocation::FileTag { filename: TEST2_TAGS_FILENAME.to_string(), tag: TEST2_LEXER_TAG.to_string() },
+        lexer_indent: 4,
+        parser_code: CodeLocation::FileTag { filename: TEST2_TAGS_FILENAME.to_string(), tag: TEST2_PARSER_TAG.to_string() },
+        parser_indent: 4,
+        lexer_headers: vec![],
+        parser_headers: vec![],
+        extra_libs: vec![],
+        gen_parser_alts: false,
+        gen_wrapper: false,
+        gen_span_params: false,
+    };
+
+    let tests = vec![
+        (   // 0
+            Specification::None,
+            Specification::String(String::new()),
+            &opt_empty,
+            Action::Generate,
+            "cannot verify sources without any lexicon"
+        ),
+        (   // 1
+            Specification::File { filename: "fake filename".to_string() },
+            Specification::String(String::new()),
+            &opt_empty,
+            Action::Generate,
+            "error while reading the lexicon (file 'fake filename')"
+        ),
+        (   // 2
+            Specification::String("bad lexicon".to_string()),
+            Specification::String(String::new()),
+            &opt_empty,
+            Action::Generate,
+            "error while building the parser: Errors have occurred in Lexi:"
+        ),
+        (   // 3
+            Specification::String("lexicon Fake; A: 'a';".to_string()),
+            Specification::String("bad grammar".to_string()),
+            &opt_empty,
+            Action::Generate,
+            "error while building the parser: Errors have occurred in Gram:"
+        ),
+        (   // 4
+            Specification::String("lexicon Fake; A: 'a';".to_string()),
+            Specification::String("grammar Fake; a: A;".to_string()),
+            &opt_empty,
+            Action::Generate,
+            "error while writing the lexer code (file '')"
+        ),
+        (   // 5
+            Specification::None,
+            Specification::String("grammar Fake; a: A;".to_string()),
+            &opt_empty,
+            Action::Generate,
+            "invalid parameters: cannot verify sources without any lexicon"
+        ),
+        (   // 6
+            Specification::File { filename: TEST2_LEXICON_FILENAME.to_string() },
+            Specification::None,
+            &opt_fake,
+            Action::Verify,
+            "parser source code verification required but no grammar was provided"
+        ),
+    ];
+    const VERBOSE: bool = false;
+    for (id, (lexer_spec, parser_spec, option, action, message)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("Test {id} {:-<80}", "")}
+        match try_gen_parser(lexer_spec, parser_spec, action, option.clone()) {
+            Ok(_) => panic!("test {id} doesn't show the error '{message}'"),
+            Err(e) => {
+                if VERBOSE { println!("# {e}"); }
+                assert!(e.to_string().contains(message), "test {id} doesn't show the error '{message}': {e}")
+            }
+        }
+    }
 }
