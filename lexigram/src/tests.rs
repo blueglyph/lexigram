@@ -19,10 +19,11 @@ const TEST1_LEXER_TAG: &str = "test1_lexer_tag";
 const TEST1_PARSER_TAG: &str = "test1_parser_tag";
 
 const TEST2_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
-// const TEST2_GRAMMAR_FILENAME: &str = "../build-rtsgen/src/rtsgen.g";
 const TEST2_TAGS_FILENAME: &str = "../src/rtsgen/mod.rs";
 const TEST2_LEXER_TAG: &str = "rtsgen_lexer";
 const TEST2_PARSER_TAG: &str = "rtsgen_parser";
+
+// ---------------------------------------------------------------------------------------------
 
 /// (Re)generates the initial content
 #[ignore]
@@ -41,6 +42,8 @@ fn test_all() {
     test_string_to_tag();
     test_tag_to_tag();
 }
+
+// ---------------------------------------------------------------------------------------------
 
 fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
     let lexer_spec = genspec!(filename: TEST1_LEXICON_FILENAME);
@@ -400,4 +403,32 @@ fn options_builder() {
         .extra_libs(["super::listener_types::test1::*"])
         .build();
     assert_eq!(options3, options3_expected);
+}
+
+#[should_panic]
+#[test]
+fn options_lexer_twice() {
+    let _ = OptionsBuilder::new()
+        .lexer(gencode!(stdio)).indent(4)
+        .lexer(gencode!(filename: "lexer.l"))
+        .build();
+}
+
+#[should_panic]
+#[test]
+fn options_parser_twice() {
+    let _ = OptionsBuilder::new()
+        .lexer(gencode!(stdio)).indent(4)
+        .parser(gencode!(stdio)).indent(0)
+        .parser(gencode!(filename: "parser.g"))
+        .build();
+}
+
+#[should_panic]
+#[test]
+fn options_parser_then_lexer() {
+    let _ = OptionsBuilder::new()
+        .parser(gencode!(stdio)).indent(0)
+        .lexer(gencode!(stdio)).indent(4)
+        .build();
 }
