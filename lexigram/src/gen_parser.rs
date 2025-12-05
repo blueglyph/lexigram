@@ -15,7 +15,7 @@ use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::file_utils::SrcTagError;
 use crate::{Gram, Lexi};
 use crate::lexi::SymbolicDfa;
-use crate::options::{Action, Options, Specification};
+use crate::options::{Action, Options};
 
 // ---------------------------------------------------------------------------------------------
 
@@ -98,15 +98,15 @@ impl Error for GenParserError {
     }
 }
 
-pub fn try_gen_parser(lexer_spec: Specification, parser_spec: Specification, action: Action, options: Options) -> Result<BufLog, GenParserError> {
-    let lexer_spec_type = lexer_spec.get_type();
-    let lexicon_opt = lexer_spec.get()
+pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenParserError> {
+    let lexer_spec_type = options.lexer_spec.get_type();
+    let lexicon_opt = options.lexer_spec.clone().get()
         .map_err(|e| GenParserError::Source(e, format!("error while reading the lexicon ({lexer_spec_type})")))?;
     let Some(lexicon) = lexicon_opt else {
         return Err(GenParserError::InvalidParameter("cannot verify sources without any lexicon".to_string()))
     };
-    let parser_spec_type = parser_spec.get_type();
-    let grammar_opt = parser_spec.get()
+    let parser_spec_type = options.parser_spec.get_type();
+    let grammar_opt = options.parser_spec.clone().get()
         .map_err(|e| GenParserError::Source(e, format!("error while reading the grammar ({parser_spec_type})")))?;
     let (lexer_source, parser_source_opt, log) = try_gen_source_code(lexicon, grammar_opt, &options)
         .map_err(|e| GenParserError::Build(e, "error while building the parser".to_string()))?;

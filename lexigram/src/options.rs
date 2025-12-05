@@ -8,6 +8,39 @@ use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagE
 #[derive(Clone, PartialEq, Debug)]
 pub enum Action { Generate, Verify }
 
+/// Specification of the lexer or parser (lexicon or grammar content or location)
+#[derive(Clone, PartialEq, Debug)]
+pub enum Specification {
+    /// No source
+    None,
+    /// Source is in a string
+    String(String),
+    /// Source is an existing file
+    File { filename: String },
+    /// Source is between tags in an existing file
+    FileTag { filename: String, tag: String },
+}
+
+impl Specification {
+    pub fn get_type(&self) -> String {
+        match self {
+            Specification::None => "no content".to_string(),
+            Specification::String(_) => "String text".to_string(),
+            Specification::File { filename } => format!("file '{filename}'"),
+            Specification::FileTag { filename, tag } => format!("file '{filename}' / tag '{tag}'"),
+        }
+    }
+
+    pub fn get(self) -> Result<Option<String>, SrcTagError> {
+        match self {
+            Specification::None => Ok(None),
+            Specification::String(s) => Ok(Some(s)),
+            Specification::File { filename } => Ok(std::fs::read_to_string(filename)?).map(|s| Some(s)),
+            Specification::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(|s| Some(s)),
+        }
+    }
+}
+
 /// Location of the code to be generated or verified
 #[derive(Clone, PartialEq, Debug)]
 pub enum CodeLocation {
@@ -62,47 +95,18 @@ impl CodeLocation {
     }
 }
 
-/// Specification of the lexer or parser (lexicon or grammar content or location)
-#[derive(Clone, PartialEq, Debug)]
-pub enum Specification {
-    /// No source
-    None,
-    /// Source is in a string
-    String(String),
-    /// Source is an existing file
-    File { filename: String },
-    /// Source is between tags in an existing file
-    FileTag { filename: String, tag: String },
-}
-
-impl Specification {
-    pub fn get_type(&self) -> String {
-        match self {
-            Specification::None => "no content".to_string(),
-            Specification::String(_) => "String text".to_string(),
-            Specification::File { filename } => format!("file '{filename}'"),
-            Specification::FileTag { filename, tag } => format!("file '{filename}' / tag '{tag}'"),
-        }
-    }
-
-    pub fn get(self) -> Result<Option<String>, SrcTagError> {
-        match self {
-            Specification::None => Ok(None),
-            Specification::String(s) => Ok(Some(s)),
-            Specification::File { filename } => Ok(std::fs::read_to_string(filename)?).map(|s| Some(s)),
-            Specification::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(|s| Some(s)),
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Options {
+    /// Specification of the lexer (lexicon)
+    pub lexer_spec: Specification,
     /// Location of the generated/verified lexer code
     pub lexer_code: CodeLocation,
     /// Indentation of lexer source code
     pub lexer_indent: usize,
+    /// Specification of the parser (grammar)
+    pub parser_spec: Specification,
     /// Location of the generated/verified parser code
     pub parser_code: CodeLocation,
     /// Indentation of parser source code
@@ -124,8 +128,10 @@ pub struct Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
+            lexer_spec: Specification::None,
             lexer_code: CodeLocation::None,
             lexer_indent: 0,
+            parser_spec: Specification::None,
             parser_code: CodeLocation::None,
             parser_indent: 0,
             lexer_headers: vec![],
@@ -176,11 +182,12 @@ impl OptionsBuilder {
         OptionsBuilder { state: BuilderState::Start, options: Options::default() }
     }
 
-    /// Sets the location of the lexer's code (default is none)
-    pub fn lexer(&mut self, lexer_code: CodeLocation) -> &mut Self {
+    /// Sets the location of the lexer's lexicon specification and generated code (default is none for both)
+    pub fn lexer(&mut self, lexer_spec: Specification, lexer_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start => {
                 self.state = BuilderState::Lexer;
+                self.options.lexer_spec = lexer_spec;
                 self.options.lexer_code = lexer_code;
             }
             BuilderState::Lexer => panic!("lexer() called twice"),
@@ -189,11 +196,12 @@ impl OptionsBuilder {
         self
     }
 
-    /// Sets the location the parser's code (default is none)
-    pub fn parser(&mut self, parser_code: CodeLocation) -> &mut Self {
+    /// Sets the location the parser's grammar specification and generated code (default is none for both)
+    pub fn parser(&mut self, parser_spec: Specification, parser_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start | BuilderState::Lexer => {
                 self.state = BuilderState::Parser;
+                self.options.parser_spec = parser_spec;
                 self.options.parser_code = parser_code;
             }
             BuilderState::Parser => panic!("parser() called twice"),
