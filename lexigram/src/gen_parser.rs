@@ -19,6 +19,13 @@ use crate::options::{Action, Options};
 
 // ---------------------------------------------------------------------------------------------
 
+/// Generates the source code for the lexer, the parser, and the wrapper / listener.
+///
+/// Notes:
+/// * `options.lexer_spec` and `options.parser_spec`, which specify how to get the lexicon and the grammar, aren't used
+/// by this function since they're given explicitly as string arguments.
+/// * `options.lexer_code` and `options.parser_code`, which specify where to store the generated code, aren't used either,
+/// since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
 pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
     // 1. Lexer
 
@@ -98,6 +105,11 @@ impl Error for GenParserError {
     }
 }
 
+/// Generates the source code for the lexer, the parser, and the wrapper / listener.
+///
+/// The options given in argument include the location of the lexicon and grammar, and where the resulting
+/// code should be written. See [Options](crate::options::Options) and
+/// [OptionsBuilder](crate::options::OptionsBuilder) for further details.
 pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenParserError> {
     let lexer_spec_type = options.lexer_spec.get_type();
     let lexicon_opt = options.lexer_spec.clone().get()

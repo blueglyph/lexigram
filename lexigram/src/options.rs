@@ -97,6 +97,10 @@ impl CodeLocation {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Options used to generate the source code of the lexer, parser, wrapper, and listener from a lexicon and a grammar
+/// (the grammar is optional if only the lexer must be generated).
+///
+/// See [OptionsBuilder] for the accompanying builder.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Options {
     /// Specification of the lexer (lexicon)
