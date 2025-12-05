@@ -5,6 +5,7 @@
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
 use lexigram_lib::log::BufLog;
 use crate::gen_parser::{try_gen_parser, Action, CodeLocation, GenParserError, Options, Specification};
+use crate::{gencode, genspec};
 
 const TEST1_LEXICON_FILENAME: &str = "data/test1.l";
 const TEST1_GRAMMAR_FILENAME: &str = "data/test1.g";
@@ -118,12 +119,12 @@ fn read_lexicon_grammar() -> (String, String) {
 
 fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
     let (lexicon, grammar) = read_lexicon_grammar();
-    let lexer_spec = Specification::String(lexicon);
-    let parser_spec = Specification::String(grammar);
+    let lexer_spec = genspec!(string: lexicon);
+    let parser_spec = genspec!(string: grammar);
     let options = Options {
-        lexer_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_LEXER_TAG.to_string() },
+        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
         lexer_indent: 0,
-        parser_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_PARSER_TAG.to_string() },
+        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
         parser_indent: 0,
         lexer_headers: Vec::new(),
         parser_headers: Vec::new(),
@@ -189,12 +190,12 @@ fn test_string_to_tag() {
 // ---------------------------------------------------------------------------------------------
 
 fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
-    let lexer_spec = Specification::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_LEXICON_TAG.to_string() };
-    let parser_spec = Specification::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_GRAMMAR_TAG.to_string() };
+    let lexer_spec = genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG);
+    let parser_spec = genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_GRAMMAR_TAG);
     let options = Options {
-        lexer_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_LEXER_TAG.to_string() },
+        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
         lexer_indent: 0,
-        parser_code: CodeLocation::FileTag { filename: TEST1_TAGS_FILENAME.to_string(), tag: TEST1_PARSER_TAG.to_string() },
+        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
         parser_indent: 0,
         lexer_headers: Vec::new(),
         parser_headers: Vec::new(),
@@ -260,9 +261,9 @@ fn test_tag_to_tag() {
 #[test]
 fn bad_params() {
     let opt_empty = Options {
-        lexer_code: CodeLocation::File { filename: String::new() },
+        lexer_code: gencode!(filename: ""),
         lexer_indent: 0,
-        parser_code: CodeLocation::File { filename: String::new() },
+        parser_code: gencode!(filename: ""),
         parser_indent: 0,
         lexer_headers: vec![],
         parser_headers: vec![],
@@ -272,9 +273,9 @@ fn bad_params() {
         gen_span_params: false,
     };
     let opt_fake = Options {
-        lexer_code: CodeLocation::FileTag { filename: TEST2_TAGS_FILENAME.to_string(), tag: TEST2_LEXER_TAG.to_string() },
+        lexer_code: gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_LEXER_TAG),
         lexer_indent: 4,
-        parser_code: CodeLocation::FileTag { filename: TEST2_TAGS_FILENAME.to_string(), tag: TEST2_PARSER_TAG.to_string() },
+        parser_code: gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_PARSER_TAG),
         parser_indent: 4,
         lexer_headers: vec![],
         parser_headers: vec![],
@@ -286,50 +287,50 @@ fn bad_params() {
 
     let tests = vec![
         (   // 0
-            Specification::None,
-            Specification::String(String::new()),
+            genspec!(none),
+            genspec!(string: ""),
             &opt_empty,
             Action::Generate,
             "cannot verify sources without any lexicon"
         ),
         (   // 1
-            Specification::File { filename: "fake filename".to_string() },
-            Specification::String(String::new()),
+            genspec!(filename: "fake filename"),
+            genspec!(string: ""),
             &opt_empty,
             Action::Generate,
             "error while reading the lexicon (file 'fake filename')"
         ),
         (   // 2
-            Specification::String("bad lexicon".to_string()),
-            Specification::String(String::new()),
+            genspec!(string: "bad lexicon"),
+            genspec!(string: ""),
             &opt_empty,
             Action::Generate,
             "error while building the parser: Errors have occurred in Lexi:"
         ),
         (   // 3
-            Specification::String("lexicon Fake; A: 'a';".to_string()),
-            Specification::String("bad grammar".to_string()),
+            genspec!(string: "lexicon Fake; A: 'a';"),
+            genspec!(string: "bad grammar"),
             &opt_empty,
             Action::Generate,
             "error while building the parser: Errors have occurred in Gram:"
         ),
         (   // 4
-            Specification::String("lexicon Fake; A: 'a';".to_string()),
-            Specification::String("grammar Fake; a: A;".to_string()),
+            genspec!(string: "lexicon Fake; A: 'a';"),
+            genspec!(string: "grammar Fake; a: A;"),
             &opt_empty,
             Action::Generate,
             "error while writing the lexer code (file '')"
         ),
         (   // 5
-            Specification::None,
-            Specification::String("grammar Fake; a: A;".to_string()),
+            genspec!(none),
+            genspec!(string: "grammar Fake; a: A;"),
             &opt_empty,
             Action::Generate,
             "invalid parameters: cannot verify sources without any lexicon"
         ),
         (   // 6
-            Specification::File { filename: TEST2_LEXICON_FILENAME.to_string() },
-            Specification::None,
+            genspec!(filename: TEST2_LEXICON_FILENAME),
+            genspec!(none),
             &opt_fake,
             Action::Verify,
             "parser source code verification required but no grammar was provided"

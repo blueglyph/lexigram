@@ -270,3 +270,56 @@ pub fn try_gen_parser(lexer_spec: Specification, parser_spec: Specification, act
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Macros
+
+pub mod macros {
+    /// Generates a [Specification](crate::gen_parser::Specification) object:
+    /// ```ignore
+    /// genspec!(none)
+    /// genspec!(string: expr)
+    /// genspec!(filename: expr)
+    /// genspec!(filename: expr, tag: expr)
+    /// ```
+    /// where `expr.to_string()` are valid strings
+    #[macro_export()]
+    macro_rules! genspec {
+        (none) => {
+            $crate::gen_parser::Specification::None
+        };
+        (string: $string: expr) => {
+            $crate::gen_parser::Specification::String($string.to_string())
+        };
+        (filename: $file: expr) => {
+            $crate::gen_parser::Specification::File { filename: $file.to_string() }
+        };
+        (filename: $file: expr, tag: $tag: expr) => {
+            $crate::gen_parser::Specification::FileTag { filename: $file.to_string(), tag: $tag.to_string() }
+        };
+    }
+
+    /// Generates a [CodeLocation](crate::gen_parser::CodeLocation) object:
+    /// ```ignore
+    /// gencode!(none)
+    /// gencode!(string: expr)
+    /// gencode!(filename: expr)
+    /// gencode!(filename: expr, tag: expr)
+    /// ```
+    /// where `expr.to_string()` are valid strings
+    #[macro_export()]
+    macro_rules! gencode {
+        (none) => {
+            $crate::gen_parser::CodeLocation::None
+        };
+        (filename: $file: expr) => {
+            $crate::gen_parser::CodeLocation::File { filename: $file.to_string() }
+        };
+        (filename: $file: expr, tag: $tag: expr) => {
+            $crate::gen_parser::CodeLocation::FileTag { filename: $file.to_string(), tag: $tag.to_string() }
+        };
+        (stdio) => {
+            $crate::gen_parser::CodeLocation::StdIO
+        };
+    }
+}
