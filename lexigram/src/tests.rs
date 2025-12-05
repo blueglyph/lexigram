@@ -51,6 +51,7 @@ fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
         .lexer(genspec!(filename: TEST1_LEXICON_FILENAME), gencode!(filename: TEST1_LEXER_FILENAME))
         .parser(genspec!(filename: TEST1_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
         .extra_libs(["super::listener_types::test1::*"])
+        .span_params(true)
         .build();
     try_gen_parser(action, options)
 }
@@ -119,6 +120,7 @@ fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
         .lexer(genspec!(string: lexicon), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
         .parser(genspec!(string: grammar), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
+        .span_params(true)
         .build();
     try_gen_parser(action, options)
 }
@@ -185,6 +187,7 @@ fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
             genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_GRAMMAR_TAG),
             gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
+        .span_params(true)
         .build();
     try_gen_parser(action, options)
 }
@@ -352,7 +355,7 @@ fn options_builder() {
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,
-        gen_span_params: true,
+        gen_span_params: false,
     };
     let options1b = OptionsBuilder::new()
         .indent(0)
@@ -362,7 +365,7 @@ fn options_builder() {
         .extra_libs(["super::listener_types::test1::*"])
         .parser_alts(true)
         .wrapper(true)
-        .span_params(true)
+        .span_params(false)
         .build();
     let options1c = OptionsBuilder::new()
         .headers(["#![allow(unused)]"])
@@ -387,7 +390,7 @@ fn options_builder() {
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,
-        gen_span_params: true,
+        gen_span_params: false,
     };
     let options2 = OptionsBuilder::new()
         .lexer(genspec!(string: lexicon), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
@@ -408,7 +411,7 @@ fn options_builder() {
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
         gen_parser_alts: true,
         gen_wrapper: true,
-        gen_span_params: true,
+        gen_span_params: false,
     };
     let options3 = OptionsBuilder::new()
         .lexer(genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))

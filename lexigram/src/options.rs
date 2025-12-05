@@ -122,10 +122,16 @@ pub struct Options {
     /// Extra `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
     pub extra_libs: Vec<String>,
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
+    ///
+    /// Default: `true`
     pub gen_parser_alts: bool,
     /// Generates the wrapper, which is necessary to interface a listener (only if `parser_code` isn't `None`)
+    ///
+    /// Default: `true`
     pub gen_wrapper: bool,
     /// Generates the span parameters in the listener methods, to get the position of the terminals/nonterminals (only if `gen_wrapper` is `true`)
+    ///
+    /// Default: `false`
     pub gen_span_params: bool,
 }
 
@@ -143,7 +149,7 @@ impl Default for Options {
             extra_libs: vec![],
             gen_parser_alts: true,
             gen_wrapper: true,
-            gen_span_params: true,
+            gen_span_params: false,
         }
     }
 }
@@ -276,7 +282,7 @@ impl OptionsBuilder {
     /// for instance to generate report messages with the precise location of symbols that caused an
     /// error.
     ///
-    /// Default: `true`
+    /// Default: `false`
     pub fn span_params(&mut self, span_params: bool) -> &mut Self {
         self.options.gen_span_params = span_params;
         self
