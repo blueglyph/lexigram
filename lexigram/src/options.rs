@@ -5,7 +5,7 @@ use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagE
 
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Action { Generate, Verify }
 
 /// Location of the code to be generated or verified
@@ -63,7 +63,7 @@ impl CodeLocation {
 }
 
 /// Specification of the lexer or parser (lexicon or grammar content or location)
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Specification {
     /// No source
     None,
@@ -97,7 +97,7 @@ impl Specification {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Options {
     /// Location of the generated/verified lexer code
     pub lexer_code: CodeLocation,
@@ -119,6 +119,101 @@ pub struct Options {
     pub gen_wrapper: bool,
     /// Generates the span parameters in the listener methods, to get the position of the terminals/nonterminals (only if `gen_wrapper` is `true`)
     pub gen_span_params: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            lexer_code: CodeLocation::None,
+            lexer_indent: 0,
+            parser_code: CodeLocation::None,
+            parser_indent: 0,
+            lexer_headers: vec![],
+            parser_headers: vec![],
+            extra_libs: vec![],
+            gen_parser_alts: true,
+            gen_wrapper: true,
+            gen_span_params: true,
+        }
+    }
+}
+
+enum BuilderState { Start, Lexer, Parser }
+
+pub struct OptionsBuilder {
+    options: Options,
+    state: BuilderState,
+}
+
+impl OptionsBuilder {
+    pub fn new() -> Self {
+        OptionsBuilder { state: BuilderState::Start, options: Options::default() }
+    }
+
+    pub fn lexer(&mut self, lexer_code: CodeLocation) -> &mut Self {
+        self.state = BuilderState::Lexer;
+        self.options.lexer_code = lexer_code;
+        self
+    }
+
+    pub fn parser(&mut self, parser_code: CodeLocation) -> &mut Self {
+        self.state = BuilderState::Parser;
+        self.options.parser_code = parser_code;
+        self
+    }
+
+    pub fn indent(&mut self, indent: usize) -> &mut Self {
+        match self.state {
+            BuilderState::Start => {
+                self.options.lexer_indent = indent;
+                self.options.parser_indent = indent;
+            }
+            BuilderState::Lexer => self.options.lexer_indent = indent,
+            BuilderState::Parser => self.options.parser_indent = indent,
+        }
+        self
+    }
+
+    pub fn headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) -> &mut Self {
+        let hdr: Vec<String> = headers.into_iter().map(|s| s.into()).collect();
+        match self.state {
+            BuilderState::Start => {
+                self.options.lexer_headers.extend(hdr.clone());
+                self.options.parser_headers.extend(hdr);
+            }
+            BuilderState::Lexer => self.options.lexer_headers.extend(hdr),
+            BuilderState::Parser => self.options.parser_headers.extend(hdr),
+        }
+        self
+    }
+
+    pub fn extra_libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) -> &mut Self {
+        self.options.extra_libs.extend(libs.into_iter().map(|s| s.into()));
+        self
+    }
+
+    pub fn parser_alts(&mut self, parser_alts: bool) -> &mut Self {
+        self.options.gen_parser_alts = parser_alts;
+        self
+    }
+
+    pub fn wrapper(&mut self, wrapper: bool) -> &mut Self {
+        self.options.gen_wrapper = wrapper;
+        self
+    }
+
+    pub fn span_params(&mut self, span_params: bool) -> &mut Self {
+        self.options.gen_span_params = span_params;
+        self
+    }
+
+    pub fn build(&mut self) -> Options {
+        std::mem::take(&mut self.options)
+    }
+
+    pub fn options(self) -> Options {
+        self.options
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

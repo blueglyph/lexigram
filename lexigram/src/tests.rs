@@ -6,7 +6,7 @@ use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
 use lexigram_lib::log::BufLog;
 use crate::gen_parser::{try_gen_parser, GenParserError};
 use crate::{gencode, genspec};
-use crate::options::{Action, Options};
+use crate::options::{Action, Options, OptionsBuilder};
 
 const TEST1_LEXICON_FILENAME: &str = "data/test1.l";
 const TEST1_GRAMMAR_FILENAME: &str = "data/test1.g";
@@ -45,18 +45,12 @@ fn test_all() {
 fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
     let lexer_spec = genspec!(filename: TEST1_LEXICON_FILENAME);
     let parser_spec = genspec!(filename: TEST1_GRAMMAR_FILENAME);
-    let options = Options {
-        lexer_code: gencode!(filename: TEST1_LEXER_FILENAME),
-        lexer_indent: 0,
-        parser_code: gencode!(filename: TEST1_PARSER_FILENAME),
-        parser_indent: 0,
-        lexer_headers: vec!["#![allow(unused)]".to_string()],
-        parser_headers: vec!["#![allow(unused)]".to_string()],
-        extra_libs: vec!["super::listener_types::test1::*".to_string()],
-        gen_parser_alts: true,
-        gen_wrapper: true,
-        gen_span_params: true,
-    };
+    let options = OptionsBuilder::new()
+        .headers(["#![allow(unused)]"])
+        .lexer(gencode!(filename: TEST1_LEXER_FILENAME))
+        .parser(gencode!(filename: TEST1_PARSER_FILENAME))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
     try_gen_parser(lexer_spec, parser_spec, action, options)
 }
 
@@ -122,18 +116,11 @@ fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
     let (lexicon, grammar) = read_lexicon_grammar();
     let lexer_spec = genspec!(string: lexicon);
     let parser_spec = genspec!(string: grammar);
-    let options = Options {
-        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
-        lexer_indent: 0,
-        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
-        parser_indent: 0,
-        lexer_headers: Vec::new(),
-        parser_headers: Vec::new(),
-        extra_libs: vec!["super::listener_types::test1::*".to_string()],
-        gen_parser_alts: true,
-        gen_wrapper: true,
-        gen_span_params: true,
-    };
+    let options = OptionsBuilder::new()
+        .lexer(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
+        .parser(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
     try_gen_parser(lexer_spec, parser_spec, action, options)
 }
 
@@ -193,18 +180,11 @@ fn test_string_to_tag() {
 fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
     let lexer_spec = genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG);
     let parser_spec = genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_GRAMMAR_TAG);
-    let options = Options {
-        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
-        lexer_indent: 0,
-        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
-        parser_indent: 0,
-        lexer_headers: Vec::new(),
-        parser_headers: Vec::new(),
-        extra_libs: vec!["super::listener_types::test1::*".to_string()],
-        gen_parser_alts: true,
-        gen_wrapper: true,
-        gen_span_params: true,
-    };
+    let options = OptionsBuilder::new()
+        .lexer(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
+        .parser(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
     try_gen_parser(lexer_spec, parser_spec, action, options)
 }
 
@@ -348,4 +328,76 @@ fn bad_params() {
             }
         }
     }
+}
+
+#[test]
+fn options_builder() {
+    let options1_expected = Options {
+        lexer_code: gencode!(filename: TEST1_LEXER_FILENAME),
+        lexer_indent: 0,
+        parser_code: gencode!(filename: TEST1_PARSER_FILENAME),
+        parser_indent: 0,
+        lexer_headers: vec!["#![allow(unused)]".to_string()],
+        parser_headers: vec!["#![allow(unused)]".to_string()],
+        extra_libs: vec!["super::listener_types::test1::*".to_string()],
+        gen_parser_alts: true,
+        gen_wrapper: true,
+        gen_span_params: true,
+    };
+    let options1b = OptionsBuilder::new()
+        .indent(0)
+        .headers(["#![allow(unused)]"])
+        .lexer(gencode!(filename: TEST1_LEXER_FILENAME))
+        .parser(gencode!(filename: TEST1_PARSER_FILENAME))
+        .extra_libs(["super::listener_types::test1::*"])
+        .parser_alts(true)
+        .wrapper(true)
+        .span_params(true)
+        .build();
+    let options1c = OptionsBuilder::new()
+        .headers(["#![allow(unused)]"])
+        .lexer(gencode!(filename: TEST1_LEXER_FILENAME))
+        .parser(gencode!(filename: TEST1_PARSER_FILENAME))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
+    assert_eq!(options1b, options1_expected);
+    assert_eq!(options1c, options1_expected);
+
+    let options2_expected = Options {
+        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
+        lexer_indent: 0,
+        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
+        parser_indent: 0,
+        lexer_headers: Vec::new(),
+        parser_headers: Vec::new(),
+        extra_libs: vec!["super::listener_types::test1::*".to_string()],
+        gen_parser_alts: true,
+        gen_wrapper: true,
+        gen_span_params: true,
+    };
+    let options2 = OptionsBuilder::new()
+        .lexer(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
+        .parser(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
+    assert_eq!(options2, options2_expected);
+
+    let options3_expected = Options {
+        lexer_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG),
+        lexer_indent: 0,
+        parser_code: gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG),
+        parser_indent: 0,
+        lexer_headers: Vec::new(),
+        parser_headers: Vec::new(),
+        extra_libs: vec!["super::listener_types::test1::*".to_string()],
+        gen_parser_alts: true,
+        gen_wrapper: true,
+        gen_span_params: true,
+    };
+    let options3 = OptionsBuilder::new()
+        .lexer(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
+        .parser(gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
+        .extra_libs(["super::listener_types::test1::*"])
+        .build();
+    assert_eq!(options3, options3_expected);
 }
