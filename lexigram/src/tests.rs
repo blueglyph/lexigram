@@ -4,8 +4,9 @@
 
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
 use lexigram_lib::log::BufLog;
-use crate::gen_parser::{try_gen_parser, Action, CodeLocation, GenParserError, Options, Specification};
+use crate::gen_parser::{try_gen_parser, GenParserError};
 use crate::{gencode, genspec};
+use crate::options::{Action, Options};
 
 const TEST1_LEXICON_FILENAME: &str = "data/test1.l";
 const TEST1_GRAMMAR_FILENAME: &str = "data/test1.g";
@@ -42,12 +43,12 @@ fn test_all() {
 }
 
 fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
-    let lexer_spec = Specification::File { filename: TEST1_LEXICON_FILENAME.to_string() };
-    let parser_spec = Specification::File { filename: TEST1_GRAMMAR_FILENAME.to_string() };
+    let lexer_spec = genspec!(filename: TEST1_LEXICON_FILENAME);
+    let parser_spec = genspec!(filename: TEST1_GRAMMAR_FILENAME);
     let options = Options {
-        lexer_code: CodeLocation::File { filename: TEST1_LEXER_FILENAME.to_string() },
+        lexer_code: gencode!(filename: TEST1_LEXER_FILENAME),
         lexer_indent: 0,
-        parser_code: CodeLocation::File { filename: TEST1_PARSER_FILENAME.to_string() },
+        parser_code: gencode!(filename: TEST1_PARSER_FILENAME),
         parser_indent: 0,
         lexer_headers: vec!["#![allow(unused)]".to_string()],
         parser_headers: vec!["#![allow(unused)]".to_string()],
