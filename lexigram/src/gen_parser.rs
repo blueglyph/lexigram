@@ -76,18 +76,6 @@ pub enum GenParserError {
     InvalidParameter(String),
 }
 
-// impl From<SrcTagError> for GenParserError {
-//     fn from(e: SrcTagError) -> Self {
-//         GenParserError::Source(e)
-//     }
-// }
-//
-// impl From<BuildError> for GenParserError {
-//     fn from(e: BuildError) -> Self {
-//         GenParserError::Build(e)
-//     }
-// }
-
 impl Display for GenParserError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

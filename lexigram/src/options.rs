@@ -140,28 +140,68 @@ impl Default for Options {
 
 enum BuilderState { Start, Lexer, Parser }
 
+/// Builder of the [Options] object.
+///
+/// There are 3 types of options:
+/// * options related to the lexer: [lexer](OptionsBuilder::lexer), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
+/// * options related to the parser: [parser](OptionsBuilder::parser), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
+/// * general options: [extra_libs](OptionsBuilder::extra_libs), [parser_alts](OptionsBuilder::parser_alts),
+/// [wrapper](OptionsBuilder::wrapper), [span_params](OptionsBuilder::span_params)
+///
+/// Initially, the default option settings corresponds to [Object]'s defaults. The builder offers a convenient way to chain method
+/// in order to set custom options.
+///
+/// The builder offers a way to use some of those options differently, depending on their position in the method chain.
+/// The options [indent](OptionsBuilder::indent) and [headers](OptionsBuilder::headers) are:
+/// * applied to both the lexer and parser if placed before [lexer](OptionsBuilder::lexer) and [parser](OptionsBuilder::parser)
+/// * applied to the lexer if placed after [lexer](OptionsBuilder::lexer) and before [parser](OptionsBuilder::parser)
+/// * applied to the parser if placed after [parser](OptionsBuilder::parser).
+///
+/// The option [parser](OptionsBuilder::parser) mustn't be used before [lexer](OptionsBuilder::lexer).
+///
+/// The [build](OptionsBuilder::build) method creates the resulting [Options] object. It doesn't check the object is properly set, however,
+/// since the user may want to modify it later. For instance, it doesn't verify that the lexer is defined as something else than 'none'.
+/// The current configuration is cleared after that point, and a new object can be created again with the same builder.
+///
+/// The [options](OptionsBuilder::options) method moves the builder to create the resulting [Options] object, so it can't be reused
+/// (unless cloned before callind the method).
 pub struct OptionsBuilder {
     options: Options,
     state: BuilderState,
 }
 
 impl OptionsBuilder {
+    /// Creates a builder for [Options]
     pub fn new() -> Self {
         OptionsBuilder { state: BuilderState::Start, options: Options::default() }
     }
 
+    /// Sets the location of the lexer's code (default is none)
     pub fn lexer(&mut self, lexer_code: CodeLocation) -> &mut Self {
-        self.state = BuilderState::Lexer;
-        self.options.lexer_code = lexer_code;
+        match self.state {
+            BuilderState::Start => {
+                self.state = BuilderState::Lexer;
+                self.options.lexer_code = lexer_code;
+            }
+            BuilderState::Lexer => panic!("lexer() called twice"),
+            BuilderState::Parser => panic!("lexer() called after parser()"),
+        }
         self
     }
 
+    /// Sets the location the parser's code (default is none)
     pub fn parser(&mut self, parser_code: CodeLocation) -> &mut Self {
-        self.state = BuilderState::Parser;
-        self.options.parser_code = parser_code;
+        match self.state {
+            BuilderState::Start | BuilderState::Lexer => {
+                self.state = BuilderState::Parser;
+                self.options.parser_code = parser_code;
+            }
+            BuilderState::Parser => panic!("parser() called twice"),
+        }
         self
     }
 
+    /// Sets the indentation of the generated code, in number of space characters (default is 0)
     pub fn indent(&mut self, indent: usize) -> &mut Self {
         match self.state {
             BuilderState::Start => {
@@ -174,6 +214,10 @@ impl OptionsBuilder {
         self
     }
 
+    /// **Adds** optional headers, which will be placed in front of the code (even before the `use`
+    /// clauses). This can be used to place inner attributes like `#![allow(unused)]` or `#![cfg(...)]`.
+    ///
+    /// This method can be called several times to add more headers.
     pub fn headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) -> &mut Self {
         let hdr: Vec<String> = headers.into_iter().map(|s| s.into()).collect();
         match self.state {
@@ -187,30 +231,66 @@ impl OptionsBuilder {
         self
     }
 
+    /// **Adds** user crates and modules to the list of `use` dependencies for the parser / wrapper.
+    /// This can be used to define the user types needed in the wrapper / listener
+    /// (those types can be initially copied from the generated code; they're commented out near the
+    /// beginning, after the context type definitions).
+    ///
+    /// This method can be called several times to add more dependencies.
     pub fn extra_libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) -> &mut Self {
         self.options.extra_libs.extend(libs.into_iter().map(|s| s.into()));
         self
     }
 
+    /// Sets the boolean option that generates more explicit messages in the parser when a parsing error
+    /// is encountered. It requires to generate additional information.
+    ///
+    /// Default: `true`
     pub fn parser_alts(&mut self, parser_alts: bool) -> &mut Self {
         self.options.gen_parser_alts = parser_alts;
         self
     }
 
+    /// Sets the boolean option that generates the wrapper.
+    ///
+    /// Default: `true`
     pub fn wrapper(&mut self, wrapper: bool) -> &mut Self {
         self.options.gen_wrapper = wrapper;
         self
     }
 
+    /// Sets the boolean option that generates the extra `span` parameters in the listener callback methods.
+    /// These parameters locate the terminals and nonterminals in the source text, so they can be used
+    /// for instance to generate report messages with the precise location of symbols that caused an
+    /// error.
+    ///
+    /// Default: `true`
     pub fn span_params(&mut self, span_params: bool) -> &mut Self {
         self.options.gen_span_params = span_params;
         self
     }
 
+    /// Creates an [Options] object with the current options defined earlier by [OptionsBuilder]'s methods.
+    ///
+    /// **The builder resets the options to their default values** after creating and returning that object,
+    /// so it can be reused to generate other [Options] objects, but the options must be set again.
+    /// If you want the builder to keep the options, consider cloning it and using [options()](OptionsBuilder::options)
+    /// instead.
     pub fn build(&mut self) -> Options {
+        self.state = BuilderState::Start;
         std::mem::take(&mut self.options)
     }
 
+    /// Creates an [Options] object with the current options defined earlier by [OptionsBuilder]'s methods.
+    ///
+    /// This method moves the builder. If you want to reuse the builder, consider cloning it (if you want
+    /// to keep the same options) or using [build()](OptionsBuilder::build) instead.
+    ///
+    /// **Important note**: once [lexer](OptionsBuilder::lexer) has been called, it's not possible to call
+    /// it again. Similarly, once [parser](OptionsBuilder::parser) has been called, it's not possible to
+    /// call it or [lexer](OptionsBuilder::lexer) again (see the [Options] doc for further details).
+    /// It means that **if you clone the builder and generate an option object with this method, the
+    /// remaining builder will only be partially reconfigurable**.
     pub fn options(self) -> Options {
         self.options
     }
