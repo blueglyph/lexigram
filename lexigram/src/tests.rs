@@ -372,6 +372,7 @@ fn options_builder() {
         .lexer(genspec!(filename: TEST1_LEXICON_FILENAME), gencode!(filename: TEST1_LEXER_FILENAME))
         .parser(genspec!(filename: TEST1_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
         .extra_libs(["super::listener_types::test1::*"])
+        .parser_alts(true)
         .build();
     assert_eq!(options1b, options1_expected);
     assert_eq!(options1c, options1_expected);
@@ -388,7 +389,7 @@ fn options_builder() {
         lexer_headers: Vec::new(),
         parser_headers: Vec::new(),
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
-        gen_parser_alts: true,
+        gen_parser_alts: false,
         gen_wrapper: true,
         gen_span_params: false,
     };
@@ -409,7 +410,7 @@ fn options_builder() {
         lexer_headers: Vec::new(),
         parser_headers: Vec::new(),
         extra_libs: vec!["super::listener_types::test1::*".to_string()],
-        gen_parser_alts: true,
+        gen_parser_alts: false,
         gen_wrapper: true,
         gen_span_params: false,
     };

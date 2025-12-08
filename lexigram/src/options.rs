@@ -121,7 +121,7 @@ pub struct Options {
     pub extra_libs: Vec<String>,
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
     ///
-    /// Default: `true`
+    /// Default: `false`
     pub gen_parser_alts: bool,
     /// Generates the wrapper, which is necessary to interface a listener (only if `parser_code` isn't `None`)
     ///
@@ -145,7 +145,7 @@ impl Default for Options {
             lexer_headers: vec![],
             parser_headers: vec![],
             extra_libs: vec![],
-            gen_parser_alts: true,
+            gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
         }
@@ -258,10 +258,10 @@ impl OptionsBuilder {
         self
     }
 
-    /// Sets the boolean option that generates more explicit messages in the parser when a parsing error
+    /// Sets the boolean option that generates more explicit debug messages in the parser when a parsing error
     /// is encountered. It requires to generate additional information.
     ///
-    /// Default: `true`
+    /// Default: `false`
     pub fn parser_alts(&mut self, parser_alts: bool) -> &mut Self {
         self.options.gen_parser_alts = parser_alts;
         self

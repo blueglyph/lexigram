@@ -40,9 +40,9 @@ dependencies = [
 
 [[package]]
 name = "lexigram-bin"
-version = "0.1.0"
+version = "0.7.0"
 dependencies = [
- "lexigram_lib",
+ "lexigram",
  "rust-args-parser",
 ]
 

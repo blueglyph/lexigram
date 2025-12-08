@@ -105,7 +105,7 @@ impl Error for GenParserError {
     }
 }
 
-/// Generates the source code for the lexer, the parser, and the wrapper / listener.
+/// Generates (or just verifies) the source code for the lexer, the parser, and the wrapper / listener.
 ///
 /// The options given in argument include the location of the lexicon and grammar, and where the resulting
 /// code should be written. See [Options](crate::options::Options) and

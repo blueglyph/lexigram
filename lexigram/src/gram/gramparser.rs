@@ -4,14 +4,13 @@
 // [gramparser]
 
 use gramparser_types::*;
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
 const PARSER_NUM_T: usize = 14;
 const PARSER_NUM_NT: usize = 14;
 static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
 static ALT_VAR: [VarId; 25] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
-static ALTERNATIVES: [&[Symbol]; 25] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(13), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(13)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(13)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
 static PARSING_TABLE: [AltId; 210] = [25, 25, 25, 25, 25, 25, 25, 25, 0, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 1, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 2, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 3, 26, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 4, 25, 25, 5, 5, 25, 25, 5, 5, 25, 25, 5, 5, 5, 5, 5, 25, 25, 6, 6, 25, 25, 6, 6, 25, 25, 6, 6, 6, 6, 6, 25, 25, 7, 26, 25, 25, 26, 26, 25, 25, 26, 7, 7, 7, 7, 25, 25, 12, 26, 26, 26, 26, 26, 26, 25, 26, 9, 10, 11, 8, 25, 25, 13, 14, 25, 25, 14, 14, 25, 25, 14, 13, 13, 13, 13, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 15, 16, 25, 25, 17, 25, 25, 18, 18, 25, 25, 18, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 19, 25, 25, 20, 25, 25, 25, 26, 26, 25, 24, 24, 21, 22, 24, 24, 23, 25, 24, 24, 24, 24, 24, 25];
 static OPCODES: [&[OpCode]; 25] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(13), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(13)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(13)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(13), OpCode::NT(7)], &[OpCode::Exit(14)], &[OpCode::Loop(10), OpCode::Exit(15), OpCode::NT(3)], &[OpCode::Exit(16)], &[OpCode::Loop(11), OpCode::Exit(17), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::T(6)], &[OpCode::Exit(20), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(21), OpCode::T(3)], &[OpCode::Exit(22), OpCode::T(4)], &[OpCode::Exit(23), OpCode::T(7)], &[OpCode::Exit(24)]];
 static START_SYMBOL: VarId = 0;
@@ -24,7 +23,7 @@ pub fn build_parser() -> Parser<'static> {
     Parser::new(
         PARSER_NUM_NT, PARSER_NUM_T + 1,
         &ALT_VAR,
-        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+        Vec::new(),
         OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
         &PARSING_TABLE,
         symbol_table,

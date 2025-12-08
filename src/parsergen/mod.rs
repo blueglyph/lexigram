@@ -293,7 +293,7 @@ impl ParserGen {
             nt_type: HashMap::new(),
             nt_extra_info: HashMap::new(),
             log: ll1_rules.log,
-            include_alts: true,
+            include_alts: false,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -1203,21 +1203,21 @@ impl ParserGen {
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
-        self.log.add_note("generating build_parser() source...");
-        let num_nt = self.symbol_table.get_num_nt();
-        let num_t = self.symbol_table.get_num_t();
-        for lib in [
-            "lexigram_lib::grammar::Alternative",
-            "lexigram_lib::grammar::Symbol",
+        static BASE_PARSER_LIBS: [&str; 5] = [
             "lexigram_lib::grammar::VarId",
             "lexigram_lib::grammar::AltId",
             "lexigram_lib::parser::OpCode",
             "lexigram_lib::parser::Parser",
             "lexigram_lib::FixedSymTable",
-        ] {
-            self.used_libs.add(lib);
-        }
-
+        ];
+        static ALT_PARSER_LIBS: [&str; 2] = [
+            "lexigram_lib::grammar::Alternative",
+            "lexigram_lib::grammar::Symbol",
+        ];
+        self.log.add_note("generating build_parser() source...");
+        let num_nt = self.symbol_table.get_num_nt();
+        let num_t = self.symbol_table.get_num_t();
+        self.used_libs.extend(BASE_PARSER_LIBS);
         self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
@@ -1232,6 +1232,7 @@ impl ParserGen {
                     self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
         if self.include_alts {
+            self.used_libs.extend(ALT_PARSER_LIBS);
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
                              self.parsing_table.alts.len(),
                              self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")));

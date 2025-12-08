@@ -2114,6 +2114,7 @@ mod wrapper_source {
             let original_str = get_original_str(&ll1, 12);
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             builder.set_gen_span_params(true);
+            builder.set_include_alts(true);
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
             set_has_value(&mut builder, has_value.clone());

@@ -182,7 +182,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test1_parser_tag]
 
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;
@@ -190,7 +190,6 @@ const PARSER_NUM_NT: usize = 10;
 static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Add", Some("+")), ("Div", Some("/")), ("Equal", Some("=")), ("Mul", Some("*")), ("Lpar", Some("(")), ("Rpar", Some(")")), ("Semi", Some(";")), ("Shl", Some("<<")), ("Shr", Some(">>")), ("Sub", Some("-")), ("Let", Some("let")), ("Print", Some("print")), ("Id", None), ("Num", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "inst", "instruction", "expr", "expr_1", "expr_2", "expr_3", "expr_4", "expr_5", "expr_6"];
 static ALT_VAR: [VarId; 27] = [0, 1, 1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 5, 6, 6, 6, 6, 6, 7, 8, 8, 8, 9, 9, 9, 9];
-static ALTERNATIVES: [&[Symbol]; 27] = [&[Symbol::NT(1)], &[Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(10), Symbol::T(12), Symbol::T(2), Symbol::NT(3), Symbol::T(6)], &[Symbol::T(11), Symbol::NT(3), Symbol::T(6)], &[Symbol::NT(9), Symbol::NT(4)], &[Symbol::T(3), Symbol::NT(9), Symbol::NT(4)], &[Symbol::T(1), Symbol::NT(9), Symbol::NT(4)], &[Symbol::T(0), Symbol::NT(7), Symbol::NT(4)], &[Symbol::T(9), Symbol::NT(7), Symbol::NT(4)], &[Symbol::T(7), Symbol::NT(5), Symbol::NT(4)], &[Symbol::T(8), Symbol::NT(5), Symbol::NT(4)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(6)], &[Symbol::T(3), Symbol::NT(9), Symbol::NT(6)], &[Symbol::T(1), Symbol::NT(9), Symbol::NT(6)], &[Symbol::T(0), Symbol::NT(7), Symbol::NT(6)], &[Symbol::T(9), Symbol::NT(7), Symbol::NT(6)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(8)], &[Symbol::T(3), Symbol::NT(9), Symbol::NT(8)], &[Symbol::T(1), Symbol::NT(9), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(9), Symbol::NT(9)], &[Symbol::T(4), Symbol::NT(3), Symbol::T(5)], &[Symbol::T(12)], &[Symbol::T(13)]];
 static PARSING_TABLE: [AltId; 150] = [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 0, 0, 27, 27, 0, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 1, 1, 27, 27, 2, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 3, 4, 27, 27, 28, 27, 27, 27, 27, 5, 28, 28, 27, 27, 5, 27, 27, 5, 5, 27, 8, 7, 27, 6, 27, 12, 12, 10, 11, 9, 27, 27, 27, 27, 27, 28, 28, 27, 28, 13, 28, 28, 28, 28, 13, 27, 27, 13, 13, 27, 16, 15, 27, 14, 27, 18, 18, 18, 18, 17, 27, 27, 27, 27, 27, 28, 28, 27, 28, 19, 28, 28, 28, 28, 19, 27, 27, 19, 19, 27, 22, 21, 27, 20, 27, 22, 22, 22, 22, 22, 27, 27, 27, 27, 27, 28, 28, 27, 28, 24, 28, 28, 28, 28, 23, 27, 27, 25, 26, 27];
 static OPCODES: [&[OpCode]; 27] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::T(6), OpCode::NT(3), OpCode::T(2), OpCode::T(12), OpCode::T(10)], &[OpCode::Exit(4), OpCode::T(6), OpCode::NT(3), OpCode::T(11)], &[OpCode::NT(4), OpCode::Exit(5), OpCode::NT(9)], &[OpCode::Loop(4), OpCode::Exit(6), OpCode::NT(9), OpCode::T(3)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::NT(9), OpCode::T(1)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(7), OpCode::T(0)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(7), OpCode::T(9)], &[OpCode::Loop(4), OpCode::Exit(10), OpCode::NT(5), OpCode::T(7)], &[OpCode::Loop(4), OpCode::Exit(11), OpCode::NT(5), OpCode::T(8)], &[OpCode::Exit(12)], &[OpCode::NT(6), OpCode::Exit(13), OpCode::NT(9)], &[OpCode::Loop(6), OpCode::Exit(14), OpCode::NT(9), OpCode::T(3)], &[OpCode::Loop(6), OpCode::Exit(15), OpCode::NT(9), OpCode::T(1)], &[OpCode::Loop(6), OpCode::Exit(16), OpCode::NT(7), OpCode::T(0)], &[OpCode::Loop(6), OpCode::Exit(17), OpCode::NT(7), OpCode::T(9)], &[OpCode::Exit(18)], &[OpCode::NT(8), OpCode::Exit(19), OpCode::NT(9)], &[OpCode::Loop(8), OpCode::Exit(20), OpCode::NT(9), OpCode::T(3)], &[OpCode::Loop(8), OpCode::Exit(21), OpCode::NT(9), OpCode::T(1)], &[OpCode::Exit(22)], &[OpCode::Exit(23), OpCode::NT(9), OpCode::T(9)], &[OpCode::Exit(24), OpCode::T(5), OpCode::NT(3), OpCode::T(4)], &[OpCode::Exit(25), OpCode::T(12)], &[OpCode::Exit(26), OpCode::T(13)]];
 static START_SYMBOL: VarId = 0;
@@ -203,7 +202,7 @@ pub fn build_parser() -> Parser<'static> {
     Parser::new(
         PARSER_NUM_NT, PARSER_NUM_T + 1,
         &ALT_VAR,
-        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+        Vec::new(),
         OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
         &PARSING_TABLE,
         symbol_table,
