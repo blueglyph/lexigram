@@ -5,5 +5,5 @@ edition = "2024"
 
 [dependencies]
 #lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.7.0", package = "lexigram" }
-lexigram = { path = "../lexigram", package = "lexigram" }
+lexigram = { path = "../lexigram", package = "lexigram", version = "0.7.0" }
 
