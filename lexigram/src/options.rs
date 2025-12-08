@@ -152,7 +152,8 @@ impl Default for Options {
     }
 }
 
-enum BuilderState { Start, Lexer, Parser }
+#[derive(PartialEq, Debug)]
+enum BuilderState { Start, Lexer, Parser, Error }
 
 /// Builder of the [Options] object.
 ///
@@ -182,12 +183,13 @@ enum BuilderState { Start, Lexer, Parser }
 pub struct OptionsBuilder {
     options: Options,
     state: BuilderState,
+    message: Option<String>,
 }
 
 impl OptionsBuilder {
     /// Creates a builder for [Options]
     pub fn new() -> Self {
-        OptionsBuilder { state: BuilderState::Start, options: Options::default() }
+        OptionsBuilder { state: BuilderState::Start, options: Options::default(), message: None }
     }
 
     /// Sets the location of the lexer's lexicon specification and generated code (default is none for both)
@@ -198,8 +200,15 @@ impl OptionsBuilder {
                 self.options.lexer_spec = lexer_spec;
                 self.options.lexer_code = lexer_code;
             }
-            BuilderState::Lexer => panic!("lexer() called twice"),
-            BuilderState::Parser => panic!("lexer() called after parser()"),
+            BuilderState::Lexer => {
+                self.state = BuilderState::Error;
+                self.message = Some("'lexer' option used twice".to_string());
+            }
+            BuilderState::Parser => {
+                self.state = BuilderState::Error;
+                self.message = Some("'lexer' option used after 'parser'".to_string());
+            }
+            BuilderState::Error => {}
         }
         self
     }
@@ -212,7 +221,11 @@ impl OptionsBuilder {
                 self.options.parser_spec = parser_spec;
                 self.options.parser_code = parser_code;
             }
-            BuilderState::Parser => panic!("parser() called twice"),
+            BuilderState::Parser => {
+                self.state = BuilderState::Error;
+                self.message = Some("'parser' option used twice".to_string());
+            }
+            BuilderState::Error => {}
         }
         self
     }
@@ -226,6 +239,7 @@ impl OptionsBuilder {
             }
             BuilderState::Lexer => self.options.lexer_indent = indent,
             BuilderState::Parser => self.options.parser_indent = indent,
+            BuilderState::Error => {}
         }
         self
     }
@@ -243,6 +257,7 @@ impl OptionsBuilder {
             }
             BuilderState::Lexer => self.options.lexer_headers.extend(hdr),
             BuilderState::Parser => self.options.parser_headers.extend(hdr),
+            BuilderState::Error => {}
         }
         self
     }
@@ -292,9 +307,14 @@ impl OptionsBuilder {
     /// so it can be reused to generate other [Options] objects, but the options must be set again.
     /// If you want the builder to keep the options, consider cloning it and using [options()](OptionsBuilder::options)
     /// instead.
-    pub fn build(&mut self) -> Options {
+    pub fn build(&mut self) -> Result<Options, String> {
+        let error = self.state == BuilderState::Error;
         self.state = BuilderState::Start;
-        std::mem::take(&mut self.options)
+        if error {
+            Err(self.message.take().expect("error without message"))
+        } else {
+            Ok(std::mem::take(&mut self.options))
+        }
     }
 
     /// Creates an [Options] object with the current options defined earlier by [OptionsBuilder]'s methods.

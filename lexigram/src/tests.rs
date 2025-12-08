@@ -52,7 +52,8 @@ fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(filename: TEST1_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
-        .build();
+        .build()
+        .expect("should have no error");
     try_gen_parser(action, options)
 }
 
@@ -121,7 +122,8 @@ fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(string: grammar), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
-        .build();
+        .build()
+        .expect("should have no error");
     try_gen_parser(action, options)
 }
 
@@ -188,7 +190,8 @@ fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
             gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
-        .build();
+        .build()
+        .expect("should have no error");
     try_gen_parser(action, options)
 }
 
@@ -366,14 +369,16 @@ fn options_builder() {
         .parser_alts(true)
         .wrapper(true)
         .span_params(false)
-        .build();
+        .build()
+        .expect("should have no error");
     let options1c = OptionsBuilder::new()
         .headers(["#![allow(unused)]"])
         .lexer(genspec!(filename: TEST1_LEXICON_FILENAME), gencode!(filename: TEST1_LEXER_FILENAME))
         .parser(genspec!(filename: TEST1_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
         .extra_libs(["super::listener_types::test1::*"])
         .parser_alts(true)
-        .build();
+        .build()
+        .expect("should have no error");
     assert_eq!(options1b, options1_expected);
     assert_eq!(options1c, options1_expected);
 
@@ -397,7 +402,8 @@ fn options_builder() {
         .lexer(genspec!(string: lexicon), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
         .parser(genspec!(string: grammar), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
-        .build();
+        .build()
+        .expect("should have no error");
     assert_eq!(options2, options2_expected);
 
     let options3_expected = Options {
@@ -418,34 +424,35 @@ fn options_builder() {
         .lexer(genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
         .parser(genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_GRAMMAR_TAG), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
-        .build();
+        .build()
+        .expect("should have no error");
     assert_eq!(options3, options3_expected);
 }
 
-#[should_panic]
 #[test]
 fn options_lexer_twice() {
-    let _ = OptionsBuilder::new()
+    let result = OptionsBuilder::new()
         .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
         .lexer(genspec!(string: "test"), gencode!(filename: "lexer.l"))
         .build();
+    assert_eq!(result, Err("'lexer' option used twice".to_string()));
 }
 
-#[should_panic]
 #[test]
 fn options_parser_twice() {
-    let _ = OptionsBuilder::new()
+    let result = OptionsBuilder::new()
         .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
         .parser(genspec!(string: "test"), gencode!(stdout)).indent(0)
         .parser(genspec!(string: "test"), gencode!(filename: "parser.g"))
         .build();
+    assert_eq!(result, Err("'parser' option used twice".to_string()));
 }
 
-#[should_panic]
 #[test]
 fn options_parser_then_lexer() {
-    let _ = OptionsBuilder::new()
+    let result = OptionsBuilder::new()
         .parser(genspec!(string: "test"), gencode!(stdout)).indent(0)
         .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
         .build();
+    assert_eq!(result, Err("'lexer' option used after 'parser'".to_string()));
 }

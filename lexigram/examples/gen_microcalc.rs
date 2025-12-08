@@ -32,7 +32,8 @@ fn gen_microcalc_source(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
         .extra_libs(["super::listener_types::*"])
-        .build();
+        .build()
+        .expect("should have no error");
     try_gen_parser(action, options)
 }
 

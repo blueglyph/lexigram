@@ -33,7 +33,8 @@ fn gen_source(action: Action) -> Result<BufLog, GenParserError> {
         .indent(PARSER_INDENT)
         .extra_libs(["super::listener_types::*"])
         .span_params(true)
-        .build();
+        .build()
+        .expect("should have no error");
     try_gen_parser(action, options)
 }
 
