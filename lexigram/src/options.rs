@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::io::{Read, Write};
+use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
 
 /// Action performed by the source generator: generates the source or verifies it
@@ -54,8 +54,8 @@ pub enum CodeLocation {
     /// * Verify mode: reads the expected code between tags of an existing file.
     FileTag { filename: String, tag: String },
     /// * Generate mode: writes the code to stdout.
-    /// * Verification mode: reads the expected code from stdin.
-    StdIO,
+    /// * not a valid option in verify mode
+    StdOut,
 }
 
 impl CodeLocation {
@@ -64,7 +64,7 @@ impl CodeLocation {
             CodeLocation::None => "no content".to_string(),
             CodeLocation::File { filename } => format!("file '{filename}'"),
             CodeLocation::FileTag { filename, tag } => format!("file '{filename}' / tag '{tag}'"),
-            CodeLocation::StdIO => "stdin/stdout".to_string(),
+            CodeLocation::StdOut => "stdout".to_string(),
         }
     }
 
@@ -73,10 +73,8 @@ impl CodeLocation {
             CodeLocation::None => Ok(None),
             CodeLocation::File { filename } => Ok(std::fs::read_to_string(filename)?).map(|s| Some(s)),
             CodeLocation::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(|s| Some(s)),
-            CodeLocation::StdIO => {
-                let mut source = String::new();
-                let size = std::io::stdin().read_to_string(&mut source)?;
-                Ok(if size > 0 { Some(source) } else { None })
+            CodeLocation::StdOut => {
+                Err(SrcTagError::Io(std::io::Error::new(std::io::ErrorKind::InvalidInput, "stdout can only be used as output")))
             }
         }
     }
@@ -88,7 +86,7 @@ impl CodeLocation {
                 Ok(std::fs::write(filename, source)?)
             }
             CodeLocation::FileTag { filename, tag } => replace_tagged_source(filename, tag, &source),
-            CodeLocation::StdIO => {
+            CodeLocation::StdOut => {
                 Ok(std::io::stdout().write_all(source.as_bytes())?)
             }
         }
@@ -361,8 +359,8 @@ pub mod macros {
         (filename: $file: expr, tag: $tag: expr) => {
             $crate::options::CodeLocation::FileTag { filename: $file.to_string(), tag: $tag.to_string() }
         };
-        (stdio) => {
-            $crate::options::CodeLocation::StdIO
+        (stdout) => {
+            $crate::options::CodeLocation::StdOut
         };
     }
 }

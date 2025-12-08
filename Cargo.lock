@@ -43,6 +43,7 @@ name = "lexigram-bin"
 version = "0.1.0"
 dependencies = [
  "lexigram_lib",
+ "rust-args-parser",
 ]
 
 [[package]]
@@ -52,6 +53,12 @@ dependencies = [
  "iter-index",
  "vectree",
 ]
+
+[[package]]
+name = "rust-args-parser"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bf5f9e4f07a78351ed440e46a5a2621ea7b96d6bf5cab3dd6074409f5cf0581"
 
 [[package]]
 name = "vectree"

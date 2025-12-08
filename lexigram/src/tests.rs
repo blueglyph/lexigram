@@ -425,7 +425,7 @@ fn options_builder() {
 #[test]
 fn options_lexer_twice() {
     let _ = OptionsBuilder::new()
-        .lexer(genspec!(string: "test"), gencode!(stdio)).indent(4)
+        .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
         .lexer(genspec!(string: "test"), gencode!(filename: "lexer.l"))
         .build();
 }
@@ -434,8 +434,8 @@ fn options_lexer_twice() {
 #[test]
 fn options_parser_twice() {
     let _ = OptionsBuilder::new()
-        .lexer(genspec!(string: "test"), gencode!(stdio)).indent(4)
-        .parser(genspec!(string: "test"), gencode!(stdio)).indent(0)
+        .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
+        .parser(genspec!(string: "test"), gencode!(stdout)).indent(0)
         .parser(genspec!(string: "test"), gencode!(filename: "parser.g"))
         .build();
 }
@@ -444,7 +444,7 @@ fn options_parser_twice() {
 #[test]
 fn options_parser_then_lexer() {
     let _ = OptionsBuilder::new()
-        .parser(genspec!(string: "test"), gencode!(stdio)).indent(0)
-        .lexer(genspec!(string: "test"), gencode!(stdio)).indent(4)
+        .parser(genspec!(string: "test"), gencode!(stdout)).indent(0)
+        .lexer(genspec!(string: "test"), gencode!(stdout)).indent(4)
         .build();
 }
