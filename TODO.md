@@ -17,11 +17,7 @@
     - make:   sets fields or creates object without consuming self
     - gen:    creates string source code
     - write:  writes source code into file
-- [ ] make binary application
-  - https://lib.rs/crates/rust-args-parser 
-  - https://lib.rs/crates/sarge
-  - https://lib.rs/crates/clappers
-  - (https://crates.io/crates/clap - too heavy?)
+- [x] ~~make binary application~~
 - [ ] change ParserGen::item_ops to array instead of dictionary
 - [ ] split huge files
   - [ ] dfa
