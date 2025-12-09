@@ -106,6 +106,10 @@ impl BuildError {
     pub fn new(log: BufLog, source: BuildErrorSource) -> Self {
         BuildError { log, source }
     }
+
+    pub fn get_log(self) -> BufLog {
+        self.log
+    }
 }
 
 impl Display for BuildError {

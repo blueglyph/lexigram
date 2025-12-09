@@ -166,7 +166,7 @@ impl Default for Options {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum BuilderState { Start, Lexer, Parser, Error }
 
 /// Builder of the [Options] object.
@@ -194,6 +194,7 @@ enum BuilderState { Start, Lexer, Parser, Error }
 ///
 /// The [options](OptionsBuilder::options) method moves the builder to create the resulting [Options] object, so it can't be reused
 /// (unless cloned before callind the method).
+#[derive(Clone, Debug)]
 pub struct OptionsBuilder {
     options: Options,
     state: BuilderState,

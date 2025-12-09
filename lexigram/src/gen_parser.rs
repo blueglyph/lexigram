@@ -83,6 +83,16 @@ pub enum GenParserError {
     InvalidParameter(String),
 }
 
+impl GenParserError {
+    pub fn get_log(self) -> Option<BufLog> {
+        if let GenParserError::Build(build_error, _) = self {
+            Some(build_error.get_log())
+        } else {
+            None
+        }
+    }
+}
+
 impl Display for GenParserError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
