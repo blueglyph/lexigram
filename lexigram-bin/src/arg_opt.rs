@@ -191,7 +191,6 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
         }
     }
-    println!("=> {builder:?}");
     let gen_options = builder.build()
         .map_err(|e| ExeError::Option(e))?;
     let arg_options = ArgOptions {
