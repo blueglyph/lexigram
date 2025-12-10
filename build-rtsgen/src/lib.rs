@@ -41,7 +41,7 @@ mod tests {
                 println!("\n{} warning(s), {} note(s):\n", log.num_warnings(), log.num_notes());
                 println!("{log}")
             },
-            Err(gen_error) => println!("{gen_error}"),
+            Err(gen_error) => panic!("{gen_error}"),
         }
     }
 
@@ -49,7 +49,7 @@ mod tests {
     fn test_check_source() {
         match gen_source(Action::Verify) {
             Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(gen_error) => println!("{gen_error}"),
+            Err(gen_error) => panic!("{gen_error}"),
        }
     }
 }

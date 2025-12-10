@@ -5,7 +5,7 @@
 use crate::*;
 use crate::dfa::tests::build_re;
 use crate::log::{BuildFrom, LogReader, LogStatus};
-use crate::segments::{Seg, SegMap};
+use crate::segmap::{Seg, SegMap};
 use super::*;
 
 fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {

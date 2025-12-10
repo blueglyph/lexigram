@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::grammar::{Alternative, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::old_build_rts_prs::T;
 use crate::grammar::tests::old_build_rts_prs::build_prs;
@@ -50,7 +50,7 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::opcode;
     /// # use lexigram_lib::grammar::VarId;
     /// # use lexigram_lib::parser::OpCode;
@@ -66,7 +66,7 @@ pub mod macros {
     #[macro_export()]
     macro_rules! opcode {
         (e) => { $crate::parser::OpCode::Empty };
-        (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::dfa::TokenId) };
+        (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::lexer::TokenId) };
         (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::grammar::VarId) };
         (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::grammar::VarId) };
         (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::grammar::VarId) };
@@ -80,7 +80,7 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
     /// # use lexigram_lib::{strip, opcode};
     /// # use lexigram_lib::parser::OpCode;

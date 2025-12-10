@@ -238,7 +238,8 @@ pub mod macros {
 #[cfg(test)]
 mod char_reader {
     use std::io::Cursor;
-    use crate::{CollectJoin, escape_char};
+    use crate::CollectJoin;
+    use crate::char_reader::escape_char;
     use super::*;
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
@@ -367,5 +368,17 @@ mod char_reader {
             }
             assert_eq!(result, text, "test #{index}");
         }
+    }
+}
+
+pub(crate) fn escape_char(c: char) -> String {
+    match c {
+        // '\x00'..='\x7f' => c.escape_debug().to_string(),
+              '\u{0}' => "MIN".to_string(),
+           '\u{d7ff}' => "LOW_MAX".to_string(),
+           '\u{e000}' => "HIGH_MIN".to_string(),
+         '\u{10ffff}' => "MAX".to_string(),
+        // '\u{f7ff}' | '\u{e000}' | '\u{10ffff}' => c.escape_unicode().to_string(),
+        _ => c.escape_debug().to_string(),
     }
 }

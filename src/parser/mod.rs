@@ -2,7 +2,7 @@
 
 use std::fmt::{Display, Formatter};
 use crate::{CollectJoin, FixedSymTable, SymInfoTable};
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::grammar::{Alternative, Symbol, VarId, AltId};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::Logger;

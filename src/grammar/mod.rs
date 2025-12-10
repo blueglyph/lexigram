@@ -13,7 +13,7 @@ use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
@@ -1384,7 +1384,7 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::gnode;
     /// # use lexigram_lib::grammar::{GrNode, Symbol, VarId};
     /// assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
@@ -1403,7 +1403,7 @@ pub mod macros {
     #[macro_export()]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
-        (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::T($id as $crate::dfa::TokenId)) };
+        (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::T($id as $crate::lexer::TokenId)) };
         (nt $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::NT($id as $crate::grammar::VarId)) };
         (e) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::Empty) };
         (end) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::End) };
@@ -1423,7 +1423,7 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::sym;
     /// # use lexigram_lib::grammar::{Symbol, VarId};
     /// assert_eq!(sym!(t 2), Symbol::T(2 as TokenId));
@@ -1432,7 +1432,7 @@ pub mod macros {
     /// assert_eq!(sym!(end), Symbol::End);
     #[macro_export()]
     macro_rules! sym {
-        (t $id:expr) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
+        (t $id:expr) => { $crate::grammar::Symbol::T($id as $crate::lexer::TokenId) };
         (nt $id:expr) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
         (e) => { $crate::grammar::Symbol::Empty };
         (end) => { $crate::grammar::Symbol::End };
@@ -1459,7 +1459,7 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
     /// # use lexigram_lib::{alt, sym};
     /// assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
@@ -1504,7 +1504,7 @@ pub mod macros {
     ///
     /// Example
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::lexer::TokenId;
     /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
     /// # use lexigram_lib::{prule, alt, sym};
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),

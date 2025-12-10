@@ -8,7 +8,8 @@ use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, Sy
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::parser::{OpCode, Parser, SpanNbr};
-use crate::segments::{Seg, Segments};
+use crate::segments::Segments;
+use crate::segmap::Seg;
 
 pub(crate) mod tests;
 

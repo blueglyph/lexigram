@@ -3,7 +3,7 @@
 #[cfg(any())]
 use std::collections::HashMap;
 use crate::{NameFixer, FixedSymTable, SymInfoTable, indent_source};
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::grammar::{Symbol, VarId};
 #[cfg(test)]
 use crate::CollectJoin;

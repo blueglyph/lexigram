@@ -8,7 +8,7 @@ pub mod old_build_rts_prs;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
 use crate::log::TryBuildFrom;
 use crate::log::BuildInto;

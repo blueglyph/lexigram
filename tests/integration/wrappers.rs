@@ -37,7 +37,7 @@ mod rules_153_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -151,7 +151,7 @@ mod rules_580_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -263,7 +263,7 @@ mod rules_580_1 {
 pub mod precedence_type {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::BufLog;
@@ -529,7 +529,7 @@ mod rules_640_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -662,7 +662,7 @@ mod rules_641_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -795,7 +795,7 @@ mod rules_642_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -928,7 +928,7 @@ mod rules_642_1 {
 mod rules_862_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::lexer::TokenId;
     use lexigram_lib::grammar::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_lib::log::{BufLog, Logger};

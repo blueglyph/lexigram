@@ -138,10 +138,8 @@ pub mod microcalc_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
-    use lexigram_lib::lexer::Lexer;
-    use lexigram_lib::lexergen::GroupId;
-    use lexigram_lib::segments::{Seg, SegMap};
+    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 32;
     const INITIAL_STATE: StateId = 0;
@@ -271,7 +269,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 17;
@@ -279,7 +277,6 @@ pub mod microcalc_parser {
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Add", Some("+")), ("Comma", Some(",")), ("Div", Some("/")), ("Equal", Some("=")), ("Mul", Some("*")), ("Lbracket", Some("{")), ("Lpar", Some("(")), ("Rbracket", Some("}")), ("Rpar", Some(")")), ("Semi", Some(";")), ("Sub", Some("-")), ("Def", Some("def")), ("Let", Some("let")), ("Print", Some("print")), ("Return", Some("return")), ("Id", None), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "function", "fun_params", "instruction", "expr", "fun_args", "program_1", "function_1", "fun_params_1", "fun_args_1", "expr_1", "expr_2", "expr_3", "expr_4", "program_2", "function_2", "expr_5"];
     static ALT_VAR: [VarId; 35] = [0, 1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9, 9, 10, 10, 10, 10, 10, 11, 12, 12, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16];
-    static ALTERNATIVES: [&[Symbol]; 35] = [&[Symbol::NT(6)], &[Symbol::T(11), Symbol::T(15), Symbol::T(6), Symbol::NT(2), Symbol::T(8), Symbol::T(5), Symbol::NT(7), Symbol::T(7)], &[Symbol::T(15), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(12), Symbol::T(15), Symbol::T(3), Symbol::NT(4), Symbol::T(9)], &[Symbol::T(14), Symbol::NT(4), Symbol::T(9)], &[Symbol::T(13), Symbol::NT(4), Symbol::T(9)], &[Symbol::NT(13), Symbol::NT(10)], &[Symbol::NT(4), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(1), Symbol::NT(14)], &[Symbol::NT(3), Symbol::NT(15)], &[Symbol::T(1), Symbol::T(15), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(13), Symbol::NT(10)], &[Symbol::T(2), Symbol::NT(13), Symbol::NT(10)], &[Symbol::T(0), Symbol::NT(11), Symbol::NT(10)], &[Symbol::T(10), Symbol::NT(11), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(12)], &[Symbol::T(4), Symbol::NT(13), Symbol::NT(12)], &[Symbol::T(2), Symbol::NT(13), Symbol::NT(12)], &[Symbol::Empty], &[Symbol::T(6), Symbol::NT(4), Symbol::T(8)], &[Symbol::T(10), Symbol::NT(13)], &[Symbol::T(15), Symbol::NT(16)], &[Symbol::T(16)], &[Symbol::NT(6)], &[Symbol::Empty], &[Symbol::NT(7)], &[Symbol::Empty], &[Symbol::T(6), Symbol::NT(5), Symbol::T(8)], &[Symbol::Empty]];
     static PARSING_TABLE: [AltId; 306] = [35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 0, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 1, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 35, 35, 35, 35, 3, 35, 35, 35, 35, 35, 35, 2, 35, 35, 35, 35, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 4, 6, 5, 35, 35, 35, 35, 36, 35, 35, 35, 35, 7, 35, 36, 36, 7, 35, 35, 35, 35, 7, 7, 35, 35, 35, 35, 35, 35, 35, 8, 35, 9, 35, 8, 35, 35, 35, 35, 8, 8, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 10, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 11, 11, 11, 35, 35, 35, 35, 12, 35, 35, 35, 35, 35, 35, 13, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 14, 35, 35, 35, 35, 35, 35, 15, 35, 35, 35, 35, 35, 35, 35, 35, 35, 18, 20, 17, 35, 16, 35, 35, 35, 20, 20, 19, 35, 35, 35, 35, 35, 35, 35, 36, 36, 36, 35, 36, 35, 21, 35, 36, 36, 21, 35, 35, 35, 35, 21, 21, 35, 24, 24, 23, 35, 22, 35, 35, 35, 24, 24, 24, 35, 35, 35, 35, 35, 35, 35, 36, 36, 36, 35, 36, 35, 25, 35, 36, 36, 26, 35, 35, 35, 35, 27, 28, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 29, 35, 35, 35, 35, 35, 30, 35, 35, 35, 35, 35, 35, 35, 32, 35, 35, 35, 35, 31, 31, 31, 35, 35, 35, 34, 34, 34, 35, 34, 35, 33, 35, 34, 34, 34, 35, 35, 35, 35, 35, 35, 35];
     static OPCODES: [&[OpCode]; 35] = [&[OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Exit(1), OpCode::T(7), OpCode::NT(7), OpCode::T(5), OpCode::T(8), OpCode::NT(2), OpCode::T(6), OpCode::T(15), OpCode::T(11)], &[OpCode::Exit(2), OpCode::NT(8), OpCode::T(15)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(9), OpCode::NT(4), OpCode::T(3), OpCode::T(15), OpCode::T(12)], &[OpCode::Exit(5), OpCode::T(9), OpCode::NT(4), OpCode::T(14)], &[OpCode::Exit(6), OpCode::T(9), OpCode::NT(4), OpCode::T(13)], &[OpCode::NT(10), OpCode::Exit(7), OpCode::NT(13)], &[OpCode::Exit(8), OpCode::NT(9), OpCode::NT(4)], &[OpCode::Exit(9)], &[OpCode::NT(14), OpCode::NT(1)], &[OpCode::NT(15), OpCode::NT(3)], &[OpCode::Loop(8), OpCode::Exit(12), OpCode::T(15), OpCode::T(1)], &[OpCode::Exit(13)], &[OpCode::Loop(9), OpCode::Exit(14), OpCode::NT(4), OpCode::T(1)], &[OpCode::Exit(15)], &[OpCode::Loop(10), OpCode::Exit(16), OpCode::NT(13), OpCode::T(4)], &[OpCode::Loop(10), OpCode::Exit(17), OpCode::NT(13), OpCode::T(2)], &[OpCode::Loop(10), OpCode::Exit(18), OpCode::NT(11), OpCode::T(0)], &[OpCode::Loop(10), OpCode::Exit(19), OpCode::NT(11), OpCode::T(10)], &[OpCode::Exit(20)], &[OpCode::NT(12), OpCode::Exit(21), OpCode::NT(13)], &[OpCode::Loop(12), OpCode::Exit(22), OpCode::NT(13), OpCode::T(4)], &[OpCode::Loop(12), OpCode::Exit(23), OpCode::NT(13), OpCode::T(2)], &[OpCode::Exit(24)], &[OpCode::Exit(25), OpCode::T(8), OpCode::NT(4), OpCode::T(6)], &[OpCode::Exit(26), OpCode::NT(13), OpCode::T(10)], &[OpCode::NT(16), OpCode::T(15)], &[OpCode::Exit(28), OpCode::T(16)], &[OpCode::Loop(6), OpCode::Exit(29)], &[OpCode::Exit(30)], &[OpCode::Loop(7), OpCode::Exit(31)], &[OpCode::Exit(32)], &[OpCode::Exit(33), OpCode::T(8), OpCode::NT(5), OpCode::T(6)], &[OpCode::Exit(34)]];
     static START_SYMBOL: VarId = 0;
@@ -292,7 +289,7 @@ pub mod microcalc_parser {
         Parser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
-            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            Vec::new(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
             &PARSING_TABLE,
             symbol_table,

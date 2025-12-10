@@ -3,9 +3,9 @@
 #![cfg(test)]
 
 use std::io::Cursor;
-use crate::{btreemap, CollectJoin, escape_string, node, term, General};
+use crate::{btreemap, escape_string, node, term, CollectJoin, General};
 use crate::dfa::*;
-use crate::dfa::{tests::{build_re}};
+use crate::dfa::tests::build_re;
 use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
 use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
@@ -307,12 +307,12 @@ fn lexer_modes() {
 mod lexer_source1 {
     use std::collections::HashMap;
     use std::io::{Cursor, Read};
-    use crate::dfa::{ModeOption, StateId, Terminal, TokenId};
+    use crate::lexer::ModeOption;
     use crate::escape_string;
     use crate::char_reader::CharReader;
-    use crate::lexergen::GroupId;
-    use crate::segments::{Seg, SegMap};
-    use crate::lexer::Lexer;
+    use crate::segmap::GroupId;
+    use crate::segmap::{Seg, SegMap};
+    use crate::lexer::{Lexer, StateId, Terminal, TokenId};
 
     // -------------------------------------------------------------------------
     // Copied from a print_source_code(&lexergen)
@@ -344,11 +344,11 @@ mod lexer_source1 {
     //     (Seg(119189, 119189), 2),
     //     (Seg(119190, 1114111), 6),];
     const TERMINAL_TABLE: [Terminal;5] = [
-        Terminal { action: crate::dfa::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: crate::dfa::ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: crate::dfa::ActionOption::Skip,     channel: 0, mode: ModeOption::Push(1), mode_state: Some(2), pop: false },
-        Terminal { action: crate::dfa::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: crate::dfa::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: true }];
+        Terminal { action: crate::lexer::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::lexer::ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::lexer::ActionOption::Skip,     channel: 0, mode: ModeOption::Push(1), mode_state: Some(2), pop: false },
+        Terminal { action: crate::lexer::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::lexer::ActionOption::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: true }];
     const STATE_TABLE: [StateId; 45] = [
           4,   1,   5,   9,   9, // state 0
           9,   9,   9,   6,   9, // state 1

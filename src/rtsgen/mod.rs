@@ -13,7 +13,7 @@ use std::str::FromStr;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
-use crate::dfa::TokenId;
+use crate::lexer::TokenId;
 use crate::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
@@ -563,10 +563,8 @@ pub mod rtsgen_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
-    use lexigram_lib::lexer::Lexer;
-    use lexigram_lib::lexergen::GroupId;
-    use lexigram_lib::segments::{Seg, SegMap};
+    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 42;
     const INITIAL_STATE: StateId = 0;
@@ -711,7 +709,7 @@ pub mod rtsgen_parser {
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 22;
@@ -719,7 +717,6 @@ pub mod rtsgen_parser {
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("Equal", Some("=")), ("Comma", Some(",")), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("Token", Some("token")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None), ("Tx", None), ("NTx", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "decls", "decl_iter", "decl", "decl_terminal", "ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "decl_1", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "decl_terminal_1", "rule_1"];
     static ALT_VAR: [VarId; 55] = [0, 1, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 9, 9, 9, 9, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15, 15, 15, 16, 17, 17, 17, 17, 17, 18, 19, 19, 19, 19, 20, 20, 21, 21, 22, 22];
-    static ALTERNATIVES: [&[Symbol]; 55] = [&[Symbol::NT(1), Symbol::NT(5)], &[Symbol::NT(2)], &[Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::T(16), Symbol::NT(4), Symbol::NT(13), Symbol::T(12)], &[Symbol::T(18), Symbol::NT(21)], &[Symbol::NT(6)], &[Symbol::NT(7), Symbol::NT(6)], &[Symbol::Empty], &[Symbol::NT(8), Symbol::NT(22)], &[Symbol::T(19)], &[Symbol::T(2), Symbol::NT(10)], &[Symbol::T(3), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(12)], &[Symbol::T(10), Symbol::NT(14), Symbol::T(11)], &[Symbol::NT(20), Symbol::NT(15)], &[Symbol::T(19)], &[Symbol::T(21)], &[Symbol::T(18)], &[Symbol::T(17)], &[Symbol::T(20)], &[Symbol::T(7)], &[Symbol::T(13)], &[Symbol::T(14)], &[Symbol::T(15)], &[Symbol::T(9), Symbol::NT(4), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(14)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(15)], &[Symbol::T(5), Symbol::NT(15)], &[Symbol::T(6), Symbol::NT(15)], &[Symbol::NT(18), Symbol::NT(15)], &[Symbol::T(3), Symbol::NT(16), Symbol::NT(15)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(17)], &[Symbol::T(4), Symbol::NT(17)], &[Symbol::T(5), Symbol::NT(17)], &[Symbol::T(6), Symbol::NT(17)], &[Symbol::NT(18), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(19)], &[Symbol::T(4), Symbol::NT(19)], &[Symbol::T(5), Symbol::NT(19)], &[Symbol::T(6), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(11), Symbol::T(11)], &[Symbol::NT(12)], &[Symbol::T(8), Symbol::T(17)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(11), Symbol::T(12)], &[Symbol::T(1), Symbol::NT(9), Symbol::T(12)]];
     static PARSING_TABLE: [AltId; 529] = [55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 0, 55, 55, 0, 55, 55, 0, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 1, 55, 55, 1, 55, 55, 1, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 2, 55, 55, 3, 55, 55, 3, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 4, 55, 55, 56, 55, 55, 56, 55, 55, 55, 55, 55, 55, 55, 55, 55, 56, 55, 55, 56, 55, 55, 55, 55, 55, 5, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 6, 55, 55, 6, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 7, 55, 55, 8, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 9, 55, 55, 56, 56, 56, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 10, 55, 55, 55, 55, 55, 11, 12, 13, 14, 15, 16, 55, 55, 55, 56, 56, 16, 16, 16, 55, 16, 16, 16, 16, 16, 55, 55, 55, 56, 56, 56, 56, 56, 56, 55, 55, 17, 56, 56, 56, 56, 56, 55, 56, 56, 56, 56, 56, 55, 55, 55, 55, 55, 55, 55, 55, 18, 55, 55, 18, 56, 56, 18, 18, 18, 55, 18, 18, 18, 18, 18, 55, 55, 55, 56, 56, 56, 56, 56, 24, 55, 55, 56, 56, 56, 25, 26, 27, 55, 22, 21, 19, 23, 20, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 28, 55, 55, 29, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 30, 30, 30, 30, 30, 30, 55, 55, 55, 31, 55, 30, 30, 30, 55, 30, 30, 30, 30, 30, 55, 55, 55, 55, 36, 32, 33, 34, 35, 55, 55, 35, 37, 37, 35, 35, 35, 55, 35, 35, 35, 35, 35, 55, 55, 55, 55, 56, 56, 56, 56, 38, 55, 55, 38, 56, 56, 38, 38, 38, 55, 38, 38, 38, 38, 38, 55, 55, 55, 55, 43, 39, 40, 41, 42, 55, 55, 42, 43, 43, 42, 42, 42, 55, 42, 42, 42, 42, 42, 55, 55, 55, 55, 56, 56, 56, 56, 44, 55, 55, 44, 56, 56, 44, 44, 44, 55, 44, 44, 44, 44, 44, 55, 55, 55, 55, 48, 45, 46, 47, 48, 55, 55, 48, 48, 48, 48, 48, 48, 55, 48, 48, 48, 48, 48, 55, 55, 55, 55, 56, 56, 56, 56, 50, 55, 55, 49, 56, 56, 50, 50, 50, 55, 50, 50, 50, 50, 50, 55, 55, 55, 55, 55, 55, 55, 55, 55, 51, 52, 55, 55, 52, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 53, 54, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 56, 55, 55, 56];
     static OPCODES: [&[OpCode]; 55] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(12), OpCode::NT(13), OpCode::NT(4), OpCode::T(16)], &[OpCode::NT(21), OpCode::T(18)], &[OpCode::Exit(6), OpCode::NT(6)], &[OpCode::Loop(6), OpCode::Exit(7), OpCode::NT(7)], &[OpCode::Exit(8)], &[OpCode::NT(22), OpCode::NT(8)], &[OpCode::Exit(10), OpCode::T(19)], &[OpCode::Exit(11), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(12), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::T(4)], &[OpCode::Exit(14), OpCode::NT(10), OpCode::T(5)], &[OpCode::Exit(15), OpCode::NT(10), OpCode::T(6)], &[OpCode::Exit(16), OpCode::NT(12)], &[OpCode::Exit(17), OpCode::T(11), OpCode::NT(14), OpCode::T(10)], &[OpCode::NT(15), OpCode::Exit(18), OpCode::NT(20)], &[OpCode::Exit(19), OpCode::T(19)], &[OpCode::Exit(20), OpCode::T(21)], &[OpCode::Exit(21), OpCode::T(18)], &[OpCode::Exit(22), OpCode::T(17)], &[OpCode::Exit(23), OpCode::T(20)], &[OpCode::Exit(24), OpCode::T(7)], &[OpCode::Exit(25), OpCode::T(13)], &[OpCode::Exit(26), OpCode::T(14)], &[OpCode::Exit(27), OpCode::T(15)], &[OpCode::Loop(13), OpCode::Exit(28), OpCode::NT(4), OpCode::T(9)], &[OpCode::Exit(29)], &[OpCode::Loop(14), OpCode::Exit(30), OpCode::NT(9)], &[OpCode::Exit(31)], &[OpCode::Loop(15), OpCode::Exit(32), OpCode::T(4)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::T(5)], &[OpCode::Loop(15), OpCode::Exit(34), OpCode::T(6)], &[OpCode::Loop(15), OpCode::Exit(35), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(16), OpCode::T(3)], &[OpCode::Exit(37)], &[OpCode::NT(17), OpCode::Exit(38), OpCode::NT(20)], &[OpCode::Loop(17), OpCode::Exit(39), OpCode::T(4)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::T(5)], &[OpCode::Loop(17), OpCode::Exit(41), OpCode::T(6)], &[OpCode::Loop(17), OpCode::Exit(42), OpCode::NT(18)], &[OpCode::Exit(43)], &[OpCode::NT(19), OpCode::Exit(44), OpCode::NT(20)], &[OpCode::Loop(19), OpCode::Exit(45), OpCode::T(4)], &[OpCode::Loop(19), OpCode::Exit(46), OpCode::T(5)], &[OpCode::Loop(19), OpCode::Exit(47), OpCode::T(6)], &[OpCode::Exit(48)], &[OpCode::Exit(49), OpCode::T(11), OpCode::NT(11), OpCode::T(10)], &[OpCode::Exit(50), OpCode::NT(12)], &[OpCode::Exit(51), OpCode::T(17), OpCode::T(8)], &[OpCode::Exit(52)], &[OpCode::Exit(53), OpCode::T(12), OpCode::NT(11), OpCode::T(0)], &[OpCode::Exit(54), OpCode::T(12), OpCode::NT(9), OpCode::T(1)]];
     static START_SYMBOL: VarId = 0;
@@ -732,7 +729,7 @@ pub mod rtsgen_parser {
         Parser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
-            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            Vec::new(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
             &PARSING_TABLE,
             symbol_table,

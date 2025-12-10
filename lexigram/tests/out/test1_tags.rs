@@ -76,10 +76,8 @@ expr:
 
 use std::collections::HashMap;
 use std::io::Read;
-use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
-use lexigram_lib::lexer::Lexer;
-use lexigram_lib::lexergen::GroupId;
-use lexigram_lib::segments::{Seg, SegMap};
+use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
 const NBR_GROUPS: u32 = 23;
 const INITIAL_STATE: StateId = 0;

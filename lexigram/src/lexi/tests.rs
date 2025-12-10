@@ -2,6 +2,13 @@
 
 #![cfg(test)]
 
+use std::collections::HashSet;
+use std::io::Read;
+use lexigram_lib::char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
+use lexigram_lib::lexer::StateId;
+use lexigram_lib::lexer::Lexer;
+use lexigram_lib::segments::Segments;
+
 const TXT1: &str = r#"
     lexicon A;
     fragment ALPHANUM: [0-9A-Za-z_];
@@ -93,6 +100,44 @@ const TXT5: &str = r#"
     A: 'r' -> skip;
 "#;
 
+/// Returns the set of characters that are valid at the given lexer state.
+///
+/// Note: This function can be quite slow, as it must test every possibility.
+pub fn get_valid_segments<'a, R: Read>(lexer: &Lexer<'a, R>, state: StateId) -> Segments {
+    if state >= lexer.first_end_state {
+        Segments::dot()     // accepting state
+    } else {
+        let mut result = Segments::empty();
+        let groups = (0..lexer.nbr_groups)
+            .filter_map(|g| if lexer.state_table[lexer.nbr_groups as usize * state + g as usize] < lexer.nbr_states { Some(g) } else { None })
+            .collect::<HashSet<_>>();
+        // examines all the ASCII codes:
+        for c in 0..128 {
+            if groups.contains(&lexer.ascii_to_group[c]) {
+                result.insert_utf8(c as u32, c as u32);
+            }
+        }
+        // examines all the valid UTF8 codepoints:
+        for range in [128..=UTF8_LOW_MAX, UTF8_HIGH_MIN..=UTF8_MAX] {
+            for utf in range {
+                let char = char::from_u32(utf).unwrap();
+                if let Some(group) = lexer.utf8_to_group.get(&char) {
+                    if groups.contains(group) {
+                        result.insert_utf8(utf, utf); // determine start-stop ranges instead of inserting all codes?
+                    }
+                }
+            }
+        }
+        // examines all the remaining segments:
+        for (seg, group) in &lexer.seg_to_group {
+            if groups.contains(group) {
+                result.insert(*seg);
+            }
+        }
+        result
+    }
+}
+
 mod listener {
     use crate::lexi::listener::decode_str;
 
@@ -124,9 +169,9 @@ mod simple {
     use std::collections::BTreeMap;
     use std::io::Cursor;
     use lexigram_lib::{branch, btreemap, term};
-    use lexigram_lib::dfa::{tree_to_string, ActionOption, ReType};
+    use lexigram_lib::dfa::{tree_to_string, ReType};
     use lexigram_lib::char_reader::CharReader;
-    use lexigram_lib::lexer::LexerError;
+    use lexigram_lib::lexer::{ActionOption, LexerError};
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
     use lexigram_lib::log::{BuildFrom, BuildInto, LogReader, LogStatus};
@@ -434,7 +479,7 @@ mod simple {
                     LexerError::None => (None, None),
                     LexerError::InvalidChar { info }
                     | LexerError::UnrecognizedChar { info }
-                    | LexerError::EndOfStream { info } => (Some(info.col), Some(lexer.get_valid_segments(info.state))),
+                    | LexerError::EndOfStream { info } => (Some(info.col), Some(get_valid_segments(&lexer, info.state))),
                     LexerError::EmptyStateStack { info } => (Some(info.col), None),
                     LexerError::NoStreamAttached | LexerError::InfiniteLoop { .. } => panic!("{text}: unexpected error {:?}", lexer.get_error()),
                 };

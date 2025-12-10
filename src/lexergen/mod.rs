@@ -8,10 +8,12 @@ use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable, HasBuildErrorSource, BuildError, BuildErrorSource};
-use crate::lexer::{Lexer, LexerError};
+use crate::{indent_source, BuildError, BuildErrorSource, CollectJoin, HasBuildErrorSource, Normalized, SymbolTable};
+use crate::char_reader::escape_char;
+use crate::lexer::{ActionOption, Lexer, LexerError, StateId, Terminal, TokenId};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
-use crate::segments::{Segments, Seg, SegMap};
+use crate::segments::Segments;
+use crate::segmap::{char_to_group, GroupId, Seg, SegMap};
 use super::dfa::*;
 
 // ---------------------------------------------------------------------------------------------
@@ -119,8 +121,6 @@ impl TryBuildFrom<LexerGen> for LexerTables {
 }
 
 // ---------------------------------------------------------------------------------------------
-
-pub type GroupId = u32;
 
 pub struct LexerGen {
     // parameters:
@@ -332,10 +332,8 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use lexigram_lib::dfa::{{StateId, Terminal, ActionOption, ModeOption}};"));
-        source.push(format!("use lexigram_lib::lexer::Lexer;"));
-        source.push(format!("use lexigram_lib::lexergen::GroupId;"));
-        source.push(format!("use lexigram_lib::segments::{{Seg, SegMap}};"));
+        source.push(format!("use lexigram_lib::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};"));
+        source.push(format!("use lexigram_lib::segmap::{{GroupId, Seg, SegMap}};"));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
@@ -441,15 +439,6 @@ impl BuildFrom<Dfa<Normalized>> for LexerGen {
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
-
-#[inline]
-pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, seg_to_group: &SegMap<GroupId>, symbol: char) -> Option<GroupId> {
-    if symbol.len_utf8() == 1 {
-        Some(ascii_to_group[u8::try_from(symbol).unwrap() as usize])
-    } else {
-        utf8_to_group.get(&symbol).cloned().or_else(|| seg_to_group.get(symbol as u32))
-    }
-}
 
 // todo: option to split ASCII range?
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<Segments> {

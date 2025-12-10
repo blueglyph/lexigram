@@ -9,6 +9,7 @@ use vectree::VecTree;
 mod macros;
 mod take_until;
 mod cproduct;
+pub mod segmap;
 pub mod segments;
 pub mod char_reader;
 pub mod dfa;
@@ -132,20 +133,8 @@ pub trait HasBuildErrorSource {
 // ---------------------------------------------------------------------------------------------
 // General helper functions
 
-pub(crate) fn escape_char(c: char) -> String {
-    match c {
-        // '\x00'..='\x7f' => c.escape_debug().to_string(),
-              '\u{0}' => "MIN".to_string(),
-           '\u{d7ff}' => "LOW_MAX".to_string(),
-           '\u{e000}' => "HIGH_MIN".to_string(),
-         '\u{10ffff}' => "MAX".to_string(),
-        // '\u{f7ff}' | '\u{e000}' | '\u{10ffff}' => c.escape_unicode().to_string(),
-        _ => c.escape_debug().to_string(),
-    }
-}
-
 pub fn escape_string(s: &str) -> String {
-    s.chars().map(|c| escape_char(c)).collect::<String>()
+    s.chars().map(|c| char_reader::escape_char(c)).collect::<String>()
 }
 
 /// Gathers `iter_item` in a vector and pushes it into `v`.
@@ -331,7 +320,7 @@ impl StructLibs {
 #[cfg(test)]
 mod libtests {
     use super::*;
-    use crate::log::{Logger, BufLog};
+    use crate::log::{BufLog, Logger};
 
     #[test]
     fn test_column_to_str() {

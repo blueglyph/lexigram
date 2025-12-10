@@ -6,14 +6,14 @@ use crate::dfa::DfaBundle;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, Terminal};
+use crate::dfa::{Dfa, DfaBuilder};
 use crate::{escape_string, gnode, CollectJoin, General, SymbolTable, LL1};
 use crate::SymInfoTable;
 use crate::char_reader::CharReader;
-use crate::lexer::Lexer;
+use crate::lexer::{Lexer, Terminal, TokenId};
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
-use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
+use crate::grammar::{GrTreeExt, ProdRuleSet, RuleTreeSet, VarId};
 use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::file_utils::{get_tagged_source, replace_tagged_source};
@@ -221,14 +221,14 @@ fn regexgen_optimize() {
 // Not a test. Only shows the size of a few types.
 fn type_size() {
     println!("Size of main types:");
-    println!("- Terminal   : {:4} bytes", std::mem::size_of::<crate::dfa::Terminal>());
+    println!("- Terminal   : {:4} bytes", std::mem::size_of::<crate::lexer::Terminal>());
     println!("- ReType     : {:4} bytes", std::mem::size_of::<crate::dfa::ReType>());
     println!("- ReNode     : {:4} bytes", std::mem::size_of::<crate::dfa::ReNode>());
-    println!("- StateId    : {:4} bytes", std::mem::size_of::<crate::dfa::StateId>());
-    println!("- TokenId    : {:4} bytes", std::mem::size_of::<crate::dfa::TokenId>());
-    println!("- ModeId     : {:4} bytes", std::mem::size_of::<crate::dfa::ModeId>());
-    println!("- ChannelId  : {:4} bytes", std::mem::size_of::<crate::dfa::ChannelId>());
-    println!("- Seg        : {:4} bytes", std::mem::size_of::<crate::segments::Seg>());
+    println!("- StateId    : {:4} bytes", std::mem::size_of::<crate::lexer::StateId>());
+    println!("- TokenId    : {:4} bytes", std::mem::size_of::<crate::lexer::TokenId>());
+    println!("- ModeId     : {:4} bytes", std::mem::size_of::<crate::lexer::ModeId>());
+    println!("- ChannelId  : {:4} bytes", std::mem::size_of::<crate::lexer::ChannelId>());
+    println!("- Seg        : {:4} bytes", std::mem::size_of::<crate::segmap::Seg>());
     println!("- Segments   : {:4} bytes", std::mem::size_of::<crate::segments::Segments>());
 }
 
