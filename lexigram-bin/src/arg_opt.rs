@@ -76,6 +76,10 @@ General options:
   -h|--help                 Shows this message.
 
   -V|--version              Shows the program version.
+
+Example:
+
+  lexigram -x lexicon.l -l lexer.rs -g grammar.g -p parser.rs --lib "super::listener_types::*" --spans --log
 "##;
 
 #[derive(Clone, Debug)]
