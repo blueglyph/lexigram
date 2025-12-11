@@ -269,7 +269,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{AltId, FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 17;
@@ -520,7 +520,7 @@ pub mod microcalc_parser {
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
             }
         }
 

@@ -3,9 +3,10 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
-use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable};
+use lexigram_lib::parser::Symbol;
+use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;

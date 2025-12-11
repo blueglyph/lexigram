@@ -3,8 +3,9 @@
 #![cfg(test)]
 
 use iter_index::IndexerIterator;
-use crate::grammar::{grtree_to_str, ProdRuleSet, Symbol, VarId};
-use crate::{CollectJoin, LL1};
+use crate::grammar::{grtree_to_str, ProdRuleSet};
+use crate::parser::Symbol;
+use crate::{CollectJoin, LL1, VarId};
 
 fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
     let symtab = ll1.get_symbol_table();
@@ -154,8 +155,8 @@ mod gen_integration {
 
 pub mod opcodes {
     use crate::log::BuildFrom;
-    use crate::grammar::{Symbol, VarId};
-    use crate::{columns_to_str, strip, CollectJoin};
+    use crate::parser::Symbol;
+    use crate::{columns_to_str, strip, CollectJoin, VarId};
     use crate::grammar::tests::TestRules;
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
@@ -480,12 +481,13 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
-    use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
+    use crate::grammar::{alt_to_rule_str, ruleflag};
     use crate::grammar::tests::TestRules;
-    use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin};
+    use crate::parser::Symbol;
+    use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin, AltId, VarId};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::log::{LogReader, LogStatus};
-    use crate::parser::SpanNbr;
+    use crate::parsergen::SpanNbr;
     use crate::parsergen::tests::get_original_str;
     use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
     use crate::file_utils::{get_tagged_source, replace_tagged_source};

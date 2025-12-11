@@ -13,12 +13,12 @@ use std::str::FromStr;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
-use crate::lexer::TokenId;
-use crate::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
+use crate::{TokenId, VarId};
+use crate::grammar::{GrNode, GrTree, RuleTreeSet};
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
 use crate::log::{BufLog, LogStatus, Logger};
-use crate::parser::Parser;
+use crate::parser::{Parser, Symbol};
 use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
 use crate::rtsgen::rtsgen_parser::*;
@@ -527,7 +527,7 @@ fn decode_str(strlit: &str) -> Result<String, String> {
 // (initially copied/uncommented from the generated parser code)
 
 pub mod listener_types {
-    use crate::grammar::VarId;
+    use crate::VarId;
 
     /// User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
@@ -709,7 +709,7 @@ pub mod rtsgen_parser {
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{AltId, FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 22;
@@ -1066,7 +1066,7 @@ pub mod rtsgen_parser {
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
             }
         }
 

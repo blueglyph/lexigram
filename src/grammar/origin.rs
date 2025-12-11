@@ -5,7 +5,8 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use crate::grammar::{GrTree, VarId};
+use crate::VarId;
+use crate::grammar::GrTree;
 
 #[derive(Clone, Debug)]
 /// Origin from a RuleTreeSet perspective: [`Origin<(VarId, usize), FromRTS>`](Origin), where

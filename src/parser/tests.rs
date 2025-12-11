@@ -5,13 +5,13 @@
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
-use crate::lexer::TokenId;
-use crate::grammar::{Alternative, ProdRuleSet, Symbol, VarId};
+use crate::{TokenId, VarId};
+use crate::grammar::{Alternative, ProdRuleSet};
 use crate::grammar::tests::old_build_rts_prs::T;
 use crate::grammar::tests::old_build_rts_prs::build_prs;
 use crate::lexer::{CaretCol, Pos, PosSpan};
 use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
-use crate::parser::{ListenerWrapper, OpCode, Parser};
+use crate::parser::{ListenerWrapper, OpCode, Parser, Symbol};
 use crate::parsergen::{ParserGen, ParserTables};
 
 
@@ -50,9 +50,9 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::lexer::TokenId;
+    /// # use lexigram_lib::TokenId;
     /// # use lexigram_lib::opcode;
-    /// # use lexigram_lib::grammar::VarId;
+    /// # use lexigram_lib::VarId;
     /// # use lexigram_lib::parser::OpCode;
     /// assert_eq!(opcode!(e), OpCode::Empty);
     /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
@@ -66,13 +66,13 @@ pub mod macros {
     #[macro_export()]
     macro_rules! opcode {
         (e) => { $crate::parser::OpCode::Empty };
-        (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::lexer::TokenId) };
-        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::grammar::VarId) };
-        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::grammar::VarId) };
-        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::grammar::VarId) };
-        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::grammar::VarId, 0) };
-        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::grammar::VarId, 0) };
-        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::grammar::VarId, 0) };
+        (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::TokenId) };
+        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::VarId) };
+        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::VarId) };
+        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::VarId) };
+        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::VarId, 0) };
+        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::VarId, 0) };
+        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::VarId, 0) };
         (end) => { $crate::parser::OpCode::End };
     }
 
@@ -80,7 +80,7 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::lexer::TokenId;
+    /// # use lexigram_lib::TokenId;
     /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
     /// # use lexigram_lib::{strip, opcode};
     /// # use lexigram_lib::parser::OpCode;

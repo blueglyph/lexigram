@@ -1,9 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::lexer::TokenId;
-use crate::grammar::{Symbol, VarId};
-#[cfg(test)]
-use crate::CollectJoin;
+use crate::{TokenId, VarId};
+use crate::parser::Symbol;
 
 /// Stores the names of the terminal and nonterminal symbols used by a parser.
 ///
@@ -77,13 +75,12 @@ impl FixedSymTable {
         }
         println!(
             "- nonterminals:\n{}",
-            self.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
+            self.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).collect::<Vec<_>>().join("\n"));
         println!(
             "- terminals:\n{}",
             self.get_terminals().enumerate()
                 .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() }))
-                .join("\n"));
-
+                .collect::<Vec<_>>().join("\n"));
     }
 }
 

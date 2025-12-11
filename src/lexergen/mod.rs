@@ -8,9 +8,9 @@ use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{indent_source, BuildError, BuildErrorSource, CollectJoin, HasBuildErrorSource, Normalized, SymbolTable};
+use crate::{indent_source, BuildError, BuildErrorSource, CollectJoin, HasBuildErrorSource, Normalized, SymbolTable, TokenId};
 use crate::char_reader::escape_char;
-use crate::lexer::{ActionOption, Lexer, LexerError, StateId, Terminal, TokenId};
+use crate::lexer::{ActionOption, Lexer, LexerError, StateId, Terminal};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::segments::Segments;
 use crate::segmap::{char_to_group, GroupId, Seg, SegMap};

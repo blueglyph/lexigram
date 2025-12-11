@@ -5,8 +5,8 @@ pub(super) mod tests;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::dfa::ReNode;
-use crate::{node, term};
-use crate::lexer::{ModeId, TokenId};
+use crate::{node, term, TokenId};
+use crate::lexer::ModeId;
 // ---------------------------------------------------------------------------------------------
 // Lexer
 

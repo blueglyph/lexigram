@@ -8,12 +8,11 @@ use std::io::Read;
 use std::ops::{Add, AddAssign};
 use crate::segmap::{char_to_group, GroupId, SegMap};
 use crate::char_reader::{escape_char, CharReader};
-
+use crate::TokenId;
 // ---------------------------------------------------------------------------------------------
 // Types used in lexer
 
 pub type StateId = usize;
-pub type TokenId = u16;
 pub type ChannelId = u16;
 pub type ModeId = u16;
 

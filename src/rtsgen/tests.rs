@@ -5,8 +5,9 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
-use crate::grammar::{grtree_to_str, GrTreeExt, RuleTreeSet, Symbol};
+use crate::grammar::{grtree_to_str, GrTreeExt, RuleTreeSet};
 use crate::log::{LogReader, LogStatus};
+use crate::parser::Symbol;
 use crate::{CollectJoin, General};
 use crate::rtsgen::RtsGen;
 

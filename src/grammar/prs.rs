@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use super::*;
-use crate::{columns_to_str, CollectJoin, SymInfoTable, SymbolTable};
+use crate::{columns_to_str, CollectJoin, SymInfoTable, SymbolTable, VarId, AltId};
 
 pub fn alt_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
     if f.is_empty() {

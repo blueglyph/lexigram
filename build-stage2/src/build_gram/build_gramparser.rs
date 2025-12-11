@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::HashMap;
-use lexigram_lib::{gnode, LL1};
+use lexigram_lib::{gnode, LL1, VarId};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
-use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};

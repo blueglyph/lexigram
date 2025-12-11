@@ -180,7 +180,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test1_parser_tag]
 
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{AltId, FixedSymTable, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;
@@ -362,7 +362,7 @@ impl<T: Test1Listener> ListenerWrapper for Wrapper<T> {
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
         if self.verbose {
             println!("> stack_t:   {}", self.stack_t.join(", "));
-            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
         }
     }
 

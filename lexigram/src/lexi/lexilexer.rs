@@ -219,7 +219,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 #[cfg(test)]
 mod test {
     use std::io::Cursor;
-    use lexigram_lib::lexer::TokenId;
+    use lexigram_lib::TokenId;
     use lexigram_lib::escape_string;
     use lexigram_lib::char_reader::CharReader;
     use crate::lexi::lexilexer::build_lexer;

@@ -59,6 +59,15 @@ pub const LIB_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 // ---------------------------------------------------------------------------------------------
 // Shared types
 
+/// ID of a lexer token
+pub type TokenId = u16;
+
+/// ID of a nonterminal
+pub type VarId = u16;
+
+/// ID of a rule alternative. We use the same type as [VarId] because they're very similar quantities.
+pub type AltId = VarId;
+
 /// Unit type used as generic parameter to indicate general, non-normalized form.
 ///
 /// - `Dfa<General>` may have accepting states with IDs smaller than non-accepting states' IDs, or non-incremntal IDs.

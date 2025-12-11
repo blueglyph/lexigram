@@ -1,15 +1,87 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::fmt::{Display, Formatter};
-use crate::{CollectJoin, FixedSymTable, SymInfoTable};
-use crate::lexer::TokenId;
-use crate::grammar::{Alternative, Symbol, VarId, AltId};
+use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::{AltId, TokenId, VarId};
+use crate::grammar::Alternative;
 use crate::lexer::{Pos, PosSpan};
 use crate::log::Logger;
 
 pub(crate) mod tests;
 
 // ---------------------------------------------------------------------------------------------
+
+#[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+pub enum Symbol {
+    T(TokenId),         // terminal
+    NT(VarId),          // non-terminal
+    #[default] Empty,   // empty symbol
+    End                 // end of stream
+}
+
+impl Symbol {
+    pub fn is_end(&self) -> bool {
+        matches!(self, Symbol::End)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Symbol::Empty)
+    }
+
+    pub fn is_t(&self) -> bool {
+        matches!(self, Symbol::T(_))
+    }
+
+    pub fn is_nt(&self) -> bool {
+        matches!(self, Symbol::NT(_))
+    }
+
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_str(self)).unwrap_or(self.to_string())
+    }
+
+    /// Converts the symbol to string, using the symbol table if available, and
+    /// surrounding it with quotes if it's a string literal.
+    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(format!("{}", self.to_string()))
+    }
+
+    pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_name(self)).unwrap_or(format!("{}", self.to_string()))
+    }
+
+    /// Converts the symbol to string, using the symbol table if available.
+    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
+        let mut result = self.to_str(symbol_table);
+        if let Some(t) = symbol_table {
+            if t.is_symbol_t_data(self) {
+                result.push_str(&format!("({ext})"));
+            }
+        }
+        result
+    }
+
+    /// Converts to symbols used in [`sym!`](macro@sym) and other related macros.
+    pub fn to_macro_item(&self) -> String {
+        match self {
+            Symbol::Empty => "e".to_string(),
+            Symbol::T(x) => format!("t {x}"),
+            Symbol::NT(x) => format!("nt {x}"),
+            Symbol::End => "end".to_string(),
+        }
+    }
+}
+
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Symbol::Empty => write!(f, "ε"),
+            Symbol::T(id) => write!(f, ":{id}"),
+            Symbol::NT(id) => write!(f, "{id}"),
+            Symbol::End => write!(f, "$"),
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum OpCode {
@@ -21,10 +93,10 @@ pub enum OpCode {
     End                 // end of stream
 }
 
+// ---------------------------------------------------------------------------------------------
+
 #[derive(PartialEq, Debug)]
 pub enum Call { Enter, Loop, Exit, End }
-
-pub type SpanNbr = u16;
 
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
@@ -209,7 +281,7 @@ impl<'a> Parser<'a> {
                          if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
                          stream_sym.to_str_ext(sym_table, &stream_str),
                          stack_t.join(", "),
-                         stack.iter().map(|s| s.to_str(sym_table)).join(" "),
+                         stack.iter().map(|s| s.to_str(sym_table)).collect::<Vec<_>>().join(" "),
                          stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
@@ -245,7 +317,7 @@ impl<'a> Parser<'a> {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
                             .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() }))
-                            .join(", ");
+                            .collect::<Vec<_>>().join(", ");
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
                         let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
                                           stack_sym.to_str(sym_table),
@@ -301,9 +373,15 @@ impl<'a> Parser<'a> {
                             } else {
                                 "(alternative)".to_string()
                             };
-                            println!("- to stack: [{}]", self.opcodes[alt_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
-                            println!("- {} {} -> {f_str} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                     Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.iter().join(" "));
+                            println!(
+                                "- to stack: [{}]",
+                                self.opcodes[alt_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table))
+                                    .collect::<Vec<_>>().join(" "));
+                            println!(
+                                "- {} {} -> {f_str} ({}): [{}]",
+                                if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
+                                Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.iter()
+                                    .cloned().collect::<Vec<_>>().join(" "));
                         }
                         if nbr_recovers == 0 {
                             wrapper.switch(call, var, alt_id, Some(t_data));
@@ -315,7 +393,12 @@ impl<'a> Parser<'a> {
                 (OpCode::Exit(alt_id), _) => {
                     let var = self.alt_var[alt_id as usize];
                     let t_data = std::mem::take(&mut stack_t);
-                    if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
+                    if VERBOSE {
+                        println!(
+                            "- EXIT {} syn ({}): [{}]",
+                            Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter()
+                                .cloned().collect::<Vec<_>>().join(" "));
+                    }
                     if nbr_recovers == 0 {
                         wrapper.switch(Call::Exit, var, alt_id, Some(t_data));
                     }
@@ -393,7 +476,7 @@ impl<'a> Parser<'a> {
             }
         }
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
-        assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).join(", "));
+        assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).collect::<Vec<_>>().join(", "));
         if nbr_recovers == 0 {
             assert!(wrapper.is_stack_empty(), "symbol stack isn't empty");
             assert!(wrapper.is_stack_t_empty(), "text stack isn't empty");

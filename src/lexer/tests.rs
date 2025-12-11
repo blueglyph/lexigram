@@ -308,11 +308,11 @@ mod lexer_source1 {
     use std::collections::HashMap;
     use std::io::{Cursor, Read};
     use crate::lexer::ModeOption;
-    use crate::escape_string;
+    use crate::{escape_string, TokenId};
     use crate::char_reader::CharReader;
     use crate::segmap::GroupId;
     use crate::segmap::{Seg, SegMap};
-    use crate::lexer::{Lexer, StateId, Terminal, TokenId};
+    use crate::lexer::{Lexer, StateId, Terminal};
 
     // -------------------------------------------------------------------------
     // Copied from a print_source_code(&lexergen)

@@ -3,11 +3,11 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, AltId, NTConversion, Alternative, grtree_to_str, GrTreeExt};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
+use crate::grammar::{grtree_to_str, ruleflag, Alternative, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
+use crate::{columns_to_str, indent_source, AltId, BuildError, BuildErrorSource, CollectJoin, FixedSymTable, General, HasBuildErrorSource, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymInfoTable, SymbolTable, VarId, LL1};
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
-use crate::parser::{OpCode, Parser, SpanNbr};
+use crate::parser::{OpCode, Parser, Symbol};
 use crate::segments::Segments;
 use crate::segmap::Seg;
 
@@ -215,6 +215,8 @@ static FOLD_SPAN_CODE: [&str; 4] = [
     "        spans.iter().for_each(|span| new_span += span);",
     "        self.stack_span.push(new_span);",
 ];
+
+pub type SpanNbr = u16;
 
 fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
     let count = opcode.iter().filter(|op| op.has_span()).count();
@@ -1205,15 +1207,15 @@ impl ParserGen {
 
     fn source_build_parser(&mut self) -> Vec<String> {
         static BASE_PARSER_LIBS: [&str; 5] = [
-            "lexigram_lib::grammar::VarId",
-            "lexigram_lib::grammar::AltId",
+            "lexigram_lib::VarId",
+            "lexigram_lib::AltId",
             "lexigram_lib::parser::OpCode",
             "lexigram_lib::parser::Parser",
             "lexigram_lib::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
             "lexigram_lib::grammar::Alternative",
-            "lexigram_lib::grammar::Symbol",
+            "lexigram_lib::parser::Symbol",
         ];
         self.log.add_note("generating build_parser() source...");
         let num_nt = self.symbol_table.get_num_nt();
@@ -1367,8 +1369,8 @@ impl ParserGen {
         let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
         log.add_note("generating wrapper source...");
         self.used_libs.extend([
-            "lexigram_lib::CollectJoin", "lexigram_lib::grammar::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
-            "lexigram_lib::grammar::AltId", "lexigram_lib::log::Logger",
+            "lexigram_lib::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
+            "lexigram_lib::AltId", "lexigram_lib::log::Logger",
         ]);
         if self.gen_span_params {
             self.used_libs.add("lexigram_lib::lexer::PosSpan");
@@ -2109,7 +2111,7 @@ impl ParserGen {
         src.push(format!("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());"));
         src.push(format!("        if self.verbose {{"));
         src.push(format!("            println!(\"> stack_t:   {{}}\", self.stack_t.join(\", \"));"));
-        src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).join(\", \"));"));
+        src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).collect::<Vec<_>>().join(\", \"));"));
         src.push(format!("        }}"));
         src.push(format!("    }}"));
         src.push(format!(""));
