@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use iter_index::IndexerIterator;
-use crate::grammar::{grtree_to_str, ruleflag, Alternative, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
+use crate::grammar::{grtree_to_str, ruleflag, alt::Alternative, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
 use crate::{columns_to_str, indent_source, AltId, BuildError, BuildErrorSource, CollectJoin, FixedSymTable, General, HasBuildErrorSource, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymInfoTable, SymbolTable, VarId, LL1};
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
@@ -1214,7 +1214,7 @@ impl ParserGen {
             "lexigram_lib::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
-            "lexigram_lib::grammar::Alternative",
+            "lexigram_lib::grammar::alt::Alternative",
             "lexigram_lib::parser::Symbol",
         ];
         self.log.add_note("generating build_parser() source...");

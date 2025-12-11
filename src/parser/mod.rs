@@ -3,9 +3,9 @@
 use std::fmt::{Display, Formatter};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::{AltId, TokenId, VarId};
-use crate::grammar::Alternative;
 use crate::lexer::{Pos, PosSpan};
 use crate::log::Logger;
+use crate::grammar::alt::Alternative;
 
 pub(crate) mod tests;
 

@@ -14,7 +14,7 @@ use crate::log::TryBuildFrom;
 use crate::log::BuildInto;
 use crate::rtsgen::RtsGen;
 use crate::columns_to_str;
-
+use crate::grammar::alt::Alternative;
 // ---------------------------------------------------------------------------------------------
 
 fn is_grtree_empty_symbol(rule: &GrTree) -> bool {

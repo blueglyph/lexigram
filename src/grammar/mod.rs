@@ -3,6 +3,8 @@
 pub mod tests;
 pub mod origin;
 mod prs;
+pub mod alt;
+
 pub use prs::*;
 
 use std::collections::{HashMap, HashSet};
@@ -13,7 +15,7 @@ use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
-use crate::{TokenId, VarId, CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
+use crate::{alt, gnode, hashset, indent_source, prule, sym, vaddi, BuildErrorSource, CollectJoin, General, HasBuildErrorSource, Normalized, SymInfoTable, TokenId, VarId, LL1, LR};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
@@ -1383,7 +1385,7 @@ pub mod macros {
     /// # Example
     /// ```
     /// # use lexigram_lib::TokenId;
-    /// # use lexigram_lib::grammar::{Alternative  };
+    /// # use lexigram_lib::grammar::alt::Alternative;
     /// # use lexigram_lib::{alt, sym};
     /// assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// assert_eq!(alt!(#128, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
@@ -1394,26 +1396,26 @@ pub mod macros {
     /// ```
     #[macro_export()]
     macro_rules! alt {
-        () => { $crate::grammar::Alternative::new(std::vec![]) };
+        () => { $crate::grammar::alt::Alternative::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { alt!($($a $($b)?),+) };
-        ($($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
+        ($($a:ident $($b:expr)?),*) => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { alt!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-        //     => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
+        //     => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
+            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
         // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
             => { alt!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
+            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
             => { alt!(%($v, $id), $($a $($b)?),+) };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
+            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
     }
 
     #[macro_export()]
@@ -1428,7 +1430,7 @@ pub mod macros {
     /// Example
     /// ```
     /// # use lexigram_lib::{TokenId, VarId, parser::Symbol};
-    /// # use lexigram_lib::grammar::Alternative;
+    /// # use lexigram_lib::grammar::alt::Alternative;
     /// # use lexigram_lib::{prule, alt, sym};
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
     ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),

@@ -481,7 +481,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
-    use crate::grammar::{alt_to_rule_str, ruleflag};
+    use crate::grammar::{alt::alt_to_rule_str, ruleflag};
     use crate::grammar::tests::TestRules;
     use crate::parser::Symbol;
     use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin, AltId, VarId};

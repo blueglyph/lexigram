@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
 use crate::{TokenId, VarId};
-use crate::grammar::{Alternative, ProdRuleSet};
+use crate::grammar::{alt::Alternative, ProdRuleSet};
 use crate::grammar::tests::old_build_rts_prs::T;
 use crate::grammar::tests::old_build_rts_prs::build_prs;
 use crate::lexer::{CaretCol, Pos, PosSpan};

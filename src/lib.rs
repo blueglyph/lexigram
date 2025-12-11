@@ -6,26 +6,26 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use vectree::VecTree;
 
+pub mod char_reader;
+pub mod lexer;
+pub mod log;
+pub mod parser;
+pub mod segmap;
+mod fixed_sym_table;
+
 mod macros;
 mod take_until;
 mod cproduct;
-pub mod segmap;
 pub mod segments;
-pub mod char_reader;
 pub mod dfa;
 pub mod lexergen;
-pub mod lexer;
 pub mod lexi;
 pub mod grammar;
 pub mod parsergen;
-pub mod parser;
-pub mod log;
 pub mod file_utils;
-
 mod name_fixer;
 pub use name_fixer::{NameFixer, NameTransformer};
 mod symbol_table;
-mod fixed_sym_table;
 pub mod rtsgen;
 mod tests;
 
