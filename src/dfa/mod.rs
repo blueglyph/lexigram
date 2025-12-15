@@ -6,10 +6,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use vectree::VecTree;
-use crate::{btreeset, escape_string, indent_source, BuildErrorSource, CollectJoin, General, HasBuildErrorSource, Normalized};
+use lexigram_core::CollectJoin;
+use crate::{btreeset, escape_string, indent_source, General, Normalized};
 use crate::char_reader::escape_char;
 use crate::lexer::{ModeId, ModeOption, StateId, Terminal};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
 use crate::segments::Segments;
 use crate::segmap::Seg;
 use crate::take_until::TakeUntilIterator;
@@ -1240,7 +1242,7 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use lexigram_lib::{dfa::*, node, char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
+    /// # use lexigram_lib::{dfa::*, node };
     /// # use lexigram_lib::lexer::{ActionOption, ModeOption, Terminal};
     /// # use lexigram_lib::segmap::Seg;
     /// # use lexigram_lib::segments::Segments;

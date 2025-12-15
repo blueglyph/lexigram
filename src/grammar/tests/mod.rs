@@ -10,11 +10,11 @@ use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
-use crate::log::TryBuildFrom;
-use crate::log::BuildInto;
+use crate::build::TryBuildFrom;
+use crate::build::BuildInto;
 use crate::rtsgen::RtsGen;
 use crate::columns_to_str;
-use crate::grammar::alt::Alternative;
+use lexigram_core::alt::Alternative;
 // ---------------------------------------------------------------------------------------------
 
 fn is_grtree_empty_symbol(rule: &GrTree) -> bool {

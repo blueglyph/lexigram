@@ -4,10 +4,10 @@
 // Simple parser based on microcalc lexicon and grammar
 
 use std::io::Cursor;
-use lexigram_lib::char_reader::CharReader;
-use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
-use lexigram_lib::parser::Parser;
+use lexigram_core::char_reader::CharReader;
+use lexigram_core::lexer::{Lexer, TokenSpliterator};
+use lexigram_core::log::{BufLog, LogStatus, Logger};
+use lexigram_core::parser::Parser;
 use crate::listener_types::*;
 use crate::microcalc_lexer::build_lexer;
 use crate::microcalc_parser::*;
@@ -138,8 +138,8 @@ pub mod microcalc_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
-    use lexigram_lib::segmap::{GroupId, Seg, SegMap};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 32;
     const INITIAL_STATE: StateId = 0;
@@ -269,7 +269,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_lib::{AltId, FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, fixed_sym_table::FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 17;

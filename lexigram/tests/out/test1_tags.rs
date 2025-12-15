@@ -76,6 +76,7 @@ expr:
 
 use std::collections::HashMap;
 use std::io::Read;
+use lexigram_core::log::Logger;
 use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
 use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
@@ -180,7 +181,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test1_parser_tag]
 
-use lexigram_lib::{AltId, FixedSymTable, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser}, AltId, FixedSymTable, VarId};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;

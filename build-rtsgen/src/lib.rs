@@ -4,7 +4,7 @@
 
 use lexigram::{lexigram_lib, genspec, gencode};
 use lexigram::gen_parser::{try_gen_parser, GenParserError};
-use lexigram_lib::log::{BufLog, LogStatus};
+use lexigram_core::log::{BufLog, LogStatus};
 use lexigram::options::{Action, OptionsBuilder};
 
 static LEXICON_FILENAME: &str = "src/rtsgen.l";

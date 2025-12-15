@@ -4,12 +4,14 @@ use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Symbol;
-use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable, VarId};
+use lexigram_lib::{General, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
+use lexigram_core::CollectJoin;
+use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 
 enum PostCheck {
     RepeatChildLform { node: usize, var: VarId }

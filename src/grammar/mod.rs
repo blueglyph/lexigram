@@ -3,7 +3,6 @@
 pub mod tests;
 pub mod origin;
 mod prs;
-pub mod alt;
 
 pub use prs::*;
 
@@ -14,11 +13,15 @@ use std::mem::take;
 use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
+use lexigram_core::alt::ruleflag;
+use lexigram_core::CollectJoin;
 use crate::cproduct::CProduct;
-use crate::{alt, gnode, hashset, indent_source, prule, sym, vaddi, BuildErrorSource, CollectJoin, General, HasBuildErrorSource, Normalized, SymInfoTable, TokenId, VarId, LL1, LR};
+use crate::{alt, gnode, hashset, indent_source, prule, sym, vaddi, General, Normalized, TokenId, VarId, LL1, LR};
+use crate::fixed_sym_table::SymInfoTable;
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
 use crate::parser::Symbol;
 use crate::SymbolTable;
 
@@ -459,91 +462,6 @@ impl Display for GrTreeFmt<'_> {
 }
 
 // ---------------------------------------------------------------------------------------------
-
-// easier to use than an enum
-pub mod ruleflag {
-    /// Star or Plus repeat child alternative.
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
-    pub const CHILD_REPEAT: u32 = 1;
-    /// Right-recursive child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const R_RECURSION: u32 = 2;
-    /// Left-recursive child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_L_RECURSION: u32 = 4;
-    /// Left-recursive, ambiguous child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_AMBIGUITY: u32 = 8;
-    /// Child NT created to regroup the independent alts when transforming an ambiguous, recursive rule.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_INDEPENDENT_AMBIGUITY: u32 = 16;
-    /// Left-factorized parent NT.
-    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
-    pub const PARENT_L_FACTOR: u32 = 32;
-    /// Left-factorized child NT.
-    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
-    pub const CHILD_L_FACT: u32 = 64;
-    /// Low-latency non-terminal alternative, used with `CHILD_REPEAT` or `R_RECURSION`.
-    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in `flags`.
-    pub const L_FORM: u32 = 128;
-    /// Right-associative alternative.
-    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in alts.
-    pub const R_ASSOC: u32 = 256;
-    /// Left-recursive parent NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const PARENT_L_RECURSION: u32 = 512;
-    /// Left-recursive, ambiguous parent NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const PARENT_AMBIGUITY: u32 = 1024;
-    /// Star or Plus repeat parent alternative.
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
-    pub const PARENT_REPEAT: u32 = 2048;
-    /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
-    pub const REPEAT_PLUS: u32 = 4096;
-    /// GREEDY alternative: is expected to generate an ambiguity in the parsing table
-    pub const GREEDY: u32 = 8192;
-    /// Precedence identical to previous alternative (only valid for binary left-/right-associative)
-    pub const PREC_EQ: u32 = 16384;
-
-    pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
-    pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACT;
-    pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
-    pub const ALTERNATIVE_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
-    pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
-
-    pub fn to_string(flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 15] = [
-            (CHILD_REPEAT               , "child_+_or_*"),
-            (R_RECURSION                , "right_rec"),
-            (CHILD_L_RECURSION          , "child_left_rec"),
-            (CHILD_AMBIGUITY            , "child_amb"),
-            (CHILD_INDEPENDENT_AMBIGUITY, "child_ind_amb"),
-            (PARENT_L_FACTOR            , "parent_left_fact"),
-            (CHILD_L_FACT, "child_left_fact"),
-            (L_FORM                     , "L-form"),
-            (R_ASSOC                    , "R-assoc"),
-            (PARENT_L_RECURSION         , "parent_left_rec"),
-            (PARENT_AMBIGUITY           , "parent_amb"),
-            (PARENT_REPEAT              , "parent_+_or_*"),
-            (REPEAT_PLUS                , "plus"),
-            (GREEDY                     , "greedy"),
-            (PREC_EQ                    , "prec_eq"),
-        ];
-        NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
-    }
-
-    pub fn alt_info_to_string(mut flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 4] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G"), (PREC_EQ, "P")];
-        let v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
-            if flags & f != 0 {
-                flags &= !f;
-                Some(t.to_string())
-            } else {
-                None
-            }).collect();
-        v
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum NTConversion {
@@ -1311,7 +1229,7 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::{TokenId, VarId, gnode, parser::Symbol};
+    /// # use lexigram_lib::{ VarId, gnode, parser::Symbol};
     /// # use lexigram_lib::grammar::GrNode;
     /// assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     /// assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
@@ -1384,8 +1302,8 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::TokenId;
-    /// # use lexigram_lib::grammar::alt::Alternative;
+    /// # use lexigram_core::TokenId;
+    /// # use lexigram_core::alt::Alternative;
     /// # use lexigram_lib::{alt, sym};
     /// assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// assert_eq!(alt!(#128, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
@@ -1430,7 +1348,7 @@ pub mod macros {
     /// Example
     /// ```
     /// # use lexigram_lib::{TokenId, VarId, parser::Symbol};
-    /// # use lexigram_lib::grammar::alt::Alternative;
+    /// # use lexigram_core::alt::Alternative;
     /// # use lexigram_lib::{prule, alt, sym};
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
     ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),

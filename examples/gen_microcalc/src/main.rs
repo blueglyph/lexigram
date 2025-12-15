@@ -6,7 +6,7 @@
 use lexigram::{gencode, genspec};
 use lexigram::gen_parser::{try_gen_parser, GenParserError};
 use lexigram::options::{Action, OptionsBuilder};
-use lexigram_lib::log::{BufLog};
+use lexigram_core::log::{BufLog};
 
 static LEXICON_FILENAME: &str = "src/microcalc.l";
 static GRAMMAR_FILENAME: &str = "src/microcalc.g";

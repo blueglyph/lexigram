@@ -4,7 +4,8 @@ use std::collections::BTreeSet;
 use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
 use std::ops::{Add, Deref, DerefMut, RangeInclusive};
 use std::iter::Sum;
-use crate::{btreeset, CollectJoin};
+use crate::CollectJoin;
+use crate::btreeset;
 use crate::char_reader::{escape_char, UTF8_GAP_MAX, UTF8_GAP_MIN, UTF8_MAX};
 use crate::segmap::Seg;
 // ---------------------------------------------------------------------------------------------
@@ -559,7 +560,7 @@ pub mod macros {
 #[cfg(test)]
 mod tests {
     use iter_index::IndexerIterator;
-    use crate::{branch, btreemap, seg, segments};
+    use crate::{seg, branch, btreemap, segments};
     use super::*;
 
     fn new_cmp(c: Seg, i: Seg, e: Seg) -> SegmentsCmp {

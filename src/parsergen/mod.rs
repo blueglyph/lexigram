@@ -1,12 +1,17 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use iter_index::IndexerIterator;
-use crate::grammar::{grtree_to_str, ruleflag, alt::Alternative, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
-use crate::{columns_to_str, indent_source, AltId, BuildError, BuildErrorSource, CollectJoin, FixedSymTable, General, HasBuildErrorSource, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymInfoTable, SymbolTable, VarId, LL1};
+use lexigram_core::alt::Alternative;
+use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
+use crate::{columns_to_str, indent_source, AltId, General, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
+use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::alt::ruleflag;
+use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
+use crate::CollectJoin;
 use crate::grammar::origin::{FromPRS, Origin};
-use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
+use crate::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use crate::parser::{OpCode, Parser, Symbol};
 use crate::segments::Segments;
 use crate::segmap::Seg;
@@ -21,93 +26,6 @@ pub(crate) fn symbol_to_code(s: &Symbol) -> String {
         Symbol::T(t) => format!("Symbol::T({t})"),
         Symbol::NT(nt) => format!("Symbol::NT({nt})"),
         Symbol::End => "Symbol::End".to_string(),
-    }
-}
-
-impl Display for OpCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OpCode::Empty => write!(f, "ε"),
-            OpCode::T(t) => write!(f, ":{t}"),
-            OpCode::NT(v) => write!(f, "►{v}"),
-            OpCode::Loop(v) => write!(f, "●{v}"),
-            OpCode::Exit(v) => write!(f, "◄{v}"),
-            OpCode::End => write!(f, "$"),
-        }
-    }
-}
-
-impl OpCode {
-    pub fn is_loop(&self) -> bool {
-        matches!(self, OpCode::Loop(_))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        matches!(self, OpCode::Empty)
-    }
-
-    pub fn has_span(&self) -> bool {
-        matches!(self, OpCode::T(_) | OpCode::NT(_))
-    }
-
-    pub fn matches(&self, s: Symbol) -> bool {
-        match self {
-            OpCode::Empty => s == Symbol::Empty,
-            OpCode::T(t) => s == Symbol::T(*t),
-            OpCode::NT(v) => s == Symbol::NT(*v),
-            OpCode::End => s == Symbol::End,
-            OpCode::Loop(_) => false,
-            OpCode::Exit(_) => false,
-        }
-    }
-
-    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        if let Some(t) = symbol_table {
-            match self {
-                OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_token_data(*v) { "!" } else { "" }),
-                OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
-                OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
-                OpCode::Exit(f) => format!("◄{f}"),
-                OpCode::End => "$".to_string(),
-            }
-        } else {
-            self.to_string()
-        }
-    }
-
-    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        if let Some(t) = symbol_table {
-            match self {
-                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table), if t.is_token_data(*v) { "!" } else { "" }),
-                _ => self.to_str(symbol_table)
-            }
-        } else {
-            self.to_string()
-        }
-    }
-
-    pub fn to_str_ext(&self, symbol_table: Option<&SymbolTable>, ext: &String) -> String {
-        let mut result = self.to_str(symbol_table);
-        if let Some(t) = symbol_table {
-            if let OpCode::T(tok) = self {
-                if t.is_symbol_t_data(&Symbol::T(*tok)) {
-                    result.push_str(&format!("({ext})"));
-                }
-            }
-        }
-        result
-    }
-}
-
-impl From<Symbol> for OpCode {
-    fn from(value: Symbol) -> Self {
-        match value {
-            Symbol::Empty => OpCode::Empty,
-            Symbol::T(t) => OpCode::T(t),
-            Symbol::NT(v) => OpCode::NT(v),
-            Symbol::End => OpCode::End,
-        }
     }
 }
 

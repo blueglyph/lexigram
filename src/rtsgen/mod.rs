@@ -12,12 +12,13 @@ use std::io::Cursor;
 use std::str::FromStr;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
+use lexigram_core::CollectJoin;
+use crate::{General, NameFixer, NameTransformer, SymbolTable};
 use crate::{TokenId, VarId};
 use crate::grammar::{GrNode, GrTree, RuleTreeSet};
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
-use crate::log::{BufLog, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogStatus, Logger};
 use crate::parser::{Parser, Symbol};
 use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
@@ -704,12 +705,14 @@ pub mod rtsgen_lexer {
 // -------------------------------------------------------------------------
 
 pub mod rtsgen_parser {
+    use lexigram_core::log::Logger;
     // Generated code, don't modify manually anything between the tags below
     use crate as lexigram_lib;
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{AltId, FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{parser::{Call, ListenerWrapper, OpCode, Parser}, AltId, VarId};
+    use crate::fixed_sym_table::FixedSymTable;
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 22;

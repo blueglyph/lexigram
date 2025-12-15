@@ -2,11 +2,12 @@
 
 #![cfg(test)]
 
-
 /// Verifies the coherency of different symbol representations ([Symbol](crate::parser::Symbol), [OpCode](crate::parser::OpCode),
 /// [SymbolTable](crate::SymbolTable), [FixedSymTable](crate::FixedSymTable), trait [SymInfoTable](crate::SymInfoTable))
 mod symbols_repr {
-    use crate::{columns_to_str, opcode, sym, CollectJoin, SymInfoTable, SymbolTable};
+    use lexigram_core::{opcode, CollectJoin};
+    use lexigram_core::fixed_sym_table::SymInfoTable;
+    use crate::{columns_to_str, sym, SymbolTable};
     use crate::parser::Symbol;
     use crate::parser::OpCode;
 

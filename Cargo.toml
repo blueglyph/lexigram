@@ -1,6 +1,6 @@
 [package]
 name = "lexigram_lib"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 authors = []
 
@@ -11,14 +11,18 @@ default = ["rtsgen"]
 rtsgen = []     # text parser that generates an RTS and its symbol table, used in tests
 
 [dependencies]
+lexigram-core = { path = "lexigram-core", version = "0.8.0" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
+
+[dev-dependencies]
+lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.0" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
 [workspace]
-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram-bin", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
+members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram-bin", "lexigram-core", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
 default-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen"]
 
 # Temporary:

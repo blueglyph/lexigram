@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
-use lexigram_lib::log::BufLog;
+use lexigram_core::log::BufLog;
 use crate::gen_parser::{try_gen_parser, GenParserError};
 use crate::{gencode, genspec};
 use crate::options::{Action, Options, OptionsBuilder, ERR_LEXER_AFTER_PARSER, ERR_LEXER_CODE_ALREADY_SET, ERR_PARSER_SET_BEFORE_LEXER_NOT_SET, ERR_LEXER_SPEC_ALREADY_SET, ERR_LEXER_SPEC_OR_CODE_ALREADY_SET, ERR_PARSER_CODE_ALREADY_SET, ERR_PARSER_SPEC_ALREADY_SET, ERR_PARSER_SPEC_OR_CODE_ALREADY_SET, ERR_MISSING_LEXER_OPTION, ERR_MISSING_PARSER_OPTION};

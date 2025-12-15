@@ -6,10 +6,12 @@ use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::build::{BuildFrom, BuildInto};
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{BuildErrorSource, General, HasBuildErrorSource, SymbolTable, LL1};
+use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;
+use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 
 mod gramlexer;
 mod gramparser;

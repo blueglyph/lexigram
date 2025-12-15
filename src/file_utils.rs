@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write, Seek};
 use std::fs::{File, OpenOptions};
-use crate::CollectJoin;
+use lexigram_core::CollectJoin;
 
 #[derive(Debug)]
 pub enum SrcTagError {

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::{TokenId, VarId};
 use crate::parser::Symbol;
+use crate::{TokenId, VarId};
 
 /// Stores the names of the terminal and nonterminal symbols used by a parser.
 ///

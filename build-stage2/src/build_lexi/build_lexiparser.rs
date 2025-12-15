@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 use lexigram_lib::{gnode, LL1, VarId};
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
@@ -17,9 +18,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.7.0
-    // lexigram: 0.7.0
-    // build-stage1: 0.7.0
+    // lexigram_lib: 0.8.0
+    // lexigram: 0.8.0
+    // build-stage1: 0.8.0
 
     // [versions]
 

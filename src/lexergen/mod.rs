@@ -6,12 +6,14 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
+use lexigram_core::CollectJoin;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{indent_source, BuildError, BuildErrorSource, CollectJoin, HasBuildErrorSource, Normalized, SymbolTable, TokenId};
+use crate::{indent_source, Normalized, SymbolTable, TokenId};
 use crate::char_reader::escape_char;
 use crate::lexer::{ActionOption, Lexer, LexerError, StateId, Terminal};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
 use crate::segments::Segments;
 use crate::segmap::{char_to_group, GroupId, Seg, SegMap};
 use super::dfa::*;
@@ -67,26 +69,17 @@ impl LexerTables {
     }
 
     pub fn make_lexer<R: Read>(&self) -> Lexer<'_, R> {
-        Lexer {
-            input: None,
-            error: LexerError::None,
-            is_eos: false,
-            pos: 0,
-            line: 1,
-            col: 1,
-            tab_width: 4,
-            state_stack: Vec::new(),
-            start_state: 0,
-            nbr_groups: self.nbr_groups,
-            initial_state: self.initial_state,
-            first_end_state: self.first_end_state,
-            nbr_states: self.nbr_states,
-            ascii_to_group: self.ascii_to_group.as_slice(),
-            utf8_to_group: self.utf8_to_group.clone(),
-            seg_to_group: self.seg_to_group.clone(),
-            state_table: self.state_table.as_slice(),
-            terminal_table: self.terminal_table.as_slice(),
-        }
+        Lexer::new(
+            self.nbr_groups,
+            self.initial_state,
+            self.first_end_state,
+            self.nbr_states,
+            self.ascii_to_group.as_slice(),
+            self.utf8_to_group.clone(),
+            self.seg_to_group.clone(),
+            self.state_table.as_slice(),
+            self.terminal_table.as_slice(),
+        )
     }
 }
 

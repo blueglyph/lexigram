@@ -3,9 +3,10 @@
 #![cfg(test)]
 
 use iter_index::IndexerIterator;
+use lexigram_core::CollectJoin;
 use crate::grammar::{grtree_to_str, ProdRuleSet};
 use crate::parser::Symbol;
-use crate::{CollectJoin, LL1, VarId};
+use crate::{VarId, LL1};
 
 fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
     let symtab = ll1.get_symbol_table();
@@ -20,10 +21,12 @@ fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
 }
 
 mod gen_integration {
+    use lexigram_core::CollectJoin;
     use crate::grammar::ProdRuleSet;
-    use crate::{CollectJoin, LL1};
+    use crate::LL1;
     use crate::grammar::tests::TestRules;
-    use crate::log::{BuildFrom, LogReader, LogStatus};
+    use lexigram_core::log::{LogReader, LogStatus};
+    use crate::build::BuildFrom;
     use crate::parsergen::ParserGen;
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
@@ -154,9 +157,10 @@ mod gen_integration {
 }
 
 pub mod opcodes {
-    use crate::log::BuildFrom;
+    use lexigram_core::{strip, CollectJoin};
+    use crate::build::BuildFrom;
     use crate::parser::Symbol;
-    use crate::{columns_to_str, strip, CollectJoin, VarId};
+    use crate::{columns_to_str, VarId};
     use crate::grammar::tests::TestRules;
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
@@ -456,7 +460,8 @@ pub mod opcodes {
 
 mod parser_source {
     use crate::grammar::tests::TestRules;
-    use crate::log::{BuildFrom, LogReader, LogStatus};
+    use lexigram_core::log::{LogReader, LogStatus};
+    use crate::build::BuildFrom;
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
@@ -481,16 +486,18 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
-    use crate::grammar::{alt::alt_to_rule_str, ruleflag};
+    use lexigram_core::alt::alt_to_rule_str;
     use crate::grammar::tests::TestRules;
     use crate::parser::Symbol;
-    use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin, AltId, VarId};
+    use crate::{btreemap, columns_to_str, indent_source, symbols, AltId, VarId};
     use crate::parsergen::{print_flags, print_items, ParserGen};
-    use crate::log::{LogReader, LogStatus};
+    use lexigram_core::log::{LogReader, LogStatus};
     use crate::parsergen::SpanNbr;
     use crate::parsergen::tests::get_original_str;
     use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
+    use lexigram_core::alt::ruleflag;
+    use lexigram_core::CollectJoin;
 
     #[allow(dead_code)] // All not used for now
     #[derive(Clone)]

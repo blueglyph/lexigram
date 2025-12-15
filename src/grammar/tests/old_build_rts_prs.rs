@@ -11,10 +11,12 @@
 
 use std::collections::HashMap;
 use std::ops::Deref;
-use crate::{btreemap, prule, CollectJoin, General, SymbolTable, LL1};
+use lexigram_core::CollectJoin;
+use crate::{btreemap, prule, General, SymbolTable, LL1};
 use crate::grammar::{gnode, GrNode, GrTree, ProdRuleSet, RuleTreeSet, Symbol, VarId};
 use crate::grammar::tests::prs;
-use crate::log::{BuildFrom, LogReader, LogStatus};
+use lexigram_core::log::{LogReader, LogStatus};
+use crate::build::BuildFrom;
 
 pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();

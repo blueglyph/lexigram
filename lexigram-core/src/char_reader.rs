@@ -371,7 +371,7 @@ mod char_reader {
     }
 }
 
-pub(crate) fn escape_char(c: char) -> String {
+pub fn escape_char(c: char) -> String {
     match c {
         // '\x00'..='\x7f' => c.escape_debug().to_string(),
               '\u{0}' => "MIN".to_string(),

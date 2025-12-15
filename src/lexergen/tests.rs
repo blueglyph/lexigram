@@ -4,7 +4,8 @@
 
 use crate::*;
 use crate::dfa::tests::build_re;
-use crate::log::{BuildFrom, LogReader, LogStatus};
+use lexigram_core::log::{LogReader, LogStatus};
+use crate::build::BuildFrom;
 use crate::segmap::{Seg, SegMap};
 use super::*;
 

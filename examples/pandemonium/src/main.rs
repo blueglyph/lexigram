@@ -4,11 +4,11 @@
 // Simple parser based on microcalc lexicon and grammar
 
 use std::io::Cursor;
-use lexigram_lib::CollectJoin;
-use lexigram_lib::char_reader::CharReader;
-use lexigram_lib::lexer::{Lexer, Pos, PosSpan, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
-use lexigram_lib::parser::Parser;
+use lexigram_core::CollectJoin;
+use lexigram_core::char_reader::CharReader;
+use lexigram_core::lexer::{Lexer, Pos, PosSpan, TokenSpliterator};
+use lexigram_core::log::{BufLog, LogStatus, Logger};
+use lexigram_core::parser::Parser;
 use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
 use crate::pandemonium_parser::*;
@@ -523,8 +523,8 @@ pub mod pandemonium_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
-    use lexigram_lib::segmap::{GroupId, Seg, SegMap};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 31;
     const INITIAL_STATE: StateId = 0;
@@ -683,7 +683,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_lib::{AltId, FixedSymTable, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, fixed_sym_table::FixedSymTable, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 27;

@@ -5,7 +5,7 @@ use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::{AltId, TokenId, VarId};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::Logger;
-use crate::grammar::alt::Alternative;
+use crate::alt::Alternative;
 
 pub(crate) mod tests;
 
@@ -93,6 +93,108 @@ pub enum OpCode {
     End                 // end of stream
 }
 
+
+impl Display for OpCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpCode::Empty => write!(f, "ε"),
+            OpCode::T(t) => write!(f, ":{t}"),
+            OpCode::NT(v) => write!(f, "►{v}"),
+            OpCode::Loop(v) => write!(f, "●{v}"),
+            OpCode::Exit(v) => write!(f, "◄{v}"),
+            OpCode::End => write!(f, "$"),
+        }
+    }
+}
+
+impl OpCode {
+    pub fn is_loop(&self) -> bool {
+        matches!(self, OpCode::Loop(_))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, OpCode::Empty)
+    }
+
+    pub fn has_span(&self) -> bool {
+        matches!(self, OpCode::T(_) | OpCode::NT(_))
+    }
+
+    pub fn matches(&self, s: Symbol) -> bool {
+        match self {
+            OpCode::Empty => s == Symbol::Empty,
+            OpCode::T(t) => s == Symbol::T(*t),
+            OpCode::NT(v) => s == Symbol::NT(*v),
+            OpCode::End => s == Symbol::End,
+            OpCode::Loop(_) => false,
+            OpCode::Exit(_) => false,
+        }
+    }
+
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        if let Some(t) = symbol_table {
+            match self {
+                OpCode::Empty => "ε".to_string(),
+                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_token_data(*v) { "!" } else { "" }),
+                OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
+                OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
+                OpCode::Exit(f) => format!("◄{f}"),
+                OpCode::End => "$".to_string(),
+            }
+        } else {
+            self.to_string()
+        }
+    }
+
+    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        if let Some(t) = symbol_table {
+            match self {
+                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table), if t.is_token_data(*v) { "!" } else { "" }),
+                _ => self.to_str(symbol_table)
+            }
+        } else {
+            self.to_string()
+        }
+    }
+
+    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
+        let mut result = self.to_str(symbol_table);
+        if let Some(t) = symbol_table {
+            if let OpCode::T(tok) = self {
+                if t.is_symbol_t_data(&Symbol::T(*tok)) {
+                    result.push_str(&format!("({ext})"));
+                }
+            }
+        }
+        result
+    }
+}
+
+impl From<Symbol> for OpCode {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::Empty => OpCode::Empty,
+            Symbol::T(t) => OpCode::T(t),
+            Symbol::NT(v) => OpCode::NT(v),
+            Symbol::End => OpCode::End,
+        }
+    }
+}
+
+#[cfg(feature = "test_utils")]
+impl OpCode {
+    pub fn to_macro_item(&self) -> String {
+        match self {
+            OpCode::Empty => "e".to_string(),
+            OpCode::T(t) => format!("t {t}"),
+            OpCode::NT(v) => format!("nt {v}"),
+            OpCode::Loop(v) => format!("loop {v}"),
+            OpCode::Exit(v) => format!("exit {v}"),
+            OpCode::End => "end".to_string(),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 #[derive(PartialEq, Debug)]
@@ -165,6 +267,7 @@ impl<'a> Parser<'a> {
     /// Maximum number of error recoveries attempted when meeting a syntax error
     pub const MAX_NBR_RECOVERS: u32 = 5;
     pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
+
     pub fn new(
         num_nt: usize,
         num_t: usize,
@@ -487,5 +590,20 @@ impl<'a> Parser<'a> {
             wrapper.abort();
             Err(ParserError::EncounteredErrors)
         }
+    }
+}
+
+#[cfg(feature = "test_utils")]
+impl<'a> Parser<'a> {
+    pub fn get_alt_var(&self) -> &[VarId] {
+        self.alt_var
+    }
+
+    pub fn get_alts(&self) -> &Vec<Alternative> {
+        &self.alts
+    }
+
+    pub fn get_opcodes(&self) -> &Vec<Vec<OpCode>> {
+        &self.opcodes
     }
 }

@@ -1,8 +1,9 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use super::*;
-use crate::{columns_to_str, CollectJoin, SymbolTable, VarId, AltId};
-use crate::grammar::alt::{alt_to_rule_str, Alternative};
+use crate::{columns_to_str, AltId, SymbolTable, VarId};
+use lexigram_core::alt::{alt_to_rule_str, Alternative};
+use lexigram_core::CollectJoin;
 
 /// Stores a normalized production rule, where each alternative (e.g. `B C`) is stored in
 /// a `Vec<GrNode>` and all the alternatives are stored in a `Vec`.

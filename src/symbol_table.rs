@@ -2,11 +2,12 @@
 
 #[cfg(any())]
 use std::collections::HashMap;
-use crate::{NameFixer, FixedSymTable, SymInfoTable, indent_source};
+use crate::{NameFixer, indent_source};
+use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::{TokenId, VarId};
 use crate::parser::Symbol;
 #[cfg(test)]
-use crate::CollectJoin;
+use lexigram_core::CollectJoin;
 
 // NOTE: nonterminal-to-ID functionality currently disabled by #[cfg(any())]
 
