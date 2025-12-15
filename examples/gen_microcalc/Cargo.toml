@@ -1,0 +1,8 @@
+[package]
+name = "gen_microcalc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lexigram = { path = "../../lexigram", package = "lexigram", version = "0.7.0" }
+lexigram_lib = { path = "../..", package = "lexigram_lib", version = "0.7.0" }

@@ -8,19 +8,3 @@ edition = "2024"
 lexigram_lib = { path = "..", package = "lexigram_lib", version = "0.7.0" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
-
-[[example]]
-name = "gen_microcalc"
-test = true
-
-[[example]]
-name = "microcalc"
-test = true
-
-[[example]]
-name = "gen_pandemonium"
-test = true
-
-[[example]]
-name = "pandemonium"
-test = true

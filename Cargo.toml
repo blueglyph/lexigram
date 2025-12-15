@@ -18,7 +18,7 @@ vectree = "0.2.3"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
 [workspace]
-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram-bin"]
+members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram-bin", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
 default-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen"]
 
 # Temporary:

@@ -24,6 +24,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen_microcalc"
+version = "0.1.0"
+dependencies = [
+ "lexigram",
+ "lexigram_lib",
+]
+
+[[package]]
+name = "gen_pandemonium"
+version = "0.1.0"
+dependencies = [
+ "lexigram",
+ "lexigram_lib",
+]
+
+[[package]]
 name = "iter-index"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -51,6 +67,20 @@ version = "0.7.0"
 dependencies = [
  "iter-index",
  "vectree",
+]
+
+[[package]]
+name = "microcalc"
+version = "0.1.0"
+dependencies = [
+ "lexigram_lib",
+]
+
+[[package]]
+name = "pandemonium"
+version = "0.1.0"
+dependencies = [
+ "lexigram_lib",
 ]
 
 [[package]]
