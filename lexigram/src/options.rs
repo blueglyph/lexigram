@@ -500,7 +500,7 @@ pub mod macros {
     /// genspec!(filename: expr, tag: expr)
     /// ```
     /// where `expr.to_string()` are valid strings
-    #[macro_export()]
+    #[macro_export]
     macro_rules! genspec {
         (none) => {
             $crate::options::Specification::None
@@ -524,7 +524,7 @@ pub mod macros {
     /// gencode!(filename: expr, tag: expr)
     /// ```
     /// where `expr.to_string()` are valid strings
-    #[macro_export()]
+    #[macro_export]
     macro_rules! gencode {
         (none) => {
             $crate::options::CodeLocation::None

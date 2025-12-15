@@ -1326,7 +1326,7 @@ pub mod macros {
     /// assert_eq!(gnode!(L 3), GrNode::LForm(3));
     /// assert_eq!(gnode!(R), GrNode::RAssoc);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
         (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::parser::Symbol::T($id as $crate::TokenId)) };
@@ -1355,7 +1355,7 @@ pub mod macros {
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
-    #[macro_export()]
+    #[macro_export]
     macro_rules! sym {
         (t $id:expr) => { $crate::parser::Symbol::T($id as $crate::TokenId) };
         (nt $id:expr) => { $crate::parser::Symbol::NT($id as $crate::VarId) };
@@ -1363,7 +1363,7 @@ pub mod macros {
         (end) => { $crate::parser::Symbol::End };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! altflag {
         (L) => { $crate::grammar::ruleflag::L_FORM };
         (R) => { $crate::grammar::ruleflag::R_ASSOC };
@@ -1394,7 +1394,7 @@ pub mod macros {
     /// let o_id = 4;
     /// assert_eq!(alt!(#(x, o_id), nt 0, t 1, e), Alternative::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_ambig_alt_id(4));
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! alt {
         () => { $crate::grammar::alt::Alternative::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { alt!($($a $($b)?),+) };
@@ -1418,7 +1418,7 @@ pub mod macros {
             => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! symbols {
         () => { std::vec![] };
         ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { symbols![$($a $($b $(: $num)?)?),+] };
@@ -1445,7 +1445,7 @@ pub mod macros {
     ///                 Alternative::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 Alternative::new(vec![sym!(e)])]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! prule {
         () => { std::vec![] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $($a $($b)?),+);+] };

@@ -1255,7 +1255,7 @@ pub mod macros {
     /// assert_eq!(node!(+), ReNode::plus());
     /// assert_eq!(node!(e), ReNode::empty());
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! node {
         (chr $char:expr) => { $crate::dfa::ReNode::char($char) };
         (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| $crate::dfa::ReNode::char(c)) };
@@ -1283,7 +1283,7 @@ pub mod macros {
         (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! term {
         (= $id:expr ) =>     { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Token($id),channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };
         (more) =>            { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::More,      channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };

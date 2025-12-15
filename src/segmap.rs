@@ -114,7 +114,7 @@ pub mod macros {
     /// assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
     /// assert_eq!(seg!('0'-'9'), Seg('0' as u32, '9' as u32));
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! seg {
         ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { $crate::segmap::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($b1)?$($b2)?)) };
         ($($a1:literal)?$($a2:ident)?) => { $crate::segmap::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($a1)?$($a2)?)) };

@@ -15,7 +15,7 @@
 /// assert_eq!(days, std::collections::HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
 /// # }
 /// ```
-#[macro_export()]
+#[macro_export]
 macro_rules! hashmap {
     () => { std::collections::HashMap::new() };
     ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
@@ -38,7 +38,7 @@ macro_rules! hashmap {
 /// assert_eq!(days, BTreeMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
 /// # }
 /// ```
-#[macro_export()]
+#[macro_export]
 macro_rules! btreemap {
     () => { std::collections::BTreeMap::new() };
     ($($key:expr => $value:expr,)+) => { btreemap!($($key => $value),+) };
@@ -61,7 +61,7 @@ macro_rules! btreemap {
 /// assert_eq!(days, HashSet::from(["Monday", "Tuesday", "Wednesday"]));
 /// # }
 /// ```
-#[macro_export()]
+#[macro_export]
 macro_rules! hashset {
     () => { std::collections::HashSet::new() };
     ($($key:expr,)+) => { hashset!($($key),+) };
@@ -82,7 +82,7 @@ macro_rules! hashset {
 /// assert_eq!(days, BTreeSet::from(["Monday", "Tuesday", "Wednesday"]));
 /// # }
 /// ```
-#[macro_export()]
+#[macro_export]
 macro_rules! btreeset {
     () => { std::collections::BTreeSet::new() };
     ($($key:expr,)+) => { btreeset!($($key),+) };
@@ -90,7 +90,7 @@ macro_rules! btreeset {
 }
 
 #[cfg(test)]
-#[macro_export()]
+#[macro_export]
 macro_rules! time {
     ($verbose:expr, $p:block) => {
         let macro_timer = std::time::Instant::now();
@@ -109,7 +109,7 @@ macro_rules! time {
 /// let text: String = s!("Hello");
 /// # }
 /// ```
-#[macro_export()]
+#[macro_export]
 macro_rules! s {
     ($arg:expr) => {{ String::from($arg) }}
 }

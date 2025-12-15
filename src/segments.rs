@@ -475,7 +475,7 @@ pub mod macros {
     /// assert_eq!(segments!(DOT), Segments::dot());
     /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! segments {
         () => { $crate::segments::Segments::empty() };
         (DOT) => { $crate::segments::Segments::dot() };
@@ -539,7 +539,7 @@ pub mod macros {
     ///         7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
     ///     ]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! branch {
         // doesn't work, so we can't mix [] and non-[] segments:
         // ($( $($($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+)? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
