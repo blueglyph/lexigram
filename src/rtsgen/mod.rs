@@ -705,14 +705,12 @@ pub mod rtsgen_lexer {
 // -------------------------------------------------------------------------
 
 pub mod rtsgen_parser {
-    use lexigram_core::log::Logger;
     // Generated code, don't modify manually anything between the tags below
     use crate as lexigram_lib;
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{parser::{Call, ListenerWrapper, OpCode, Parser}, AltId, VarId};
-    use crate::fixed_sym_table::FixedSymTable;
+    use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 22;

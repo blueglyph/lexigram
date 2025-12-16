@@ -1243,7 +1243,7 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use lexigram_lib::{dfa::*, node };
+    /// # use lexigram_lib::{dfa::*, node, char_reader::{UTF8_MIN, UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX}};
     /// # use lexigram_lib::lexer::{ActionOption, ModeOption, Terminal};
     /// # use lexigram_lib::segmap::Seg;
     /// # use lexigram_lib::segments::Segments;

@@ -52,6 +52,7 @@ fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(filename: TEST1_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     try_gen_parser(action, options)
@@ -122,6 +123,7 @@ fn action_string_to_tag(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(string: grammar), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     try_gen_parser(action, options)
@@ -190,6 +192,7 @@ fn action_tag_to_tag(action: Action) -> Result<BufLog, GenParserError> {
             gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
         .span_params(true)
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     try_gen_parser(action, options)
@@ -361,7 +364,7 @@ fn options_builder() {
         gen_parser_alts: true,
         gen_wrapper: true,
         gen_span_params: false,
-        use_full_lib: true,
+        use_full_lib: false,
     };
     let options1b = OptionsBuilder::new()
         .indent(0)
@@ -406,6 +409,7 @@ fn options_builder() {
         .lexer(genspec!(string: lexicon), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
         .parser(genspec!(string: grammar), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_PARSER_TAG))
         .extra_libs(["super::listener_types::test1::*"])
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     assert_eq!(options2, options2_expected);
@@ -423,7 +427,7 @@ fn options_builder() {
         gen_parser_alts: false,
         gen_wrapper: true,
         gen_span_params: false,
-        use_full_lib: true,
+        use_full_lib: false,
     };
     let options3 = OptionsBuilder::new()
         .lexer(genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))

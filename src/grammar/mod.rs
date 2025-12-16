@@ -1229,7 +1229,7 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::{ VarId, gnode, parser::Symbol};
+    /// # use lexigram_lib::{TokenId, VarId, gnode, parser::Symbol};
     /// # use lexigram_lib::grammar::GrNode;
     /// assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     /// assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
@@ -1283,10 +1283,10 @@ pub mod macros {
 
     #[macro_export]
     macro_rules! altflag {
-        (L) => { $crate::grammar::ruleflag::L_FORM };
-        (R) => { $crate::grammar::ruleflag::R_ASSOC };
-        (G) => { $crate::grammar::ruleflag::GREEDY };
-        (P) => { $crate::grammar::ruleflag::PREC_EQ };
+        (L) => { $crate::alt::ruleflag::L_FORM };
+        (R) => { $crate::alt::ruleflag::R_ASSOC };
+        (G) => { $crate::alt::ruleflag::GREEDY };
+        (P) => { $crate::alt::ruleflag::PREC_EQ };
         ($f:expr) => { $f };
     }
 

@@ -110,7 +110,7 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::{seg };
+    /// # use lexigram_core::{seg, segmap::Seg};
     /// assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
     /// assert_eq!(seg!('0'-'9'), Seg('0' as u32, '9' as u32));
     /// ```

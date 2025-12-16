@@ -683,7 +683,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, fixed_sym_table::FixedSymTable, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 27;

@@ -1160,7 +1160,7 @@ impl ParserGen {
                     self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
         if self.include_alts {
-            self.used_libs.extend(ALT_PARSER_LIBS);
+            self.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
                              self.parsing_table.alts.len(),
                              self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")));

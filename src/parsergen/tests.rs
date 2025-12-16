@@ -36,6 +36,7 @@ mod gen_integration {
         let ll1 = ProdRuleSet::<LL1>::build_from(rules);
         let mut builder = ParserGen::build_from_rules(ll1, name);
         builder.set_include_alts(include_alts);
+        builder.use_full_lib(true);
         builder.gen_source_code(indent, false)
     }
 
@@ -2124,6 +2125,7 @@ mod wrapper_source {
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             builder.set_gen_span_params(true);
             builder.set_include_alts(true);
+            builder.use_full_lib(true);
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
             set_has_value(&mut builder, has_value.clone());

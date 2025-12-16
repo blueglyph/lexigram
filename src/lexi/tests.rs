@@ -79,7 +79,8 @@ fn lexilexer_source() {
     const TAG: &str = "lexilexer";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
-    let lexgen = LexerGen::build_from(dfa);
+    let mut lexgen = LexerGen::build_from(dfa);
+    lexgen.use_full_lib(true);
     let result_src = lexgen.gen_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
@@ -294,6 +295,7 @@ fn lexiparser_source() {
         }
     }
     builder.add_lib("super::lexiparser_types::*");
+    builder.use_full_lib(true);
     if VERBOSE {
         builder.make_item_ops();
         print_flags(&builder, 0);

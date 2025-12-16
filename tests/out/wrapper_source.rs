@@ -13,8 +13,7 @@ pub(crate) mod rules_13_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 13 #1, start s]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_13_1::*;
 
     #[derive(Debug)]
@@ -220,8 +219,7 @@ pub(crate) mod rules_14_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_1::*;
 
     #[derive(Debug)]
@@ -435,8 +433,7 @@ pub(crate) mod rules_14_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #2, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_2::*;
 
     #[derive(Debug)]
@@ -642,8 +639,7 @@ pub(crate) mod rules_14_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #3, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_3::*;
 
     #[derive(Debug)]
@@ -851,8 +847,7 @@ pub(crate) mod rules_14_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #4, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_14_4::*;
 
     #[derive(Debug)]
@@ -1055,8 +1050,7 @@ pub(crate) mod rules_102_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 102 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_102_1::*;
 
     #[derive(Debug)]
@@ -1239,8 +1233,7 @@ pub(crate) mod rules_103_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 103 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_103_1::*;
 
     #[derive(Debug)]
@@ -1425,8 +1418,7 @@ pub(crate) mod rules_104_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 104 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_104_1::*;
 
     #[derive(Debug)]
@@ -1641,8 +1633,7 @@ pub(crate) mod rules_105_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 105 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_105_1::*;
 
     #[derive(Debug)]
@@ -1859,8 +1850,7 @@ pub(crate) mod rules_106_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_106_1::*;
 
     #[derive(Debug)]
@@ -2100,8 +2090,7 @@ pub(crate) mod rules_106_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #2, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_106_2::*;
 
     #[derive(Debug)]
@@ -2307,8 +2296,7 @@ pub(crate) mod rules_108_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 108 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_108_1::*;
 
     #[derive(Debug)]
@@ -2468,8 +2456,7 @@ pub(crate) mod rules_150_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 150 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_150_1::*;
 
     #[derive(Debug)]
@@ -2668,8 +2655,7 @@ pub(crate) mod rules_152_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 152 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_152_1::*;
 
     #[derive(Debug)]
@@ -2912,9 +2898,7 @@ pub(crate) mod rules_153_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 153 #1, start a]
 
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 6;
@@ -3182,8 +3166,7 @@ pub(crate) mod rules_200_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_200_1::*;
 
     #[derive(Debug)]
@@ -3379,8 +3362,7 @@ pub(crate) mod rules_200_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #2, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_200_2::*;
 
     #[derive(Debug)]
@@ -3558,8 +3540,7 @@ pub(crate) mod rules_201_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_1::*;
 
     #[derive(Debug)]
@@ -3751,8 +3732,7 @@ pub(crate) mod rules_201_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #2, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_2::*;
 
     #[derive(Debug)]
@@ -3933,8 +3913,7 @@ pub(crate) mod rules_201_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #3, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_201_3::*;
 
     #[derive(Debug)]
@@ -4120,8 +4099,7 @@ pub(crate) mod rules_202_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 202 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_202_1::*;
 
     #[derive(Debug)]
@@ -4345,8 +4323,7 @@ pub(crate) mod rules_206_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 206 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_206_1::*;
 
     #[derive(Debug)]
@@ -4573,8 +4550,7 @@ pub(crate) mod rules_208_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_1::*;
 
     #[derive(Debug)]
@@ -4836,8 +4812,7 @@ pub(crate) mod rules_208_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #2, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_2::*;
 
     #[derive(Debug)]
@@ -5074,8 +5049,7 @@ pub(crate) mod rules_208_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #3, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_208_3::*;
 
     #[derive(Debug)]
@@ -5295,8 +5269,9 @@ pub(crate) mod rules_208_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #4, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_208_4::*;
+
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> (<L> A (<L> b ",")* ";")* C`
@@ -5502,8 +5477,7 @@ pub(crate) mod rules_210_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 210 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_210_1::*;
 
     #[derive(Debug)]
@@ -5680,8 +5654,7 @@ pub(crate) mod rules_211_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 211 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_211_1::*;
 
     #[derive(Debug)]
@@ -5895,8 +5868,7 @@ pub(crate) mod rules_250_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 250 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_250_1::*;
 
     #[derive(Debug)]
@@ -6102,8 +6074,7 @@ pub(crate) mod rules_251_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 251 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_251_1::*;
 
     #[derive(Debug)]
@@ -6308,8 +6279,7 @@ pub(crate) mod rules_252_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 252 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_252_1::*;
 
     #[derive(Debug)]
@@ -6594,8 +6564,7 @@ pub(crate) mod rules_253_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 253 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_253_1::*;
 
     #[derive(Debug)]
@@ -6880,8 +6849,7 @@ pub(crate) mod rules_254_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 254 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_254_1::*;
 
     #[derive(Debug)]
@@ -7172,8 +7140,7 @@ pub(crate) mod rules_256_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 256 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_256_1::*;
 
     #[derive(Debug)]
@@ -7421,8 +7388,7 @@ pub(crate) mod rules_258_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 258 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_258_1::*;
 
     #[derive(Debug)]
@@ -7710,8 +7676,7 @@ pub(crate) mod rules_259_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 259 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_259_1::*;
 
     #[derive(Debug)]
@@ -8002,8 +7967,7 @@ pub(crate) mod rules_301_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #1, start expr]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_301_1::*;
 
     #[derive(Debug)]
@@ -8168,8 +8132,9 @@ pub(crate) mod rules_301_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #2, start expr]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_301_2::*;
+
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> Id "." expr`
@@ -8319,8 +8284,7 @@ pub(crate) mod rules_401_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #1, start expr]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_401_1::*;
 
     #[derive(Debug)]
@@ -8493,8 +8457,9 @@ pub(crate) mod rules_401_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #2, start expr]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_401_2::*;
+
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Id "." expr`
@@ -8643,8 +8608,7 @@ pub(crate) mod rules_502_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #1, start e]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_502_1::*;
 
     #[derive(Debug)]
@@ -8846,8 +8810,7 @@ pub(crate) mod rules_502_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #2, start e]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_502_2::*;
 
     #[derive(Debug)]
@@ -9035,8 +8998,7 @@ pub(crate) mod rules_580_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 580 #1, start e]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_580_1::*;
 
     #[derive(Debug)]
@@ -9224,8 +9186,7 @@ pub(crate) mod rules_600_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 600 #1, start e]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_600_1::*;
 
     #[derive(Debug)]
@@ -9395,14 +9356,12 @@ pub(crate) mod rules_600_1 {
 // precedence group:
 
 pub(crate) mod rules_603_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 603 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -9681,14 +9640,12 @@ pub(crate) mod rules_603_1 {
 }
 
 pub(crate) mod rules_604_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 604 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -9966,14 +9923,12 @@ pub(crate) mod rules_604_1 {
     }
 }
 pub(crate) mod rules_605_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 605 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10251,14 +10206,12 @@ pub(crate) mod rules_605_1 {
     }
 }
 pub(crate) mod rules_606_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 606 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10533,14 +10486,12 @@ pub(crate) mod rules_606_1 {
     }
 }
 pub(crate) mod rules_607_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 607 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10816,14 +10767,12 @@ pub(crate) mod rules_607_1 {
     }
 }
 pub(crate) mod rules_608_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 608 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -11102,14 +11051,12 @@ pub(crate) mod rules_608_1 {
     }
 }
 pub(crate) mod rules_609_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 609 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11383,14 +11330,12 @@ pub(crate) mod rules_609_1 {
     }
 }
 pub(crate) mod rules_610_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 610 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11665,14 +11610,12 @@ pub(crate) mod rules_610_1 {
     }
 }
 pub(crate) mod rules_611_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 611 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -11950,14 +11893,12 @@ pub(crate) mod rules_611_1 {
     }
 }
 pub(crate) mod rules_612_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 612 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -12236,14 +12177,12 @@ pub(crate) mod rules_612_1 {
     }
 }
 pub(crate) mod rules_613_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 613 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -12518,14 +12457,12 @@ pub(crate) mod rules_613_1 {
     }
 }
 pub(crate) mod rules_614_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 614 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -12801,14 +12738,12 @@ pub(crate) mod rules_614_1 {
     }
 }
 pub(crate) mod rules_630_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 630 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13082,14 +13017,12 @@ pub(crate) mod rules_630_1 {
     }
 }
 pub(crate) mod rules_631_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::SynE;
 
     // ------------------------------------------------------------
     // [wrapper source for rule 631 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13363,14 +13296,12 @@ pub(crate) mod rules_631_1 {
     }
 }
 pub(crate) mod rules_632_1 {
-    use lexigram_core::alt::Alternative;
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::precedence_type::{SynE, TestApi};
 
     // ------------------------------------------------------------
     // [wrapper source for rule 632 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}, AltId, fixed_sym_table::FixedSymTable, VarId};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13650,7 +13581,6 @@ pub(crate) mod rules_632_1 {
 pub(crate) mod rules_640_1 {
     #![allow(unused_imports)]
 
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::level_string::LevelString;
 
     /// User-defined type for `E`
@@ -13660,7 +13590,9 @@ pub(crate) mod rules_640_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 640 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_640_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -13869,7 +13801,6 @@ pub(crate) mod rules_640_1 {
 pub(crate) mod rules_641_1 {
     #![allow(unused_imports)]
 
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::level_string::LevelString;
 
     /// User-defined type for `E`
@@ -13879,7 +13810,9 @@ pub(crate) mod rules_641_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 641 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_641_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -14088,7 +14021,6 @@ pub(crate) mod rules_641_1 {
 pub(crate) mod rules_642_1 {
     #![allow(unused_imports)]
 
-    use lexigram_core::log::Logger;
     use crate::integration::wrappers::level_string::LevelString;
 
     /// User-defined type for `E`
@@ -14098,7 +14030,9 @@ pub(crate) mod rules_642_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 642 #1, start e]
 
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_642_1::*;
+
     #[derive(Debug)]
     pub enum CtxE {
         /// `e -> "-" e`
@@ -14310,8 +14244,7 @@ pub(crate) mod rules_650_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 650 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_650_1::*;
 
     #[derive(Debug)]
@@ -14484,8 +14417,7 @@ pub(crate) mod rules_705_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 705 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_705_1::*;
 
     #[derive(Debug)]
@@ -14677,8 +14609,7 @@ pub(crate) mod rules_810_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 810 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_810_1::*;
 
     #[derive(Debug)]
@@ -14872,8 +14803,7 @@ pub(crate) mod rules_811_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 811 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_811_1::*;
 
     #[derive(Debug)]
@@ -15069,8 +14999,7 @@ pub(crate) mod rules_820_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 820 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_820_1::*;
 
     #[derive(Debug)]
@@ -15277,8 +15206,7 @@ pub(crate) mod rules_821_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 821 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_821_1::*;
 
     #[derive(Debug)]
@@ -15487,8 +15415,7 @@ pub(crate) mod rules_835_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 835 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_835_1::*;
 
     #[derive(Debug)]
@@ -15712,8 +15639,7 @@ pub(crate) mod rules_862_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 862 #1, start expr]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_862_1::*;
 
     #[derive(Debug)]
@@ -15888,8 +15814,7 @@ pub(crate) mod rules_870_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 870 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_870_1::*;
 
     #[derive(Debug)]
@@ -16080,8 +16005,7 @@ pub(crate) mod rules_871_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 871 #1, start a]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_871_1::*;
 
     #[derive(Debug)]
@@ -16274,8 +16198,7 @@ pub(crate) mod rules_901_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 901 #1, start file]
 
-    use lexigram_core::log::Logger;
-    use lexigram_lib::{lexer::PosSpan, parser::{Call, ListenerWrapper}, AltId, VarId};
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_901_1::*;
 
     #[derive(Debug)]

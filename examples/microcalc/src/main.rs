@@ -269,7 +269,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_core::{AltId, fixed_sym_table::FixedSymTable, VarId, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 17;

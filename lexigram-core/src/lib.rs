@@ -41,9 +41,9 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use lexigram_core::TokenId;
-    /// # use lexigram_lib::opcode;
-    /// # use lexigram_lib::VarId;
-    /// # use lexigram_lib::parser::OpCode;
+    /// # use lexigram_core::opcode;
+    /// # use lexigram_core::VarId;
+    /// # use lexigram_core::parser::OpCode;
     /// assert_eq!(opcode!(e), OpCode::Empty);
     /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
     /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
@@ -70,10 +70,9 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_core::TokenId;
-    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
-    /// # use lexigram_lib::{strip, opcode};
-    /// # use lexigram_lib::parser::OpCode;
+    /// # use lexigram_core::{TokenId, VarId, strip, opcode};
+    /// # use lexigram_core::alt::Alternative;
+    /// # use lexigram_core::parser::{OpCode, Symbol};
     /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
     /// ```
     #[macro_export]
