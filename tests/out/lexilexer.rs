@@ -230,7 +230,7 @@ pub(super) mod lexilexer {
 mod test {
     use std::io::Cursor;
     use lexigram_lib::TokenId;
-    use lexigram_lib::escape_string;
+    use lexigram_core::char_reader::escape_string;
     use lexigram_lib::char_reader::CharReader;
     use crate::out::lexilexer::lexilexer::build_lexer;
 

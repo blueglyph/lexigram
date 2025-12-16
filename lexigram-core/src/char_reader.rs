@@ -382,3 +382,7 @@ pub fn escape_char(c: char) -> String {
         _ => c.escape_debug().to_string(),
     }
 }
+
+pub fn escape_string(s: &str) -> String {
+    s.chars().map(|c| escape_char(c)).collect::<String>()
+}

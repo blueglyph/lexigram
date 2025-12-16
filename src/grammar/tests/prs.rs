@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![cfg(test)]
+
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
 use super::*;

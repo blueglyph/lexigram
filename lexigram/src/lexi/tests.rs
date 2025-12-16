@@ -169,12 +169,13 @@ mod simple {
     use std::collections::BTreeMap;
     use std::io::Cursor;
     use lexigram_lib::{branch, btreemap, term};
+    use lexigram_lib::build::{BuildFrom, BuildInto};
     use lexigram_lib::dfa::{tree_to_string, ReType};
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexer::{ActionOption, LexerError};
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
-    use lexigram_core::CollectJoin;
-    use lexigram_core::log::{BuildFrom, BuildInto, LogReader, LogStatus};
+    use lexigram_lib::CollectJoin;
+    use lexigram_lib::log::{LogReader, LogStatus};
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
     use crate::lexi::SymbolicDfa;
@@ -585,9 +586,9 @@ mod simple {
 
 mod lexicon {
     use std::io::Cursor;
-    use lexigram_core::CollectJoin;
+    use lexigram_lib::CollectJoin;
     use lexigram_lib::char_reader::CharReader;
-    use lexigram_core::log::{LogReader, LogStatus};
+    use lexigram_lib::log::{LogReader, LogStatus};
     use crate::Lexi;
 
     #[test]

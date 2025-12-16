@@ -139,6 +139,11 @@ pub struct Options {
     ///
     /// Default: `false`
     pub gen_span_params: bool,
+    /// Uses the full library instead of the core library in the generated code. Use this option for a lexer / parser that
+    /// needs [lexigram_lib] instead of the smaller [lexigram_core].
+    ///
+    /// Default: `false`
+    pub use_full_lib: bool,
 }
 
 impl Options {
@@ -162,6 +167,7 @@ impl Default for Options {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
+            use_full_lib: false,
         }
     }
 }
@@ -442,6 +448,13 @@ impl OptionsBuilder {
     /// Default: `false`
     pub fn span_params(&mut self, span_params: bool) -> &mut Self {
         self.options.gen_span_params = span_params;
+        self
+    }
+
+    /// Uses the full [lexigram_lib] crate instead of the smaller [lexigram_core] in the generated code.
+    /// Use this option for a lexer / parser that needs to access the code generation features in [lexigram_lib].
+    pub fn use_full_lib(&mut self, use_full_lib: bool) -> &mut Self {
+        self.options.use_full_lib = use_full_lib;
         self
     }
 

@@ -4,11 +4,11 @@
 
 use std::io::Cursor;
 use iter_index::IndexerIterator;
-use lexigram_core::CollectJoin;
-use lexigram_lib::{SymbolTable, VarId};
+use lexigram_lib::{CollectJoin, SymbolTable, VarId};
+use lexigram_lib::build::{BuildFrom, BuildInto};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexergen::{LexerGen, LexerTables};
-use lexigram_core::log::{BuildFrom, BuildInto, LogReader, LogStatus};
+use lexigram_lib::log::{LogReader, LogStatus};
 use crate::Lexi;
 use crate::lexi::SymbolicDfa;
 
@@ -89,7 +89,8 @@ fn make_lexer_tables(lexicon: &str) -> (LexerTables, SymbolTable) {
 mod listener {
     use super::*;
     use crate::Gram;
-    use lexigram_core::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
+    use lexigram_lib::build::{BuildFrom, BuildInto};
+    use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::ProdRuleSet;
     use lexigram_lib::char_reader::CharReader;
@@ -97,7 +98,7 @@ mod listener {
     use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
     use lexigram_lib::{AltId, VarId, LL1};
     use std::io::Cursor;
-    use lexigram_core::CollectJoin;
+    use lexigram_lib::CollectJoin;
 
     struct Stub {
         log: BufLog,

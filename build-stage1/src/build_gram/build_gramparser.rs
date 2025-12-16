@@ -3,8 +3,9 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
-use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram_core::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
+use lexigram_lib::build::BuildInto;
+use lexigram_lib::grammar::ProdRuleSet;
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{SymbolTable, LL1};
 use lexigram_lib::build::{BuildError, HasBuildErrorSource};
 use lexigram_lib::char_reader::CharReader;

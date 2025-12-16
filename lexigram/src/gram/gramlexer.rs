@@ -117,15 +117,19 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 mod test {
     use std::io::Cursor;
     use lexigram_lib::TokenId;
-    use lexigram_lib::escape_string;
-    use lexigram_lib::char_reader::CharReader;
+    use lexigram_lib::char_reader::{CharReader, escape_string};
     use crate::gram::gramlexer::build_lexer;
 
     #[test]
     pub fn check_lexer_tokens() {
         const VERBOSE: bool = false;
         let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
-            // TODO
+            (1, vec![
+                // no error
+                (": ( | + ? ) ; * grammar EOF <L> <L=a> <R> <P> a bc d_e1",
+                 vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 13, 13],
+                 vec![":", "(", "|", "+", "?", ")", ";", "*", "grammar", "EOF", "<L>", "<L=a>", "<R>", "<P>", "a", "bc", "d_e1"]),
+            ]),
         ];
         let mut lexer = build_lexer();
         for (test_id, inputs) in tests {

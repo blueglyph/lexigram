@@ -189,6 +189,7 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     // - builds the lexer
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
+    lexgen.use_full_lib(true);
     let src = lexgen.gen_source_code(indent);
     let mut log = lexgen.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {

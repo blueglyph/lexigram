@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
-use lexigram_core::log::BufLog;
+use lexigram_lib::log::BufLog;
 use crate::gen_parser::{try_gen_parser, GenParserError};
 use crate::{gencode, genspec};
 use crate::options::{Action, Options, OptionsBuilder, ERR_LEXER_AFTER_PARSER, ERR_LEXER_CODE_ALREADY_SET, ERR_PARSER_SET_BEFORE_LEXER_NOT_SET, ERR_LEXER_SPEC_ALREADY_SET, ERR_LEXER_SPEC_OR_CODE_ALREADY_SET, ERR_PARSER_CODE_ALREADY_SET, ERR_PARSER_SPEC_ALREADY_SET, ERR_PARSER_SPEC_OR_CODE_ALREADY_SET, ERR_MISSING_LEXER_OPTION, ERR_MISSING_PARSER_OPTION};
@@ -261,6 +261,7 @@ fn bad_params() {
         gen_parser_alts: false,
         gen_wrapper: false,
         gen_span_params: false,
+        use_full_lib: false,
     };
     let opt_fake = Options {
         lexer_spec: genspec!(none),
@@ -275,6 +276,7 @@ fn bad_params() {
         gen_parser_alts: false,
         gen_wrapper: false,
         gen_span_params: false,
+        use_full_lib: true,
     };
 
     let tests = vec![
@@ -359,6 +361,7 @@ fn options_builder() {
         gen_parser_alts: true,
         gen_wrapper: true,
         gen_span_params: false,
+        use_full_lib: true,
     };
     let options1b = OptionsBuilder::new()
         .indent(0)
@@ -397,6 +400,7 @@ fn options_builder() {
         gen_parser_alts: false,
         gen_wrapper: true,
         gen_span_params: false,
+        use_full_lib: true,
     };
     let options2 = OptionsBuilder::new()
         .lexer(genspec!(string: lexicon), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))
@@ -419,6 +423,7 @@ fn options_builder() {
         gen_parser_alts: false,
         gen_wrapper: true,
         gen_span_params: false,
+        use_full_lib: true,
     };
     let options3 = OptionsBuilder::new()
         .lexer(genspec!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXICON_TAG), gencode!(filename: TEST1_TAGS_FILENAME, tag: TEST1_LEXER_TAG))

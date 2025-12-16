@@ -48,7 +48,7 @@ apply to both, or after either of them if they only apply to the lexer or the pa
 
   --indent <number>         Defines the code indentation in number of spaces (default: 0).
 
-Other options related to the parser / wrapper / listener:
+Other options related to the generated code:
 
   --lib <string>            Adds extra libs (crates/modules) to the "use" declarations of the
                             parser / wrapper / listener code.
@@ -60,10 +60,15 @@ Other options related to the parser / wrapper / listener:
                             the terminals and nonterminals of each rule alternative in the
                             parsed text.
 
-  --no_wrapper              Generates only a parser; doesn't generate the code for the
+  --no-wrapper              Generates only a parser; doesn't generate the code for the
                             wrapper and the listener.
 
-  --debug_info              Adds extra info in the parser to generate clearer debug messages.
+  --debug-info              Adds extra info in the parser to generate clearer debug messages.
+
+  --use-full-lib            Uses the full crate lexigram_lib in the generated code instead
+                            of the smaller lexigram_core with the minimal features required
+                            by the lexer and parser. The full crate includes all the code
+                            generation features, so it's normally not necessary.
 
 General options:
 
@@ -178,11 +183,14 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             "--spans" => {
                 builder.span_params(true);
             }
-            "--no_wrapper" => {
+            "--no-wrapper" => {
                 builder.wrapper(false);
             }
-            "--debug_info" => {
+            "--debug-info" => {
                 builder.parser_alts(true);
+            }
+            "--use-full-lib" => {
+                builder.use_full_lib(true);
             }
             "--log" => {
                 show_log = true;

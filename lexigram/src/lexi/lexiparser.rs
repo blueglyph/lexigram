@@ -5,8 +5,8 @@
 
 // [lexiparser]
 
-use lexigram_core::log::Logger;
-use lexigram_core::{parser::{Call, ListenerWrapper, OpCode, Parser}, AltId, FixedSymTable, VarId};
+use lexigram_lib::log::Logger;
+use lexigram_lib::{parser::{Call, ListenerWrapper, OpCode, Parser}, AltId, fixed_sym_table::FixedSymTable, VarId};
 use lexiparser_types::*;
 
 const PARSER_NUM_T: usize = 33;

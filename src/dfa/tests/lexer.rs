@@ -2,15 +2,20 @@
 
 use std::io::Cursor;
 use vectree::VecTree;
-use lexigram_core::char_reader::CharReader;
+use lexigram_core::char_reader::{escape_string, CharReader};
 use lexigram_core::lexer::{ChannelId, LexerError, PosSpan};
 use lexigram_core::log::{LogReader, LogStatus};
 use lexigram_core::{CollectJoin, TokenId};
-use crate::{btreemap, escape_string, node, term, General};
+use crate::{btreemap, node, term, General};
 use crate::build::{BuildFrom, TryBuildInto};
 use crate::dfa::{Dfa, DfaBuilder, DfaBundle, ReNode};
 use crate::dfa::tests::build_re;
 use crate::lexergen::{LexerGen, LexerTables};
+
+#[test]
+fn todo() {
+    todo!("bring back some of those tests in lexer with generated lexers (lexer_simple, build_lexer_tables)");
+}
 
 #[test]
 fn lexer_simple() {

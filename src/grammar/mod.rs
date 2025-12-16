@@ -1314,26 +1314,26 @@ pub mod macros {
     /// ```
     #[macro_export]
     macro_rules! alt {
-        () => { $crate::grammar::alt::Alternative::new(std::vec![]) };
+        () => { $crate::alt::Alternative::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { alt!($($a $($b)?),+) };
-        ($($a:ident $($b:expr)?),*) => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
+        ($($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { alt!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-        //     => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
+        //     => {$crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
         // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
             => { alt!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
             => { alt!(%($v, $id), $($a $($b)?),+) };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
     }
 
     #[macro_export]

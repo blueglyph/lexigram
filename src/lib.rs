@@ -1,8 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::BTreeSet;
-use std::error::Error;
-use std::fmt::Display;
 use std::ops::Deref;
 use vectree::VecTree;
 
@@ -16,7 +14,6 @@ pub use lexigram_core::char_reader;
 pub use lexigram_core::segmap;
 pub use lexigram_core::seg;
 pub use lexigram_core::lexer;
-use lexigram_core::log::{BufLog, LogStatus};
 pub use lexigram_core::parser;
 
 mod macros;
@@ -92,10 +89,6 @@ pub struct Normalized;
 
 // ---------------------------------------------------------------------------------------------
 // General helper functions
-
-pub fn escape_string(s: &str) -> String {
-    s.chars().map(|c| char_reader::escape_char(c)).collect::<String>()
-}
 
 /// Gathers `iter_item` in a vector and pushes it into `v`.
 pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, iter_item: I) -> usize
@@ -362,7 +355,7 @@ mod libtests {
         fn build() -> Result<(), BuildError> {
             let mut log = BufLog::new();
             log.add_error("the test generated a fake error successfully");
-            Err(BuildError { source: BuildErrorSource::ParserGen, log })
+            Err(BuildError::new(log, BuildErrorSource::ParserGen))
         }
         let err = build().err().expect("build() should return an error");
         assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR  : the test generated a fake error successfully\n");

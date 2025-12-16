@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![cfg(test)]
+
 //! Old rulesets built from hand-made [GrTree]s or [ProdRule](crate::grammar::ProdRule)s.
 //!
 //! Recent tests are built [from plain text grammars](crate::grammar::tests::TestRules::to_rts_general) parsed by

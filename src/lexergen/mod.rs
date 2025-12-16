@@ -11,7 +11,7 @@ use lexigram_core::CollectJoin;
 use crate::dfa::print_graph;
 use crate::{indent_source, Normalized, SymbolTable, TokenId};
 use crate::char_reader::escape_char;
-use crate::lexer::{ActionOption, Lexer, LexerError, StateId, Terminal};
+use crate::lexer::{ActionOption, Lexer, StateId, Terminal};
 use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
 use crate::segments::Segments;
@@ -133,6 +133,7 @@ pub struct LexerGen {
     log: BufLog,
     group_partition: Segments,   // for optimization
     headers: Vec<String>,
+    use_full_lib: bool,
 }
 
 impl LexerGen {
@@ -154,6 +155,7 @@ impl LexerGen {
             log: BufLog::new(),
             group_partition: Segments::empty(),
             headers: Vec::new(),
+            use_full_lib: false,
         }
     }
 
@@ -165,6 +167,11 @@ impl LexerGen {
     #[inline]
     pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
         self.headers.extend(headers.into_iter().map(|s| s.into()));
+    }
+
+    #[inline]
+    pub fn use_full_lib(&mut self, use_full_lib: bool) {
+        self.use_full_lib = use_full_lib;
     }
 
     pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
@@ -323,10 +330,11 @@ impl LexerGen {
         }
 
         // Create source code:
+        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use lexigram_lib::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};"));
-        source.push(format!("use lexigram_lib::segmap::{{GroupId, Seg, SegMap}};"));
+        source.push(format!("use {lib}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};"));
+        source.push(format!("use {lib}::segmap::{{GroupId, Seg, SegMap}};"));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));

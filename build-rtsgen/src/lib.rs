@@ -4,7 +4,7 @@
 
 use lexigram::{lexigram_lib, genspec, gencode};
 use lexigram::gen_parser::{try_gen_parser, GenParserError};
-use lexigram_core::log::{BufLog, LogStatus};
+use lexigram_lib::log::{BufLog, LogStatus};
 use lexigram::options::{Action, OptionsBuilder};
 
 static LEXICON_FILENAME: &str = "src/rtsgen.l";
@@ -24,6 +24,7 @@ fn gen_source(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
         .extra_libs(["super::listener_types::*"])
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     try_gen_parser(action, options)

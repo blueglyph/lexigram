@@ -7,8 +7,8 @@ mod lexer_source1 {
     use std::collections::HashMap;
     use std::io::{Cursor, Read};
     use crate::lexer::ModeOption;
-    use crate::{escape_string, TokenId};
-    use crate::char_reader::CharReader;
+    use crate::TokenId;
+    use crate::char_reader::{CharReader, escape_string};
     use crate::segmap::GroupId;
     use crate::segmap::{Seg, SegMap};
     use crate::lexer::{Lexer, StateId, Terminal};
@@ -93,7 +93,7 @@ mod lexer_source1 {
             if VERBOSE { println!("test {test_id}:"); }
             let mut lexer = build_lexer();
             for (input, expected_tokens, expected_texts) in inputs {
-                if VERBOSE { print!("\"{}\":", escape_string(input)); }
+                if VERBOSE { print!("{input:?}:"); }
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
                 let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _span)| {

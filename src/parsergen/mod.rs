@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
-use std::fmt::Display;
 use iter_index::IndexerIterator;
 use lexigram_core::alt::Alternative;
 use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
@@ -164,6 +163,7 @@ pub struct ParserGen {
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
     log: BufLog,
     include_alts: bool,
+    use_full_lib: bool,
 }
 
 impl ParserGen {
@@ -215,6 +215,7 @@ impl ParserGen {
             nt_extra_info: HashMap::new(),
             log: ll1_rules.log,
             include_alts: false,
+            use_full_lib: false,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -318,6 +319,11 @@ impl ParserGen {
     /// allows to print out the alternatives in VERBOSE mode.
     pub fn set_include_alts(&mut self, include_alts: bool) {
         self.include_alts = include_alts;
+    }
+
+    #[inline]
+    pub fn use_full_lib(&mut self, use_full_lib: bool) {
+        self.use_full_lib = use_full_lib;
     }
 
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
@@ -1125,20 +1131,21 @@ impl ParserGen {
 
     fn source_build_parser(&mut self) -> Vec<String> {
         static BASE_PARSER_LIBS: [&str; 5] = [
-            "lexigram_lib::VarId",
-            "lexigram_lib::AltId",
-            "lexigram_lib::parser::OpCode",
-            "lexigram_lib::parser::Parser",
-            "lexigram_lib::FixedSymTable",
+            "::VarId",
+            "::AltId",
+            "::parser::OpCode",
+            "::parser::Parser",
+            "::fixed_sym_table::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
-            "lexigram_lib::grammar::alt::Alternative",
-            "lexigram_lib::parser::Symbol",
+            "::alt::Alternative",
+            "::parser::Symbol",
         ];
         self.log.add_note("generating build_parser() source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
-        self.used_libs.extend(BASE_PARSER_LIBS);
+        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
+        self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
         self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
@@ -1282,16 +1289,19 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
+        static PARSER_LIBS: [&str; 5] = [
+            "::VarId", "::parser::Call", "::parser::ListenerWrapper",
+            "::AltId", "::log::Logger",
+        ];
+
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
 
         let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
         log.add_note("generating wrapper source...");
-        self.used_libs.extend([
-            "lexigram_lib::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
-            "lexigram_lib::AltId", "lexigram_lib::log::Logger",
-        ]);
+        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
+        self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
         if self.gen_span_params {
-            self.used_libs.add("lexigram_lib::lexer::PosSpan");
+            self.used_libs.add(format!("{lib}::lexer::PosSpan"));
         }
 
         let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();

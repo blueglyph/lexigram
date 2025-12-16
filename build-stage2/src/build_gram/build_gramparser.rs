@@ -90,6 +90,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     }
     builder.set_parents_have_value();
     builder.add_lib("gramparser_types::*");
+    builder.use_full_lib(true);
     let src = builder.gen_source_code(indent, true);
     let mut log = builder.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
