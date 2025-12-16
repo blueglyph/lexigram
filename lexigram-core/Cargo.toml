@@ -8,7 +8,3 @@ default = []
 test_utils = []
 
 [dependencies]
-
-[dev-dependencies]
-vectree = "0.2.3"
-lexigram_lib = { path = "..", version = "0.8.0" }

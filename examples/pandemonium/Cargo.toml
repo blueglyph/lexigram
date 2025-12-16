@@ -5,4 +5,3 @@ edition = "2024"
 
 [dependencies]
 lexigram-core = { path = "../../lexigram-core", version = "0.8.0" }
-#lexigram_lib = { path = "../..", package = "lexigram_lib", version = "0.8.0" }

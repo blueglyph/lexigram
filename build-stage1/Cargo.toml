@@ -4,8 +4,6 @@ version = "0.8.0"
 edition = "2024"
 
 [dependencies]
-#lexigram-core = { path = "../lexigram-core", version = "0.8.0" }
-
 # use this dependency when modifications break back-compatibility in stage 2 (when stage 1 must
 # rebuild stage 2 and lexi/gram with up-to-date generated sources):
 #lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram" }

@@ -64,10 +64,6 @@ dependencies = [
 [[package]]
 name = "lexigram-core"
 version = "0.8.0"
-dependencies = [
- "lexigram_lib",
- "vectree",
-]
 
 [[package]]
 name = "lexigram_lib"
