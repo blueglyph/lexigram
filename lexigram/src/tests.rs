@@ -648,3 +648,42 @@ mod failing_tests {
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Generates the test lexers in lexigram-core/src/lexer/tests.rs
+
+mod gen_test_lexers {
+    use super::*;
+
+    const LEXER_TEST_FILENAME: &str = "../lexigram-core/src/lexer/tests.rs";
+    const TAG_LEXICON: &str = "lexer1_lexicon";
+    const TAG_CODE: &str = "lexer1_source";
+
+    #[ignore]
+    #[test]
+    fn gen_lexer1() {
+        let options = OptionsBuilder::new()
+            .lexer(
+                genspec!(filename: LEXER_TEST_FILENAME, tag: TAG_LEXICON),
+                gencode!(filename: LEXER_TEST_FILENAME, tag: TAG_CODE))
+            .indent(4)
+            .headers([
+                format!("// This code is generated from {}", file!()),
+                format!("// and corresponds to the lexicon between tags [{}]", TAG_LEXICON)])
+            .use_full_lib(false)
+            .build()
+            .expect("option build error");
+        match try_gen_parser(Action::Generate, options) {
+            Ok(log) => {
+                println!("Successful:\n{log}");
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if let Some(log) = e.get_log() {
+                    println!("{log}");
+                }
+                panic!("Failed to build lexer:\n{msg}");
+            }
+        }
+    }
+}
