@@ -4,4 +4,5 @@
 pub(crate) mod listener_types;
 pub(crate) mod test1_lexer;
 pub(crate) mod test1_parser;
-pub(crate) mod test1_tags;
+pub(crate) mod test2_tags;
+pub(crate) mod test3_tags;

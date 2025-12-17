@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------------------------
 
 pub const LEXICON_TAG_CONTENT: &str = r#"
-[test1_lexicon_tag]
+// [test2_lexicon_tag]
 
 lexicon Test1;
 
@@ -34,7 +34,7 @@ SWhiteSpace             : [ \n\r\t]+                -> skip;
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 Num                     : DecInteger;
 
-[test1_lexicon_tag]
+// [test2_lexicon_tag]
 "#;
 
 // ---------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ Num                     : DecInteger;
 // ---------------------------------------------------------------------------------------------
 
 pub const GRAMMAR_TAG_CONTENT: &str = r#"
-[test1_grammar_tag]
+// [test2_grammar_tag]
 
 grammar Test1;
 
@@ -65,14 +65,14 @@ expr:
 |   Num
 ;
 
-[test1_grammar_tag]
+// [test2_grammar_tag]
 "#;
 
 // ---------------------------------------------------------------------------------------------
 // lexer (automatically generated)
 // ---------------------------------------------------------------------------------------------
 
-// [test1_lexer_tag]
+// [test2_lexer_tag]
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -172,13 +172,13 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
     )
 }
 
-// [test1_lexer_tag]
+// [test2_lexer_tag]
 
 // ---------------------------------------------------------------------------------------------
 // parser (automatically generated)
 // ---------------------------------------------------------------------------------------------
 
-// [test1_parser_tag]
+// [test2_parser_tag]
 
 use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
@@ -532,6 +532,6 @@ impl<T: Test1Listener> Wrapper<T> {
     }
 }
 
-// [test1_parser_tag]
+// [test2_parser_tag]
 
 // ---------------------------------------------------------------------------------------------
