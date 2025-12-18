@@ -3,6 +3,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
@@ -115,6 +116,28 @@ impl TryBuildFrom<LexerGen> for LexerTables {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Name of the crate used in the generated code
+#[derive(Clone, Default, PartialEq, Debug)]
+pub enum LexigramCrate {
+    /// [LexigramCrate] is [lexigram_core] (default)
+    #[default]
+    Core,
+    /// [LexigramCrate] is [lexigram_lib](crate)
+    Full,
+    /// [LexigramCrate] is a custom name; e.g. if the use renames it in `use lexigram_core as core`.
+    Custom(String),
+}
+
+impl Display for LexigramCrate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            LexigramCrate::Core => "lexigram_core",
+            LexigramCrate::Full => "lexigram_lib",
+            LexigramCrate::Custom(s) => s.as_str(),
+        })
+    }
+}
+
 pub struct LexerGen {
     // parameters:
     pub max_utf8_chars: u32,
@@ -133,7 +156,7 @@ pub struct LexerGen {
     log: BufLog,
     group_partition: Segments,   // for optimization
     headers: Vec<String>,
-    use_full_lib: bool,
+    lib_crate: LexigramCrate,
 }
 
 impl LexerGen {
@@ -155,7 +178,7 @@ impl LexerGen {
             log: BufLog::new(),
             group_partition: Segments::empty(),
             headers: Vec::new(),
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         }
     }
 
@@ -171,7 +194,12 @@ impl LexerGen {
 
     #[inline]
     pub fn use_full_lib(&mut self, use_full_lib: bool) {
-        self.use_full_lib = use_full_lib;
+        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+    }
+
+    #[inline]
+    pub fn set_crate(&mut self, lcrate: LexigramCrate) {
+        self.lib_crate = lcrate;
     }
 
     pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
@@ -330,11 +358,10 @@ impl LexerGen {
         }
 
         // Create source code:
-        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use {lib}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};"));
-        source.push(format!("use {lib}::segmap::{{GroupId, Seg, SegMap}};"));
+        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};", self.lib_crate));
+        source.push(format!("use {}::segmap::{{GroupId, Seg, SegMap}};", self.lib_crate));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));

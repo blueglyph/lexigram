@@ -10,6 +10,7 @@ use crate::alt::ruleflag;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
 use crate::CollectJoin;
 use crate::grammar::origin::{FromPRS, Origin};
+use crate::lexergen::LexigramCrate;
 use crate::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use crate::parser::{OpCode, Parser, Symbol};
 use crate::segments::Segments;
@@ -163,7 +164,7 @@ pub struct ParserGen {
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
     log: BufLog,
     include_alts: bool,
-    use_full_lib: bool,
+    lib_crate: LexigramCrate,
 }
 
 impl ParserGen {
@@ -215,7 +216,7 @@ impl ParserGen {
             nt_extra_info: HashMap::new(),
             log: ll1_rules.log,
             include_alts: false,
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -323,7 +324,12 @@ impl ParserGen {
 
     #[inline]
     pub fn use_full_lib(&mut self, use_full_lib: bool) {
-        self.use_full_lib = use_full_lib;
+        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+    }
+
+    #[inline]
+    pub fn set_crate(&mut self, lcrate: LexigramCrate) {
+        self.lib_crate = lcrate;
     }
 
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
@@ -1144,8 +1150,7 @@ impl ParserGen {
         self.log.add_note("generating build_parser() source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
-        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
-        self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
+        self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
         self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
@@ -1160,7 +1165,7 @@ impl ParserGen {
                     self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
         if self.include_alts {
-            self.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
+            self.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
                              self.parsing_table.alts.len(),
                              self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")));
@@ -1298,10 +1303,9 @@ impl ParserGen {
 
         let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
         log.add_note("generating wrapper source...");
-        let lib = if self.use_full_lib { "lexigram_lib" } else { "lexigram_core" };
-        self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{lib}{s}")));
+        self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
         if self.gen_span_params {
-            self.used_libs.add(format!("{lib}::lexer::PosSpan"));
+            self.used_libs.add(format!("{}::lexer::PosSpan", self.lib_crate));
         }
 
         let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();

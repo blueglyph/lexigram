@@ -5,6 +5,7 @@ use std::ops::Deref;
 use vectree::VecTree;
 
 // exposes lexigram-core:
+pub use lexigram_core;
 pub use lexigram_core::{AltId, TokenId, VarId};
 pub use lexigram_core::CollectJoin;
 pub use lexigram_core::alt;

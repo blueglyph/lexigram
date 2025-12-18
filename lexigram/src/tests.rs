@@ -4,6 +4,7 @@
 
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source};
 use lexigram_lib::log::BufLog;
+use lexigram_lib::lexergen::LexigramCrate;
 use crate::gen_parser::{try_gen_parser, GenParserError};
 use crate::{gencode, genspec};
 use crate::options::{Action, Options, OptionsBuilder, ERR_LEXER_AFTER_PARSER, ERR_LEXER_CODE_ALREADY_SET, ERR_PARSER_SET_BEFORE_LEXER_NOT_SET, ERR_LEXER_SPEC_ALREADY_SET, ERR_LEXER_SPEC_OR_CODE_ALREADY_SET, ERR_PARSER_CODE_ALREADY_SET, ERR_PARSER_SPEC_ALREADY_SET, ERR_PARSER_SPEC_OR_CODE_ALREADY_SET, ERR_MISSING_LEXER_OPTION, ERR_MISSING_PARSER_OPTION};
@@ -110,7 +111,7 @@ mod test2 {
             .parser(genspec!(string: grammar), gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_PARSER_TAG))
             .extra_libs(["super::listener_types::test1::*"])
             .span_params(true)
-            .use_full_lib(true)
+            .set_crate(LexigramCrate::Custom("core".to_string()))
             .build()
             .expect("should have no error");
         try_gen_parser(action, options)
@@ -186,7 +187,7 @@ mod test3 {
                 gencode!(filename: TEST3_TAGS_FILENAME, tag: TEST3_PARSER_TAG))
             .extra_libs(["super::listener_types::test1::*"])
             .span_params(true)
-            .use_full_lib(true)
+            .set_crate(LexigramCrate::Full)
             .build()
             .expect("should have no error");
         try_gen_parser(action, options)
@@ -271,7 +272,7 @@ mod test4 {
             gen_parser_alts: true,
             gen_wrapper: true,
             gen_span_params: false,
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -310,13 +311,13 @@ mod test4 {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
-            use_full_lib: true,
+            lib_crate: LexigramCrate::Full,
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
             .parser(genspec!(string: grammar), gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG))
             .extra_libs(["super::listener_types::test1::*"])
-            .use_full_lib(true)
+            .set_crate(LexigramCrate::Full)
             .build()
             .expect("should have no error");
         assert_eq!(options2, options2_expected);
@@ -334,7 +335,7 @@ mod test4 {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -371,7 +372,7 @@ mod failing_tests {
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
@@ -386,7 +387,7 @@ mod failing_tests {
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
-            use_full_lib: true,
+            lib_crate: LexigramCrate::Full,
         };
 
         let tests = vec![
@@ -659,9 +660,7 @@ mod gen_test_lexers {
     const TAG_LEXICON: &str = "lexer1_lexicon";
     const TAG_CODE: &str = "lexer1_source";
 
-    #[ignore]
-    #[test]
-    fn gen_lexer1() {
+    fn action(action: Action) -> Result<BufLog, GenParserError> {
         let options = OptionsBuilder::new()
             .lexer(
                 genspec!(filename: LEXER_TEST_FILENAME, tag: TAG_LEXICON),
@@ -670,10 +669,16 @@ mod gen_test_lexers {
             .headers([
                 format!("// This code is generated from {}", file!()),
                 format!("// and corresponds to the lexicon between tags [{}]", TAG_LEXICON)])
-            .use_full_lib(false)
+            .set_crate(LexigramCrate::Custom("crate".to_string()))
             .build()
             .expect("option build error");
-        match try_gen_parser(Action::Generate, options) {
+        try_gen_parser(action, options)
+    }
+
+    #[ignore]
+    #[test]
+    fn gen_lexer1() {
+        match action(Action::Generate) {
             Ok(log) => {
                 println!("Successful:\n{log}");
             }
@@ -683,6 +688,20 @@ mod gen_test_lexers {
                     println!("{log}");
                 }
                 panic!("Failed to build lexer:\n{msg}");
+            }
+        }
+    }
+
+    #[test]
+    fn check_lexer1() {
+        match action(Action::Verify) {
+            Ok(_) => { }
+            Err(e) => {
+                let msg = e.to_string();
+                if let Some(log) = e.get_log() {
+                    println!("{log}");
+                }
+                panic!("Verification failed:\n{msg}");
             }
         }
     }

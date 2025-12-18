@@ -40,7 +40,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     let mut lexgen = LexerGen::try_build_from(dfa)?;
     lexgen.symbol_table = Some(symbol_table.clone());
     lexgen.extend_headers(&options.lexer_headers);
-    lexgen.use_full_lib(options.use_full_lib);
+    lexgen.set_crate(options.lib_crate.clone());
     let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
     // // - writes the source code between existing tags:
@@ -66,7 +66,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         builder.extend_headers(&options.parser_headers);
         builder.extend_libs(options.extra_libs.clone());
         builder.set_gen_span_params(options.gen_span_params);
-        builder.use_full_lib(options.use_full_lib);
+        builder.set_crate(options.lib_crate.clone());
         let (parser_log, parser_src) = builder.try_gen_source_code(options.parser_indent, options.gen_wrapper)?;
         log.extend(parser_log);
         Some(parser_src)

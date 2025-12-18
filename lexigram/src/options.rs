@@ -2,6 +2,7 @@
 
 use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
+use lexigram_lib::lexergen::LexigramCrate;
 
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
@@ -143,7 +144,7 @@ pub struct Options {
     /// needs [lexigram_lib] instead of the smaller [lexigram_core].
     ///
     /// Default: `false`
-    pub use_full_lib: bool,
+    pub lib_crate: LexigramCrate,
 }
 
 impl Options {
@@ -167,7 +168,7 @@ impl Default for Options {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
-            use_full_lib: false,
+            lib_crate: LexigramCrate::Core,
         }
     }
 }
@@ -451,10 +452,49 @@ impl OptionsBuilder {
         self
     }
 
-    /// Uses the full [lexigram_lib] crate instead of the smaller [lexigram_core] in the generated code.
+    /// Uses the full [lexigram_lib] crate in the generated code if `use_full_lib` is true, or the
+    /// smaller [lexigram_core](lexigram_lib::lexigram_core) if false.
     /// Use this option for a lexer / parser that needs to access the code generation features in [lexigram_lib].
+    ///
+    /// See also [set_crate](OptionsBuilder::set_crate) for a custom name or path.
+    ///
+    /// ##Example
+    ///
+    /// ```ignore
+    /// let options = OptionsBuilder::new()
+    ///     .lexer(genspec!(filename: LEXICON), gencode!(filename: LEXER))
+    ///     .parser(genspec!(filename: GRAMMAR), gencode!(filename: PARSER))
+    ///     .use_full_lib(false)
+    ///     .build()
+    ///     .expect("should have no error");
+    /// try_gen_parser(action, options)?;
+    /// ```
+    /// -> `use lexigram_core::parser::Parser;` and so on
     pub fn use_full_lib(&mut self, use_full_lib: bool) -> &mut Self {
-        self.options.use_full_lib = use_full_lib;
+        self.options.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+        self
+    }
+
+    /// Sets the `use` path to the lexigram core library.
+    ///
+    /// See also [use_full_lib](OptionsBuilder::set_crate) for the most common situations.
+    ///
+    /// ##Example
+    ///
+    /// ```ignore
+    /// use lexigram_core as core;
+    ///
+    /// let options = OptionsBuilder::new()
+    ///     .lexer(genspec!(filename: LEXICON), gencode!(filename: LEXER))
+    ///     .parser(genspec!(filename: GRAMMAR), gencode!(filename: PARSER))
+    ///     .set_crate(LexigramCrate::Custom("core".to_string()))
+    ///     .build()
+    ///     .expect("should have no error");
+    /// try_gen_parser(action, options)?;
+    /// ```
+    /// -> `use core::parser::Parser;` and so on
+    pub fn set_crate(&mut self, lcrate: LexigramCrate) -> &mut Self {
+        self.options.lib_crate = lcrate;
         self
     }
 

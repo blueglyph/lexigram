@@ -115,26 +115,8 @@ mod lexer_source1 {
 
 #[cfg(feature = "gen_tests")]
 mod base_lexer_tests {
-
-    // - test lexicon features:
-    //     - mode(n)
-    //     - push(n) / pop
-    //     - skip
-    //     - more
-    //     - type
-    //     - channel
-    // - test API
-    //     - get_token()
-    //     - get_error()
-    //     - has_error()
-    //     - is_eos()
-    //     - iterator
-    //         - split_channel0()
-    //         - split_channels()
-    //         - keep_channel0()
-    //         - keep_channel()
-
     /*!
+    ```
     // [lexer1_lexicon]
     
     lexicon Test1;
@@ -172,9 +154,8 @@ mod base_lexer_tests {
     PopFromB                : 'pop'                     -> pop;
 
     // [lexer1_lexicon]
-    !*/
-
-    use crate as lexigram_core; // we don't have an option to generate "use crate::..."
+    ```
+    */
 
     // -------------------------------------------------------------------------
     // [lexer1_source]
@@ -184,8 +165,8 @@ mod base_lexer_tests {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
-    use lexigram_core::segmap::{GroupId, Seg, SegMap};
+    use crate::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use crate::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 25;
     const INITIAL_STATE: StateId = 0;

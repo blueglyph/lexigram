@@ -2,6 +2,7 @@
 
 use std::iter::Peekable;
 use lexigram::{gencode, genspec};
+use lexigram::lexigram_lib::lexergen::LexigramCrate;
 use lexigram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::ExeError;
 
@@ -69,6 +70,16 @@ Other options related to the generated code:
                             of the smaller lexigram_core with the minimal features required
                             by the lexer and parser. The full crate includes all the code
                             generation features, so it's normally not necessary.
+
+                            See also the --lib-crate option to set a custom path to the core
+                            library.
+
+  --lib-crate <path>        Sets a custom `use` path to the lexigram core library in the
+                            generated code.
+
+                            See also the --use-full-lib option for the most common situations.
+
+                            Example: --lib-crate "core"
 
 General options:
 
@@ -191,6 +202,10 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "--use-full-lib" => {
                 builder.use_full_lib(true);
+            }
+            "--lib-crate" => {
+                let path = take_argument(&mut args, "missing argument after --lib-crate")?;
+                builder.set_crate(LexigramCrate::Custom(path.to_string()));
             }
             "--log" => {
                 show_log = true;
