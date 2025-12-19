@@ -1,18 +1,301 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![cfg(test)]
+/*!
+```
+// ---------------------------------------------------------------------------------------------
+// [lexer_lexicon]
 
-#[test]
-fn todo() {
-    todo!("generate a few parsers to test its basic features");
+lexicon Tst;
+
+Equal                   : '=';
+LSbracket               : '{';
+RSbracket               : '}';
+Semi                    : ';';
+Print                   : 'print';
+Call                    : 'call';
+Id                      : [a-z][a-z0-9]*;
+Num                     : [0-9]+;
+
+SkipWhiteSpace          : [ \n\r\t]+                -> skip;
+
+// [lexer_lexicon]
+// ---------------------------------------------------------------------------------------------
+// [parser_grammar]
+
+grammar Tst;
+
+script:
+    LSbracket instruction* RSbracket
+;
+instruction:
+    Id Equal Num Semi
+|   Print Id Semi
+|   Call Id Semi
+;
+
+// [parser_grammar]
+// ---------------------------------------------------------------------------------------------
+```
+*/
+
+#![cfg(test)]
+#[cfg(feature = "generated_tests")]
+
+mod lexer {
+    // [lexer_source]
+
+    // This code is generated from lexigram\src\tests.rs
+    // and corresponds to the lexicon above between tags [lexer_lexicon]
+
+    use std::collections::HashMap;
+    use std::io::Read;
+    use crate::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use crate::segmap::{GroupId, Seg, SegMap};
+
+    const NBR_GROUPS: u32 = 15;
+    const INITIAL_STATE: StateId = 0;
+    const FIRST_END_STATE: StateId = 1;
+    const NBR_STATES: StateId = 17;
+    static ASCII_TO_GROUP: [GroupId; 128] = [
+         15,  15,  15,  15,  15,  15,  15,  15,  15,   0,   0,  15,  15,   0,  15,  15,   // 0-15
+         15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 16-31
+          0,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 32-47
+          1,   1,   1,   1,   1,   1,   1,   1,   1,   1,  15,   2,  15,   3,  15,  15,   // 48-63
+         15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 64-79
+         15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 80-95
+         15,   9,   4,   5,   4,   4,   4,   4,   4,  11,   4,   4,  14,   4,  12,   4,   // 96-111
+          6,   4,  10,   4,  13,   4,   4,   4,   4,   4,   4,   7,  15,   8,  15,  15,   // 112-127
+    ];
+    static UTF8_TO_GROUP: [(char, GroupId); 0] = [
+    ];
+    static SEG_TO_GROUP: [(Seg, GroupId); 0] = [
+    ];
+    static TERMINAL_TABLE: [Terminal;16] = [
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    ];
+    static STATE_TABLE: [StateId; 256] = [
+          1,   2,   3,   4,   5,   6,   7,   8,   9,   5,   5,   5,   5,   5,   5, // state 0
+          1,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 1 <skip>
+         17,   2,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 2 <end:7>
+         17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 3 <end:3>
+         17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 4 <end:0>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,   5,   5, // state 5 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,  14,   5,   5,   5,   5,   5, // state 6 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,  10,   5,   5,   5,   5, // state 7 <end:6>
+         17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 8 <end:1>
+         17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 9 <end:2>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,  11,   5,   5,   5, // state 10 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,  12,   5,   5, // state 11 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,  13,   5, // state 12 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,   5,   5, // state 13 <end:4>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,   5,  15, // state 14 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,   5,  16, // state 15 <end:6>
+         17,   5,  17,  17,   5,   5,   5,  17,  17,   5,   5,   5,   5,   5,   5, // state 16 <end:5>
+         17 // error group in [nbr_state * nbr_group + nbr_group]
+    ];
+
+    pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
+        Lexer::new(
+            // parameters
+            NBR_GROUPS,
+            INITIAL_STATE,
+            FIRST_END_STATE,
+            NBR_STATES,
+            // tables
+            &ASCII_TO_GROUP,
+            HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
+            SegMap::<GroupId>::from(SEG_TO_GROUP),
+            &STATE_TABLE,
+            &TERMINAL_TABLE,
+        )
+    }
+
+    // [lexer_source]
 }
 
-// use std::collections::HashMap;
-// use iter_index::IndexerIterator;
-// use crate::alt::Alternative;
-// use crate::CollectJoin;
-// use crate::{TokenId, VarId};
-// use crate::lexer::{CaretCol, Pos, PosSpan};
+mod parser {
+    // [parser_source]
+
+    // This code is generated with lexigram version 0.8.0 from lexigram\src\tests.rs
+    // and corresponds to the grammar above between tags [parser_grammar]
+
+    use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 8;
+    const PARSER_NUM_NT: usize = 3;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Equal", Some("=")), ("LSbracket", Some("{")), ("RSbracket", Some("}")), ("Semi", Some(";")), ("Print", Some("print")), ("Call", Some("call")), ("Id", None), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["script", "instruction", "script_1"];
+    static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
+    static PARSING_TABLE: [AltId; 27] = [6, 0, 6, 6, 6, 6, 6, 6, 7, 6, 6, 7, 6, 2, 3, 1, 6, 6, 6, 6, 5, 6, 4, 4, 4, 6, 6];
+    static OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(1), OpCode::T(3), OpCode::T(7), OpCode::T(0), OpCode::T(6)], &[OpCode::Exit(2), OpCode::T(3), OpCode::T(6), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(3), OpCode::T(6), OpCode::T(5)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1)], &[OpCode::Exit(5)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            Vec::new(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
+
+    // [parser_source]
+}
+
+// mod tok {
+//     use crate::TokenId;
+//
+//     pub const EQUAL      : TokenId = 0;     // '='
+//     pub const LSBRACKET  : TokenId = 1;     // '{'
+//     pub const RSBRACKET  : TokenId = 2;     // '}'
+//     pub const SEMI       : TokenId = 3;     // ';'
+//     pub const PRINT      : TokenId = 4;     // 'print'
+//     pub const CALL       : TokenId = 5;     // 'call'
+//     pub const ID         : TokenId = 6;     // [a-z][a-z0-9]*
+//     pub const NUM        : TokenId = 7;     // [0-9]+
+// }
+
+mod wrapper {
+    use crate::parser::{Call, ListenerWrapper, Symbol};
+    use crate::{AltId, VarId};
+    use crate::fixed_sym_table::FixedSymTable;
+    use crate::lexer::PosSpan;
+    use crate::log::{BufLog, Logger};
+
+    pub struct Wrapper {
+        log: BufLog,
+        symtable: Option<FixedSymTable>,
+    }
+
+    impl Wrapper {
+        pub fn new(symtable: Option<FixedSymTable>) -> Self {
+            Wrapper {
+                log: BufLog::new(),
+                symtable,
+            }
+        }
+    }
+
+    impl ListenerWrapper for Wrapper {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            // nt alt  rule
+            // ----------------------------------------
+            // 0   0   script -> "{" script_1 "}"
+            // 2   4   script_1 -> instruction script_1
+            // 2   5   script_1 -> ε
+            // 1   1   instruction -> Id "=" Num ";"
+            // 1   2   instruction -> "print" Id ";"
+            // 1   3   instruction -> "call" Id ";"
+            //
+            println!("- switch(call={call:?}, nt={}, alt_id={alt_id}, t_data={t_data:?}", Symbol::NT(nt).to_str(self.symtable.as_ref()));
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => {} // script
+                        1 => {} // instruction
+                        2 => {} // script_1
+                        _ => panic!("unexpected nt {nt} in Enter"),
+                    }
+                }
+                Call::Loop => {
+                    match nt {
+                        2 => {} // script_1
+                        _ => panic!("unexpected nt {nt} in Loop"),
+                    }
+                }
+                Call::Exit => {
+                    match alt_id {
+                        0 => { //  script -> "{" script_1 "}"
+                        }
+                        4 => { //  script_1 -> instruction script_1
+                        }
+                        5 => { //  script_1 -> ε
+                        }
+                        1 => { //  instruction -> Id "=" Num ";"
+                        }
+                        2 => { //  instruction -> "print" Id ";"
+                        }
+                        3 => { //  instruction -> "call" Id ";"
+                        }
+                        _ => panic!("unexpected alt_id {alt_id} in Exit"),
+                    }
+                }
+                Call::End => {
+                    assert_eq!(alt_id, 0, "unexpected alt_id {alt_id} in End");
+                }
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            false
+        }
+
+        fn abort(&mut self) {
+            panic!("abort");
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            println!("- push(span={span})");
+        }
+    }
+}
+
+mod simple {
+    use std::io::Cursor;
+    use crate::char_reader::CharReader;
+    use crate::lexer::TokenSpliterator;
+    use super::lexer::*;
+    use super::parser::*;
+    use super::wrapper::*;
+
+    #[test]
+    fn calls() {
+        let mut lexer = build_lexer();
+        let mut parser = build_parser();
+        let symtable = parser.get_symbol_table().cloned();
+        let mut wrapper = Wrapper::new(symtable);
+
+        let text = "{ a = 10; print a; call exit; }";
+        let stream = CharReader::new(Cursor::new(text));
+        lexer.attach_stream(stream);
+        let token_stream = lexer.tokens().keep_channel0();
+        match parser.parse_stream(&mut wrapper, token_stream) {
+            Ok(_) => {
+                println!("parsing successful")
+            }
+            Err(e) => {
+                panic!("parsing failed:\n{e}")
+            }
+        }
+    }
+}
+
 // use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
 // use crate::parser::{ListenerWrapper, OpCode, Parser, Symbol};
 // use lexigram_lib::LL1;

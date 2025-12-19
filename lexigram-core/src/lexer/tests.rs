@@ -57,8 +57,8 @@ mod lex {
     // -------------------------------------------------------------------------
     // [lexer1_source]
 
-    // This code is generated from lexigram\src\tests.rs
-    // and corresponds to the lexicon between tags [lexer1_lexicon]
+    // This code is generated with lexigram version 0.8.0 from lexigram\src\tests.rs
+    // and corresponds to the lexicon above between tags [lexer1_lexicon]
 
     use std::collections::HashMap;
     use std::io::Read;

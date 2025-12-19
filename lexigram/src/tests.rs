@@ -651,10 +651,11 @@ mod failing_tests {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Generates the test lexers in lexigram-core/src/lexer/tests.rs
+// Generates the test lexer in lexigram-core/src/lexer/tests.rs
 
-mod gen_test_lexers {
+mod gen_test_lexer {
     use super::*;
+    use crate::LEXIGRAM_PKG_VERSION;
 
     const LEXER_TEST_FILENAME: &str = "../lexigram-core/src/lexer/tests.rs";
     const TAG_LEXICON: &str = "lexer1_lexicon";
@@ -667,8 +668,8 @@ mod gen_test_lexers {
                 gencode!(filename: LEXER_TEST_FILENAME, tag: TAG_CODE))
             .indent(4)
             .headers([
-                format!("// This code is generated from {}", file!()),
-                format!("// and corresponds to the lexicon between tags [{}]", TAG_LEXICON)])
+                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", file!()),
+                format!("// and corresponds to the lexicon above between tags [{}]", TAG_LEXICON)])
             .set_crate(LexigramCrate::Custom("crate".to_string()))
             .build()
             .expect("option build error");
@@ -694,6 +695,73 @@ mod gen_test_lexers {
 
     #[test]
     fn check_lexer1() {
+        match action(Action::Verify) {
+            Ok(_) => { }
+            Err(e) => {
+                let msg = e.to_string();
+                if let Some(log) = e.get_log() {
+                    println!("{log}");
+                }
+                panic!("Verification failed:\n{msg}");
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Generates the test lexer/parser in lexigram-core/src/parser/tests.rs
+
+mod gen_test_parser {
+    use super::*;
+    use crate::LEXIGRAM_PKG_VERSION;
+
+    const SOURCE_FILENAME: &str = "../lexigram-core/src/parser/tests.rs";
+    const TAG_LEXICON: &str = "lexer_lexicon";
+    const TAG_GRAMMAR: &str = "parser_grammar";
+    const TAG_LEXER_CODE: &str = "lexer_source";
+    const TAG_PARSER_CODE: &str = "parser_source";
+
+    fn action(action: Action) -> Result<BufLog, GenParserError> {
+        let options = OptionsBuilder::new()
+            .indent(4)
+            .lexer(
+                genspec!(filename: SOURCE_FILENAME, tag: TAG_LEXICON),
+                gencode!(filename: SOURCE_FILENAME, tag: TAG_LEXER_CODE))
+            .headers([
+                format!("// This code is generated from {}", file!()),
+                format!("// and corresponds to the lexicon above between tags [{}]", TAG_LEXICON)])
+            .parser(
+                genspec!(filename: SOURCE_FILENAME, tag: TAG_GRAMMAR),
+                gencode!(filename: SOURCE_FILENAME, tag: TAG_PARSER_CODE))
+            .headers([
+                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", file!()),
+                format!("// and corresponds to the grammar above between tags [{}]", TAG_GRAMMAR)])
+            .wrapper(false)
+            .set_crate(LexigramCrate::Custom("crate".to_string()))
+            .build()
+            .expect("option build error");
+        try_gen_parser(action, options)
+    }
+
+    #[ignore]
+    #[test]
+    fn gen_parser() {
+        match action(Action::Generate) {
+            Ok(log) => {
+                println!("Successful:\n{log}");
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if let Some(log) = e.get_log() {
+                    println!("{log}");
+                }
+                panic!("Failed to build lexer:\n{msg}");
+            }
+        }
+    }
+
+    #[test]
+    fn check_parser() {
         match action(Action::Verify) {
             Ok(_) => { }
             Err(e) => {
