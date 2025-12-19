@@ -665,7 +665,7 @@ mod gen_test_lexers {
             .lexer(
                 genspec!(filename: LEXER_TEST_FILENAME, tag: TAG_LEXICON),
                 gencode!(filename: LEXER_TEST_FILENAME, tag: TAG_CODE))
-            .indent(8)
+            .indent(4)
             .headers([
                 format!("// This code is generated from {}", file!()),
                 format!("// and corresponds to the lexicon between tags [{}]", TAG_LEXICON)])

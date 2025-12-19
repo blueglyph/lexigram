@@ -527,7 +527,6 @@ impl<'a, R: Read> Lexer<'a, R> {
                     }
                     let is_accepting = self.first_end_state <= state && state < self.nbr_states;
                     if is_accepting { // accepting
-                        let curr_start_state = self.start_state;
                         let terminal = &self.terminal_table[state - self.first_end_state];
                         if terminal.pop {
                             if self.state_stack.is_empty() {
@@ -550,7 +549,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                         }
                         if let Some(goto_state) = terminal.mode_state {
                             if terminal.mode.is_push() {
-                                self.state_stack.push(curr_start_state);
+                                self.state_stack.push(self.start_state);
                             }
                             self.start_state = goto_state;
                             if VERBOSE { print!(", {}({})", if terminal.mode.is_push() { "push" } else { "mode" }, goto_state); }
