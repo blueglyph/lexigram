@@ -47,7 +47,7 @@ SkipWhiteSpaceB         : [ \n\r\t]+                -> skip;
 */
 
 #![cfg(test)]
-#[cfg(feature = "gen_tests")]
+#[cfg(feature = "generated_tests")]
 
 
 use crate::lexer::ChannelId;
