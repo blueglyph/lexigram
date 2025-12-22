@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::iter::Peekable;
+use std::str::FromStr;
 use lexigram::{gencode, genspec};
 use lexigram::lexigram_lib::lexergen::LexigramCrate;
 use lexigram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
@@ -180,7 +181,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "--indent" => {
                 let indent = take_argument(&mut args, "missing argument after --indent")?;
-                let indent_value = usize::from_str_radix(indent, 10)
+                let indent_value = usize::from_str(indent)
                     .map_err(|e| ExeError::Option(format!("error while parsing --indent {indent}: {e}")))?;
                 builder.indent(indent_value);
             }
