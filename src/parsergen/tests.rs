@@ -468,7 +468,6 @@ mod parser_source {
     #[test]
     fn alternatives() {
         for include_alts in [false, true] {
-            // let rules = build_prs(9, true);
             let ll1 = TestRules(900).to_prs_ll1().unwrap();
             assert_eq!(ll1.get_log().num_errors(), 0, "building the LL(1) failed:\n{}", ll1.get_log());
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());

@@ -4,7 +4,7 @@
 
 pub mod prs;
 pub mod rts;
-pub mod old_build_rts_prs;
+pub mod manually_built_rts_prs;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
