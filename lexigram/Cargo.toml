@@ -1,7 +1,9 @@
 [package]
 name = "lexigram"
 version = "0.8.0"
+description = "Lexi and Gram generators"
 edition = "2024"
+exclude = ["data", "tests"]
 
 [dependencies]
 #lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram-lib" }
