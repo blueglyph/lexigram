@@ -5,7 +5,7 @@
 use crate::*;
 use vectree::VecTree;
 use crate::dfa::*;
-use crate::log::TryBuildFrom;
+use crate::build::TryBuildFrom;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 

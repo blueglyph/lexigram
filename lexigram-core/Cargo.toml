@@ -1,0 +1,12 @@
+[package]
+name = "lexigram-core"
+version = "0.8.0"
+edition = "2024"
+
+[features]
+# disable "generated_tests" if the generated code doesn't compile any more and needs updating
+default = ["generated_tests"]
+test_utils = []
+generated_tests = []
+
+[dependencies]

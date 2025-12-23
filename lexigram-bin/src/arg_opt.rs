@@ -1,7 +1,9 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::iter::Peekable;
+use std::str::FromStr;
 use lexigram::{gencode, genspec};
+use lexigram::lexigram_lib::lexergen::LexigramCrate;
 use lexigram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::ExeError;
 
@@ -48,7 +50,7 @@ apply to both, or after either of them if they only apply to the lexer or the pa
 
   --indent <number>         Defines the code indentation in number of spaces (default: 0).
 
-Other options related to the parser / wrapper / listener:
+Other options related to the generated code:
 
   --lib <string>            Adds extra libs (crates/modules) to the "use" declarations of the
                             parser / wrapper / listener code.
@@ -60,10 +62,25 @@ Other options related to the parser / wrapper / listener:
                             the terminals and nonterminals of each rule alternative in the
                             parsed text.
 
-  --no_wrapper              Generates only a parser; doesn't generate the code for the
+  --no-wrapper              Generates only a parser; doesn't generate the code for the
                             wrapper and the listener.
 
-  --debug_info              Adds extra info in the parser to generate clearer debug messages.
+  --debug-info              Adds extra info in the parser to generate clearer debug messages.
+
+  --use-full-lib            Uses the full crate lexigram_lib in the generated code instead
+                            of the smaller lexigram_core with the minimal features required
+                            by the lexer and parser. The full crate includes all the code
+                            generation features, so it's normally not necessary.
+
+                            See also the --lib-crate option to set a custom path to the core
+                            library.
+
+  --lib-crate <path>        Sets a custom `use` path to the lexigram core library in the
+                            generated code.
+
+                            See also the --use-full-lib option for the most common situations.
+
+                            Example: --lib-crate "core"
 
 General options:
 
@@ -164,7 +181,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "--indent" => {
                 let indent = take_argument(&mut args, "missing argument after --indent")?;
-                let indent_value = usize::from_str_radix(indent, 10)
+                let indent_value = usize::from_str(indent)
                     .map_err(|e| ExeError::Option(format!("error while parsing --indent {indent}: {e}")))?;
                 builder.indent(indent_value);
             }
@@ -178,11 +195,18 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             "--spans" => {
                 builder.span_params(true);
             }
-            "--no_wrapper" => {
+            "--no-wrapper" => {
                 builder.wrapper(false);
             }
-            "--debug_info" => {
+            "--debug-info" => {
                 builder.parser_alts(true);
+            }
+            "--use-full-lib" => {
+                builder.use_full_lib(true);
+            }
+            "--lib-crate" => {
+                let path = take_argument(&mut args, "missing argument after --lib-crate")?;
+                builder.set_crate(LexigramCrate::Custom(path.to_string()));
             }
             "--log" => {
                 show_log = true;

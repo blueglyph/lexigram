@@ -8,10 +8,8 @@ pub(super) mod lexilexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
-    use lexigram_lib::lexer::Lexer;
-    use lexigram_lib::lexergen::GroupId;
-    use lexigram_lib::segments::{Seg, SegMap};
+    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 52;
     const INITIAL_STATE: StateId = 0;
@@ -231,8 +229,8 @@ pub(super) mod lexilexer {
 #[cfg(test)]
 mod test {
     use std::io::Cursor;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::escape_string;
+    use lexigram_lib::TokenId;
+    use lexigram_core::char_reader::escape_string;
     use lexigram_lib::char_reader::CharReader;
     use crate::out::lexilexer::lexilexer::build_lexer;
 

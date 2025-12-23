@@ -2,7 +2,7 @@
 
 // ---------------------------------------------------------------------------------------------
 
-use crate::CollectJoin;
+use lexigram_core::CollectJoin;
 use crate::take_until::TakeMutUntilIterator;
 
 pub struct RepeaterIter<I: Iterator> {
@@ -133,7 +133,8 @@ impl<I: Iterator> CProduct for I {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{CollectJoin, time};
+    use lexigram_core::CollectJoin;
+    use crate::time;
     use super::CProduct;
 
     #[test]

@@ -6,11 +6,11 @@
 use lexigram::{gencode, genspec};
 use lexigram::gen_parser::{try_gen_parser, GenParserError};
 use lexigram::options::{Action, OptionsBuilder};
-use lexigram_lib::log::{BufLog};
+use lexigram_lib::log::BufLog;
 
-static LEXICON_FILENAME: &str = "examples/pandemonium.l";
-static GRAMMAR_FILENAME: &str = "examples/pandemonium.g";
-static SOURCE_FILENAME: &str = "examples/pandemonium.rs";
+static LEXICON_FILENAME: &str = "src/pandemonium.l";
+static GRAMMAR_FILENAME: &str = "src/pandemonium.g";
+static SOURCE_FILENAME: &str = "../pandemonium/src/main.rs";
 static LEXER_TAG: &str = "pandemonium_lexer";
 static PARSER_TAG: &str = "pandemonium_parser";
 const LEXER_INDENT: usize = 4;

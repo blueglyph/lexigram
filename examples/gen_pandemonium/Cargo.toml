@@ -1,0 +1,8 @@
+[package]
+name = "gen_pandemonium"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lexigram_lib = { path = "../..", package = "lexigram_lib", version = "0.8.0" }
+lexigram = { path = "../../lexigram", package = "lexigram", version = "0.8.0" }

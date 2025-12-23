@@ -6,11 +6,12 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Cursor;
-use lexigram_lib::grammar::ProdRuleSet;
+use lexigram_lib::build::{BuildError, TryBuildFrom, TryBuildInto};
 use lexigram_lib::char_reader::CharReader;
+use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::lexergen::LexerGen;
-use lexigram_lib::{BuildError, LL1};
-use lexigram_lib::log::{BufLog, TryBuildFrom, TryBuildInto};
+use lexigram_lib::LL1;
+use lexigram_lib::log::BufLog;
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::file_utils::SrcTagError;
 use crate::{Gram, Lexi};
@@ -39,6 +40,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     let mut lexgen = LexerGen::try_build_from(dfa)?;
     lexgen.symbol_table = Some(symbol_table.clone());
     lexgen.extend_headers(&options.lexer_headers);
+    lexgen.set_crate(options.lib_crate.clone());
     let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
     // // - writes the source code between existing tags:
@@ -64,6 +66,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         builder.extend_headers(&options.parser_headers);
         builder.extend_libs(options.extra_libs.clone());
         builder.set_gen_span_params(options.gen_span_params);
+        builder.set_crate(options.lib_crate.clone());
         let (parser_log, parser_src) = builder.try_gen_source_code(options.parser_indent, options.gen_wrapper)?;
         log.extend(parser_log);
         Some(parser_src)

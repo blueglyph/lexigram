@@ -3,13 +3,14 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
-use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
-use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
-use lexigram_lib::{LL1, SymbolTable};
+use lexigram_lib::build::BuildInto;
+use lexigram_lib::grammar::ProdRuleSet;
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::{SymbolTable, LL1};
+use lexigram_lib::build::{BuildError, HasBuildErrorSource};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::file_utils::replace_tagged_source;
-use super::{GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_STAGE2_TAG, VERSIONS_TAG};
+use super::{GRAMPARSER_GRAMMAR, GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG, VERSIONS_TAG};
 
 // -------------------------------------------------------------------------
 // [terminal_symbols]

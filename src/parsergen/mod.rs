@@ -1,14 +1,20 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
-use std::fmt::{Display, Formatter};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, AltId, NTConversion, Alternative, grtree_to_str, GrTreeExt};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
+use lexigram_core::alt::Alternative;
+use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
+use crate::{columns_to_str, indent_source, AltId, General, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
+use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::alt::ruleflag;
+use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
+use crate::CollectJoin;
 use crate::grammar::origin::{FromPRS, Origin};
-use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
-use crate::parser::{OpCode, Parser, SpanNbr};
-use crate::segments::{Seg, Segments};
+use crate::lexergen::LexigramCrate;
+use crate::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
+use crate::parser::{OpCode, Parser, Symbol};
+use crate::segments::Segments;
+use crate::segmap::Seg;
 
 pub(crate) mod tests;
 
@@ -20,93 +26,6 @@ pub(crate) fn symbol_to_code(s: &Symbol) -> String {
         Symbol::T(t) => format!("Symbol::T({t})"),
         Symbol::NT(nt) => format!("Symbol::NT({nt})"),
         Symbol::End => "Symbol::End".to_string(),
-    }
-}
-
-impl Display for OpCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OpCode::Empty => write!(f, "ε"),
-            OpCode::T(t) => write!(f, ":{t}"),
-            OpCode::NT(v) => write!(f, "►{v}"),
-            OpCode::Loop(v) => write!(f, "●{v}"),
-            OpCode::Exit(v) => write!(f, "◄{v}"),
-            OpCode::End => write!(f, "$"),
-        }
-    }
-}
-
-impl OpCode {
-    pub fn is_loop(&self) -> bool {
-        matches!(self, OpCode::Loop(_))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        matches!(self, OpCode::Empty)
-    }
-
-    pub fn has_span(&self) -> bool {
-        matches!(self, OpCode::T(_) | OpCode::NT(_))
-    }
-
-    pub fn matches(&self, s: Symbol) -> bool {
-        match self {
-            OpCode::Empty => s == Symbol::Empty,
-            OpCode::T(t) => s == Symbol::T(*t),
-            OpCode::NT(v) => s == Symbol::NT(*v),
-            OpCode::End => s == Symbol::End,
-            OpCode::Loop(_) => false,
-            OpCode::Exit(_) => false,
-        }
-    }
-
-    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        if let Some(t) = symbol_table {
-            match self {
-                OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_token_data(*v) { "!" } else { "" }),
-                OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
-                OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
-                OpCode::Exit(f) => format!("◄{f}"),
-                OpCode::End => "$".to_string(),
-            }
-        } else {
-            self.to_string()
-        }
-    }
-
-    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        if let Some(t) = symbol_table {
-            match self {
-                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table), if t.is_token_data(*v) { "!" } else { "" }),
-                _ => self.to_str(symbol_table)
-            }
-        } else {
-            self.to_string()
-        }
-    }
-
-    pub fn to_str_ext(&self, symbol_table: Option<&SymbolTable>, ext: &String) -> String {
-        let mut result = self.to_str(symbol_table);
-        if let Some(t) = symbol_table {
-            if let OpCode::T(tok) = self {
-                if t.is_symbol_t_data(&Symbol::T(*tok)) {
-                    result.push_str(&format!("({ext})"));
-                }
-            }
-        }
-        result
-    }
-}
-
-impl From<Symbol> for OpCode {
-    fn from(value: Symbol) -> Self {
-        match value {
-            Symbol::Empty => OpCode::Empty,
-            Symbol::T(t) => OpCode::T(t),
-            Symbol::NT(v) => OpCode::NT(v),
-            Symbol::End => OpCode::End,
-        }
     }
 }
 
@@ -215,6 +134,8 @@ static FOLD_SPAN_CODE: [&str; 4] = [
     "        self.stack_span.push(new_span);",
 ];
 
+pub type SpanNbr = u16;
+
 fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
     let count = opcode.iter().filter(|op| op.has_span()).count();
     count.try_into().expect(&format!("# span = {count} > {}", SpanNbr::MAX))
@@ -243,6 +164,7 @@ pub struct ParserGen {
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
     log: BufLog,
     include_alts: bool,
+    lib_crate: LexigramCrate,
 }
 
 impl ParserGen {
@@ -294,6 +216,7 @@ impl ParserGen {
             nt_extra_info: HashMap::new(),
             log: ll1_rules.log,
             include_alts: false,
+            lib_crate: LexigramCrate::Core,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -397,6 +320,16 @@ impl ParserGen {
     /// allows to print out the alternatives in VERBOSE mode.
     pub fn set_include_alts(&mut self, include_alts: bool) {
         self.include_alts = include_alts;
+    }
+
+    #[inline]
+    pub fn use_full_lib(&mut self, use_full_lib: bool) {
+        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+    }
+
+    #[inline]
+    pub fn set_crate(&mut self, lcrate: LexigramCrate) {
+        self.lib_crate = lcrate;
     }
 
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
@@ -1204,20 +1137,20 @@ impl ParserGen {
 
     fn source_build_parser(&mut self) -> Vec<String> {
         static BASE_PARSER_LIBS: [&str; 5] = [
-            "lexigram_lib::grammar::VarId",
-            "lexigram_lib::grammar::AltId",
-            "lexigram_lib::parser::OpCode",
-            "lexigram_lib::parser::Parser",
-            "lexigram_lib::FixedSymTable",
+            "::VarId",
+            "::AltId",
+            "::parser::OpCode",
+            "::parser::Parser",
+            "::fixed_sym_table::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
-            "lexigram_lib::grammar::Alternative",
-            "lexigram_lib::grammar::Symbol",
+            "::alt::Alternative",
+            "::parser::Symbol",
         ];
         self.log.add_note("generating build_parser() source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
-        self.used_libs.extend(BASE_PARSER_LIBS);
+        self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
         self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
@@ -1232,7 +1165,7 @@ impl ParserGen {
                     self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
         if self.include_alts {
-            self.used_libs.extend(ALT_PARSER_LIBS);
+            self.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
                              self.parsing_table.alts.len(),
                              self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")));
@@ -1361,16 +1294,18 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
+        static PARSER_LIBS: [&str; 5] = [
+            "::VarId", "::parser::Call", "::parser::ListenerWrapper",
+            "::AltId", "::log::Logger",
+        ];
+
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
 
         let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
         log.add_note("generating wrapper source...");
-        self.used_libs.extend([
-            "lexigram_lib::CollectJoin", "lexigram_lib::grammar::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
-            "lexigram_lib::grammar::AltId", "lexigram_lib::log::Logger",
-        ]);
+        self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
         if self.gen_span_params {
-            self.used_libs.add("lexigram_lib::lexer::PosSpan");
+            self.used_libs.add(format!("{}::lexer::PosSpan", self.lib_crate));
         }
 
         let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();
@@ -2108,7 +2043,7 @@ impl ParserGen {
         src.push(format!("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());"));
         src.push(format!("        if self.verbose {{"));
         src.push(format!("            println!(\"> stack_t:   {{}}\", self.stack_t.join(\", \"));"));
-        src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).join(\", \"));"));
+        src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).collect::<Vec<_>>().join(\", \"));"));
         src.push(format!("        }}"));
         src.push(format!("    }}"));
         src.push(format!(""));

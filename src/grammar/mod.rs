@@ -3,6 +3,7 @@
 pub mod tests;
 pub mod origin;
 mod prs;
+
 pub use prs::*;
 
 use std::collections::{HashMap, HashSet};
@@ -12,88 +13,17 @@ use std::mem::take;
 use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
+use lexigram_core::alt::ruleflag;
+use lexigram_core::CollectJoin;
 use crate::cproduct::CProduct;
-use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
+use crate::{alt, gnode, hashset, indent_source, prule, sym, vaddi, General, Normalized, TokenId, VarId, LL1, LR};
+use crate::fixed_sym_table::SymInfoTable;
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
+use crate::parser::Symbol;
 use crate::SymbolTable;
-
-pub type VarId = u16;
-pub type AltId = VarId;
-
-#[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
-pub enum Symbol {
-    T(TokenId),         // terminal
-    NT(VarId),          // non-terminal
-    #[default] Empty,   // empty symbol
-    End                 // end of stream
-}
-
-impl Symbol {
-    pub fn is_end(&self) -> bool {
-        matches!(self, Symbol::End)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        matches!(self, Symbol::Empty)
-    }
-
-    pub fn is_t(&self) -> bool {
-        matches!(self, Symbol::T(_))
-    }
-
-    pub fn is_nt(&self) -> bool {
-        matches!(self, Symbol::NT(_))
-    }
-
-    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_str(self)).unwrap_or(self.to_string())
-    }
-
-    /// Converts the symbol to string, using the symbol table if available, and
-    /// surrounding it with quotes if it's a string literal.
-    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(format!("{}", self.to_string()))
-    }
-
-    pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name(self)).unwrap_or(format!("{}", self.to_string()))
-    }
-
-    /// Converts the symbol to string, using the symbol table if available.
-    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
-        let mut result = self.to_str(symbol_table);
-        if let Some(t) = symbol_table {
-            if t.is_symbol_t_data(self) {
-                result.push_str(&format!("({ext})"));
-            }
-        }
-        result
-    }
-
-    /// Converts to symbols used in [`sym!`](macro@sym) and other related macros.
-    pub fn to_macro_item(&self) -> String {
-        match self {
-            Symbol::Empty => "e".to_string(),
-            Symbol::T(x) => format!("t {x}"),
-            Symbol::NT(x) => format!("nt {x}"),
-            Symbol::End => "end".to_string(),
-        }
-    }
-}
-
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Symbol::Empty => write!(f, "ε"),
-            Symbol::T(id) => write!(f, ":{id}"),
-            Symbol::NT(id) => write!(f, "{id}"),
-            Symbol::End => write!(f, "$"),
-        }
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum GrNode {
@@ -532,91 +462,6 @@ impl Display for GrTreeFmt<'_> {
 }
 
 // ---------------------------------------------------------------------------------------------
-
-// easier to use than an enum
-pub mod ruleflag {
-    /// Star or Plus repeat child alternative.
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
-    pub const CHILD_REPEAT: u32 = 1;
-    /// Right-recursive child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const R_RECURSION: u32 = 2;
-    /// Left-recursive child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_L_RECURSION: u32 = 4;
-    /// Left-recursive, ambiguous child NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_AMBIGUITY: u32 = 8;
-    /// Child NT created to regroup the independent alts when transforming an ambiguous, recursive rule.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const CHILD_INDEPENDENT_AMBIGUITY: u32 = 16;
-    /// Left-factorized parent NT.
-    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
-    pub const PARENT_L_FACTOR: u32 = 32;
-    /// Left-factorized child NT.
-    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
-    pub const CHILD_L_FACT: u32 = 64;
-    /// Low-latency non-terminal alternative, used with `CHILD_REPEAT` or `R_RECURSION`.
-    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in `flags`.
-    pub const L_FORM: u32 = 128;
-    /// Right-associative alternative.
-    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in alts.
-    pub const R_ASSOC: u32 = 256;
-    /// Left-recursive parent NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const PARENT_L_RECURSION: u32 = 512;
-    /// Left-recursive, ambiguous parent NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
-    pub const PARENT_AMBIGUITY: u32 = 1024;
-    /// Star or Plus repeat parent alternative.
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
-    pub const PARENT_REPEAT: u32 = 2048;
-    /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
-    pub const REPEAT_PLUS: u32 = 4096;
-    /// GREEDY alternative: is expected to generate an ambiguity in the parsing table
-    pub const GREEDY: u32 = 8192;
-    /// Precedence identical to previous alternative (only valid for binary left-/right-associative)
-    pub const PREC_EQ: u32 = 16384;
-
-    pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
-    pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACT;
-    pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
-    pub const ALTERNATIVE_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
-    pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
-
-    pub fn to_string(flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 15] = [
-            (CHILD_REPEAT               , "child_+_or_*"),
-            (R_RECURSION                , "right_rec"),
-            (CHILD_L_RECURSION          , "child_left_rec"),
-            (CHILD_AMBIGUITY            , "child_amb"),
-            (CHILD_INDEPENDENT_AMBIGUITY, "child_ind_amb"),
-            (PARENT_L_FACTOR            , "parent_left_fact"),
-            (CHILD_L_FACT, "child_left_fact"),
-            (L_FORM                     , "L-form"),
-            (R_ASSOC                    , "R-assoc"),
-            (PARENT_L_RECURSION         , "parent_left_rec"),
-            (PARENT_AMBIGUITY           , "parent_amb"),
-            (PARENT_REPEAT              , "parent_+_or_*"),
-            (REPEAT_PLUS                , "plus"),
-            (GREEDY                     , "greedy"),
-            (PREC_EQ                    , "prec_eq"),
-        ];
-        NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
-    }
-
-    pub fn alt_info_to_string(mut flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 4] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G"), (PREC_EQ, "P")];
-        let v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
-            if flags & f != 0 {
-                flags &= !f;
-                Some(t.to_string())
-            } else {
-                None
-            }).collect();
-        v
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum NTConversion {
@@ -1384,9 +1229,8 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::gnode;
-    /// # use lexigram_lib::grammar::{GrNode, Symbol, VarId};
+    /// # use lexigram_lib::{TokenId, VarId, gnode, parser::Symbol};
+    /// # use lexigram_lib::grammar::GrNode;
     /// assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     /// assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
     /// assert_eq!(gnode!(nt 3), GrNode::Symbol(Symbol::NT(3 as VarId)));
@@ -1400,13 +1244,13 @@ pub mod macros {
     /// assert_eq!(gnode!(L 3), GrNode::LForm(3));
     /// assert_eq!(gnode!(R), GrNode::RAssoc);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
-        (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::T($id as $crate::dfa::TokenId)) };
-        (nt $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::NT($id as $crate::grammar::VarId)) };
-        (e) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::Empty) };
-        (end) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::End) };
+        (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::parser::Symbol::T($id as $crate::TokenId)) };
+        (nt $id:expr) => { $crate::grammar::GrNode::Symbol($crate::parser::Symbol::NT($id as $crate::VarId)) };
+        (e) => { $crate::grammar::GrNode::Symbol($crate::parser::Symbol::Empty) };
+        (end) => { $crate::grammar::GrNode::Symbol($crate::parser::Symbol::End) };
         //
         (&) => { $crate::grammar::GrNode::Concat };
         (|) => { $crate::grammar::GrNode::Or };
@@ -1423,27 +1267,26 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::sym;
-    /// # use lexigram_lib::grammar::{Symbol, VarId};
+    /// # use lexigram_lib::{TokenId, VarId, sym};
+    /// # use lexigram_lib::parser::Symbol;
     /// assert_eq!(sym!(t 2), Symbol::T(2 as TokenId));
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
-    #[macro_export()]
+    #[macro_export]
     macro_rules! sym {
-        (t $id:expr) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
-        (nt $id:expr) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
-        (e) => { $crate::grammar::Symbol::Empty };
-        (end) => { $crate::grammar::Symbol::End };
+        (t $id:expr) => { $crate::parser::Symbol::T($id as $crate::TokenId) };
+        (nt $id:expr) => { $crate::parser::Symbol::NT($id as $crate::VarId) };
+        (e) => { $crate::parser::Symbol::Empty };
+        (end) => { $crate::parser::Symbol::End };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! altflag {
-        (L) => { $crate::grammar::ruleflag::L_FORM };
-        (R) => { $crate::grammar::ruleflag::R_ASSOC };
-        (G) => { $crate::grammar::ruleflag::GREEDY };
-        (P) => { $crate::grammar::ruleflag::PREC_EQ };
+        (L) => { $crate::alt::ruleflag::L_FORM };
+        (R) => { $crate::alt::ruleflag::R_ASSOC };
+        (G) => { $crate::alt::ruleflag::GREEDY };
+        (P) => { $crate::alt::ruleflag::PREC_EQ };
         ($f:expr) => { $f };
     }
 
@@ -1459,8 +1302,8 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
+    /// # use lexigram_core::TokenId;
+    /// # use lexigram_core::alt::Alternative;
     /// # use lexigram_lib::{alt, sym};
     /// assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// assert_eq!(alt!(#128, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
@@ -1469,31 +1312,31 @@ pub mod macros {
     /// let o_id = 4;
     /// assert_eq!(alt!(#(x, o_id), nt 0, t 1, e), Alternative::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_ambig_alt_id(4));
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! alt {
-        () => { $crate::grammar::Alternative::new(std::vec![]) };
+        () => { $crate::alt::Alternative::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { alt!($($a $($b)?),+) };
-        ($($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
+        ($($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { alt!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-        //     => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
+        //     => {$crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
         // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
             => { alt!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
             => { alt!(%($v, $id), $($a $($b)?),+) };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
+            => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! symbols {
         () => { std::vec![] };
         ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { symbols![$($a $($b $(: $num)?)?),+] };
@@ -1504,8 +1347,8 @@ pub mod macros {
     ///
     /// Example
     /// ```
-    /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
+    /// # use lexigram_lib::{TokenId, VarId, parser::Symbol};
+    /// # use lexigram_core::alt::Alternative;
     /// # use lexigram_lib::{prule, alt, sym};
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
     ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
@@ -1520,7 +1363,7 @@ pub mod macros {
     ///                 Alternative::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 Alternative::new(vec![sym!(e)])]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! prule {
         () => { std::vec![] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $($a $($b)?),+);+] };

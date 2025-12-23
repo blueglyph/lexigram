@@ -36,11 +36,11 @@ pub(crate) mod level_string {
 mod rules_153_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_153_1::*;
 
     struct ChoiceListener {
@@ -150,11 +150,11 @@ mod rules_153_1 {
 mod rules_580_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_580_1::*;
     use crate::out::wrapper_code::code_580_1::*;
     use crate::integration::wrappers::level_string::LevelString;
@@ -263,10 +263,10 @@ mod rules_580_1 {
 pub mod precedence_type {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::BufLog;
+    use lexigram_core::log::BufLog;
     use lexigram_lib::parser::{ListenerWrapper, Parser, ParserError, ParserToken};
     use crate::integration::wrappers::level_string::LevelString;
 
@@ -528,11 +528,11 @@ mod test_precedence {
 mod rules_640_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_640_1::*;
     use crate::integration::parser_examples::listener2::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
@@ -661,11 +661,11 @@ mod rules_640_1 {
 mod rules_641_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_641_1::*;
     use crate::integration::parser_examples::listener3::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
@@ -794,11 +794,11 @@ mod rules_641_1 {
 mod rules_642_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::CollectJoin;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_642_1::*;
     use crate::integration::parser_examples::listener4::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
@@ -928,10 +928,10 @@ mod rules_642_1 {
 mod rules_862_1 {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::dfa::TokenId;
-    use lexigram_lib::grammar::Symbol;
+    use lexigram_lib::TokenId;
+    use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
-    use lexigram_lib::log::{BufLog, Logger};
+    use lexigram_core::log::{BufLog, Logger};
     use crate::out::wrapper_source::rules_862_1::*;
     use crate::out::wrapper_code::code_862_1::*;
     use crate::integration::parser_examples::listener5::build_parser;

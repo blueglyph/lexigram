@@ -8,9 +8,9 @@ use lexigram::gen_parser::{try_gen_parser, GenParserError};
 use lexigram::options::{Action, OptionsBuilder};
 use lexigram_lib::log::{BufLog};
 
-static LEXICON_FILENAME: &str = "examples/microcalc.l";
-static GRAMMAR_FILENAME: &str = "examples/microcalc.g";
-static SOURCE_FILENAME: &str = "examples/microcalc.rs";
+static LEXICON_FILENAME: &str = "src/microcalc.l";
+static GRAMMAR_FILENAME: &str = "src/microcalc.g";
+static SOURCE_FILENAME: &str = "../microcalc/src/main.rs";
 static LEXER_TAG: &str = "microcalc_lexer";
 static PARSER_TAG: &str = "microcalc_parser";
 const LEXER_INDENT: usize = 4;
@@ -21,7 +21,7 @@ const PARSER_INDENT: usize = 4;
 fn main() {
     match gen_microcalc_source(Action::Generate) {
         Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-        Err(build_error) => println!("{build_error}"),
+        Err(build_error) => panic!("{build_error}"),
     }
 }
 
@@ -51,7 +51,7 @@ mod tests {
     fn test_check_source() {
         match gen_microcalc_source(Action::Verify) {
             Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(gen_error) => println!("{gen_error}"),
+            Err(gen_error) => panic!("{gen_error}"),
        }
     }
 }

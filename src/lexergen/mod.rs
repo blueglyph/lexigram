@@ -3,15 +3,20 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
+use lexigram_core::CollectJoin;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable, HasBuildErrorSource, BuildError, BuildErrorSource};
-use crate::lexer::{Lexer, LexerError};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
-use crate::segments::{Segments, Seg, SegMap};
+use crate::{indent_source, Normalized, SymbolTable, TokenId};
+use crate::char_reader::escape_char;
+use crate::lexer::{ActionOption, Lexer, StateId, Terminal};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
+use crate::segments::Segments;
+use crate::segmap::{char_to_group, GroupId, Seg, SegMap};
 use super::dfa::*;
 
 // ---------------------------------------------------------------------------------------------
@@ -65,26 +70,17 @@ impl LexerTables {
     }
 
     pub fn make_lexer<R: Read>(&self) -> Lexer<'_, R> {
-        Lexer {
-            input: None,
-            error: LexerError::None,
-            is_eos: false,
-            pos: 0,
-            line: 1,
-            col: 1,
-            tab_width: 4,
-            state_stack: Vec::new(),
-            start_state: 0,
-            nbr_groups: self.nbr_groups,
-            initial_state: self.initial_state,
-            first_end_state: self.first_end_state,
-            nbr_states: self.nbr_states,
-            ascii_to_group: self.ascii_to_group.as_slice(),
-            utf8_to_group: self.utf8_to_group.clone(),
-            seg_to_group: self.seg_to_group.clone(),
-            state_table: self.state_table.as_slice(),
-            terminal_table: self.terminal_table.as_slice(),
-        }
+        Lexer::new(
+            self.nbr_groups,
+            self.initial_state,
+            self.first_end_state,
+            self.nbr_states,
+            self.ascii_to_group.as_slice(),
+            self.utf8_to_group.clone(),
+            self.seg_to_group.clone(),
+            self.state_table.as_slice(),
+            self.terminal_table.as_slice(),
+        )
     }
 }
 
@@ -120,7 +116,27 @@ impl TryBuildFrom<LexerGen> for LexerTables {
 
 // ---------------------------------------------------------------------------------------------
 
-pub type GroupId = u32;
+/// Name of the crate used in the generated code
+#[derive(Clone, Default, PartialEq, Debug)]
+pub enum LexigramCrate {
+    /// [LexigramCrate] is [lexigram_core] (default)
+    #[default]
+    Core,
+    /// [LexigramCrate] is [lexigram_lib](crate)
+    Full,
+    /// [LexigramCrate] is a custom name; e.g. if the use renames it in `use lexigram_core as core`.
+    Custom(String),
+}
+
+impl Display for LexigramCrate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            LexigramCrate::Core => "lexigram_core",
+            LexigramCrate::Full => "lexigram_lib",
+            LexigramCrate::Custom(s) => s.as_str(),
+        })
+    }
+}
 
 pub struct LexerGen {
     // parameters:
@@ -140,6 +156,7 @@ pub struct LexerGen {
     log: BufLog,
     group_partition: Segments,   // for optimization
     headers: Vec<String>,
+    lib_crate: LexigramCrate,
 }
 
 impl LexerGen {
@@ -161,6 +178,7 @@ impl LexerGen {
             log: BufLog::new(),
             group_partition: Segments::empty(),
             headers: Vec::new(),
+            lib_crate: LexigramCrate::Core,
         }
     }
 
@@ -172,6 +190,16 @@ impl LexerGen {
     #[inline]
     pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
         self.headers.extend(headers.into_iter().map(|s| s.into()));
+    }
+
+    #[inline]
+    pub fn use_full_lib(&mut self, use_full_lib: bool) {
+        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+    }
+
+    #[inline]
+    pub fn set_crate(&mut self, lcrate: LexigramCrate) {
+        self.lib_crate = lcrate;
     }
 
     pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
@@ -332,10 +360,8 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use lexigram_lib::dfa::{{StateId, Terminal, ActionOption, ModeOption}};"));
-        source.push(format!("use lexigram_lib::lexer::Lexer;"));
-        source.push(format!("use lexigram_lib::lexergen::GroupId;"));
-        source.push(format!("use lexigram_lib::segments::{{Seg, SegMap}};"));
+        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};", self.lib_crate));
+        source.push(format!("use {}::segmap::{{GroupId, Seg, SegMap}};", self.lib_crate));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
@@ -441,15 +467,6 @@ impl BuildFrom<Dfa<Normalized>> for LexerGen {
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
-
-#[inline]
-pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, seg_to_group: &SegMap<GroupId>, symbol: char) -> Option<GroupId> {
-    if symbol.len_utf8() == 1 {
-        Some(ascii_to_group[u8::try_from(symbol).unwrap() as usize])
-    } else {
-        utf8_to_group.get(&symbol).cloned().or_else(|| seg_to_group.get(symbol as u32))
-    }
-}
 
 // todo: option to split ASCII range?
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<Segments> {

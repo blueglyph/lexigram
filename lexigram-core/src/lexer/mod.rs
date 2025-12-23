@@ -2,15 +2,177 @@
 
 pub(crate) mod tests;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::io::Read;
-use std::ops::AddAssign;
-use crate::dfa::{ChannelId, StateId, Terminal, TokenId};
-use crate::escape_char;
-use crate::segments::{SegMap, Segments};
-use crate::char_reader::{CharReader, UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
-use crate::lexergen::{char_to_group, GroupId};
+use std::ops::{Add, AddAssign};
+use crate::segmap::{char_to_group, GroupId, SegMap};
+use crate::char_reader::{escape_char, CharReader};
+use crate::TokenId;
+// ---------------------------------------------------------------------------------------------
+// Types used in lexer
+
+pub type StateId = usize;
+pub type ChannelId = u16;
+pub type ModeId = u16;
+
+/// Terminal instructions for the lexer logic.
+///
+/// Possible actions:
+/// * skip           => doesn't return token, drops current string
+/// * more           => doesn't return token, keeps current string for next rule
+/// * push(n)        => pushes mode and switches to mode `n`
+/// * pop            => pops next mode from the stack
+/// * channel #      => defines output channel
+///
+/// By default, `push`, `pop`, `channel` or no specified action outputs a token (`token = Some(..)`).
+/// If a `skip` or `more` action is specified, no token is returned (`token = None`).
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub struct Terminal {
+    pub action: ActionOption,
+    pub channel: ChannelId,
+    pub mode: ModeOption,
+    pub mode_state: Option<StateId>,
+    pub pop: bool
+}
+
+impl Terminal {
+    #[inline]
+    pub fn is_only_skip(&self) -> bool {
+        self.action.is_skip() && self.mode.is_none() && self.mode_state.is_none() && !self.pop
+    }
+
+    #[inline]
+    pub fn is_token(&self) -> bool {
+        self.action.is_token()
+    }
+
+    #[inline]
+    pub fn get_token(&self) -> Option<TokenId> {
+        self.action.get_token()
+    }
+
+    pub fn to_macro(&self) -> String {
+        let mut str = Vec::<String>::new();
+        match self.action {
+            ActionOption::Skip => str.push("term!(skip)".to_string()),
+            ActionOption::Token(t) => str.push(format!("term!(={t})")),
+            ActionOption::More => str.push("term!(more)".to_string())
+        }
+        if self.channel != 0 {
+            str.push(format!("term!(#{})", self.channel));
+        }
+        match self.mode {
+            ModeOption::None => {}
+            ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
+            ModeOption::Push(m) => str.push(format!("term!(push {m})")),
+        }
+        if let Some(id) = self.mode_state {
+            str.push(format!("term!(pushst {})", id));
+        }
+        if self.pop {
+            str.push("term!(pop)".to_string());
+        }
+        str.join(" + ")
+    }
+}
+
+impl Display for Terminal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<{}", self.action)?;
+        if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
+        if !self.mode.is_none() || self.mode_state.is_some() {
+            match self.mode {
+                ModeOption::None => {}
+                ModeOption::Mode(m) => write!(f, ",mode({m}")?,
+                ModeOption::Push(m) => write!(f, ",push({m}")?,
+            }
+            if let Some(s) = self.mode_state { write!(f, ",state {s}")?; }
+            write!(f, ")")?;
+        }
+        if self.pop { write!(f, ",pop")?; }
+        write!(f, ">")
+    }
+}
+
+impl Add for Terminal {
+    type Output = Terminal;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Terminal {
+            // token: if self.token.is_some() { self.token } else { rhs.token },
+            action: self.action + rhs.action,
+            channel: self.channel + rhs.channel,
+            mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
+            mode_state: if self.mode_state.is_some() { self.mode_state } else { rhs.mode_state },
+            pop: self.pop || rhs.pop
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub enum ActionOption {
+    #[default] Skip,
+    Token(TokenId),
+    More
+}
+
+impl ActionOption {
+    pub fn is_skip(&self) -> bool { self == &ActionOption::Skip }
+    pub fn is_token(&self) -> bool { matches!(self, ActionOption::Token(_) ) }
+    pub fn is_more(&self) -> bool { self == &ActionOption::More }
+
+    pub fn get_token(&self) -> Option<TokenId> {
+        if let ActionOption::Token(token) = self {
+            Some(*token)
+        } else {
+            None
+        }
+    }
+}
+
+impl Add for ActionOption {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match self {
+            ActionOption::Skip => rhs,
+            _ => if rhs.is_skip() { self } else { panic!("can't add {self:?} and {rhs:?}") }
+        }
+    }
+}
+
+impl Display for ActionOption {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ActionOption::Skip => write!(f, "skip"),
+            ActionOption::Token(t) => write!(f, "end:{t}"),
+            ActionOption::More => write!(f, "more")
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub enum ModeOption {
+    #[default]
+    None,
+    Mode(ModeId),
+    Push(ModeId)
+}
+
+impl ModeOption {
+    pub fn is_none(&self) -> bool {
+        self == &ModeOption::None
+    }
+
+    pub fn is_mode(&self) -> bool {
+        matches!(self, &ModeOption::Mode(_))
+    }
+
+    pub fn is_push(&self) -> bool {
+        matches!(self, &ModeOption::Push(_))
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Locations
@@ -365,7 +527,6 @@ impl<'a, R: Read> Lexer<'a, R> {
                     }
                     let is_accepting = self.first_end_state <= state && state < self.nbr_states;
                     if is_accepting { // accepting
-                        let curr_start_state = self.start_state;
                         let terminal = &self.terminal_table[state - self.first_end_state];
                         if terminal.pop {
                             if self.state_stack.is_empty() {
@@ -388,7 +549,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                         }
                         if let Some(goto_state) = terminal.mode_state {
                             if terminal.mode.is_push() {
-                                self.state_stack.push(curr_start_state);
+                                self.state_stack.push(self.start_state);
                             }
                             self.start_state = goto_state;
                             if VERBOSE { print!(", {}({})", if terminal.mode.is_push() { "push" } else { "mode" }, goto_state); }
@@ -485,45 +646,6 @@ impl<'a, R: Read> Lexer<'a, R> {
         self.is_eos
         // matches!(self.error, LexerError::EndOfStream { .. })
     }
-
-    /// Returns the set of characters that are valid at the given lexer state.
-    ///
-    /// Note: This function can be quite slow, as it must test every possibility.
-    pub fn get_valid_segments(&self, state: StateId) -> Segments {
-        if state >= self.first_end_state {
-            Segments::dot()     // accepting state
-        } else {
-            let mut result = Segments::empty();
-            let groups = (0..self.nbr_groups)
-                .filter_map(|g| if self.state_table[self.nbr_groups as usize * state + g as usize] < self.nbr_states { Some(g) } else { None })
-                .collect::<HashSet<_>>();
-            // examines all the ASCII codes:
-            for c in 0..128 {
-                if groups.contains(&self.ascii_to_group[c]) {
-                    result.insert_utf8(c as u32, c as u32);
-                }
-            }
-            // examines all the valid UTF8 codepoints:
-            for range in [128..=UTF8_LOW_MAX, UTF8_HIGH_MIN..=UTF8_MAX] {
-                for utf in range {
-                    let char = char::from_u32(utf).unwrap();
-                    if let Some(group) = self.utf8_to_group.get(&char) {
-                        if groups.contains(group) {
-                            result.insert_utf8(utf, utf); // determine start-stop ranges instead of inserting all codes?
-                        }
-                    }
-                }
-            }
-            // examines all the remaining segments:
-            for (seg, group) in &self.seg_to_group {
-                if groups.contains(group) {
-                    result.insert(*seg);
-                }
-            }
-            result
-        }
-    }
-
 }
 
 #[derive(Debug)]

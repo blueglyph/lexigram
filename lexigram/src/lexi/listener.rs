@@ -5,10 +5,13 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string, DfaBundle, retree_to_str};
+use lexigram_lib::CollectJoin;
+use lexigram_lib::build::BuildFrom;
+use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundle, ReType};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
-use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
+use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Terminal};
 use lexigram_lib::segments::Segments;
 use crate::action;
 use crate::lexi::lexiparser::*;
@@ -1008,7 +1011,7 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
 }
 
 pub mod macros {
-    #[macro_export()]
+    #[macro_export]
     macro_rules! action {
         (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
         (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };

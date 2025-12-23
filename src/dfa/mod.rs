@@ -5,175 +5,17 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use std::ops::Add;
 use vectree::VecTree;
-use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source, HasBuildErrorSource, BuildErrorSource};
-use crate::log::{BufLog, LogReader, BuildFrom, LogStatus, Logger};
-use crate::segments::{Segments, Seg};
+use lexigram_core::CollectJoin;
+use lexigram_core::char_reader::escape_string;
+use crate::{btreeset, indent_source, General, Normalized};
+use crate::char_reader::escape_char;
+use crate::lexer::{ModeId, ModeOption, StateId, Terminal};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
+use crate::segments::Segments;
+use crate::segmap::Seg;
 use crate::take_until::TakeUntilIterator;
-
-pub type StateId = usize;   // todo: reduce size
-pub type TokenId = u16;
-pub type ModeId = u16;
-pub type ChannelId = u16;
-
-#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub enum ActionOption {
-    #[default] Skip,
-    Token(TokenId),
-    More
-}
-
-impl ActionOption {
-    pub fn is_skip(&self) -> bool { self == &ActionOption::Skip }
-    pub fn is_token(&self) -> bool { matches!(self, ActionOption::Token(_) ) }
-    pub fn is_more(&self) -> bool { self == &ActionOption::More }
-
-    pub fn get_token(&self) -> Option<TokenId> {
-        if let ActionOption::Token(token) = self {
-            Some(*token)
-        } else {
-            None
-        }
-    }
-}
-
-impl Add for ActionOption {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match self {
-            ActionOption::Skip => rhs,
-            _ => if rhs.is_skip() { self } else { panic!("can't add {self:?} and {rhs:?}") }
-        }
-    }
-}
-
-impl Display for ActionOption {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ActionOption::Skip => write!(f, "skip"),
-            ActionOption::Token(t) => write!(f, "end:{t}"),
-            ActionOption::More => write!(f, "more")
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub enum ModeOption {
-    #[default]
-    None,
-    Mode(ModeId),
-    Push(ModeId)
-}
-
-impl ModeOption {
-    pub fn is_none(&self) -> bool {
-        self == &ModeOption::None
-    }
-
-    pub fn is_mode(&self) -> bool {
-        matches!(self, &ModeOption::Mode(_))
-    }
-
-    pub fn is_push(&self) -> bool {
-        matches!(self, &ModeOption::Push(_))
-    }
-}
-
-/// Terminal instructions for the lexer logic.
-///
-/// Possible actions:
-/// * skip           => doesn't return token, drops current string
-/// * more           => doesn't return token, keeps current string for next rule
-/// * push(n)        => pushes mode and switches to mode `n`
-/// * pop            => pops next mode from the stack
-/// * channel #      => defines output channel
-///
-/// By default, `push`, `pop`, `channel` or no specified action outputs a token (`token = Some(..)`).
-/// If a `skip` or `more` action is specified, no token is returned (`token = None`).
-#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub struct Terminal {
-    pub action: ActionOption,
-    pub channel: ChannelId,
-    pub mode: ModeOption,
-    pub mode_state: Option<StateId>,
-    pub pop: bool
-}
-
-impl Terminal {
-    #[inline]
-    pub fn is_only_skip(&self) -> bool {
-        self.action.is_skip() && self.mode.is_none() && self.mode_state.is_none() && !self.pop
-    }
-
-    #[inline]
-    pub fn is_token(&self) -> bool {
-        self.action.is_token()
-    }
-
-    #[inline]
-    pub fn get_token(&self) -> Option<TokenId> {
-        self.action.get_token()
-    }
-
-    pub fn to_macro(&self) -> String {
-        let mut str = Vec::<String>::new();
-        match self.action {
-            ActionOption::Skip => str.push("term!(skip)".to_string()),
-            ActionOption::Token(t) => str.push(format!("term!(={t})")),
-            ActionOption::More => str.push("term!(more)".to_string())
-        }
-        if self.channel != 0 {
-            str.push(format!("term!(#{})", self.channel));
-        }
-        match self.mode {
-            ModeOption::None => {}
-            ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
-            ModeOption::Push(m) => str.push(format!("term!(push {m})")),
-        }
-        if let Some(id) = self.mode_state {
-            str.push(format!("term!(pushst {})", id));
-        }
-        if self.pop {
-            str.push("term!(pop)".to_string());
-        }
-        str.join(" + ")
-    }
-}
-
-impl Display for Terminal {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<{}", self.action)?;
-        if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
-        if !self.mode.is_none() || self.mode_state.is_some() {
-            match self.mode {
-                ModeOption::None => {}
-                ModeOption::Mode(m) => write!(f, ",mode({m}")?,
-                ModeOption::Push(m) => write!(f, ",push({m}")?,
-            }
-            if let Some(s) = self.mode_state { write!(f, ",state {s}")?; }
-            write!(f, ")")?;
-        }
-        if self.pop { write!(f, ",pop")?; }
-        write!(f, ">")
-    }
-}
-
-impl Add for Terminal {
-    type Output = Terminal;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Terminal {
-            // token: if self.token.is_some() { self.token } else { rhs.token },
-            action: self.action + rhs.action,
-            channel: self.channel + rhs.channel,
-            mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
-            mode_state: if self.mode_state.is_some() { self.mode_state } else { rhs.mode_state },
-            pop: self.pop || rhs.pop
-        }
-    }
-}
 
 // ---------------------------------------------------------------------------------------------
 
@@ -1401,8 +1243,10 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use lexigram_lib::{dfa::*, node, char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
-    /// # use lexigram_lib::segments::{Seg, Segments};
+    /// # use lexigram_lib::{dfa::*, node, char_reader::{UTF8_MIN, UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX}};
+    /// # use lexigram_lib::lexer::{ActionOption, ModeOption, Terminal};
+    /// # use lexigram_lib::segmap::Seg;
+    /// # use lexigram_lib::segments::Segments;
     /// assert_eq!(node!(chr 'a'), ReNode::char('a'));
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
     /// assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));
@@ -1414,7 +1258,7 @@ pub mod macros {
     /// assert_eq!(node!(+), ReNode::plus());
     /// assert_eq!(node!(e), ReNode::empty());
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! node {
         (chr $char:expr) => { $crate::dfa::ReNode::char($char) };
         (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| $crate::dfa::ReNode::char(c)) };
@@ -1429,10 +1273,10 @@ pub mod macros {
         (e) => { $crate::dfa::ReNode::empty() };
         (??) => { $crate::dfa::ReNode::lazy() };
         // actions:
-        (= $id:expr) => { $crate::dfa::ReNode::end($crate::dfa::Terminal {
-            action: $crate::dfa::ActionOption::Token($id),
+        (= $id:expr) => { $crate::dfa::ReNode::end($crate::lexer::Terminal {
+            action: $crate::lexer::ActionOption::Token($id),
             channel: 0,
-            mode: $crate::dfa::ModeOption::None,
+            mode: $crate::lexer::ModeOption::None,
             mode_state: None,
             pop: false
         }) };
@@ -1442,24 +1286,26 @@ pub mod macros {
         (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
     }
 
-    #[macro_export()]
+    #[macro_export]
     macro_rules! term {
-        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Token($id),channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::More,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (mode $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Mode($id), mode_state: None,      pop: false } };
-        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Push($id), mode_state: None,      pop: false } };
-        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: Some($id), pop: false } };
-        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: true  } };
-        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: $id, mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (= $id:expr ) =>     { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Token($id),channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };
+        (more) =>            { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::More,      channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };
+        (skip) =>            { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };
+        (mode $id:expr) =>   { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: 0,   mode: $crate::lexer::ModeOption::Mode($id), mode_state: None,      pop: false } };
+        (push $id:expr) =>   { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: 0,   mode: $crate::lexer::ModeOption::Push($id), mode_state: None,      pop: false } };
+        (pushst $id:expr) => { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: Some($id), pop: false } };
+        (pop) =>             { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: 0,   mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: true  } };
+        (# $id:expr) =>      { $crate::lexer::Terminal { action: $crate::lexer::ActionOption::Skip,      channel: $id, mode: $crate::lexer::ModeOption::None,      mode_state: None,      pop: false } };
     }
 
     #[cfg(test)]
     mod tests {
         use crate::{branch, btreemap};
-        use crate::dfa::{graph_to_code, ActionOption, ModeOption, ReNode, Terminal};
+        use crate::dfa::{graph_to_code, ReNode};
         use crate::char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
-        use crate::segments::{Seg, Segments};
+        use crate::lexer::{ActionOption, ModeOption, Terminal};
+        use crate::segments::Segments;
+        use crate::segmap::Seg;
 
         #[test]
         fn macro_node() {

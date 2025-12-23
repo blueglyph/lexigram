@@ -2,12 +2,14 @@
 
 #![allow(unused)]
 
+use lexigram_lib::lexigram_core as core;
+
 // ---------------------------------------------------------------------------------------------
 // lexicon (automatically generated)
 // ---------------------------------------------------------------------------------------------
 
 pub const LEXICON_TAG_CONTENT: &str = r#"
-[test1_lexicon_tag]
+// [test2_lexicon_tag]
 
 lexicon Test1;
 
@@ -34,7 +36,7 @@ SWhiteSpace             : [ \n\r\t]+                -> skip;
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 Num                     : DecInteger;
 
-[test1_lexicon_tag]
+// [test2_lexicon_tag]
 "#;
 
 // ---------------------------------------------------------------------------------------------
@@ -42,7 +44,7 @@ Num                     : DecInteger;
 // ---------------------------------------------------------------------------------------------
 
 pub const GRAMMAR_TAG_CONTENT: &str = r#"
-[test1_grammar_tag]
+// [test2_grammar_tag]
 
 grammar Test1;
 
@@ -65,21 +67,19 @@ expr:
 |   Num
 ;
 
-[test1_grammar_tag]
+// [test2_grammar_tag]
 "#;
 
 // ---------------------------------------------------------------------------------------------
 // lexer (automatically generated)
 // ---------------------------------------------------------------------------------------------
 
-// [test1_lexer_tag]
+// [test2_lexer_tag]
 
 use std::collections::HashMap;
 use std::io::Read;
-use lexigram_lib::dfa::{StateId, Terminal, ActionOption, ModeOption};
-use lexigram_lib::lexer::Lexer;
-use lexigram_lib::lexergen::GroupId;
-use lexigram_lib::segments::{Seg, SegMap};
+use core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+use core::segmap::{GroupId, Seg, SegMap};
 
 const NBR_GROUPS: u32 = 23;
 const INITIAL_STATE: StateId = 0;
@@ -174,15 +174,15 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
     )
 }
 
-// [test1_lexer_tag]
+// [test2_lexer_tag]
 
 // ---------------------------------------------------------------------------------------------
 // parser (automatically generated)
 // ---------------------------------------------------------------------------------------------
 
-// [test1_parser_tag]
+// [test2_parser_tag]
 
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use core::{AltId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;
@@ -364,7 +364,7 @@ impl<T: Test1Listener> ListenerWrapper for Wrapper<T> {
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
         if self.verbose {
             println!("> stack_t:   {}", self.stack_t.join(", "));
-            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
         }
     }
 
@@ -534,6 +534,30 @@ impl<T: Test1Listener> Wrapper<T> {
     }
 }
 
-// [test1_parser_tag]
+// [test2_parser_tag]
 
 // ---------------------------------------------------------------------------------------------
+
+mod test1_check {
+    use std::io::Cursor;
+    use lexigram_lib::lexer::Lexer;
+    use crate::out::test1_lexer::*;
+    use crate::out::test1_parser::*;
+
+    #[test]
+    fn compilation_check() {
+        let lexer: Lexer<'_, Cursor<String>> = build_lexer();
+        let parser = build_parser();
+    }
+}
+
+mod test2_check {
+    use std::io::Cursor;
+    use super::*;
+
+    #[test]
+    fn compilation_check() {
+        let lexer: Lexer<'_, Cursor<String>> = build_lexer();
+        let parser = build_parser();
+    }
+}

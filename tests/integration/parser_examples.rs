@@ -8,7 +8,7 @@ pub(crate) mod listener1 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener1]
 
-    use lexigram_lib::{FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, parser::{OpCode, Parser}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -45,7 +45,7 @@ pub(crate) mod listener2 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener2]
 
-    use lexigram_lib::{FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, parser::{OpCode, Parser}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -82,7 +82,7 @@ pub(crate) mod listener3 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener3]
 
-    use lexigram_lib::{FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, parser::{OpCode, Parser}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -119,7 +119,7 @@ pub(crate) mod listener4 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener4]
 
-    use lexigram_lib::{FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, parser::{OpCode, Parser}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -156,7 +156,7 @@ pub(crate) mod listener5 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener5]
 
-    use lexigram_lib::{FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, parser::{OpCode, Parser}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
 
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 2;

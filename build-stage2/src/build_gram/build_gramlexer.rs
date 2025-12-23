@@ -4,7 +4,8 @@ use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
 use lexigram_lib::dfa::{Dfa, DfaTables};
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::build::BuildFrom;
 use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -35,9 +36,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.7.0
-    // lexigram: 0.7.0
-    // build-stage1: 0.7.0
+    // lexigram_lib: 0.8.0
+    // lexigram: 0.8.0
+    // build-stage1: 0.8.0
 
     // [versions]
 
@@ -104,6 +105,7 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     // - builds the lexer
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
+    lexgen.use_full_lib(true);
     let src = lexgen.gen_source_code(indent);
     let mut log = lexgen.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {

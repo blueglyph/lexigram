@@ -1,10 +1,10 @@
 [package]
 name = "lexigram-bin"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 
 [dependencies]
-lexigram = { path = "../lexigram", package = "lexigram", version = "0.7.0" }
+lexigram = { path = "../lexigram", package = "lexigram", version = "0.8.0" }
 
 [[bin]]
 name = "lexigram"

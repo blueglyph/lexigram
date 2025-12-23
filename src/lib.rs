@@ -1,36 +1,40 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::BTreeSet;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use vectree::VecTree;
+
+// exposes lexigram-core:
+pub use lexigram_core;
+pub use lexigram_core::{AltId, TokenId, VarId};
+pub use lexigram_core::CollectJoin;
+pub use lexigram_core::alt;
+pub use lexigram_core::fixed_sym_table;
+pub use lexigram_core::log;
+pub use lexigram_core::char_reader;
+pub use lexigram_core::segmap;
+pub use lexigram_core::seg;
+pub use lexigram_core::lexer;
+pub use lexigram_core::parser;
 
 mod macros;
 mod take_until;
 mod cproduct;
+pub mod build;
 pub mod segments;
-pub mod char_reader;
 pub mod dfa;
 pub mod lexergen;
-pub mod lexer;
 pub mod lexi;
 pub mod grammar;
 pub mod parsergen;
-pub mod parser;
-pub mod log;
 pub mod file_utils;
-
 mod name_fixer;
 pub use name_fixer::{NameFixer, NameTransformer};
 mod symbol_table;
-mod fixed_sym_table;
 pub mod rtsgen;
 mod tests;
 
 pub use symbol_table::SymbolTable;
-pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
-use crate::log::{BufLog, LogStatus};
 
 // package name & version
 pub const LIB_PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -84,69 +88,8 @@ pub struct LL1;
 #[derive(Clone, Debug)]
 pub struct Normalized;
 
-#[derive(Debug)]
-pub enum BuildErrorSource {
-    RuleTreeSet,
-    Dfa,
-    DfaBuilder,
-    LexerGen,
-    Lexi,
-    ProdRuleSet,
-    ParserGen,
-    Gram,
-}
-
-#[derive(Debug)]
-pub struct BuildError {
-    log: BufLog,
-    source: BuildErrorSource,
-}
-
-impl BuildError {
-    pub fn new(log: BufLog, source: BuildErrorSource) -> Self {
-        BuildError { log, source }
-    }
-
-    pub fn get_log(self) -> BufLog {
-        self.log
-    }
-}
-
-impl Display for BuildError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Errors have occurred in {:?}:\n{}", self.source, self.log.get_messages_str())
-    }
-}
-
-impl Error for BuildError {
-}
-
-pub trait HasBuildErrorSource {
-    const SOURCE: BuildErrorSource;
-
-    fn get_build_error_source() -> BuildErrorSource {
-        Self::SOURCE
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // General helper functions
-
-pub(crate) fn escape_char(c: char) -> String {
-    match c {
-        // '\x00'..='\x7f' => c.escape_debug().to_string(),
-              '\u{0}' => "MIN".to_string(),
-           '\u{d7ff}' => "LOW_MAX".to_string(),
-           '\u{e000}' => "HIGH_MIN".to_string(),
-         '\u{10ffff}' => "MAX".to_string(),
-        // '\u{f7ff}' | '\u{e000}' | '\u{10ffff}' => c.escape_unicode().to_string(),
-        _ => c.escape_debug().to_string(),
-    }
-}
-
-pub fn escape_string(s: &str) -> String {
-    s.chars().map(|c| escape_char(c)).collect::<String>()
-}
 
 /// Gathers `iter_item` in a vector and pushes it into `v`.
 pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, iter_item: I) -> usize
@@ -203,23 +146,6 @@ pub(crate) fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
 
 // ---------------------------------------------------------------------------------------------
 // General helper traits
-
-pub trait CollectJoin {
-    fn join(&mut self, separator: &str) -> String
-        where Self: Iterator,
-              <Self as Iterator>::Item: ToString
-    {
-        self.map(|x| x.to_string()).collect::<Vec<_>>().join(separator)
-    }
-
-    fn to_vec(self) -> Vec<<Self as Iterator>::Item>
-        where Self: Iterator + Sized
-    {
-        self.collect::<Vec<_>>()
-    }
-}
-
-impl<I: Iterator> CollectJoin for I {}
 
 pub trait CharLen {
     /// Returns the length in characters (not bytes).
@@ -331,7 +257,8 @@ impl StructLibs {
 #[cfg(test)]
 mod libtests {
     use super::*;
-    use crate::log::{Logger, BufLog};
+    use lexigram_core::log::{BufLog, Logger};
+    use crate::build::{BuildError, BuildErrorSource};
 
     #[test]
     fn test_column_to_str() {
@@ -429,7 +356,7 @@ mod libtests {
         fn build() -> Result<(), BuildError> {
             let mut log = BufLog::new();
             log.add_error("the test generated a fake error successfully");
-            Err(BuildError { source: BuildErrorSource::ParserGen, log })
+            Err(BuildError::new(log, BuildErrorSource::ParserGen))
         }
         let err = build().err().expect("build() should return an error");
         assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR  : the test generated a fake error successfully\n");

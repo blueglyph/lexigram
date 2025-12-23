@@ -4,17 +4,17 @@
 
 pub mod prs;
 pub mod rts;
-pub mod old_build_rts_prs;
+pub mod manually_built_rts_prs;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
-use crate::dfa::TokenId;
+use crate::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
-use crate::log::TryBuildFrom;
-use crate::log::BuildInto;
+use crate::build::TryBuildFrom;
+use crate::build::BuildInto;
 use crate::rtsgen::RtsGen;
 use crate::columns_to_str;
-
+use lexigram_core::alt::Alternative;
 // ---------------------------------------------------------------------------------------------
 
 fn is_grtree_empty_symbol(rule: &GrTree) -> bool {

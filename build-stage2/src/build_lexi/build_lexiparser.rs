@@ -1,11 +1,12 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::HashMap;
-use lexigram_lib::{gnode, LL1};
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_lib::{gnode, LL1, VarId};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
-use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG};
@@ -17,9 +18,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.7.0
-    // lexigram: 0.7.0
-    // build-stage1: 0.7.0
+    // lexigram_lib: 0.8.0
+    // lexigram: 0.8.0
+    // build-stage1: 0.8.0
 
     // [versions]
 
@@ -115,6 +116,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     }
     builder.set_parents_have_value();
     builder.add_lib("lexiparser_types::*");
+    builder.use_full_lib(true);
     let src = builder.gen_source_code(indent, true);
     let mut log = builder.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {

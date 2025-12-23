@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use lexigram_lib::log::{BufLog, Logger};
+use lexigram_core::log::{BufLog, Logger};
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
 
@@ -157,11 +157,11 @@ impl LexiParserListener for LexiListener {
 
 mod tests {
     use std::io::Cursor;
-    use lexigram_lib::CollectJoin;
+    use lexigram_core::CollectJoin;
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexi::LEXICON;
     use lexigram_lib::lexer::TokenSpliterator;
-    use lexigram_lib::log::LogStatus;
+    use lexigram_core::log::LogStatus;
     use super::*;
     use crate::out::build_lexer;
     use crate::out::lexiparser::lexiparser::build_parser;

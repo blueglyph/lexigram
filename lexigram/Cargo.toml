@@ -1,26 +1,10 @@
 [package]
 name = "lexigram"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 
 [dependencies]
-#lexigram_lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.7.0", package = "lexigram_lib" }
-lexigram_lib = { path = "..", package = "lexigram_lib", version = "0.7.0" }
+#lexigram_lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram_lib" }
+lexigram_lib = { path = "..", package = "lexigram_lib", version = "0.8.0" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
-
-[[example]]
-name = "gen_microcalc"
-test = true
-
-[[example]]
-name = "microcalc"
-test = true
-
-[[example]]
-name = "gen_pandemonium"
-test = true
-
-[[example]]
-name = "pandemonium"
-test = true

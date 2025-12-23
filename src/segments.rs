@@ -1,14 +1,13 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
 use std::ops::{Add, Deref, DerefMut, RangeInclusive};
-use std::collections::btree_map::{IntoIter, Iter};
 use std::iter::Sum;
-use std::ops::Bound::Included;
-use crate::{btreeset, CollectJoin, escape_char};
-use crate::char_reader::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
-
+use crate::CollectJoin;
+use crate::btreeset;
+use crate::char_reader::{escape_char, UTF8_GAP_MAX, UTF8_GAP_MIN, UTF8_MAX};
+use crate::segmap::Seg;
 // ---------------------------------------------------------------------------------------------
 // Segments
 
@@ -147,7 +146,8 @@ impl Segments {
     ///
     /// Example:
     /// ```
-    /// use lexigram_lib::segments::{Segments, Seg};
+    /// use lexigram_lib::segments::Segments;
+    /// use lexigram_lib::segmap::Seg;
     ///
     /// let mut a = Segments::from([Seg(0, 10), Seg(20, 30)]);
     /// let b = Segments::from([Seg(5, 6), Seg(15, 25)]);
@@ -169,7 +169,8 @@ impl Segments {
 
     /// Slices the segments to match other's partition, but without merging self's initial partition.
     /// ```
-    /// use lexigram_lib::segments::{Seg, Segments};
+    /// # use lexigram_lib::segments::Segments;
+    /// # use lexigram_lib::segmap::Seg;
     /// let mut ab = Segments::from([Seg(1 as u32, 50 as u32)]);
     /// let cd = Segments::from([Seg(10 as u32, 20 as u32), Seg(30 as u32, 40 as u32)]);
     /// ab.slice_partitions(&cd);
@@ -275,9 +276,8 @@ impl<const N: usize> From<[Seg; N]> for Segments {
     /// Converts a `[Seg; N]` into a `Segments`.
     ///
     /// ```
-    ///
-    ///
-    /// use lexigram_lib::segments::{Seg, Segments};
+    /// # use lexigram_lib::segments::Segments;
+    /// # use lexigram_lib::segmap::Seg;
     /// let set1 = Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]);
     /// ```
     fn from(arr: [Seg; N]) -> Self {
@@ -453,114 +453,9 @@ impl Sum for Segments {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Seg
-
-#[derive(Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Debug)]
-pub struct Seg(pub u32, pub u32);
-
-impl Seg {
-    /// low segment of Unicode codepoint values:
-    pub const DOT_LOW: Seg = Seg(UTF8_MIN, UTF8_LOW_MAX);
-    /// high segment of Unicode codepoint values:
-    pub const DOT_HIGH: Seg = Seg(UTF8_HIGH_MIN, UTF8_MAX);
-}
-
-impl Display for Seg {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.0 == self.1 {
-            write!(f, "'{}'", escape_char(char::from_u32(self.0).unwrap()))
-        } else {
-            write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct SegMap<T>(BTreeMap<Seg, T>);
-
-impl<T: Clone> SegMap<T> {
-    pub fn new() -> Self {
-        SegMap(BTreeMap::new())
-    }
-
-    pub fn keys(&self) -> impl Iterator<Item = &Seg> {
-        self.0.keys()
-    }
-
-    pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
-        SegMap(BTreeMap::from_iter(iter))
-    }
-
-    pub fn get(&self, value: u32) -> Option<T> {
-        let (Seg(_a, b), data) = self.0.range((Included(&Seg(0, 0)), Included(&Seg(value, u32::MAX)))).next_back()?;
-        if *b >= value {
-            Some(data.clone())
-        } else {
-            None
-        }
-    }
-
-    pub fn insert(&mut self, key: Seg, value: T) -> Option<T> {
-        self.0.insert(key, value)
-    }
-
-    pub fn clear(&mut self) {
-        self.0.clear();
-    }
-
-    pub fn iter(&self) -> Iter<'_, Seg, T> {
-        self.into_iter()
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-impl<T: Clone, const N: usize> From<[(Seg, T); N]> for SegMap<T> {
-    fn from(value: [(Seg, T); N]) -> Self {
-        SegMap(BTreeMap::from(value))
-    }
-}
-
-impl<T> IntoIterator for SegMap<T> {
-    type Item = (Seg, T);
-    type IntoIter = IntoIter<Seg, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a SegMap<T> {
-    type Item = (&'a Seg, &'a T);
-    type IntoIter = Iter<'a, Seg, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
 // Macros
 
 pub mod macros {
-    /// Generates a Seg (tuple of u32 values) from one or two values (characters or integers).
-    ///
-    /// # Example
-    /// ```
-    /// # use lexigram_lib::{seg, segments::{Segments, Seg}};
-    /// let mut x = Segments::empty();
-    /// x.insert(seg!('a'));
-    /// x.insert(seg!('0'-'9'));
-    /// assert_eq!(x, Segments::from([Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
-    /// ```
-    #[macro_export()]
-    macro_rules! seg {
-        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { $crate::segments::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($b1)?$($b2)?)) };
-        ($($a1:literal)?$($a2:ident)?) => { $crate::segments::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($a1)?$($a2)?)) };
-    }
-
     /// Generates a Segments initialization from Seg values. The macro only accepts literals, either characters or integers,
     /// along with a few identifiers:
     ///
@@ -576,12 +471,12 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram_lib::{segments, segments::{Segments, Seg}};
+    /// # use lexigram_lib::{segments, segments::Segments, segmap::Seg};
     /// assert_eq!(segments!('a', '0'-'9'), Segments::from([Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
     /// assert_eq!(segments!(DOT), Segments::dot());
     /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! segments {
         () => { $crate::segments::Segments::empty() };
         (DOT) => { $crate::segments::Segments::dot() };
@@ -616,7 +511,7 @@ pub mod macros {
     /// ```
     /// # use std::collections::{BTreeMap, BTreeSet};
     /// # use lexigram_lib::{btreemap, segments, branch, segments::Segments};
-    /// # use lexigram_lib::segments::Seg;
+    /// # use lexigram_lib::segmap::Seg;
     /// let transitions = btreemap![
     ///     0 => branch!['a'-'c' => 0],
     ///     1 => branch!['a'-'c', '0'-'2' => 0],
@@ -645,7 +540,7 @@ pub mod macros {
     ///         7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
     ///     ]);
     /// ```
-    #[macro_export()]
+    #[macro_export]
     macro_rules! branch {
         // doesn't work, so we can't mix [] and non-[] segments:
         // ($( $($($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+)? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
@@ -665,7 +560,7 @@ pub mod macros {
 #[cfg(test)]
 mod tests {
     use iter_index::IndexerIterator;
-    use crate::{segments, btreemap, branch, seg};
+    use crate::{seg, branch, btreemap, segments};
     use super::*;
 
     fn new_cmp(c: Seg, i: Seg, e: Seg) -> SegmentsCmp {

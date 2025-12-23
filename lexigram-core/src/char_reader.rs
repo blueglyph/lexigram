@@ -219,7 +219,7 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 
 pub mod macros {
     /// Replaces a few identifiers by their codepoint value, and casts character / integer literals to `u32`.
-    #[macro_export()]
+    #[macro_export]
     macro_rules! utf8 {
         ( MIN )        => { 0_u32 };
         ( LOW_MAX )    => { 0xd7ff_u32 };
@@ -238,7 +238,8 @@ pub mod macros {
 #[cfg(test)]
 mod char_reader {
     use std::io::Cursor;
-    use crate::{CollectJoin, escape_char};
+    use crate::CollectJoin;
+    use crate::char_reader::escape_char;
     use super::*;
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
@@ -368,4 +369,20 @@ mod char_reader {
             assert_eq!(result, text, "test #{index}");
         }
     }
+}
+
+pub fn escape_char(c: char) -> String {
+    match c {
+        // '\x00'..='\x7f' => c.escape_debug().to_string(),
+              '\u{0}' => "MIN".to_string(),
+           '\u{d7ff}' => "LOW_MAX".to_string(),
+           '\u{e000}' => "HIGH_MIN".to_string(),
+         '\u{10ffff}' => "MAX".to_string(),
+        // '\u{f7ff}' | '\u{e000}' | '\u{10ffff}' => c.escape_unicode().to_string(),
+        _ => c.escape_debug().to_string(),
+    }
+}
+
+pub fn escape_string(s: &str) -> String {
+    s.chars().map(|c| escape_char(c)).collect::<String>()
 }

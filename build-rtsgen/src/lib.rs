@@ -24,6 +24,7 @@ fn gen_source(action: Action) -> Result<BufLog, GenParserError> {
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
         .extra_libs(["super::listener_types::*"])
+        .use_full_lib(true)
         .build()
         .expect("should have no error");
     try_gen_parser(action, options)
@@ -41,7 +42,7 @@ mod tests {
                 println!("\n{} warning(s), {} note(s):\n", log.num_warnings(), log.num_notes());
                 println!("{log}")
             },
-            Err(gen_error) => println!("{gen_error}"),
+            Err(gen_error) => panic!("{gen_error}"),
         }
     }
 
@@ -49,7 +50,7 @@ mod tests {
     fn test_check_source() {
         match gen_source(Action::Verify) {
             Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(gen_error) => println!("{gen_error}"),
+            Err(gen_error) => panic!("{gen_error}"),
        }
     }
 }

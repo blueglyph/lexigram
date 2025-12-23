@@ -5,7 +5,7 @@
 
 // [lexiparser]
 
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use lexiparser_types::*;
 
 const PARSER_NUM_T: usize = 33;
@@ -472,7 +472,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
         if self.verbose {
             println!("> stack_t:   {}", self.stack_t.join(", "));
-            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
         }
     }
 
