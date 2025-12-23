@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![cfg(all(test, feature = "rtsgen"))]
+#![cfg(test)]
 
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar

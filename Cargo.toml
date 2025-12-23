@@ -13,8 +13,7 @@ readme = "README.md"
 include = ["src/**/*", "Cargo.*", "README.md", "RELEASES.md", "LICENSE*"]
 
 [features]
-default = ["rtsgen"]
-rtsgen = []     # text parser that generates an RTS and its symbol table, used in tests
+default = []
 
 [dependencies]
 lexigram-core = { path = "lexigram-core", version = "0.8.0" }
