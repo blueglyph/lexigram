@@ -3,9 +3,9 @@
 // =============================================================================================
 // Generates the source of the microcalc parser
 
-use lexigram::{gencode, genspec};
-use lexigram::gen_parser::{try_gen_parser, GenParserError};
-use lexigram::options::{Action, OptionsBuilder};
+use lexi_gram::{gencode, genspec};
+use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
+use lexi_gram::options::{Action, OptionsBuilder};
 use lexigram_lib::log::{BufLog};
 
 static LEXICON_FILENAME: &str = "src/microcalc.l";

@@ -2,9 +2,9 @@
 
 use std::iter::Peekable;
 use std::str::FromStr;
-use lexigram::{gencode, genspec};
-use lexigram::lexigram_lib::lexergen::LexigramCrate;
-use lexigram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
+use lexi_gram::{gencode, genspec};
+use lexi_gram::lexigram_lib::lexergen::LexigramCrate;
+use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::ExeError;
 
 /// Command-line arguments

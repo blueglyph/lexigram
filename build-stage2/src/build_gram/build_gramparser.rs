@@ -19,7 +19,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     // [versions]
 
     // lexigram-lib: 0.8.0
-    // lexigram: 0.8.0
+    // lexi-gram: 0.8.0
     // build-stage1: 0.8.0
 
     // [versions]

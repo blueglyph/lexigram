@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # use this dependency when modifications break back-compatibility in stage 2 (when stage 1 must
 # rebuild stage 2 and lexi/gram with up-to-date generated sources):
-#lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram" }
+#lexi-gram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram" }
 
 # use this dependency otherwise:
-lexigram = { path = "../lexigram", version = "0.8.0" }
+lexi-gram = { path = "../lexi-gram", version = "0.8.0" }

@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexigram::{lexigram_lib, Gram};
+use lexi_gram::{lexigram_lib, Gram};
 use lexigram_lib::build::BuildInto;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
@@ -62,7 +62,7 @@ fn gramparser_source(grammar_filename: &str, _verbose: bool) -> Result<(BufLog, 
 fn get_versions() -> String {
     format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
             lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
-            lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+            lexi_gram::LEXIGRAM_PKG_NAME, lexi_gram::LEXIGRAM_PKG_VERSION,
             crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
 }
 

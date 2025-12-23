@@ -6,14 +6,14 @@ version = 4
 name = "build-rtsgen"
 version = "0.8.0"
 dependencies = [
- "lexigram",
+ "lexi-gram",
 ]
 
 [[package]]
 name = "build-stage1"
 version = "0.8.0"
 dependencies = [
- "lexigram",
+ "lexi-gram",
 ]
 
 [[package]]
@@ -27,7 +27,7 @@ dependencies = [
 name = "gen_microcalc"
 version = "0.1.0"
 dependencies = [
- "lexigram",
+ "lexi-gram",
  "lexigram-lib",
 ]
 
@@ -35,7 +35,7 @@ dependencies = [
 name = "gen_pandemonium"
 version = "0.1.0"
 dependencies = [
- "lexigram",
+ "lexi-gram",
  "lexigram-lib",
 ]
 
@@ -46,7 +46,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bae738582aa13b8b43c735d5cfacd543508220dd23290fb52bd7a00d38cc6a36"
 
 [[package]]
-name = "lexigram"
+name = "lexi-gram"
 version = "0.8.0"
 dependencies = [
  "iter-index",
@@ -55,10 +55,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "lexigram-bin"
+name = "lexigram"
 version = "0.8.0"
 dependencies = [
- "lexigram",
+ "lexi-gram",
 ]
 
 [[package]]

@@ -28,5 +28,5 @@ lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version =
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
 [workspace]
-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram-bin", "lexigram-core", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
-default-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsgen"]
+members = [".", "lexi-gram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram", "lexigram-core", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
+default-members = [".", "lexi-gram", "build-stage1", "build-stage2", "build-rtsgen"]

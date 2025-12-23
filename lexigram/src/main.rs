@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram::gen_parser::{try_gen_parser, GenParserError};
-use lexigram::lexigram_lib;
+use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
+use lexi_gram::lexigram_lib;
 use lexigram_lib::log::LogStatus;
 use crate::arg_opt::{parse_args, ArgOptions, HELP_MESSAGE};
 

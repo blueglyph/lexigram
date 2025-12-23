@@ -2,8 +2,8 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexigram::{lexigram_lib, Lexi};
-use lexigram::lexi::SymbolicDfa;
+use lexi_gram::{lexigram_lib, Lexi};
+use lexi_gram::lexi::SymbolicDfa;
 use lexigram_lib::build::BuildInto;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::char_reader::CharReader;
@@ -42,7 +42,7 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
 fn get_versions() -> String {
     format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
             lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
-            lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+            lexi_gram::LEXIGRAM_PKG_NAME, lexi_gram::LEXIGRAM_PKG_VERSION,
             crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
 }
 
