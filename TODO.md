@@ -111,8 +111,8 @@
     - right-associative: A -> δ β A | δ
 
 ## Packages
-- [ ] lexigram bin
-- [ ] separate libs
+- [x] ~~lexigram bin~~
+- [x] ~~separate libs~~
   - small lib for parser/lexer (for generated parser)
   - gen lib? other?
 
