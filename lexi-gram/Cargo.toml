@@ -2,7 +2,12 @@
 name = "lexi-gram"
 version = "0.8.0"
 description = "Lexi and Gram generators"
-edition = "2024"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
 exclude = ["data", "tests"]
 
 [dependencies]

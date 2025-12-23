@@ -2,13 +2,13 @@
 name = "lexigram-lib"
 version = "0.8.0"
 description = "Full library for lexer/parser generators"
-edition = "2024"
-rust-version = "1.85.1"
-authors = ["Redglyph"]
-categories = ["compilers", "development-tools::build-utils", "parsing"]
-keywords = ["parser-generator", "lexer-generator", "parser", "lexer", "grammar"]
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
 documentation = "https://docs.rs/lexigram-lib"
-license = "MIT OR Apache-2.0"
 readme = "README.md"
 include = ["src/**/*", "Cargo.*", "README.md", "RELEASES.md", "LICENSE*"]
 
@@ -28,5 +28,27 @@ lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version =
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
 [workspace]
-members = [".", "lexi-gram", "build-stage1", "build-stage2", "build-rtsgen", "lexigram", "lexigram-core", "examples/gen_microcalc", "examples/microcalc", "examples/gen_pandemonium", "examples/pandemonium"]
-default-members = [".", "lexi-gram", "build-stage1", "build-stage2", "build-rtsgen"]
+members = [
+    ".", "lexigram-core",
+    "lexi-gram",
+    "build-stage1", "build-stage2", "build-rtsgen",
+    "lexigram",
+    "examples/*"
+]
+
+# for publishing:
+default-members = [
+    ".", "lexigram-core",
+    "lexi-gram",
+    "lexigram"
+]
+
+# for testing: cargo test --workspace
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85.1"
+authors = ["Redglyph"]
+categories = ["compilers", "development-tools::build-utils", "parsing"]
+keywords = ["parser-generator", "lexer-generator", "parser", "lexer", "grammar"]
+license = "MIT OR Apache-2.0"

@@ -2,13 +2,13 @@
 name = "lexigram"
 version = "0.8.0"
 description = "Lexer and LL(1) parser generator"
-edition = "2024"
-rust-version = "1.85.1"
-authors = ["Redglyph"]
-categories = ["compilers", "development-tools::build-utils", "parsing"]
-keywords = ["parser-generator", "lexer-generator", "parser", "lexer", "grammar"]
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
 documentation = "https://docs.rs/lexigram-bin"
-license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [dependencies]
