@@ -1,6 +1,6 @@
 [package]
 name = "lexigram-lib"
-version = "0.8.0"
+version = "0.8.1"
 description = "Full library for lexer/parser generators"
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,8 @@ authors.workspace = true
 categories.workspace = true
 keywords.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.rs/lexigram-lib"
 readme = "README.md"
 include = ["src/**/*", "Cargo.*", "README.md", "RELEASES.md", "LICENSE*"]
@@ -16,12 +18,12 @@ include = ["src/**/*", "Cargo.*", "README.md", "RELEASES.md", "LICENSE*"]
 default = []
 
 [dependencies]
-lexigram-core = { path = "lexigram-core", version = "0.8.0" }
+lexigram-core = { path = "lexigram-core", version = "0.8.1" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
 
 [dev-dependencies]
-lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.0" }
+lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.1" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
@@ -51,3 +53,5 @@ authors = ["Redglyph"]
 categories = ["compilers", "development-tools::build-utils", "parsing"]
 keywords = ["parser-generator", "lexer-generator", "parser", "lexer", "grammar"]
 license = "MIT OR Apache-2.0"
+homepage = "https://github.com/blueglyph/lexigram"
+repository = "https://github.com/blueglyph/lexigram"

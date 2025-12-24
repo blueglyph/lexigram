@@ -1,6 +1,6 @@
 [package]
 name = "lexi-gram"
-version = "0.8.0"
+version = "0.8.1"
 description = "Lexi and Gram generators"
 edition.workspace = true
 rust-version.workspace = true
@@ -8,10 +8,12 @@ authors.workspace = true
 categories.workspace = true
 keywords.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 exclude = ["data", "tests"]
 
 [dependencies]
-#lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.0", package = "lexigram-lib" }
-lexigram-lib = { path = "..", version = "0.8.0" }
+#lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.1", package = "lexigram-lib" }
+lexigram-lib = { path = "..", version = "0.8.1" }
 iter-index = "1.0.0"
 vectree = "0.2.3"

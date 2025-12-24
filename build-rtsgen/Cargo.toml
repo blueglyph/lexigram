@@ -1,7 +1,7 @@
 [package]
 name = "build-rtsgen"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2024"
 
 [dependencies]
-lexi-gram = { path = "../lexi-gram", version = "0.8.0" }
+lexi-gram = { path = "../lexi-gram", version = "0.8.1" }

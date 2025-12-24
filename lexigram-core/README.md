@@ -1,6 +1,6 @@
 [![crate](https://img.shields.io/crates/v/lexigram_core.svg)](https://crates.io/crates/lexigram-core)
 [![documentation](https://docs.rs/lexigram-core/badge.svg)](https://docs.rs/lexigram-core)
-[![crate](https://img.shields.io/crates/l/lexigram_core.svg)](https://github.com/blueglyph/lexigram_core/blob/master/LICENSE-MIT)
+[![crate](https://img.shields.io/crates/l/lexigram_core.svg)](https://github.com/blueglyph/lexigram/blob/master/LICENSE-MIT)
 
 <hr/>
 
