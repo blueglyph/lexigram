@@ -1,6 +1,6 @@
 [package]
 name = "lexigram-lib"
-version = "0.8.1"
+version = "0.8.2"
 description = "Full library for lexer/parser generators"
 edition.workspace = true
 rust-version.workspace = true
@@ -18,12 +18,12 @@ include = ["src/**/*", "Cargo.*", "README.md", "RELEASES.md", "LICENSE*"]
 default = []
 
 [dependencies]
-lexigram-core = { path = "lexigram-core", version = "0.8.1" }
+lexigram-core = { path = "lexigram-core", version = "0.8.2" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
 
 [dev-dependencies]
-lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.1" }
+lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.2" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }

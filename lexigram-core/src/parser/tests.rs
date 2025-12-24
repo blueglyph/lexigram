@@ -131,7 +131,7 @@ mod lexer {
 mod parser {
     // [parser_source]
 
-    // This code is generated with lexigram version 0.8.1 from lexi-gram\src\tests.rs
+    // This code is generated with lexigram version 0.8.2 from lexi-gram\src\tests.rs
     // and corresponds to the grammar above between tags [parser_grammar]
 
     use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser}};
