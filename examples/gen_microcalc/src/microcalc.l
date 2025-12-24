@@ -8,6 +8,7 @@ Comma                   : ',';
 Div                     : '/';
 //Dot                     : '.';
 Equal                   : '=';
+Exp                     : '^';
 Mul                     : '*';
 Lbracket                : '{';
 Lpar                    : '(';

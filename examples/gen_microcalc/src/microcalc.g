@@ -23,6 +23,7 @@ instruction:
 
 expr:
     Sub expr
+|   expr <R> Exp expr
 |   expr (Mul | <P> Div) expr
 |   expr (Add | <P> Sub) expr
 |   Lpar expr Rpar
