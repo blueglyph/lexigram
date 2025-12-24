@@ -29,7 +29,7 @@ Main options. The lexer options must be placed before any parser option.
                                                             existing file "lexer.rs"
                             --lexer -                    -> code will be output to stdout
 
-  -l|--lexicon <location>   Location of the lexicon, where <location> is the same as for
+  -x|--lexicon <location>   Location of the lexicon, where <location> is the same as for
                             --lexer, exept "-" isn't valid.
                             This option is mandatory.
 
