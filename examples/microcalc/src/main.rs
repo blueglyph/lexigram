@@ -15,16 +15,41 @@ use crate::microcalc_parser::*;
 const VERBOSE_WRAPPER: bool = false;
 
 static TXT1: &str = r#"
+def gcd(a, b) {
+    while a != b {
+        if a > b
+            a = a - b;
+        else
+            b = b - a;
+    }
+    return a;
+}
 def const() { return 12; }
-def a(x) { let y = 2*x; return y; }
-def main() { let value = a(const()); print value; return value; }
+def main() { let value = gcd(9, const()); print value; return value; }
+"#;
+
+static TXT2: &str = r#"
+def main() {
+    let x = 1;
+    let y = 2;
+    let z = 0;
+    if x == 1
+        if y == 1
+            z = 1;
+        else
+            z = 2;
+    print z;
+    return z;
+}
 "#;
 
 fn main() {
-    println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
-    match MCalc::parse_text(TXT1.to_string()) {
-        Ok(log) => println!("parsing successful\n{log}"),
-        Err(log) => println!("errors during parsing:\n{log}"),
+    for txt in &[TXT1, TXT2] {
+        println!("{:=<80}\n{txt}\n{0:-<80}", "");
+        match MCalc::parse_text(txt.to_string()) {
+            Ok(log) => println!("parsing successful\n{log}"),
+            Err(log) => println!("errors during parsing:\n{log}"),
+        }
     }
 }
 
@@ -97,7 +122,31 @@ impl MicroCalcListener for MCalcListener {
         SynFunParams()
     }
 
-    fn exit_instruction(&mut self, _ctx: CtxInstruction) -> SynInstruction {
+    fn exit_block(&mut self, _ctx: CtxBlock) -> SynBlock {
+        SynBlock()
+    }
+
+    fn exit_instruction(&mut self, ctx: CtxInstruction) -> SynInstruction {
+        match ctx {
+            // instruction -> "let" Id "=" expr ";"
+            CtxInstruction::V1 { .. } => {}
+            // instruction -> Id "=" expr ";"
+            CtxInstruction::V2 { .. } => {}
+            // instruction -> "return" expr ";"
+            CtxInstruction::V3 { .. } => {}
+            // instruction -> "print" expr ";"
+            CtxInstruction::V4 { .. } => {}
+            // instruction -> Id "(" fun_args ")" ";"
+            CtxInstruction::V5 { .. } => {}
+            // instruction -> "if" expr instruction "else" instruction
+            CtxInstruction::V6 { .. } => {}
+            // instruction -> "if" expr instruction
+            CtxInstruction::V7 { .. } => {}
+            // instruction -> "while" expr block
+            CtxInstruction::V8 { .. } => {}
+            // instruction -> block
+            CtxInstruction::V9 { .. } => {}
+        }
         SynInstruction()
     }
 
@@ -121,6 +170,8 @@ pub mod listener_types {
     #[derive(Debug, PartialEq)] pub struct SynFunction();
     /// User-defined type for `fun_params`
     #[derive(Debug, PartialEq)] pub struct SynFunParams();
+    /// User-defined type for `block`
+    #[derive(Debug, PartialEq)] pub struct SynBlock();
     /// User-defined type for `instruction`
     #[derive(Debug, PartialEq)] pub struct SynInstruction();
     /// User-defined type for `expr`
@@ -141,108 +192,145 @@ pub mod microcalc_lexer {
     use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 33;
+    const NBR_GROUPS: u32 = 39;
     const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 6;
-    const NBR_STATES: StateId = 42;
+    const FIRST_END_STATE: StateId = 5;
+    const NBR_STATES: StateId = 60;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         25,  25,  25,  25,  25,  25,  25,  25,  25,   0,  27,  25,  25,  27,  25,  25,   // 0-15
-         25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,   // 16-31
-          0,  25,  25,  25,  25,  25,  25,  25,   1,   2,   3,   4,   5,   6,  25,   7,   // 32-47
-          8,   9,  23,  23,  23,  23,  23,  23,  23,  23,  25,  10,  25,  11,  25,  25,   // 48-63
-         25,  21,  21,  21,  21,  21,  21,  24,  24,  24,  24,  24,  24,  24,  24,  24,   // 64-79
-         24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  25,  25,  25,  13,  22,   // 80-95
-         25,  21,  12,  21,  14,  26,  28,  24,  24,  30,  24,  24,  15,  24,  31,  24,   // 96-111
-         16,  24,  17,  24,  29,  32,  24,  24,  20,  24,  24,  18,  25,  19,  25,  25,   // 112-127
+         29,  29,  29,  29,  29,  29,  29,  29,  29,   0,  34,  29,  29,  34,  29,  29,   // 0-15
+         29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,   // 16-31
+          0,   1,  29,  29,  29,  29,  29,  29,   2,   3,   4,   5,   6,   7,  29,   8,   // 32-47
+          9,  10,  27,  27,  27,  27,  27,  27,  27,  27,  29,  11,  12,  13,  14,  29,   // 48-63
+         29,  30,  30,  30,  30,  30,  30,  31,  31,  31,  31,  31,  31,  31,  31,  31,   // 64-79
+         31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  29,  29,  29,  16,  26,   // 80-95
+         29,  30,  15,  30,  17,  18,  32,  31,  33,  19,  31,  31,  20,  31,  37,  31,   // 96-111
+         21,  31,  22,  35,  36,  38,  31,  23,  28,  31,  31,  24,  29,  25,  29,  29,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
     static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
-        (Seg(128, 55295), 25),
-        (Seg(57344, 1114111), 25),
+        (Seg(128, 55295), 29),
+        (Seg(57344, 1114111), 29),
     ];
-    static TERMINAL_TABLE: [Terminal;36] = [
+    static TERMINAL_TABLE: [Terminal;55] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(14), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(20), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(21), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(22), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(24), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(25), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 1387] = [
-          6,   7,   8,   9,  10,  11,  12,  13,   1,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  17,  17,  42,  14,  17,  42,  17,   6,  17,  17,  17,  17,  17, // state 0
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,   4,  42,  42,  42,  42,  42,  42,  42,   5,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 1
-          2,   2,   2,   3,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 2
-          2,   2,   2,   3,   2,   2,   2,  39,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 3
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  40,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 4
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  41,  42,  42,  41,  42,  41,  42,  42,  42,  42,  42,  42,  41,  42,  41,  42,  42,  41,  42,  41,  42,  42,  42,  42, // state 5
-          6,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,   6,  42,  42,  42,  42,  42, // state 6 <skip>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 7 <end:7>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 8 <end:9>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 9 <end:5>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 10 <end:0>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 11 <end:1>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 12 <end:11>
-         42,  42,  42,   2,  42,  42,  42,  25,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 13 <end:2>
-         42,  42,  42,  42,  42,  42,  42,  42,  14,  14,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  14,  14,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 14 <end:17>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 15 <end:10>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 16 <end:3>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 17 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 18 <end:4>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  26,  42,  17,  17,  17,  17,  17, // state 19 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  28,  42,  17,  17,  17,  17,  17, // state 20 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  30,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 21 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  34,  42,  17,  17,  17,  17,  17, // state 22 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 23 <end:6>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 24 <end:8>
-         25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  42,  25,  25,  25,  25,  25, // state 25 <skip>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  27,  17,  17,  17,  17, // state 26 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 27 <end:12>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  29,  17,  17,  17, // state 28 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 29 <end:13>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  31,  17,  17, // state 30 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  32,  17, // state 31 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  33,  17,  17,  17, // state 32 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 33 <end:14>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  35,  17,  17,  17, // state 34 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  36, // state 35 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  37,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 36 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  38,  17, // state 37 <end:16>
-         42,  42,  42,  42,  42,  42,  42,  42,  17,  17,  42,  42,  17,  42,  17,  17,  17,  17,  42,  42,  17,  17,  17,  17,  17,  42,  17,  42,  17,  17,  17,  17,  17, // state 38 <end:15>
-         42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 39 <skip>
-         42,  42,  42,  42,  42,  42,  42,  42,  40,  40,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42,  40,  42,  42,  42,  42,  42,  42,  42,  42,  42,  42, // state 40 <end:17>
-         42,  42,  42,  42,  42,  42,  42,  42,  41,  41,  42,  42,  41,  42,  41,  42,  42,  42,  42,  42,  42,  41,  41,  41,  42,  42,  41,  42,  41,  42,  42,  42,  42, // state 41 <end:17>
-         42 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 2341] = [
+          5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  60,  15,  20,  60,  20,  20,  20,  20,   5,  20,  20,  20,  20, // state 0
+          1,   1,   1,   1,   2,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // state 1
+          1,   1,   1,   1,   2,   1,   1,   1,  57,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // state 2
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  58,  58,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 3
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  59,  59,  60,  60,  60,  60,  59,  60,  59,  59,  60,  60,  60,  60,  60,  60,  60,  60,  59,  60,  60,  59,  60,  59,  60,  60,  60,  60,  60,  60, // state 4
+          5,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,   5,  60,  60,  60,  60, // state 5 <skip>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  32,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 6 <end:6>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 7 <end:14>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 8 <end:16>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 9 <end:12>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 10 <end:7>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 11 <end:8>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 12 <end:18>
+         60,  60,  60,  60,   1,  60,  60,  60,  35,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 13 <end:9>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  15,  15,  60,  60,  60,  60,   3,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  15,  15,   4,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 14 <end:27>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  15,  15,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  15,  15,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 15 <end:27>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 16 <end:17>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  33,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 17 <end:2>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  31,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 18 <end:10>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  34,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 19 <end:3>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 20 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 21 <end:11>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  36,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 22 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  38,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 23 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  41,  20,  60,  20,  20,  20,  20, // state 24 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  42,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 25 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  44,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 26 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  48,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 27 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  53,  60,  20,  20,  20,  20, // state 28 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 29 <end:13>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 30 <end:15>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 31 <end:0>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 32 <end:1>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 33 <end:4>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 34 <end:5>
+         35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  60,  35,  35,  35,  35, // state 35 <skip>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  37,  20,  60,  20,  20,  20,  20, // state 36 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 37 <end:19>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  39,  20,  20,  20, // state 38 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  40,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 39 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 40 <end:20>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 41 <end:21>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  43,  20,  20, // state 42 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 43 <end:22>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  45,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 44 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  46,  20, // state 45 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  47,  20,  20, // state 46 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 47 <end:23>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  49,  20,  20, // state 48 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  50, // state 49 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  51,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 50 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  52,  20, // state 51 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 52 <end:24>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  54,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 53 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  55,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 54 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  56,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 55 <end:26>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  20,  20,  60,  60,  60,  60,  20,  60,  20,  20,  20,  20,  20,  20,  20,  60,  60,  20,  20,  20,  60,  20,  20,  20,  20,  60,  20,  20,  20,  20, // state 56 <end:25>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 57 <skip>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  58,  58,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  58,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60,  60, // state 58 <end:27>
+         60,  60,  60,  60,  60,  60,  60,  60,  60,  59,  59,  60,  60,  60,  60,  59,  60,  59,  59,  60,  60,  60,  60,  60,  60,  60,  59,  59,  60,  60,  59,  60,  59,  60,  60,  60,  60,  60,  60, // state 59 <end:27>
+         60 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -274,13 +362,13 @@ pub mod microcalc_parser {
     use lexigram_core::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
-    const PARSER_NUM_T: usize = 18;
-    const PARSER_NUM_NT: usize = 19;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Add", Some("+")), ("Comma", Some(",")), ("Div", Some("/")), ("Equal", Some("=")), ("Exp", Some("^")), ("Mul", Some("*")), ("Lbracket", Some("{")), ("Lpar", Some("(")), ("Rbracket", Some("}")), ("Rpar", Some(")")), ("Semi", Some(";")), ("Sub", Some("-")), ("Def", Some("def")), ("Let", Some("let")), ("Print", Some("print")), ("Return", Some("return")), ("Id", None), ("Num", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "function", "fun_params", "instruction", "expr", "fun_args", "program_1", "function_1", "fun_params_1", "fun_args_1", "expr_1", "expr_2", "expr_3", "expr_4", "expr_5", "expr_6", "program_2", "function_2", "expr_7"];
-    static ALT_VAR: [VarId; 40] = [0, 1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9, 9, 10, 10, 10, 10, 10, 10, 11, 12, 12, 12, 12, 13, 14, 14, 15, 15, 15, 15, 16, 16, 17, 17, 18, 18];
-    static PARSING_TABLE: [AltId; 361] = [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 0, 40, 40, 40, 40, 40, 41, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 1, 40, 40, 40, 40, 40, 41, 40, 40, 40, 40, 40, 40, 40, 40, 40, 3, 40, 40, 40, 40, 40, 40, 2, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 41, 40, 40, 40, 40, 4, 6, 5, 40, 40, 40, 40, 41, 40, 40, 40, 40, 40, 7, 40, 41, 41, 7, 40, 40, 40, 40, 7, 7, 40, 40, 40, 40, 40, 40, 40, 40, 8, 40, 9, 40, 8, 40, 40, 40, 40, 8, 8, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 10, 40, 40, 40, 40, 40, 41, 40, 40, 40, 40, 40, 40, 40, 40, 41, 40, 40, 40, 40, 11, 11, 11, 40, 40, 40, 40, 12, 40, 40, 40, 40, 40, 40, 40, 13, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 14, 40, 40, 40, 40, 40, 40, 40, 15, 40, 40, 40, 40, 40, 40, 40, 40, 40, 19, 21, 18, 40, 16, 17, 40, 40, 40, 21, 21, 20, 40, 40, 40, 40, 40, 40, 40, 41, 41, 41, 40, 41, 41, 40, 22, 40, 41, 41, 22, 40, 40, 40, 40, 22, 22, 40, 26, 26, 25, 40, 23, 24, 40, 40, 40, 26, 26, 26, 40, 40, 40, 40, 40, 40, 40, 41, 41, 41, 40, 41, 41, 40, 27, 40, 41, 41, 27, 40, 40, 40, 40, 27, 27, 40, 29, 29, 29, 40, 28, 29, 40, 40, 40, 29, 29, 29, 40, 40, 40, 40, 40, 40, 40, 41, 41, 41, 40, 41, 41, 40, 30, 40, 41, 41, 31, 40, 40, 40, 40, 32, 33, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 34, 40, 40, 40, 40, 40, 35, 40, 40, 40, 40, 40, 40, 40, 40, 37, 40, 40, 40, 40, 36, 36, 36, 40, 40, 40, 39, 39, 39, 40, 39, 39, 40, 38, 40, 39, 39, 39, 40, 40, 40, 40, 40, 40, 40];
-    static OPCODES: [&[OpCode]; 40] = [&[OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Exit(1), OpCode::T(8), OpCode::NT(7), OpCode::T(6), OpCode::T(9), OpCode::NT(2), OpCode::T(7), OpCode::T(16), OpCode::T(12)], &[OpCode::Exit(2), OpCode::NT(8), OpCode::T(16)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(10), OpCode::NT(4), OpCode::T(3), OpCode::T(16), OpCode::T(13)], &[OpCode::Exit(5), OpCode::T(10), OpCode::NT(4), OpCode::T(15)], &[OpCode::Exit(6), OpCode::T(10), OpCode::NT(4), OpCode::T(14)], &[OpCode::NT(10), OpCode::Exit(7), OpCode::NT(15)], &[OpCode::Exit(8), OpCode::NT(9), OpCode::NT(4)], &[OpCode::Exit(9)], &[OpCode::NT(16), OpCode::NT(1)], &[OpCode::NT(17), OpCode::NT(3)], &[OpCode::Loop(8), OpCode::Exit(12), OpCode::T(16), OpCode::T(1)], &[OpCode::Exit(13)], &[OpCode::Loop(9), OpCode::Exit(14), OpCode::NT(4), OpCode::T(1)], &[OpCode::Exit(15)], &[OpCode::Loop(10), OpCode::Exit(16), OpCode::NT(13), OpCode::T(4)], &[OpCode::Loop(10), OpCode::Exit(17), OpCode::NT(13), OpCode::T(5)], &[OpCode::Loop(10), OpCode::Exit(18), OpCode::NT(13), OpCode::T(2)], &[OpCode::Loop(10), OpCode::Exit(19), OpCode::NT(11), OpCode::T(0)], &[OpCode::Loop(10), OpCode::Exit(20), OpCode::NT(11), OpCode::T(11)], &[OpCode::Exit(21)], &[OpCode::NT(12), OpCode::Exit(22), OpCode::NT(15)], &[OpCode::Loop(12), OpCode::Exit(23), OpCode::NT(13), OpCode::T(4)], &[OpCode::Loop(12), OpCode::Exit(24), OpCode::NT(13), OpCode::T(5)], &[OpCode::Loop(12), OpCode::Exit(25), OpCode::NT(13), OpCode::T(2)], &[OpCode::Exit(26)], &[OpCode::NT(14), OpCode::Exit(27), OpCode::NT(15)], &[OpCode::Loop(14), OpCode::Exit(28), OpCode::NT(13), OpCode::T(4)], &[OpCode::Exit(29)], &[OpCode::Exit(30), OpCode::T(9), OpCode::NT(4), OpCode::T(7)], &[OpCode::Exit(31), OpCode::NT(15), OpCode::T(11)], &[OpCode::NT(18), OpCode::T(16)], &[OpCode::Exit(33), OpCode::T(17)], &[OpCode::Loop(6), OpCode::Exit(34)], &[OpCode::Exit(35)], &[OpCode::Loop(7), OpCode::Exit(36)], &[OpCode::Exit(37)], &[OpCode::Exit(38), OpCode::T(9), OpCode::NT(5), OpCode::T(7)], &[OpCode::Exit(39)]];
+    const PARSER_NUM_T: usize = 28;
+    const PARSER_NUM_NT: usize = 23;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Eq", Some("==")), ("Ne", Some("!=")), ("Lt", Some("<")), ("Gt", Some(">")), ("Le", Some("<=")), ("Ge", Some(">=")), ("Not", Some("!")), ("Add", Some("+")), ("Comma", Some(",")), ("Div", Some("/")), ("Equal", Some("=")), ("Exp", Some("^")), ("Mul", Some("*")), ("Lbracket", Some("{")), ("Lpar", Some("(")), ("Rbracket", Some("}")), ("Rpar", Some(")")), ("Semi", Some(";")), ("Sub", Some("-")), ("Def", Some("def")), ("Else", Some("else")), ("If", Some("if")), ("Let", Some("let")), ("Print", Some("print")), ("Return", Some("return")), ("While", Some("while")), ("Id", None), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "function", "fun_params", "block", "instruction", "expr", "fun_args", "program_1", "fun_params_1", "block_1", "fun_args_1", "expr_1", "expr_2", "expr_3", "expr_4", "expr_5", "expr_6", "expr_7", "expr_8", "instruction_1", "instruction_2", "program_2", "expr_9"];
+    static ALT_VAR: [VarId; 62] = [0, 1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 9, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 13, 13, 13, 13, 13, 13, 14, 15, 15, 15, 15, 16, 17, 17, 18, 18, 18, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22];
+    static PARSING_TABLE: [AltId; 667] = [62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 0, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 1, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 3, 62, 62, 62, 62, 62, 62, 62, 62, 62, 2, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 4, 62, 63, 62, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 11, 62, 63, 62, 62, 62, 63, 63, 5, 6, 7, 8, 9, 10, 62, 63, 62, 62, 62, 62, 62, 62, 12, 62, 63, 62, 62, 62, 62, 63, 12, 62, 63, 63, 12, 62, 62, 63, 63, 63, 63, 63, 12, 12, 62, 62, 62, 62, 62, 62, 62, 13, 62, 62, 62, 62, 62, 62, 62, 13, 62, 14, 62, 13, 62, 62, 62, 62, 62, 62, 62, 13, 13, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 15, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 16, 62, 62, 62, 62, 62, 62, 62, 17, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 18, 62, 19, 62, 62, 62, 62, 62, 18, 18, 18, 18, 18, 18, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 20, 62, 62, 62, 62, 62, 62, 62, 21, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 27, 28, 29, 30, 31, 32, 62, 25, 33, 24, 62, 22, 23, 33, 62, 62, 33, 33, 26, 62, 62, 33, 33, 33, 33, 33, 33, 62, 62, 63, 63, 63, 63, 63, 63, 34, 63, 63, 63, 62, 63, 63, 63, 34, 62, 63, 63, 34, 62, 62, 63, 63, 63, 63, 63, 34, 34, 62, 40, 40, 40, 40, 40, 40, 62, 38, 40, 37, 62, 35, 36, 40, 62, 62, 40, 40, 39, 62, 62, 40, 40, 40, 40, 40, 40, 62, 62, 63, 63, 63, 63, 63, 63, 41, 63, 63, 63, 62, 63, 63, 63, 41, 62, 63, 63, 41, 62, 62, 63, 63, 63, 63, 63, 41, 41, 62, 45, 45, 45, 45, 45, 45, 62, 45, 45, 44, 62, 42, 43, 45, 62, 62, 45, 45, 45, 62, 62, 45, 45, 45, 45, 45, 45, 62, 62, 63, 63, 63, 63, 63, 63, 46, 63, 63, 63, 62, 63, 63, 63, 46, 62, 63, 63, 46, 62, 62, 63, 63, 63, 63, 63, 46, 46, 62, 48, 48, 48, 48, 48, 48, 62, 48, 48, 48, 62, 47, 48, 48, 62, 62, 48, 48, 48, 62, 62, 48, 48, 48, 48, 48, 48, 62, 62, 63, 63, 63, 63, 63, 63, 49, 63, 63, 63, 62, 63, 63, 63, 50, 62, 63, 63, 51, 62, 62, 63, 63, 63, 63, 63, 52, 53, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 55, 62, 55, 62, 62, 62, 55, 54, 55, 55, 55, 55, 55, 55, 62, 55, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 56, 62, 62, 63, 57, 63, 62, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 58, 62, 62, 62, 62, 62, 62, 62, 62, 59, 61, 61, 61, 61, 61, 61, 62, 61, 61, 61, 62, 61, 61, 61, 60, 62, 61, 61, 61, 62, 62, 61, 61, 61, 61, 61, 61, 62, 62];
+    static OPCODES: [&[OpCode]; 62] = [&[OpCode::Exit(0), OpCode::NT(7)], &[OpCode::Exit(1), OpCode::NT(4), OpCode::T(16), OpCode::NT(2), OpCode::T(14), OpCode::T(26), OpCode::T(19)], &[OpCode::Exit(2), OpCode::NT(8), OpCode::T(26)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(15), OpCode::NT(9), OpCode::T(13)], &[OpCode::NT(19), OpCode::NT(4), OpCode::NT(5), OpCode::T(21)], &[OpCode::Exit(6), OpCode::T(17), OpCode::NT(5), OpCode::T(10), OpCode::T(26), OpCode::T(22)], &[OpCode::Exit(7), OpCode::T(17), OpCode::NT(5), OpCode::T(23)], &[OpCode::Exit(8), OpCode::T(17), OpCode::NT(5), OpCode::T(24)], &[OpCode::Exit(9), OpCode::NT(3), OpCode::NT(5), OpCode::T(25)], &[OpCode::NT(20), OpCode::T(26)], &[OpCode::Exit(11), OpCode::NT(3)], &[OpCode::NT(11), OpCode::Exit(12), OpCode::NT(18)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::NT(5)], &[OpCode::Exit(14)], &[OpCode::NT(21), OpCode::NT(1)], &[OpCode::Loop(8), OpCode::Exit(16), OpCode::T(26), OpCode::T(8)], &[OpCode::Exit(17)], &[OpCode::Loop(9), OpCode::Exit(18), OpCode::NT(4)], &[OpCode::Exit(19)], &[OpCode::Loop(10), OpCode::Exit(20), OpCode::NT(5), OpCode::T(8)], &[OpCode::Exit(21)], &[OpCode::Loop(11), OpCode::Exit(22), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(11), OpCode::Exit(23), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(11), OpCode::Exit(24), OpCode::NT(16), OpCode::T(9)], &[OpCode::Loop(11), OpCode::Exit(25), OpCode::NT(14), OpCode::T(7)], &[OpCode::Loop(11), OpCode::Exit(26), OpCode::NT(14), OpCode::T(18)], &[OpCode::Loop(11), OpCode::Exit(27), OpCode::NT(12), OpCode::T(0)], &[OpCode::Loop(11), OpCode::Exit(28), OpCode::NT(12), OpCode::T(1)], &[OpCode::Loop(11), OpCode::Exit(29), OpCode::NT(12), OpCode::T(2)], &[OpCode::Loop(11), OpCode::Exit(30), OpCode::NT(12), OpCode::T(3)], &[OpCode::Loop(11), OpCode::Exit(31), OpCode::NT(12), OpCode::T(4)], &[OpCode::Loop(11), OpCode::Exit(32), OpCode::NT(12), OpCode::T(5)], &[OpCode::Exit(33)], &[OpCode::NT(13), OpCode::Exit(34), OpCode::NT(18)], &[OpCode::Loop(13), OpCode::Exit(35), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(13), OpCode::Exit(36), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(13), OpCode::Exit(37), OpCode::NT(16), OpCode::T(9)], &[OpCode::Loop(13), OpCode::Exit(38), OpCode::NT(14), OpCode::T(7)], &[OpCode::Loop(13), OpCode::Exit(39), OpCode::NT(14), OpCode::T(18)], &[OpCode::Exit(40)], &[OpCode::NT(15), OpCode::Exit(41), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(42), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(15), OpCode::Exit(43), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(15), OpCode::Exit(44), OpCode::NT(16), OpCode::T(9)], &[OpCode::Exit(45)], &[OpCode::NT(17), OpCode::Exit(46), OpCode::NT(18)], &[OpCode::Loop(17), OpCode::Exit(47), OpCode::NT(16), OpCode::T(11)], &[OpCode::Exit(48)], &[OpCode::Exit(49), OpCode::NT(12), OpCode::T(6)], &[OpCode::Exit(50), OpCode::T(16), OpCode::NT(5), OpCode::T(14)], &[OpCode::Exit(51), OpCode::NT(18), OpCode::T(18)], &[OpCode::NT(22), OpCode::T(26)], &[OpCode::Exit(53), OpCode::T(27)], &[OpCode::Exit(54), OpCode::NT(4), OpCode::T(20)], &[OpCode::Exit(55)], &[OpCode::Exit(56), OpCode::T(17), OpCode::NT(5), OpCode::T(10)], &[OpCode::Exit(57), OpCode::T(17), OpCode::T(16), OpCode::NT(6), OpCode::T(14)], &[OpCode::Loop(7), OpCode::Exit(58)], &[OpCode::Exit(59)], &[OpCode::Exit(60), OpCode::T(16), OpCode::NT(6), OpCode::T(14)], &[OpCode::Exit(61)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -306,8 +394,8 @@ pub mod microcalc_parser {
     }
     #[derive(Debug)]
     pub enum CtxFunction {
-        /// `function -> "def" Id "(" fun_params ")" "{" instruction+ "}"`
-        V1 { id: String, fun_params: SynFunParams, plus: SynFunction1 },
+        /// `function -> "def" Id "(" fun_params ")" instruction`
+        V1 { id: String, fun_params: SynFunParams, instruction: SynInstruction },
     }
     #[derive(Debug)]
     pub enum CtxFunParams {
@@ -317,13 +405,30 @@ pub mod microcalc_parser {
         V2,
     }
     #[derive(Debug)]
+    pub enum CtxBlock {
+        /// `block -> "{" instruction* "}"`
+        V1 { star: SynBlock1 },
+    }
+    #[derive(Debug)]
     pub enum CtxInstruction {
         /// `instruction -> "let" Id "=" expr ";"`
         V1 { id: String, expr: SynExpr },
+        /// `instruction -> Id "=" expr ";"`
+        V2 { id: String, expr: SynExpr },
         /// `instruction -> "return" expr ";"`
-        V2 { expr: SynExpr },
-        /// `instruction -> "print" expr ";"`
         V3 { expr: SynExpr },
+        /// `instruction -> "print" expr ";"`
+        V4 { expr: SynExpr },
+        /// `instruction -> Id "(" fun_args ")" ";"`
+        V5 { id: String, fun_args: SynFunArgs },
+        /// `instruction -> "if" expr instruction <G> "else" instruction`
+        V6 { expr: SynExpr, instruction: [SynInstruction; 2] },
+        /// `instruction -> "if" expr instruction`
+        V7 { expr: SynExpr, instruction: SynInstruction },
+        /// `instruction -> "while" expr block`
+        V8 { expr: SynExpr, block: SynBlock },
+        /// `instruction -> block`
+        V9 { block: SynBlock },
     }
     #[derive(Debug)]
     pub enum CtxExpr {
@@ -339,14 +444,28 @@ pub mod microcalc_parser {
         V5 { expr: [SynExpr; 2] },
         /// `expr -> expr <P> "-" expr`
         V6 { expr: [SynExpr; 2] },
-        /// `expr -> "(" expr ")"`
+        /// `expr -> "!" expr`
         V7 { expr: SynExpr },
+        /// `expr -> expr "==" expr`
+        V8 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "!=" expr`
+        V9 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "<" expr`
+        V10 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> ">" expr`
+        V11 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "<=" expr`
+        V12 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> ">=" expr`
+        V13 { expr: [SynExpr; 2] },
+        /// `expr -> "(" expr ")"`
+        V14 { expr: SynExpr },
         /// `expr -> Id "(" fun_args ")"`
-        V8 { id: String, fun_args: SynFunArgs },
+        V15 { id: String, fun_args: SynFunArgs },
         /// `expr -> Id`
-        V9 { id: String },
+        V16 { id: String },
         /// `expr -> Num`
-        V10 { num: String },
+        V17 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxFunArgs {
@@ -364,6 +483,8 @@ pub mod microcalc_parser {
     // #[derive(Debug, PartialEq)] pub struct SynFunction();
     // /// User-defined type for `fun_params`
     // #[derive(Debug, PartialEq)] pub struct SynFunParams();
+    // /// User-defined type for `block`
+    // #[derive(Debug, PartialEq)] pub struct SynBlock();
     // /// User-defined type for `instruction`
     // #[derive(Debug, PartialEq)] pub struct SynInstruction();
     // /// User-defined type for `expr`
@@ -373,18 +494,18 @@ pub mod microcalc_parser {
     /// Computed `function+` array in `program ->  ►► function+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynProgram1(pub Vec<SynFunction>);
-    /// Computed `instruction+` array in `function -> "def" Id "(" fun_params ")" "{"  ►► instruction+ ◄◄  "}"`
-    #[derive(Debug, PartialEq)]
-    pub struct SynFunction1(pub Vec<SynInstruction>);
     /// Computed `("," Id)*` array in `fun_params -> Id  ►► ("," Id)* ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunParams1(pub Vec<String>);
+    /// Computed `instruction*` array in `block -> "{"  ►► instruction* ◄◄  "}"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynBlock1(pub Vec<SynInstruction>);
     /// Computed `("," expr)*` array in `fun_args -> expr  ►► ("," expr)* ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunArgs1(pub Vec<SynExpr>);
 
     #[derive(Debug)]
-    enum SynValue { Program(SynProgram), Function(SynFunction), FunParams(SynFunParams), Instruction(SynInstruction), Expr(SynExpr), FunArgs(SynFunArgs), Program1(SynProgram1), Function1(SynFunction1), FunParams1(SynFunParams1), FunArgs1(SynFunArgs1) }
+    enum SynValue { Program(SynProgram), Function(SynFunction), FunParams(SynFunParams), Block(SynBlock), Instruction(SynInstruction), Expr(SynExpr), FunArgs(SynFunArgs), Program1(SynProgram1), FunParams1(SynFunParams1), Block1(SynBlock1), FunArgs1(SynFunArgs1) }
 
     impl SynValue {
         fn get_program(self) -> SynProgram {
@@ -395,6 +516,9 @@ pub mod microcalc_parser {
         }
         fn get_fun_params(self) -> SynFunParams {
             if let SynValue::FunParams(val) = self { val } else { panic!() }
+        }
+        fn get_block(self) -> SynBlock {
+            if let SynValue::Block(val) = self { val } else { panic!() }
         }
         fn get_instruction(self) -> SynInstruction {
             if let SynValue::Instruction(val) = self { val } else { panic!() }
@@ -408,11 +532,11 @@ pub mod microcalc_parser {
         fn get_program1(self) -> SynProgram1 {
             if let SynValue::Program1(val) = self { val } else { panic!() }
         }
-        fn get_function1(self) -> SynFunction1 {
-            if let SynValue::Function1(val) = self { val } else { panic!() }
-        }
         fn get_fun_params1(self) -> SynFunParams1 {
             if let SynValue::FunParams1(val) = self { val } else { panic!() }
+        }
+        fn get_block1(self) -> SynBlock1 {
+            if let SynValue::Block1(val) = self { val } else { panic!() }
         }
         fn get_fun_args1(self) -> SynFunArgs1 {
             if let SynValue::FunArgs1(val) = self { val } else { panic!() }
@@ -432,6 +556,8 @@ pub mod microcalc_parser {
         fn exit_function(&mut self, ctx: CtxFunction) -> SynFunction;
         fn init_fun_params(&mut self) {}
         fn exit_fun_params(&mut self, ctx: CtxFunParams) -> SynFunParams;
+        fn init_block(&mut self) {}
+        fn exit_block(&mut self, ctx: CtxBlock) -> SynBlock;
         fn init_instruction(&mut self) {}
         fn exit_instruction(&mut self, ctx: CtxInstruction) -> SynInstruction;
         fn init_expr(&mut self) {}
@@ -460,19 +586,20 @@ pub mod microcalc_parser {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_program(),          // program
-                        6 => self.init_program1(),                  // program_1
-                        16 => {}                                    // program_2
+                        7 => self.init_program1(),                  // program_1
+                        21 => {}                                    // program_2
                         1 => self.listener.init_function(),         // function
-                        7 => self.init_function1(),                 // function_1
-                        17 => {}                                    // function_2
                         2 => self.listener.init_fun_params(),       // fun_params
                         8 => self.init_fun_params1(),               // fun_params_1
-                        3 => self.listener.init_instruction(),      // instruction
-                        4 => self.listener.init_expr(),             // expr
-                        10 ..= 15 => {}                             // expr_1, expr_2, expr_3, expr_4, expr_5, expr_6
-                        18 => {}                                    // expr_7
-                        5 => self.listener.init_fun_args(),         // fun_args
-                        9 => self.init_fun_args1(),                 // fun_args_1
+                        3 => self.listener.init_block(),            // block
+                        9 => self.init_block1(),                    // block_1
+                        4 => self.listener.init_instruction(),      // instruction
+                        19 | 20 => {}                               // instruction_1, instruction_2
+                        5 => self.listener.init_expr(),             // expr
+                        11 ..= 18 => {}                             // expr_1, expr_2, expr_3, expr_4, expr_5, expr_6, expr_7, expr_8
+                        22 => {}                                    // expr_9
+                        6 => self.listener.init_fun_args(),         // fun_args
+                        10 => self.init_fun_args1(),                // fun_args_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -480,45 +607,67 @@ pub mod microcalc_parser {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_program(),                   // program -> program_1
-                        34 |                                        // program_2 -> program_1
-                        35 => self.exit_program1(),                 // program_2 -> ε
-                     /* 10 */                                       // program_1 -> function program_2 (never called)
-                        1 => self.exit_function(),                  // function -> "def" Id "(" fun_params ")" "{" function_1 "}"
-                        36 |                                        // function_2 -> function_1
-                        37 => self.exit_function1(),                // function_2 -> ε
-                     /* 11 */                                       // function_1 -> instruction function_2 (never called)
+                        58 |                                        // program_2 -> program_1
+                        59 => self.exit_program1(),                 // program_2 -> ε
+                     /* 15 */                                       // program_1 -> function program_2 (never called)
+                        1 => self.exit_function(),                  // function -> "def" Id "(" fun_params ")" instruction
                         2 |                                         // fun_params -> Id fun_params_1
                         3 => self.exit_fun_params(alt_id),          // fun_params -> ε
-                        12 => self.exit_fun_params1(),              // fun_params_1 -> "," Id fun_params_1
-                        13 => {}                                    // fun_params_1 -> ε
-                        4 |                                         // instruction -> "let" Id "=" expr ";"
-                        5 |                                         // instruction -> "return" expr ";"
-                        6 => self.exit_instruction(alt_id),         // instruction -> "print" expr ";"
-                        16 |                                        // expr_1 -> <R> "^" expr_4 expr_1
-                        17 |                                        // expr_1 -> "*" expr_4 expr_1
-                        18 |                                        // expr_1 -> "/" expr_4 expr_1
-                        19 |                                        // expr_1 -> "+" expr_2 expr_1
-                        20 => self.exit_expr1(alt_id),              // expr_1 -> "-" expr_2 expr_1
-                        23 |                                        // expr_3 -> <R> "^" expr_4 expr_3 (duplicate of 16)
-                        28 => self.exit_expr1(16),                  // expr_5 -> <R> "^" expr_4 expr_5 (duplicate of 16)
-                        24 => self.exit_expr1(17),                  // expr_3 -> "*" expr_4 expr_3 (duplicate of 17)
-                        25 => self.exit_expr1(18),                  // expr_3 -> "/" expr_4 expr_3 (duplicate of 18)
-                        30 |                                        // expr_6 -> "(" expr ")"
-                        31 |                                        // expr_6 -> "-" expr_6
-                        33 |                                        // expr_6 -> Num
-                        38 |                                        // expr_7 -> "(" fun_args ")"
-                        39 => self.exit_expr6(alt_id),              // expr_7 -> ε
-                        7 => {}                                     // expr -> expr_6 expr_1 (not used)
-                        21 => {}                                    // expr_1 -> ε (not used)
-                        22 => {}                                    // expr_2 -> expr_6 expr_3 (not used)
-                        26 => {}                                    // expr_3 -> ε (not used)
-                        27 => {}                                    // expr_4 -> expr_6 expr_5 (not used)
-                        29 => {}                                    // expr_5 -> ε (not used)
-                     /* 32 */                                       // expr_6 -> Id expr_7 (never called)
-                        8 |                                         // fun_args -> expr fun_args_1
-                        9 => self.exit_fun_args(alt_id),            // fun_args -> ε
-                        14 => self.exit_fun_args1(),                // fun_args_1 -> "," expr fun_args_1
-                        15 => {}                                    // fun_args_1 -> ε
+                        16 => self.exit_fun_params1(),              // fun_params_1 -> "," Id fun_params_1
+                        17 => {}                                    // fun_params_1 -> ε
+                        4 => self.exit_block(),                     // block -> "{" block_1 "}"
+                        18 => self.exit_block1(),                   // block_1 -> instruction block_1
+                        19 => {}                                    // block_1 -> ε
+                        6 |                                         // instruction -> "let" Id "=" expr ";"
+                        7 |                                         // instruction -> "print" expr ";"
+                        8 |                                         // instruction -> "return" expr ";"
+                        9 |                                         // instruction -> "while" expr block
+                        11 |                                        // instruction -> block
+                        54 |                                        // instruction_1 -> "else" instruction
+                        55 |                                        // instruction_1 -> ε
+                        56 |                                        // instruction_2 -> "=" expr ";"
+                        57 => self.exit_instruction(alt_id),        // instruction_2 -> "(" fun_args ")" ";"
+                     /* 5 */                                        // instruction -> "if" expr instruction instruction_1 (never called)
+                     /* 10 */                                       // instruction -> Id instruction_2 (never called)
+                        22 |                                        // expr_1 -> <R> "^" expr_6 expr_1
+                        23 |                                        // expr_1 -> "*" expr_6 expr_1
+                        24 |                                        // expr_1 -> "/" expr_6 expr_1
+                        25 |                                        // expr_1 -> "+" expr_4 expr_1
+                        26 |                                        // expr_1 -> "-" expr_4 expr_1
+                        27 |                                        // expr_1 -> "==" expr_2 expr_1
+                        28 |                                        // expr_1 -> "!=" expr_2 expr_1
+                        29 |                                        // expr_1 -> "<" expr_2 expr_1
+                        30 |                                        // expr_1 -> ">" expr_2 expr_1
+                        31 |                                        // expr_1 -> "<=" expr_2 expr_1
+                        32 => self.exit_expr1(alt_id),              // expr_1 -> ">=" expr_2 expr_1
+                        35 |                                        // expr_3 -> <R> "^" expr_6 expr_3 (duplicate of 22)
+                        42 |                                        // expr_5 -> <R> "^" expr_6 expr_5 (duplicate of 22)
+                        47 => self.exit_expr1(22),                  // expr_7 -> <R> "^" expr_6 expr_7 (duplicate of 22)
+                        36 |                                        // expr_3 -> "*" expr_6 expr_3 (duplicate of 23)
+                        43 => self.exit_expr1(23),                  // expr_5 -> "*" expr_6 expr_5 (duplicate of 23)
+                        37 |                                        // expr_3 -> "/" expr_6 expr_3 (duplicate of 24)
+                        44 => self.exit_expr1(24),                  // expr_5 -> "/" expr_6 expr_5 (duplicate of 24)
+                        38 => self.exit_expr1(25),                  // expr_3 -> "+" expr_4 expr_3 (duplicate of 25)
+                        39 => self.exit_expr1(26),                  // expr_3 -> "-" expr_4 expr_3 (duplicate of 26)
+                        49 |                                        // expr_8 -> "!" expr_2
+                        50 |                                        // expr_8 -> "(" expr ")"
+                        51 |                                        // expr_8 -> "-" expr_8
+                        53 |                                        // expr_8 -> Num
+                        60 |                                        // expr_9 -> "(" fun_args ")"
+                        61 => self.exit_expr8(alt_id),              // expr_9 -> ε
+                        12 => {}                                    // expr -> expr_8 expr_1 (not used)
+                        33 => {}                                    // expr_1 -> ε (not used)
+                        34 => {}                                    // expr_2 -> expr_8 expr_3 (not used)
+                        40 => {}                                    // expr_3 -> ε (not used)
+                        41 => {}                                    // expr_4 -> expr_8 expr_5 (not used)
+                        45 => {}                                    // expr_5 -> ε (not used)
+                        46 => {}                                    // expr_6 -> expr_8 expr_7 (not used)
+                        48 => {}                                    // expr_7 -> ε (not used)
+                     /* 52 */                                       // expr_8 -> Id expr_9 (never called)
+                        13 |                                        // fun_args -> expr fun_args_1
+                        14 => self.exit_fun_args(alt_id),           // fun_args -> ε
+                        20 => self.exit_fun_args1(),                // fun_args_1 -> "," expr fun_args_1
+                        21 => {}                                    // fun_args_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -597,25 +746,12 @@ pub mod microcalc_parser {
         }
 
         fn exit_function(&mut self) {
-            let plus = self.stack.pop().unwrap().get_function1();
+            let instruction = self.stack.pop().unwrap().get_instruction();
             let fun_params = self.stack.pop().unwrap().get_fun_params();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxFunction::V1 { id, fun_params, plus };
+            let ctx = CtxFunction::V1 { id, fun_params, instruction };
             let val = self.listener.exit_function(ctx);
             self.stack.push(SynValue::Function(val));
-        }
-
-        fn init_function1(&mut self) {
-            let val = SynFunction1(Vec::new());
-            self.stack.push(SynValue::Function1(val));
-        }
-
-        fn exit_function1(&mut self) {
-            let instruction = self.stack.pop().unwrap().get_instruction();
-            let Some(SynValue::Function1(SynFunction1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynFunction1 item on wrapper stack");
-            };
-            plus_acc.push(instruction);
         }
 
         fn exit_fun_params(&mut self, alt_id: AltId) {
@@ -647,20 +783,70 @@ pub mod microcalc_parser {
             star_acc.push(id);
         }
 
+        fn exit_block(&mut self) {
+            let star = self.stack.pop().unwrap().get_block1();
+            let ctx = CtxBlock::V1 { star };
+            let val = self.listener.exit_block(ctx);
+            self.stack.push(SynValue::Block(val));
+        }
+
+        fn init_block1(&mut self) {
+            let val = SynBlock1(Vec::new());
+            self.stack.push(SynValue::Block1(val));
+        }
+
+        fn exit_block1(&mut self) {
+            let instruction = self.stack.pop().unwrap().get_instruction();
+            let Some(SynValue::Block1(SynBlock1(star_acc))) = self.stack.last_mut() else {
+                panic!("unexpected SynBlock1 item on wrapper stack");
+            };
+            star_acc.push(instruction);
+        }
+
         fn exit_instruction(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                4 => {
+                6 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
                     CtxInstruction::V1 { id, expr }
                 }
-                5 => {
+                7 => {
                     let expr = self.stack.pop().unwrap().get_expr();
-                    CtxInstruction::V2 { expr }
+                    CtxInstruction::V4 { expr }
                 }
-                6 => {
+                8 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     CtxInstruction::V3 { expr }
+                }
+                9 => {
+                    let block = self.stack.pop().unwrap().get_block();
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxInstruction::V8 { expr, block }
+                }
+                11 => {
+                    let block = self.stack.pop().unwrap().get_block();
+                    CtxInstruction::V9 { block }
+                }
+                54 => {
+                    let instruction_2 = self.stack.pop().unwrap().get_instruction();
+                    let instruction_1 = self.stack.pop().unwrap().get_instruction();
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxInstruction::V6 { expr, instruction: [instruction_1, instruction_2] }
+                }
+                55 => {
+                    let instruction = self.stack.pop().unwrap().get_instruction();
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxInstruction::V7 { expr, instruction }
+                }
+                56 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxInstruction::V2 { id, expr }
+                }
+                57 => {
+                    let fun_args = self.stack.pop().unwrap().get_fun_args();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxInstruction::V5 { id, fun_args }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
             };
@@ -670,30 +856,60 @@ pub mod microcalc_parser {
 
         fn exit_expr1(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                16 => {
+                22 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V2 { expr: [expr_1, expr_2] }
                 }
-                17 => {
+                23 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V3 { expr: [expr_1, expr_2] }
                 }
-                18 => {
+                24 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V4 { expr: [expr_1, expr_2] }
                 }
-                19 => {
+                25 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V5 { expr: [expr_1, expr_2] }
                 }
-                20 => {
+                26 => {
                     let expr_2 = self.stack.pop().unwrap().get_expr();
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V6 { expr: [expr_1, expr_2] }
+                }
+                27 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V8 { expr: [expr_1, expr_2] }
+                }
+                28 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V9 { expr: [expr_1, expr_2] }
+                }
+                29 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V10 { expr: [expr_1, expr_2] }
+                }
+                30 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V11 { expr: [expr_1, expr_2] }
+                }
+                31 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V12 { expr: [expr_1, expr_2] }
+                }
+                32 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V13 { expr: [expr_1, expr_2] }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
@@ -701,30 +917,34 @@ pub mod microcalc_parser {
             self.stack.push(SynValue::Expr(val));
         }
 
-        fn exit_expr6(&mut self, alt_id: AltId) {
+        fn exit_expr8(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                30 => {
+                49 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V7 { expr }
                 }
-                31 => {
+                50 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::V14 { expr }
+                }
+                51 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V1 { expr }
                 }
-                33 => {
+                53 => {
                     let num = self.stack_t.pop().unwrap();
-                    CtxExpr::V10 { num }
+                    CtxExpr::V17 { num }
                 }
-                38 => {
+                60 => {
                     let fun_args = self.stack.pop().unwrap().get_fun_args();
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::V8 { id, fun_args }
+                    CtxExpr::V15 { id, fun_args }
                 }
-                39 => {
+                61 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxExpr::V9 { id }
+                    CtxExpr::V16 { id }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_expr6")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr8")
             };
             let val = self.listener.exit_expr(ctx);
             self.stack.push(SynValue::Expr(val));
@@ -732,12 +952,12 @@ pub mod microcalc_parser {
 
         fn exit_fun_args(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                8 => {
+                13 => {
                     let star = self.stack.pop().unwrap().get_fun_args1();
                     let expr = self.stack.pop().unwrap().get_expr();
                     CtxFunArgs::V1 { expr, star }
                 }
-                9 => {
+                14 => {
                     CtxFunArgs::V2
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_fun_args")
