@@ -1,6 +1,6 @@
 [package]
 name = "lexi-gram"
-version = "0.8.2"
+version = "0.8.3"
 description = "Lexi and Gram lexicon/grammar parsers, used by the lexigram lexer/parser generator"
 edition.workspace = true
 rust-version.workspace = true
@@ -15,7 +15,7 @@ documentation = "https://docs.rs/lexi-gram"
 readme = "README.md"
 
 [dependencies]
-#lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.2", package = "lexigram-lib" }
-lexigram-lib = { path = "..", version = "0.8.2" }
+#lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.3", package = "lexigram-lib" }
+lexigram-lib = { path = "..", version = "0.8.3" }
 iter-index = "1.0.0"
 vectree = "0.2.3"

@@ -64,6 +64,7 @@ pub enum GrNode {
     RAssoc,         // applied to alternative, right-associative
     PrecEq,         // applied to alternative, same precedence as previous alternative
     Instance,       // instance of * or + in reference origin trees
+    Greedy,         // alternative is greedy in parsing table
 }
 
 impl Display for GrNode {
@@ -79,6 +80,7 @@ impl Display for GrNode {
             GrNode::RAssoc => write!(f, "<R>"),
             GrNode::PrecEq => write!(f, "<P>"),
             GrNode::Instance => write!(f, "inst "),
+            GrNode::Greedy => write!(f, "<G>"),
         }
     }
 }
@@ -104,11 +106,12 @@ impl GrNode {
             GrNode::RAssoc    => "gnode!(R)".to_string(),
             GrNode::PrecEq    => "gnode!(P)".to_string(),
             GrNode::Instance  => "gnode!(inst)".to_string(),
+            GrNode::Greedy    => "gnode!(G)".to_string(),
         }
     }
 
     pub fn is_modifier(&self) -> bool {
-        matches!(self, GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq)
+        matches!(self, GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Greedy)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -207,6 +210,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
                     GrNode::LForm(var) => (PR_ATOM, if simplified || nt == Some(*var) { "<L>".to_string() } else { format!("<L={}>", Symbol::NT(*var).to_str(symbol_table)) }),
                     GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                     GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
+                    GrNode::Greedy => (PR_ATOM, "<G>".to_string()),
                     s => panic!("{s:?} should have children"),
                 }
             }
@@ -272,7 +276,7 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
         GrNode::Or => (tree.children(root).to_owned(), true),
         // we don't handle those cases:
         GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_)
-        | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => { return None }
+        | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance | GrNode::Greedy => { return None }
     };
     let terms_len = terms.len();
     let mut empty_terms = vec![];
@@ -342,7 +346,7 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
         GrNode::Symbol(s) => s.is_empty(),
         GrNode::Concat => false, // an empty `&` is simplified to `ε` above // matches!(tree.children(root), &[i] if tree.get(i).is_empty()),
         GrNode::Or => false, // an empty `|` is simplified to `ε` above
-        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => false,
+        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance | GrNode::Greedy => false,
     };
     Some((is_empty, had_empty_term))
 }
@@ -686,7 +690,7 @@ impl RuleTreeSet<General> {
                                     let mut new_children = Vec::new();
                                     for id in children {
                                         match new.get(id) {
-                                            GrNode::Symbol(_) | GrNode::Concat => {
+                                            GrNode::Symbol(_) | GrNode::Concat | GrNode::Greedy => {
                                                 if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
                                                 new_children.push(id);
                                             }
@@ -1243,6 +1247,9 @@ pub mod macros {
     /// assert_eq!(gnode!(*), GrNode::Star);
     /// assert_eq!(gnode!(L 3), GrNode::LForm(3));
     /// assert_eq!(gnode!(R), GrNode::RAssoc);
+    /// assert_eq!(gnode!(P), GrNode::PrecEq);
+    /// assert_eq!(gnode!(inst), GrNode::Instance);
+    /// assert_eq!(gnode!(G), GrNode::Greedy);
     /// ```
     #[macro_export]
     macro_rules! gnode {
@@ -1261,6 +1268,7 @@ pub mod macros {
         (R) => { $crate::grammar::GrNode::RAssoc };
         (P) => { $crate::grammar::GrNode::PrecEq };
         (inst) => { $crate::grammar::GrNode::Instance };
+        (G) => { $crate::grammar::GrNode::Greedy };
     }
 
     /// Generates a `Symbol` instance.

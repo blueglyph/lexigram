@@ -63,4 +63,5 @@ item:
 |   LTag
 |   PTag
 |   RTag
+|   GTag
 ;

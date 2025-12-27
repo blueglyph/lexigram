@@ -35,6 +35,7 @@ Semicolon               : ';';
 LTag                    : '<L' ('=' NonterminalId)? '>';
 PTag                    : '<P>';
 RTag                    : '<R>';
+GTag                    : '<G>';
 
 Token                   : 'token';
 

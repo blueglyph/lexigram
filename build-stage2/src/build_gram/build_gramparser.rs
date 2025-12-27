@@ -18,9 +18,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram-lib: 0.8.2
-    // lexi-gram: 0.8.2
-    // build-stage1: 0.8.2
+    // lexigram-lib: 0.8.3
+    // lexi-gram: 0.8.3
+    // build-stage1: 0.8.3
 
     // [versions]
 
@@ -29,14 +29,14 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
 
     static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 9] = [
         (Some(2), &[(gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(&), &[0,1])]),
-        (Some(3), &[(gnode!(t 8), &[]), (gnode!(t 13), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2])]),
+        (Some(3), &[(gnode!(t 8), &[]), (gnode!(t 14), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2])]),
         (Some(4), &[(gnode!(nt 3), &[]), (gnode!(nt 2), &[]), (gnode!(nt 3), &[]), (gnode!(&), &[1,2]), (gnode!(|), &[0,3])]),
         (Some(11), &[(gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 9), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2,3,4]), (gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 6), &[]), (gnode!(&), &[6,7,8,9]), (gnode!(|), &[5,10])]),
-        (Some(0), &[(gnode!(t 13), &[])]),
+        (Some(0), &[(gnode!(t 14), &[])]),
         (Some(5), &[(gnode!(nt 6), &[]), (gnode!(nt 5), &[]), (gnode!(t 2), &[]), (gnode!(nt 6), &[]), (gnode!(&), &[1,2,3]), (gnode!(|), &[0,4])]),
         (Some(2), &[(gnode!(*), &[1]), (gnode!(nt 7), &[]), (gnode!(inst), &[0])]),
         (Some(11), &[(gnode!(nt 8), &[]), (gnode!(t 3), &[]), (gnode!(&), &[0,1]), (gnode!(nt 8), &[]), (gnode!(t 7), &[]), (gnode!(&), &[3,4]), (gnode!(nt 8), &[]), (gnode!(t 4), &[]), (gnode!(&), &[6,7]), (gnode!(nt 8), &[]), (gnode!(&), &[9]), (gnode!(|), &[2,5,8,10])]),
-        (Some(8), &[(gnode!(t 13), &[]), (gnode!(t 10), &[]), (gnode!(t 11), &[]), (gnode!(t 12), &[]), (gnode!(t 1), &[]), (gnode!(nt 5), &[]), (gnode!(t 5), &[]), (gnode!(&), &[4,5,6]), (gnode!(|), &[0,1,2,3,7])]),
+        (Some(9), &[(gnode!(t 14), &[]), (gnode!(t 10), &[]), (gnode!(t 11), &[]), (gnode!(t 12), &[]), (gnode!(t 13), &[]), (gnode!(t 1), &[]), (gnode!(nt 5), &[]), (gnode!(t 5), &[]), (gnode!(&), &[5,6,7]), (gnode!(|), &[0,1,2,3,4,8])]),
     ];
     static MAP: [(VarId, (VarId, usize)); 1] = [
         (9, (6, 0)),
@@ -49,14 +49,14 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         Some("GramParser"),
         vec![
             prule!(%(0, 2), nt 1, nt 2),
-            prule!(%(1, 3), t 8, t 13, t 6),
+            prule!(%(1, 3), t 8, t 14, t 6),
             prule!(%(2, 0), nt 3, nt 10),
             prule!(nt 4, t 0, nt 5, nt 12),
-            prule!(%(4, 0), t 13),
+            prule!(%(4, 0), t 14),
             prule!(%(5, 0), nt 6, nt 11),
             prule!(%(6, 2), nt 9),
             prule!(nt 8, nt 13),
-            prule!(%(8, 0), t 13; %(8, 1), t 10; %(8, 2), t 11; %(8, 3), t 12; %(8, 7), t 1, nt 5, t 5),
+            prule!(%(8, 0), t 14; %(8, 1), t 10; %(8, 2), t 11; %(8, 3), t 12; %(8, 4), t 13; %(8, 8), t 1, nt 5, t 5),
             prule!(%(6, 1), nt 7, nt 9; e),
             prule!(#(0, 0), %(2, 3), nt 3, nt 10; e),
             prule!(#(0, 1), %(5, 4), t 2, nt 6, nt 11; e),
@@ -64,7 +64,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
             prule!(%(7, 2), t 3; %(7, 8), t 4; %(7, 5), t 7; %(7, 10), e),
         ],
         origin,
-        vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)],
+        vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("Id", None)],
         vec!["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"],
         vec![0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)],

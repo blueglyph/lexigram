@@ -1291,6 +1291,10 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                             flags |= ruleflag::PREC_EQ;
                             false
                         }
+                        GrNode::Greedy => {
+                            flags |= ruleflag::GREEDY;
+                            false
+                        }
                         _ => true,
                     }
                 })

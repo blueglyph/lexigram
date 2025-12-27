@@ -11,7 +11,7 @@ use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 // -------------------------------------------------------------------------
 // [terminal_symbols]
 
-static TERMINALS: [(&str, Option<&str>); 14] = [
+static TERMINALS: [(&str, Option<&str>); 15] = [
     ("Colon",    Some(":")),       // 0
     ("Lparen",   Some("(")),       // 1
     ("Or",       Some("|")),       // 2
@@ -25,7 +25,8 @@ static TERMINALS: [(&str, Option<&str>); 14] = [
     ("Lform",    None),            // 10
     ("Rform",    Some("<R>")),     // 11
     ("Pform",    Some("<P>")),     // 12
-    ("Id",       None),            // 13
+    ("Greedy",   Some("<G>")),     // 13
+    ("Id",       None),            // 14
 ];
 
 // [terminal_symbols]
@@ -36,9 +37,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram-lib: 0.8.2
-    // lexi-gram: 0.8.2
-    // build-stage1: 0.8.2
+    // lexigram-lib: 0.8.3
+    // lexi-gram: 0.8.3
+    // build-stage1: 0.8.3
 
     // [versions]
 
@@ -47,51 +48,53 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
 
     let dfa_tables = DfaTables::new(
         btreemap![
-            0 => branch!('\t'-'\n', '\r', ' ' => 10, '(' => 11, ')' => 12, '*' => 13, '+' => 14, '/' => 1, ':' => 15, ';' => 16, '<' => 2, '?' => 17, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 18, 'E' => 19, 'g' => 20, '|' => 21),
-            1 => branch!('*' => 3, '/' => 22),
-            2 => branch!('L' => 5, 'P' => 6, 'R' => 7),
+            0 => branch!('\t'-'\n', '\r', ' ' => 11, '(' => 12, ')' => 13, '*' => 14, '+' => 15, '/' => 1, ':' => 16, ';' => 17, '<' => 2, '?' => 18, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 19, 'E' => 20, 'g' => 21, '|' => 22),
+            1 => branch!('*' => 3, '/' => 23),
+            2 => branch!('G' => 5, 'L' => 6, 'P' => 7, 'R' => 8),
             3 => branch!(~['*'] => 3, ['*'] => 4),
-            4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 23),
-            5 => branch!('=' => 8, '>' => 32),
-            6 => branch!('>' => 34),
-            7 => branch!('>' => 33),
-            8 => branch!('A'-'Z', 'a'-'z' => 9),
-            9 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 32),
-            10 => branch!('\t'-'\n', '\r', ' ' => 10),
-            11 => branch!(),
+            4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 24),
+            5 => branch!('>' => 36),
+            6 => branch!('=' => 9, '>' => 33),
+            7 => branch!('>' => 35),
+            8 => branch!('>' => 34),
+            9 => branch!('A'-'Z', 'a'-'z' => 10),
+            10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 33),
+            11 => branch!('\t'-'\n', '\r', ' ' => 11),
             12 => branch!(),
             13 => branch!(),
             14 => branch!(),
             15 => branch!(),
             16 => branch!(),
             17 => branch!(),
-            18 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 18),
-            19 => branch!('0'-'9', 'A'-'N', 'P'-'Z', '_', 'a'-'z' => 18, 'O' => 30),
-            20 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 18, 'r' => 24),
-            21 => branch!(),
-            22 => branch!(~['\n', '\r'] => 22),
-            23 => branch!(),
-            24 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 18, 'a' => 25),
-            25 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 18, 'm' => 26),
-            26 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 18, 'm' => 27),
-            27 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 18, 'a' => 28),
-            28 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 18, 'r' => 29),
-            29 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 18),
-            30 => branch!('0'-'9', 'A'-'E', 'G'-'Z', '_', 'a'-'z' => 18, 'F' => 31),
-            31 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 18),
-            32 => branch!(),
+            18 => branch!(),
+            19 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
+            20 => branch!('0'-'9', 'A'-'N', 'P'-'Z', '_', 'a'-'z' => 19, 'O' => 31),
+            21 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 19, 'r' => 25),
+            22 => branch!(),
+            23 => branch!(~['\n', '\r'] => 23),
+            24 => branch!(),
+            25 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 19, 'a' => 26),
+            26 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 19, 'm' => 27),
+            27 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 19, 'm' => 28),
+            28 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 19, 'a' => 29),
+            29 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 19, 'r' => 30),
+            30 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
+            31 => branch!('0'-'9', 'A'-'E', 'G'-'Z', '_', 'a'-'z' => 19, 'F' => 32),
+            32 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
             33 => branch!(),
             34 => branch!(),
+            35 => branch!(),
+            36 => branch!(),
         ],
         Some(0),
         btreemap![
-            10 => term!(skip), 11 => term!(=1), 12 => term!(=5), 13 => term!(=7), 14 => term!(=3), 15 => term!(=0),
-            16 => term!(=6), 17 => term!(=4), 18 => term!(=13), 19 => term!(=13), 20 => term!(=13), 21 => term!(=2),
-            22 => term!(skip), 23 => term!(skip), 24 => term!(=13), 25 => term!(=13), 26 => term!(=13), 27 => term!(=13),
-            28 => term!(=13), 29 => term!(=8), 30 => term!(=13), 31 => term!(=9), 32 => term!(=10), 33 => term!(=11),
-            34 => term!(=12),
+            11 => term!(skip), 12 => term!(=1), 13 => term!(=5), 14 => term!(=7), 15 => term!(=3), 16 => term!(=0),
+            17 => term!(=6), 18 => term!(=4), 19 => term!(=14), 20 => term!(=14), 21 => term!(=14), 22 => term!(=2),
+            23 => term!(skip), 24 => term!(skip), 25 => term!(=14), 26 => term!(=14), 27 => term!(=14), 28 => term!(=14),
+            29 => term!(=14), 30 => term!(=8), 31 => term!(=14), 32 => term!(=9), 33 => term!(=10), 34 => term!(=11),
+            35 => term!(=12), 36 => term!(=13),
         ],
-        Some(10),
+        Some(11),
     );
 
     // [gramlexer_stage_2]

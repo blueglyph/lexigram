@@ -376,7 +376,7 @@ impl GramParserListener for GramListener {
     fn exit_prod_atom(&mut self, ctx: CtxProdAtom) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
         let id = match ctx {
-            CtxProdAtom::V1 { id } => {                  // factor_item -> Id
+            CtxProdAtom::V1 { id } => {                  // prod_atom -> Id
                 match self.symbols.get(&id) {
                     Some(s @ Symbol::NT(_)) |
                     Some(s @ Symbol::T(_)) => self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)),
@@ -393,7 +393,7 @@ impl GramParserListener for GramListener {
                     }
                 }
             }
-            CtxProdAtom::V2 { lform } => {               // factor_item -> Lform
+            CtxProdAtom::V2 { lform } => {               // prod_atom -> Lform
                 let name_maybe = if lform.len() > 3 {
                     let name = lform[3..lform.len() - 1].to_string();
                     if &name == self.curr_name.as_ref().unwrap() {
@@ -433,13 +433,16 @@ impl GramParserListener for GramListener {
                 };
                 self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt))
             }
-            CtxProdAtom::V3 => {                         // factor_item -> <R>
+            CtxProdAtom::V3 => {                         // prod_atom -> <R>
                 self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
             }
-            CtxProdAtom::V4 => {                         // factor_item -> <P>
+            CtxProdAtom::V4 => {                         // prod_atom -> <P>
                 self.curr.as_mut().unwrap().add(None, GrNode::PrecEq)
             }
-            CtxProdAtom::V5 { prod } => prod.0,          // factor_item -> ( prod )
+            CtxProdAtom::V5 => {                        // prod_atom -> "<G>"
+                self.curr.as_mut().unwrap().add(None, GrNode::Greedy)
+            }
+            CtxProdAtom::V6 { prod } => prod.0,          // prod_atom -> ( prod )
         };
         SynProdAtom(id)
     }

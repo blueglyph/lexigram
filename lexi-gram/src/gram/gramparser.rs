@@ -6,13 +6,13 @@
 use gramparser_types::*;
 use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
-const PARSER_NUM_T: usize = 14;
+const PARSER_NUM_T: usize = 15;
 const PARSER_NUM_NT: usize = 14;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)];
+static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("Id", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
-static ALT_VAR: [VarId; 25] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
-static PARSING_TABLE: [AltId; 210] = [25, 25, 25, 25, 25, 25, 25, 25, 0, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 1, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 2, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 3, 26, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 4, 25, 25, 5, 5, 25, 25, 5, 5, 25, 25, 5, 5, 5, 5, 5, 25, 25, 6, 6, 25, 25, 6, 6, 25, 25, 6, 6, 6, 6, 6, 25, 25, 7, 26, 25, 25, 26, 26, 25, 25, 26, 7, 7, 7, 7, 25, 25, 12, 26, 26, 26, 26, 26, 26, 25, 26, 9, 10, 11, 8, 25, 25, 13, 14, 25, 25, 14, 14, 25, 25, 14, 13, 13, 13, 13, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 15, 16, 25, 25, 17, 25, 25, 18, 18, 25, 25, 18, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 19, 25, 25, 20, 25, 25, 25, 26, 26, 25, 24, 24, 21, 22, 24, 24, 23, 25, 24, 24, 24, 24, 24, 25];
-static OPCODES: [&[OpCode]; 25] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(13), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(13)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(13)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(13), OpCode::NT(7)], &[OpCode::Exit(14)], &[OpCode::Loop(10), OpCode::Exit(15), OpCode::NT(3)], &[OpCode::Exit(16)], &[OpCode::Loop(11), OpCode::Exit(17), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::T(6)], &[OpCode::Exit(20), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(21), OpCode::T(3)], &[OpCode::Exit(22), OpCode::T(4)], &[OpCode::Exit(23), OpCode::T(7)], &[OpCode::Exit(24)]];
+static ALT_VAR: [VarId; 26] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
+static PARSING_TABLE: [AltId; 224] = [26, 26, 26, 26, 26, 26, 26, 26, 0, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 1, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 2, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 3, 27, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 4, 26, 26, 5, 5, 26, 26, 5, 5, 26, 26, 5, 5, 5, 5, 5, 5, 26, 26, 6, 6, 26, 26, 6, 6, 26, 26, 6, 6, 6, 6, 6, 6, 26, 26, 7, 27, 26, 26, 27, 27, 26, 26, 27, 7, 7, 7, 7, 7, 26, 26, 13, 27, 27, 27, 27, 27, 27, 26, 27, 9, 10, 11, 12, 8, 26, 26, 14, 15, 26, 26, 15, 15, 26, 26, 15, 14, 14, 14, 14, 14, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 16, 17, 26, 26, 18, 26, 26, 19, 19, 26, 26, 19, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 20, 26, 26, 21, 26, 26, 26, 26, 27, 27, 26, 25, 25, 22, 23, 25, 25, 24, 26, 25, 25, 25, 25, 25, 25, 26];
+static OPCODES: [&[OpCode]; 26] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(14), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(14)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(14)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(13)], &[OpCode::Exit(13), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(14), OpCode::NT(7)], &[OpCode::Exit(15)], &[OpCode::Loop(10), OpCode::Exit(16), OpCode::NT(3)], &[OpCode::Exit(17)], &[OpCode::Loop(11), OpCode::Exit(18), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(19)], &[OpCode::Exit(20), OpCode::T(6)], &[OpCode::Exit(21), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(22), OpCode::T(3)], &[OpCode::Exit(23), OpCode::T(4)], &[OpCode::Exit(24), OpCode::T(7)], &[OpCode::Exit(25)]];
 static START_SYMBOL: VarId = 0;
 
 pub fn build_parser() -> Parser<'static> {
@@ -93,8 +93,10 @@ pub enum CtxProdAtom {
     V3,
     /// `prod_atom -> "<P>"`
     V4,
+    /// `prod_atom -> "<G>"`
+    V5,
     /// `prod_atom -> "(" prod ")"`
-    V5 { prod: SynProd },
+    V6 { prod: SynProd },
 }
 
 // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -230,28 +232,29 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     0 => self.exit_file(),                      // file -> header rules
                     1 => self.exit_header(),                    // header -> "grammar" Id ";"
                     2 => self.inter_rules(),                    // rules -> rule rules_1
-                    15 => self.exit_rules1(),                   // rules_1 -> rule rules_1
-                    16 => self.exitloop_rules1(),               // rules_1 -> ε
-                    19 |                                        // rule_1 -> ";"
-                    20 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
+                    16 => self.exit_rules1(),                   // rules_1 -> rule rules_1
+                    17 => self.exitloop_rules1(),               // rules_1 -> ε
+                    20 |                                        // rule_1 -> ";"
+                    21 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
                  /* 3 */                                        // rule -> rule_name ":" prod rule_1 (never called)
                     4 => self.exit_rule_name(),                 // rule_name -> Id
                     5 => self.inter_prod(),                     // prod -> prod_term prod_1
-                    17 => self.exit_prod1(),                    // prod_1 -> "|" prod_term prod_1
-                    18 => self.exitloop_prod1(),                // prod_1 -> ε
+                    18 => self.exit_prod1(),                    // prod_1 -> "|" prod_term prod_1
+                    19 => self.exitloop_prod1(),                // prod_1 -> ε
                     6 => self.exit_prod_term(),                 // prod_term -> prod_term_1
-                    13 => self.exit_prod_term1(),               // prod_term_1 -> prod_factor prod_term_1
-                    14 => {}                                    // prod_term_1 -> ε
-                    21 |                                        // prod_factor_1 -> "+"
-                    22 |                                        // prod_factor_1 -> "?"
-                    23 |                                        // prod_factor_1 -> "*"
-                    24 => self.exit_prod_factor(alt_id),        // prod_factor_1 -> ε
+                    14 => self.exit_prod_term1(),               // prod_term_1 -> prod_factor prod_term_1
+                    15 => {}                                    // prod_term_1 -> ε
+                    22 |                                        // prod_factor_1 -> "+"
+                    23 |                                        // prod_factor_1 -> "?"
+                    24 |                                        // prod_factor_1 -> "*"
+                    25 => self.exit_prod_factor(alt_id),        // prod_factor_1 -> ε
                  /* 7 */                                        // prod_factor -> prod_atom prod_factor_1 (never called)
                     8 |                                         // prod_atom -> Id
                     9 |                                         // prod_atom -> Lform
                     10 |                                        // prod_atom -> "<R>"
                     11 |                                        // prod_atom -> "<P>"
-                    12 => self.exit_prod_atom(alt_id),          // prod_atom -> "(" prod ")"
+                    12 |                                        // prod_atom -> "<G>"
+                    13 => self.exit_prod_atom(alt_id),          // prod_atom -> "(" prod ")"
                     _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }
@@ -346,12 +349,12 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_rule(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            19 => {
+            20 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 CtxRule::V2 { rule_name, prod }
             }
-            20 => {
+            21 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 CtxRule::V1 { rule_name, prod }
@@ -411,19 +414,19 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            21 => {
+            22 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 CtxProdFactor::V1 { prod_atom }
             }
-            22 => {
+            23 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 CtxProdFactor::V3 { prod_atom }
             }
-            23 => {
+            24 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 CtxProdFactor::V2 { prod_atom }
             }
-            24 => {
+            25 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 CtxProdFactor::V4 { prod_atom }
             }
@@ -450,8 +453,11 @@ impl<T: GramParserListener> Wrapper<T> {
                 CtxProdAtom::V4
             }
             12 => {
+                CtxProdAtom::V5
+            }
+            13 => {
                 let prod = self.stack.pop().unwrap().get_prod();
-                CtxProdAtom::V5 { prod }
+                CtxProdAtom::V6 { prod }
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_prod_atom")
         };

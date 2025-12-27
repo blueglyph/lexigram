@@ -24,5 +24,6 @@ SymEof          : 'EOF';
 Lform           : '<L' ('=' ID)? '>';
 Rform           : '<R>';
 Pform           : '<P>';
+Greedy          : '<G>';
 
 Id              : ID;

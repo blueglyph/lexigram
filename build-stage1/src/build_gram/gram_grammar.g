@@ -37,5 +37,6 @@ prod_atom:
 |   Lform
 |   Rform
 |   Pform
+|   Greedy
 |   Lparen prod Rparen
 ;
