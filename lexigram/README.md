@@ -17,7 +17,7 @@ Its main particularities are:
 * Most of the LL(1) restrictions that can be worked around by rule transformation, like left-recursive rules and ambiguous expression-like rules with precedence and associativity, are handled automatically and as transparently as possible by **lexigram**.
 * It doesn't mix Rust code with the grammar or the lexicon.
 * The generated code includes a trait that must be implemented by the user listener object, and which provides callback methods for each initialization and exit of nonterminals (grammar rules).
-* Contrary to ANTLR, the callbacks are called immediately during the parsing phase, not after the reconstruction of an internal AST. This allows for a minimal latency; for example if the application must parse a virtually infinite log and produce a real-time output, or if the parsing may require the remapping of some tokens before parsing the rest of the text (C's _typedef_). 
+* Contrary to ANTLR, the callbacks are called immediately during the parsing phase, not after the construction of a concrete syntax tree. This allows for a minimal latency; for example if the application must parse a virtually infinite log and produce a real-time output, or if the parsing may require the remapping of some tokens before parsing the rest of the text (C's _typedef_). 
 
 ## Simplified Example
 

@@ -4,9 +4,9 @@
 // Generates the source of the pandemonium parser
 
 use lexi_gram::{gencode, genspec};
-use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
+use lexi_gram::gen_parser::{try_gen_parser};
 use lexi_gram::options::{Action, OptionsBuilder};
-use lexigram_lib::log::BufLog;
+use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/pandemonium.l";
 static GRAMMAR_FILENAME: &str = "src/pandemonium.g";
@@ -19,13 +19,11 @@ const PARSER_INDENT: usize = 4;
 // -------------------------------------------------------------------------
 
 fn main() {
-    match gen_source(Action::Generate) {
-        Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-        Err(build_error) => panic!("{build_error}"),
-    }
+    std::env::set_current_dir("examples/gen_pandemonium").expect("couldn't change directory");
+    gen_source(Action::Generate);
 }
 
-fn gen_source(action: Action) -> Result<BufLog, GenParserError> {
+fn gen_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -35,7 +33,14 @@ fn gen_source(action: Action) -> Result<BufLog, GenParserError> {
         .span_params(true)
         .build()
         .expect("should have no error");
-    try_gen_parser(action, options)
+    match try_gen_parser(action, options) {
+        Ok(log) => {
+            println!("Code generated in {SOURCE_FILENAME}\n{log}");
+            println!("{} note(s)\n{} warning(s)\n{} error(s)", log.num_notes(), log.num_warnings(), log.num_errors());
+            assert!(log.has_no_warnings(), "no warning expected");
+        }
+        Err(build_error) => panic!("{build_error}"),
+    }
 }
 
 #[cfg(test)]
@@ -45,14 +50,11 @@ mod tests {
     #[ignore]
     #[test]
     fn test_gen_source() {
-        main();
+        gen_source(Action::Generate);
     }
 
     #[test]
     fn test_check_source() {
-        match gen_source(Action::Verify) {
-            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(gen_error) => panic!("{gen_error}"),
-       }
+        gen_source(Action::Verify);
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "lexi-gram"
 version = "0.8.2"
-description = "Lexi and Gram generators"
+description = "Lexi and Gram lexicon/grammar parsers, used by the lexigram lexer/parser generator"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
