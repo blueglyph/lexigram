@@ -8,9 +8,13 @@ use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specific
 use crate::ExeError;
 
 /// Command-line arguments
-pub(crate) static HELP_MESSAGE: &str = r##"Usage:    lexigram [options]
+pub(crate) static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
 
-Main options. The lexer options must be placed before any parser option.
+Usage:    lexigram [options]
+
+Main options. Please note that
+- the lexer options must be given before the parser options;
+- generating/verifying the parser is optional, but the lexer is mandatory.
 
   -l|--lexer <location>     Location of the generated lexer code, where <location> is
                                 <location> = <filename> | <filename> tag <tag> | -
@@ -154,6 +158,9 @@ fn get_spec<'a, I: Iterator<Item=&'a str>>(label: &str, spec_name: &str, args: &
 }
 
 pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), ExeError> {
+    if all_args.is_empty() {
+        return Err(ExeError::Help);
+    }
     let mut builder = OptionsBuilder::new();
     let mut action = Action::Generate;
     let mut show_log = false;
