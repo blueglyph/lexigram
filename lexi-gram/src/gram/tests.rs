@@ -28,6 +28,8 @@ static TXT_LEXI1: &str = r#"
     Rparen          : ')';
     Semicolon       : ';';
     Sub             : '-';
+    Else            : 'else';
+    If              : 'if';
     Let             : 'let';
     Print           : 'print';
     Id              : ID;
@@ -42,7 +44,8 @@ static TXT_GRAM1: &str = r#"
     instr:
         Let Id Equal expr Semicolon
     |   Print expr Semicolon
-    |   empty_instr Semicolon;
+    |   empty_instr Semicolon
+    |   If Lparen expr Rparen instr (<G> Else instr)?; // <G> greedy "else" to avoid warning
     empty_instr:
         Sub empty_instr<L>                  // [<L>] on right recursion
     |   ;                                   // [prodFactor: prodTerm*] when empty -> ε
@@ -143,6 +146,7 @@ mod listener {
                     // (input, lexer ok, parser ok)
                     ("let a = 1; let b = 2; print a + (b - 5);", true, true),
                     ("let c = 10 + 11 + -12; ----;;", true, true),
+                    ("if (a) print a; if (b) print b; else print c;", true, true),
                     ("let d = a; let e = d + 1 print e; print d; print a", true, false),
                     ("", false, false),
                     ("( print x;", true, false),
