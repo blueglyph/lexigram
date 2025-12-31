@@ -18,7 +18,7 @@ use super::*;
 use crate::grammar::{GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_core::log::{LogReader, LogStatus};
 use crate::build::{BuildFrom, TryBuildInto};
-use crate::parsergen::{print_flags, print_items, ParserGen};
+use crate::parsergen::ParserGen;
 use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
 // ---------------------------------------------------------------------------------------------
@@ -298,8 +298,8 @@ fn lexiparser_source() {
     builder.use_full_lib(true);
     if VERBOSE {
         builder.make_item_ops();
-        print_flags(&builder, 0);
-        print_items(&builder, 0, false, false);
+        builder.print_flags(0);
+        builder.print_items(0, false, false);
     }
     let result_src = builder.gen_source_code(4, true);
     if !cfg!(miri) {

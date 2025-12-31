@@ -2169,55 +2169,57 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool, show_span: bool) {
-    let tbl = builder.get_symbol_table();
-    let fields = (0..builder.parsing_table.alts.len())
-        .filter_map(|a| {
-            let a_id = a as AltId;
-            let (v, alt) = &builder.parsing_table.alts[a];
-            let ops = &builder.opcodes[a];
-            if let Some(it) = builder.item_ops.get(&a_id) {
-                let mut cols = vec![];
-                if show_symbols {
-                    let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
-                    let value = if show_span {
-                        assert!(builder.gen_span_params, "ParserGen is not configured for spans");
-                        format!("({}, {symbols})", builder.span_nbrs[a_id as usize])
-                    } else {
-                        symbols
-                    };
-                    cols.push(format!("{a_id} => {value},"));
+impl ParserGen {
+    pub fn print_items(&self, indent: usize, show_symbols: bool, show_span: bool) {
+        let tbl = self.get_symbol_table();
+        let fields = (0..self.parsing_table.alts.len())
+            .filter_map(|a| {
+                let a_id = a as AltId;
+                let (v, alt) = &self.parsing_table.alts[a];
+                let ops = &self.opcodes[a];
+                if let Some(it) = self.item_ops.get(&a_id) {
+                    let mut cols = vec![];
+                    if show_symbols {
+                        let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
+                        let value = if show_span {
+                            assert!(self.gen_span_params, "ParserGen is not configured for spans");
+                            format!("({}, {symbols})", self.span_nbrs[a_id as usize])
+                        } else {
+                            symbols
+                        };
+                        cols.push(format!("{a_id} => {value},"));
+                    }
+                    cols.extend([
+                        format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
+                        format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
+                        format!("| {}", &self.span_nbrs[a_id as usize]),
+                        format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
+                    ]);
+                    Some(cols)
+                } else {
+                    None
                 }
-                cols.extend([
-                    format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
-                    format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
-                    format!("| {}", &builder.span_nbrs[a_id as usize]),
-                    format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
-                ]);
-                Some(cols)
-            } else {
-                None
-            }
-        }).to_vec();
-    let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0] };
-    for l in columns_to_str(fields, Some(widths)) {
-        println!("{:indent$}{l}", "", indent = indent)
+            }).to_vec();
+        let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0] };
+        for l in columns_to_str(fields, Some(widths)) {
+            println!("{:indent$}{l}", "", indent = indent)
+        }
     }
-}
 
-pub fn print_flags(builder: &ParserGen, indent: usize) {
-    let tbl = builder.get_symbol_table();
-    let prefix = format!("{:width$}//", "", width = indent);
-    let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
-        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-    ).join("\n");
-    let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
-        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-    ).join("\n");
-    if !nt_flags.is_empty() {
-        println!("{prefix} NT flags:\n{nt_flags}");
-    }
-    if !parents.is_empty() {
-        println!("{prefix} parents:\n{parents}");
+    pub fn print_flags(&self, indent: usize) {
+        let tbl: Option<&SymbolTable> = self.get_symbol_table();
+        let prefix = format!("{:width$}//", "", width = indent);
+        let nt_flags = self.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = self.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+        ).join("\n");
+        if !nt_flags.is_empty() {
+            println!("{prefix} NT flags:\n{nt_flags}");
+        }
+        if !parents.is_empty() {
+            println!("{prefix} parents:\n{parents}");
+        }
     }
 }

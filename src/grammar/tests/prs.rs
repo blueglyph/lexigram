@@ -33,17 +33,26 @@ impl<T> ProdRuleSet<T> {
         }
     }
 
+    pub(crate) fn print_flags(&self) {
+        let tbl: Option<&SymbolTable> = self.get_symbol_table();
+        let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = self.parent.iter().index().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+        ).join("\n");
+        if !nt_flags.is_empty() {
+            println!("- NT flags:\n{nt_flags}");
+        }
+        if !parents.is_empty() {
+            println!("- parents:\n{parents}");
+        }
+    }
+
     pub(crate) fn print_prs_summary(&self) {
         let alts = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
         print_alts(&alts, self.get_symbol_table());
-        let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("  - NT[{nt}] {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = self.parent.iter().index().filter_map(|(c, &par)|
-            par.map(|p| format!("  - {} -> {}", Symbol::NT(c).to_str(self.get_symbol_table()), Symbol::NT(p).to_str(self.get_symbol_table())))
-        ).join("\n");
-        println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
-        println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
+        self.print_flags();
     }
 }
 

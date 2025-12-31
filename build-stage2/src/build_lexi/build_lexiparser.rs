@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use lexigram_lib::{gnode, LL1, VarId};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
-use lexigram_lib::parsergen::{print_flags, ParserGen};
+use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prule};
@@ -107,7 +107,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     // - generates Lexi's parser source code (parser + listener):
     let mut builder = ParserGen::build_from(ll1);
     if verbose {
-        print_flags(&builder, 4);
+        builder.print_flags(4);
         println!("Parsing table of grammar '{}':", builder.get_name());
         builder.get_parsing_table().print(builder.get_symbol_table(), 4);
     }

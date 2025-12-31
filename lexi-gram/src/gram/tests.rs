@@ -98,7 +98,7 @@ mod listener {
     use lexigram_lib::grammar::ProdRuleSet;
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexer::TokenSpliterator;
-    use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
+    use lexigram_lib::parsergen::{ParserGen, ParserTables};
     use lexigram_lib::{AltId, VarId, LL1};
     use std::io::Cursor;
     use lexigram_lib::CollectJoin;
@@ -242,7 +242,7 @@ mod listener {
                 let builder = ParserGen::build_from(ll1);
                 let msg = builder.get_log().get_messages_str();
                 if VERBOSE {
-                    print_flags(&builder, 4);
+                    builder.print_flags(4);
                     println!("Parsing table of grammar '{}':", builder.get_name());
                     builder.get_parsing_table().print(builder.get_symbol_table(), 4);
                     if !builder.get_log().is_empty() {

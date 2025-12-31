@@ -490,7 +490,7 @@ mod wrapper_source {
     use crate::grammar::tests::TestRules;
     use crate::parser::Symbol;
     use crate::{btreemap, columns_to_str, indent_source, symbols, AltId, VarId};
-    use crate::parsergen::{print_flags, print_items, ParserGen};
+    use crate::parsergen::ParserGen;
     use lexigram_core::log::{LogReader, LogStatus};
     use crate::parsergen::SpanNbr;
     use crate::parsergen::tests::get_original_str;
@@ -2168,13 +2168,13 @@ mod wrapper_source {
                         }).join(", "))
                 }).join("\n"));
                 println!("{original_str}");
-                print_flags(&builder, 12);
+                builder.print_flags(12);
                 println!("            ({tr_id}, {test_source}, {test_source_parser}, {start_nt}, btreemap![", );
                 if !result_nt_type.is_empty() {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("                {v} => \"{s}\".to_string(),")).join("\n"));
                 }
                 println!("            ], btreemap![");
-                print_items(&builder, 16, true, true);
+                builder.print_items(16, true, true);
                 let has_value_str = match &has_value {
                     Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| s.to_macro_item()).join(", ")),
                     All => "All".to_string(),
