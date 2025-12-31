@@ -476,8 +476,8 @@ fn prs_ll1_from() {
         (201, vec![
             // a -> A (<L=i> B)+ C
             r#"a -> A i C"#,                                    // parent_+_or_* | plus
-            r#"i -> B a_1"#,                                    // child_+_or_* | parent_left_fact | L-form | plus
-            r#"a_1 -> i | ε"#,                                  // child_left_fact
+            r#"i -> B i_1"#,                                    // child_+_or_* | parent_left_fact | L-form | plus
+            r#"i_1 -> i | ε"#,                                  // child_left_fact
         ], vec![6144, 4257, 64], vec![None, Some(0), Some(1)]),
         (208, vec![
             // a -> (<L=i> A (<L=j> b ",")* ";")* C
@@ -491,11 +491,11 @@ fn prs_ll1_from() {
             // a -> (<L=i> A (<L=j> b ",")+ ";")+ C
             // b -> B
             r#"a -> i C"#,                                      // parent_+_or_* | plus
-            r#"i -> A j ";" a_1"#,                              // child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus
-            r#"j -> b "," a_2"#,                                // child_+_or_* | parent_left_fact | L-form | plus
+            r#"i -> A j ";" i_1"#,                              // child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus
+            r#"j -> b "," j_1"#,                                // child_+_or_* | parent_left_fact | L-form | plus
             r#"b -> B"#,                                        //
-            r#"a_1 -> i | ε"#,                                  // child_left_fact
-            r#"a_2 -> j | ε"#,                                  // child_left_fact
+            r#"i_1 -> i | ε"#,                                  // child_left_fact
+            r#"j_1 -> j | ε"#,                                  // child_left_fact
         ], vec![6144, 6305, 4257, 0, 64, 64], vec![None, Some(0), Some(1), None, Some(1), Some(2)]),
         (300, vec![
             // a -> "?" a | "!"
@@ -1276,6 +1276,9 @@ fn prs_calc_table() {
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
         let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
+        if VERBOSE {
+            ll1.print_flags();
+        }
         let ambig_warnings = ll1.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
         let result_is_ambiguous = !ambig_warnings.is_empty();
         if num_nt * num_t != table.len() {

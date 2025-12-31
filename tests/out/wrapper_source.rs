@@ -3611,7 +3611,7 @@ pub(crate) mod rules_201_1 {
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
-                        2 => {}                                     // a_1
+                        2 => {}                                     // i_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -3619,9 +3619,9 @@ pub(crate) mod rules_201_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i C
-                        2 |                                         // a_1 -> i
-                        3 => self.exit_i(alt_id),                   // a_1 -> ε
-                     /* 1 */                                        // i -> <L> B a_1 (never called)
+                        2 |                                         // i_1 -> i
+                        3 => self.exit_i(alt_id),                   // i_1 -> ε
+                     /* 1 */                                        // i -> <L> B i_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -3800,7 +3800,7 @@ pub(crate) mod rules_201_2 {
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_i(),                // i
-                        2 => {}                                     // a_1
+                        2 => {}                                     // i_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -3808,9 +3808,9 @@ pub(crate) mod rules_201_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i C
-                        2 |                                         // a_1 -> i
-                        3 => self.exit_i(alt_id),                   // a_1 -> ε
-                     /* 1 */                                        // i -> <L> B a_1 (never called)
+                        2 |                                         // i_1 -> i
+                        3 => self.exit_i(alt_id),                   // i_1 -> ε
+                     /* 1 */                                        // i -> <L> B i_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -3984,7 +3984,7 @@ pub(crate) mod rules_201_3 {
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
-                        2 => {}                                     // a_1
+                        2 => {}                                     // i_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -3992,9 +3992,9 @@ pub(crate) mod rules_201_3 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i C
-                        2 |                                         // a_1 -> i
-                        3 => self.exit_i(alt_id),                   // a_1 -> ε
-                     /* 1 */                                        // i -> <L> B a_1 (never called)
+                        2 |                                         // i_1 -> i
+                        3 => self.exit_i(alt_id),                   // i_1 -> ε
+                     /* 1 */                                        // i -> <L> B i_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -6147,7 +6147,7 @@ pub(crate) mod rules_251_1 {
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
-                        2 | 3 => {}                                 // a_1, a_2
+                        2 | 3 => {}                                 // i_1, i_2
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -6155,12 +6155,12 @@ pub(crate) mod rules_251_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i
-                        3 |                                         // a_1 -> i
-                        4 |                                         // a_1 -> ε
-                        5 |                                         // a_2 -> i
-                        6 => self.exit_i(alt_id),                   // a_2 -> ε
-                     /* 1 */                                        // i -> <L> A a_1 (never called)
-                     /* 2 */                                        // i -> <L> B a_2 (never called)
+                        3 |                                         // i_1 -> i
+                        4 |                                         // i_1 -> ε
+                        5 |                                         // i_2 -> i
+                        6 => self.exit_i(alt_id),                   // i_2 -> ε
+                     /* 1 */                                        // i -> <L> A i_1 (never called)
+                     /* 2 */                                        // i -> <L> B i_2 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -6378,7 +6378,7 @@ pub(crate) mod rules_252_1 {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_j(),                         // j
                         3 => self.init_a1(),                        // a_1
-                        4 ..= 7 => {}                               // a_2, a_3, a_4, a_5
+                        4 ..= 7 => {}                               // j_1, j_2, a_2, a_3
                         2 => self.listener.init_b(),                // b
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
@@ -6387,18 +6387,18 @@ pub(crate) mod rules_252_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A a_1 G
-                        6 |                                         // a_2 -> j
-                        7 |                                         // a_2 -> ε
-                        8 |                                         // a_3 -> j
-                        9 => self.exit_j(alt_id),                   // a_3 -> ε
-                        10 |                                        // a_4 -> a_1
-                        11 |                                        // a_4 -> ε
-                        12 |                                        // a_5 -> a_1
-                        13 => self.exit_a1(alt_id),                 // a_5 -> ε
-                     /* 1 */                                        // j -> <L> D a_2 (never called)
-                     /* 2 */                                        // j -> <L> b C b B C a_3 (never called)
-                     /* 4 */                                        // a_1 -> F a_4 (never called)
-                     /* 5 */                                        // a_1 -> j E a_5 (never called)
+                        6 |                                         // j_1 -> j
+                        7 |                                         // j_1 -> ε
+                        8 |                                         // j_2 -> j
+                        9 => self.exit_j(alt_id),                   // j_2 -> ε
+                        10 |                                        // a_2 -> a_1
+                        11 |                                        // a_2 -> ε
+                        12 |                                        // a_3 -> a_1
+                        13 => self.exit_a1(alt_id),                 // a_3 -> ε
+                     /* 1 */                                        // j -> <L> D j_1 (never called)
+                     /* 2 */                                        // j -> <L> b C b B C j_2 (never called)
+                     /* 4 */                                        // a_1 -> F a_2 (never called)
+                     /* 5 */                                        // a_1 -> j E a_3 (never called)
                         3 => self.exit_b(),                         // b -> H
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -6663,7 +6663,7 @@ pub(crate) mod rules_253_1 {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
                         3 => self.init_a1(),                        // a_1
-                        4 ..= 7 => {}                               // a_2, a_3, a_4, a_5
+                        4 ..= 7 => {}                               // i_1, i_2, a_2, a_3
                         2 => self.listener.init_b(),                // b
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
@@ -6672,18 +6672,18 @@ pub(crate) mod rules_253_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i G
-                        6 |                                         // a_2 -> i
-                        7 |                                         // a_2 -> ε
-                        8 |                                         // a_3 -> i
-                        9 => self.exit_i(alt_id),                   // a_3 -> ε
-                        10 |                                        // a_4 -> a_1
-                        11 |                                        // a_4 -> ε
-                        12 |                                        // a_5 -> a_1
-                        13 => self.exit_a1(alt_id),                 // a_5 -> ε
-                     /* 1 */                                        // i -> <L> F a_2 (never called)
-                     /* 2 */                                        // i -> <L> a_1 E a_3 (never called)
-                     /* 4 */                                        // a_1 -> D a_4 (never called)
-                     /* 5 */                                        // a_1 -> b C b B C a_5 (never called)
+                        6 |                                         // i_1 -> i
+                        7 |                                         // i_1 -> ε
+                        8 |                                         // i_2 -> i
+                        9 => self.exit_i(alt_id),                   // i_2 -> ε
+                        10 |                                        // a_2 -> a_1
+                        11 |                                        // a_2 -> ε
+                        12 |                                        // a_3 -> a_1
+                        13 => self.exit_a1(alt_id),                 // a_3 -> ε
+                     /* 1 */                                        // i -> <L> F i_1 (never called)
+                     /* 2 */                                        // i -> <L> a_1 E i_2 (never called)
+                     /* 4 */                                        // a_1 -> D a_2 (never called)
+                     /* 5 */                                        // a_1 -> b C b B C a_3 (never called)
                         3 => self.exit_b(),                         // b -> H
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -7227,7 +7227,7 @@ pub(crate) mod rules_256_1 {
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
-                        3 ..= 5 => {}                               // a_1, a_2, a_3
+                        3 ..= 5 => {}                               // i_1, i_2, a_1
                         2 => self.listener.init_b(),                // b
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
@@ -7236,15 +7236,15 @@ pub(crate) mod rules_256_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i E
-                        5 |                                         // a_1 -> i
-                        6 |                                         // a_1 -> ε
-                        7 |                                         // a_2 -> i
-                        8 |                                         // a_2 -> ε
-                        9 |                                         // a_3 -> i
-                        10 => self.exit_i(alt_id),                  // a_3 -> ε
-                     /* 1 */                                        // i -> <L> B A a_1 (never called)
-                     /* 2 */                                        // i -> <L> D a_2 (never called)
-                     /* 4 */                                        // a_1 -> C b a_3 (never called)
+                        5 |                                         // i_1 -> i
+                        6 |                                         // i_1 -> ε
+                        7 |                                         // i_2 -> i
+                        8 |                                         // i_2 -> ε
+                        9 |                                         // a_1 -> i
+                        10 => self.exit_i(alt_id),                  // a_1 -> ε
+                     /* 1 */                                        // i -> <L> B A i_1 (never called)
+                     /* 2 */                                        // i -> <L> D i_2 (never called)
+                     /* 4 */                                        // i_1 -> C b a_1 (never called)
                         3 => self.exit_b(),                         // b -> F
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -7486,7 +7486,7 @@ pub(crate) mod rules_258_1 {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
                         2 => self.init_j(),                         // j
-                        3 | 4 => {}                                 // a_1, a_2
+                        3 | 4 => {}                                 // i_1, j_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -7496,15 +7496,15 @@ pub(crate) mod rules_258_1 {
                         0 => self.exit_a(),                         // a -> i
                         2 |                                         // i -> <L> C i
                         3 |                                         // i -> <L> D j i
-                        8 |                                         // a_1 -> B i
-                        9 => self.exit_i(alt_id),                   // a_1 -> i
+                        8 |                                         // i_1 -> B i
+                        9 => self.exit_i(alt_id),                   // i_1 -> i
                         4 => self.exitloop_i(),                     // i -> <L> ε
                         6 |                                         // j -> <L> G j
-                        10 |                                        // a_2 -> F j
-                        11 => self.exit_j(alt_id),                  // a_2 -> j
+                        10 |                                        // j_1 -> F j
+                        11 => self.exit_j(alt_id),                  // j_1 -> j
                         7 => self.exitloop_j(),                     // j -> <L> ε
-                     /* 1 */                                        // i -> <L> A a_1 (never called)
-                     /* 5 */                                        // j -> <L> E a_2 (never called)
+                     /* 1 */                                        // i -> <L> A i_1 (never called)
+                     /* 5 */                                        // j -> <L> E j_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -7770,7 +7770,7 @@ pub(crate) mod rules_259_1 {
                         0 => self.listener.init_a(),                // a
                         1 => self.init_i(),                         // i
                         2 => self.init_j(),                         // j
-                        3 ..= 9 => {}                               // a_1, a_2, a_3, a_4, a_5, a_6, a_7
+                        3 ..= 9 => {}                               // i_1, i_2, i_3, j_1, j_2, a_1, a_2
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -7778,27 +7778,27 @@ pub(crate) mod rules_259_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i
-                        7 |                                         // a_1 -> i
-                        8 |                                         // a_1 -> ε
-                        9 |                                         // a_2 -> i
-                        10 |                                        // a_2 -> ε
-                        11 |                                        // a_3 -> i
-                        12 |                                        // a_3 -> ε
-                        18 |                                        // a_6 -> i
-                        19 => self.exit_i(alt_id),                  // a_6 -> ε
-                        14 |                                        // a_4 -> j
-                        15 |                                        // a_4 -> ε
-                        16 |                                        // a_5 -> j
-                        17 |                                        // a_5 -> ε
-                        20 |                                        // a_7 -> j
-                        21 => self.exit_j(alt_id),                  // a_7 -> ε
-                     /* 1 */                                        // i -> <L> A a_1 (never called)
-                     /* 2 */                                        // i -> <L> C a_2 (never called)
-                     /* 3 */                                        // i -> <L> D j a_3 (never called)
-                     /* 4 */                                        // j -> <L> E a_4 (never called)
-                     /* 5 */                                        // j -> <L> G a_5 (never called)
-                     /* 6 */                                        // a_1 -> B a_6 (never called)
-                     /* 13 */                                       // a_4 -> F a_7 (never called)
+                        7 |                                         // i_1 -> i
+                        8 |                                         // i_1 -> ε
+                        9 |                                         // i_2 -> i
+                        10 |                                        // i_2 -> ε
+                        11 |                                        // i_3 -> i
+                        12 |                                        // i_3 -> ε
+                        18 |                                        // a_1 -> i
+                        19 => self.exit_i(alt_id),                  // a_1 -> ε
+                        14 |                                        // j_1 -> j
+                        15 |                                        // j_1 -> ε
+                        16 |                                        // j_2 -> j
+                        17 |                                        // j_2 -> ε
+                        20 |                                        // a_2 -> j
+                        21 => self.exit_j(alt_id),                  // a_2 -> ε
+                     /* 1 */                                        // i -> <L> A i_1 (never called)
+                     /* 2 */                                        // i -> <L> C i_2 (never called)
+                     /* 3 */                                        // i -> <L> D j i_3 (never called)
+                     /* 4 */                                        // j -> <L> E j_1 (never called)
+                     /* 5 */                                        // j -> <L> G j_2 (never called)
+                     /* 6 */                                        // i_1 -> B a_1 (never called)
+                     /* 13 */                                       // j_1 -> F a_2 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }

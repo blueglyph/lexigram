@@ -905,35 +905,35 @@ mod wrapper_source {
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - a_1: child_left_fact (64)
+            //  - i_1: child_left_fact (64)
             // parents:
             //  - i -> a
-            //  - a_1 -> i
+            //  - i_1 -> i
             (201, true, false, 0, btreemap![
                 0 => "SynMyA".to_string(),
                 1 => "SynMyI".to_string(),
             ], btreemap![
                 0 => (3, symbols![t 0, nt 1, t 2]),     //  0: a -> A i C | ◄0 C! ►i A! | 3 | A i C
-                1 => (0, symbols![]),                   //  1: i -> B a_1 | ►a_1 B!     | 0 |
-                2 => (2, symbols![nt 1, t 1]),          //  2: a_1 -> i   | ●i ◄2       | 2 | i B
-                3 => (2, symbols![nt 1, t 1]),          //  3: a_1 -> ε   | ◄3          | 2 | i B
+                1 => (0, symbols![]),                   //  1: i -> B i_1 | ►i_1 B!     | 0 |
+                2 => (2, symbols![nt 1, t 1]),          //  2: i_1 -> i   | ●i ◄2       | 2 | i B
+                3 => (2, symbols![nt 1, t 1]),          //  3: i_1 -> ε   | ◄3          | 2 | i B
             ], Default, btreemap![0 => vec![0]]),
             (201, true, false, 0, btreemap![
                 0 => "SynMyA".to_string(),
             ], btreemap![
                 0 => (3, symbols![t 0, t 2]),           //  0: a -> A i C | ◄0 C! ►i A! | 3 | A C
-                1 => (0, symbols![]),                   //  1: i -> B a_1 | ►a_1 B!     | 0 |
-                2 => (2, symbols![t 1]),                //  2: a_1 -> i   | ●i ◄2       | 2 | B
-                3 => (2, symbols![t 1]),                //  3: a_1 -> ε   | ◄3          | 2 | B
+                1 => (0, symbols![]),                   //  1: i -> B i_1 | ►i_1 B!     | 0 |
+                2 => (2, symbols![t 1]),                //  2: i_1 -> i   | ●i ◄2       | 2 | B
+                3 => (2, symbols![t 1]),                //  3: i_1 -> ε   | ◄3          | 2 | B
             ], Set(symbols![nt 0]), btreemap![0 => vec![0]]),
             (201, true, false, 0, btreemap![
                 0 => "SynMyA".to_string(),
                 1 => "SynMyI".to_string(),
             ], btreemap![
                 0 => (3, symbols![t 0, nt 1, t 2]),     //  0: a -> A i C | ◄0 C! ►i A! | 3 | A i C
-                1 => (0, symbols![]),                   //  1: i -> B a_1 | ►a_1 B!     | 0 |
-                2 => (2, symbols![nt 1, t 1]),          //  2: a_1 -> i   | ●i ◄2       | 2 | i B
-                3 => (2, symbols![nt 1, t 1]),          //  3: a_1 -> ε   | ◄3          | 2 | i B
+                1 => (0, symbols![]),                   //  1: i -> B i_1 | ►i_1 B!     | 0 |
+                2 => (2, symbols![nt 1, t 1]),          //  2: i_1 -> i   | ●i ◄2       | 2 | i B
+                3 => (2, symbols![nt 1, t 1]),          //  3: i_1 -> ε   | ◄3          | 2 | i B
             ], Set(symbols![nt 1]), btreemap![0 => vec![0]]),
 
             // a -> (<L=i> b A b B A)*
@@ -1074,21 +1074,21 @@ mod wrapper_source {
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - a_1: child_left_fact (64)
-            //  - a_2: child_left_fact (64)
+            //  - i_1: child_left_fact (64)
+            //  - i_2: child_left_fact (64)
             // parents:
             //  - i -> a
-            //  - a_1 -> i
-            //  - a_2 -> i
+            //  - i_1 -> i
+            //  - i_2 -> i
             (251, true, false, 0, btreemap![
             ], btreemap![
                 0 => (1, symbols![nt 1]),               //  0: a -> i     | ◄0 ►i   | 1 | i
-                1 => (0, symbols![]),                   //  1: i -> A a_1 | ►a_1 A! | 0 |
-                2 => (0, symbols![]),                   //  2: i -> B a_2 | ►a_2 B! | 0 |
-                3 => (2, symbols![nt 1, t 0]),          //  3: a_1 -> i   | ●i ◄3   | 2 | i A
-                4 => (2, symbols![nt 1, t 0]),          //  4: a_1 -> ε   | ◄4      | 2 | i A
-                5 => (2, symbols![nt 1, t 1]),          //  5: a_2 -> i   | ●i ◄5   | 2 | i B
-                6 => (2, symbols![nt 1, t 1]),          //  6: a_2 -> ε   | ◄6      | 2 | i B
+                1 => (0, symbols![]),                   //  1: i -> A i_1 | ►i_1 A! | 0 |
+                2 => (0, symbols![]),                   //  2: i -> B i_2 | ►i_2 B! | 0 |
+                3 => (2, symbols![nt 1, t 0]),          //  3: i_1 -> i   | ●i ◄3   | 2 | i A
+                4 => (2, symbols![nt 1, t 0]),          //  4: i_1 -> ε   | ◄4      | 2 | i A
+                5 => (2, symbols![nt 1, t 1]),          //  5: i_2 -> i   | ●i ◄5   | 2 | i B
+                6 => (2, symbols![nt 1, t 1]),          //  6: i_2 -> ε   | ◄6      | 2 | i B
             ], Default, btreemap![0 => vec![0]]),
 
             // a -> A ((<L=j> b C b B C | D)+ E | F)+ G
@@ -1097,33 +1097,33 @@ mod wrapper_source {
             //  - a: parent_+_or_* | plus (6144)
             //  - j: child_+_or_* | parent_left_fact | L-form | plus (4257)
             //  - a_1: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - j_1: child_left_fact (64)
+            //  - j_2: child_left_fact (64)
             //  - a_2: child_left_fact (64)
             //  - a_3: child_left_fact (64)
-            //  - a_4: child_left_fact (64)
-            //  - a_5: child_left_fact (64)
             // parents:
             //  - j -> a_1
             //  - a_1 -> a
-            //  - a_2 -> j
-            //  - a_3 -> j
-            //  - a_4 -> a_1
-            //  - a_5 -> a_1
+            //  - j_1 -> j
+            //  - j_2 -> j
+            //  - a_2 -> a_1
+            //  - a_3 -> a_1
             (252, true, false, 0, btreemap![
             ], btreemap![
                 0 => (3, symbols![t 0, nt 3, t 6]),                  //  0: a -> A a_1 G       | ◄0 G! ►a_1 A!       | 3 | A a_1 G
-                1 => (0, symbols![]),                                //  1: j -> D a_2         | ►a_2 D!             | 0 |
-                2 => (0, symbols![]),                                //  2: j -> b C b B C a_3 | ►a_3 C! B! ►b C! ►b | 0 |
+                1 => (0, symbols![]),                                //  1: j -> D j_1         | ►j_1 D!             | 0 |
+                2 => (0, symbols![]),                                //  2: j -> b C b B C j_2 | ►j_2 C! B! ►b C! ►b | 0 |
                 3 => (1, symbols![t 7]),                             //  3: b -> H             | ◄3 H!               | 1 | H
-                4 => (0, symbols![]),                                //  4: a_1 -> F a_4       | ►a_4 F!             | 0 |
-                5 => (0, symbols![]),                                //  5: a_1 -> j E a_5     | ►a_5 E! ►j          | 0 |
-                6 => (2, symbols![nt 1, t 3]),                       //  6: a_2 -> j           | ●j ◄6               | 2 | j D
-                7 => (2, symbols![nt 1, t 3]),                       //  7: a_2 -> ε           | ◄7                  | 2 | j D
-                8 => (6, symbols![nt 1, nt 2, t 1, nt 2, t 2, t 1]), //  8: a_3 -> j           | ●j ◄8               | 6 | j b C b B C
-                9 => (6, symbols![nt 1, nt 2, t 1, nt 2, t 2, t 1]), //  9: a_3 -> ε           | ◄9                  | 6 | j b C b B C
-                10 => (2, symbols![nt 3, t 5]),                      // 10: a_4 -> a_1         | ●a_1 ◄10            | 2 | a_1 F
-                11 => (2, symbols![nt 3, t 5]),                      // 11: a_4 -> ε           | ◄11                 | 2 | a_1 F
-                12 => (3, symbols![nt 3, nt 1, t 4]),                // 12: a_5 -> a_1         | ●a_1 ◄12            | 3 | a_1 j E
-                13 => (3, symbols![nt 3, nt 1, t 4]),                // 13: a_5 -> ε           | ◄13                 | 3 | a_1 j E
+                4 => (0, symbols![]),                                //  4: a_1 -> F a_2       | ►a_2 F!             | 0 |
+                5 => (0, symbols![]),                                //  5: a_1 -> j E a_3     | ►a_3 E! ►j          | 0 |
+                6 => (2, symbols![nt 1, t 3]),                       //  6: j_1 -> j           | ●j ◄6               | 2 | j D
+                7 => (2, symbols![nt 1, t 3]),                       //  7: j_1 -> ε           | ◄7                  | 2 | j D
+                8 => (6, symbols![nt 1, nt 2, t 1, nt 2, t 2, t 1]), //  8: j_2 -> j           | ●j ◄8               | 6 | j b C b B C
+                9 => (6, symbols![nt 1, nt 2, t 1, nt 2, t 2, t 1]), //  9: j_2 -> ε           | ◄9                  | 6 | j b C b B C
+                10 => (2, symbols![nt 3, t 5]),                      // 10: a_2 -> a_1         | ●a_1 ◄10            | 2 | a_1 F
+                11 => (2, symbols![nt 3, t 5]),                      // 11: a_2 -> ε           | ◄11                 | 2 | a_1 F
+                12 => (3, symbols![nt 3, nt 1, t 4]),                // 12: a_3 -> a_1         | ●a_1 ◄12            | 3 | a_1 j E
+                13 => (3, symbols![nt 3, nt 1, t 4]),                // 13: a_3 -> ε           | ◄13                 | 3 | a_1 j E
             ], Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
             // a -> A (<L=i> (b C b B C | D)+ E | F)+ G
@@ -1132,33 +1132,33 @@ mod wrapper_source {
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus (6305)
             //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - i_1: child_left_fact (64)
+            //  - i_2: child_left_fact (64)
             //  - a_2: child_left_fact (64)
             //  - a_3: child_left_fact (64)
-            //  - a_4: child_left_fact (64)
-            //  - a_5: child_left_fact (64)
             // parents:
             //  - i -> a
             //  - a_1 -> i
-            //  - a_2 -> i
-            //  - a_3 -> i
-            //  - a_4 -> a_1
-            //  - a_5 -> a_1
+            //  - i_1 -> i
+            //  - i_2 -> i
+            //  - a_2 -> a_1
+            //  - a_3 -> a_1
             (253, true, false, 0, btreemap![
             ], btreemap![
                 0 => (3, symbols![t 0, nt 1, t 6]),                   //  0: a -> A i G           | ◄0 G! ►i A!         | 3 | A i G
-                1 => (0, symbols![]),                                 //  1: i -> F a_2           | ►a_2 F!             | 0 |
-                2 => (0, symbols![]),                                 //  2: i -> a_1 E a_3       | ►a_3 E! ►a_1        | 0 |
+                1 => (0, symbols![]),                                 //  1: i -> F i_1           | ►i_1 F!             | 0 |
+                2 => (0, symbols![]),                                 //  2: i -> a_1 E i_2       | ►i_2 E! ►a_1        | 0 |
                 3 => (1, symbols![t 7]),                              //  3: b -> H               | ◄3 H!               | 1 | H
-                4 => (0, symbols![]),                                 //  4: a_1 -> D a_4         | ►a_4 D!             | 0 |
-                5 => (0, symbols![]),                                 //  5: a_1 -> b C b B C a_5 | ►a_5 C! B! ►b C! ►b | 0 |
-                6 => (2, symbols![nt 1, t 5]),                        //  6: a_2 -> i             | ●i ◄6               | 2 | i F
-                7 => (2, symbols![nt 1, t 5]),                        //  7: a_2 -> ε             | ◄7                  | 2 | i F
-                8 => (3, symbols![nt 1, nt 3, t 4]),                  //  8: a_3 -> i             | ●i ◄8               | 3 | i a_1 E
-                9 => (3, symbols![nt 1, nt 3, t 4]),                  //  9: a_3 -> ε             | ◄9                  | 3 | i a_1 E
-                10 => (2, symbols![nt 3, t 3]),                       // 10: a_4 -> a_1           | ●a_1 ◄10            | 2 | a_1 D
-                11 => (2, symbols![nt 3, t 3]),                       // 11: a_4 -> ε             | ◄11                 | 2 | a_1 D
-                12 => (6, symbols![nt 3, nt 2, t 1, nt 2, t 2, t 1]), // 12: a_5 -> a_1           | ●a_1 ◄12            | 6 | a_1 b C b B C
-                13 => (6, symbols![nt 3, nt 2, t 1, nt 2, t 2, t 1]), // 13: a_5 -> ε             | ◄13                 | 6 | a_1 b C b B C
+                4 => (0, symbols![]),                                 //  4: a_1 -> D a_2         | ►a_2 D!             | 0 |
+                5 => (0, symbols![]),                                 //  5: a_1 -> b C b B C a_3 | ►a_3 C! B! ►b C! ►b | 0 |
+                6 => (2, symbols![nt 1, t 5]),                        //  6: i_1 -> i             | ●i ◄6               | 2 | i F
+                7 => (2, symbols![nt 1, t 5]),                        //  7: i_1 -> ε             | ◄7                  | 2 | i F
+                8 => (3, symbols![nt 1, nt 3, t 4]),                  //  8: i_2 -> i             | ●i ◄8               | 3 | i a_1 E
+                9 => (3, symbols![nt 1, nt 3, t 4]),                  //  9: i_2 -> ε             | ◄9                  | 3 | i a_1 E
+                10 => (2, symbols![nt 3, t 3]),                       // 10: a_2 -> a_1           | ●a_1 ◄10            | 2 | a_1 D
+                11 => (2, symbols![nt 3, t 3]),                       // 11: a_2 -> ε             | ◄11                 | 2 | a_1 D
+                12 => (6, symbols![nt 3, nt 2, t 1, nt 2, t 2, t 1]), // 12: a_3 -> a_1           | ●a_1 ◄12            | 6 | a_1 b C b B C
+                13 => (6, symbols![nt 3, nt 2, t 1, nt 2, t 2, t 1]), // 13: a_3 -> ε             | ◄13                 | 6 | a_1 b C b B C
             ], Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
             // a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G
@@ -1187,27 +1187,27 @@ mod wrapper_source {
             // NT flags:
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - a_1: parent_left_fact | child_left_fact (96)
-            //  - a_2: child_left_fact (64)
-            //  - a_3: child_left_fact (64)
+            //  - i_1: parent_left_fact | child_left_fact (96)
+            //  - i_2: child_left_fact (64)
+            //  - a_1: child_left_fact (64)
             // parents:
             //  - i -> a
-            //  - a_1 -> i
-            //  - a_2 -> i
-            //  - a_3 -> a_1
+            //  - i_1 -> i
+            //  - i_2 -> i
+            //  - a_1 -> i_1
             (256, true, false, 0, btreemap![
             ], btreemap![
                 0 => (3, symbols![t 0, nt 1, t 4]),             //  0: a -> A i E     | ◄0 E! ►i A! | 3 | A i E
-                1 => (0, symbols![]),                           //  1: i -> B A a_1   | ►a_1 A! B!  | 0 |
-                2 => (0, symbols![]),                           //  2: i -> D a_2     | ►a_2 D!     | 0 |
+                1 => (0, symbols![]),                           //  1: i -> B A i_1   | ►i_1 A! B!  | 0 |
+                2 => (0, symbols![]),                           //  2: i -> D i_2     | ►i_2 D!     | 0 |
                 3 => (1, symbols![t 5]),                        //  3: b -> F         | ◄3 F!       | 1 | F
-                4 => (0, symbols![]),                           //  4: a_1 -> C b a_3 | ►a_3 ►b C!  | 0 |
-                5 => (3, symbols![nt 1, t 1, t 0]),             //  5: a_1 -> i       | ●i ◄5       | 3 | i B A
-                6 => (3, symbols![nt 1, t 1, t 0]),             //  6: a_1 -> ε       | ◄6          | 3 | i B A
-                7 => (2, symbols![nt 1, t 3]),                  //  7: a_2 -> i       | ●i ◄7       | 2 | i D
-                8 => (2, symbols![nt 1, t 3]),                  //  8: a_2 -> ε       | ◄8          | 2 | i D
-                9 => (5, symbols![nt 1, t 1, t 0, t 2, nt 2]),  //  9: a_3 -> i       | ●i ◄9       | 5 | i B A C b
-                10 => (5, symbols![nt 1, t 1, t 0, t 2, nt 2]), // 10: a_3 -> ε       | ◄10         | 5 | i B A C b
+                4 => (0, symbols![]),                           //  4: i_1 -> C b a_1 | ►a_1 ►b C!  | 0 |
+                5 => (3, symbols![nt 1, t 1, t 0]),             //  5: i_1 -> i       | ●i ◄5       | 3 | i B A
+                6 => (3, symbols![nt 1, t 1, t 0]),             //  6: i_1 -> ε       | ◄6          | 3 | i B A
+                7 => (2, symbols![nt 1, t 3]),                  //  7: i_2 -> i       | ●i ◄7       | 2 | i D
+                8 => (2, symbols![nt 1, t 3]),                  //  8: i_2 -> ε       | ◄8          | 2 | i D
+                9 => (5, symbols![nt 1, t 1, t 0, t 2, nt 2]),  //  9: a_1 -> i       | ●i ◄9       | 5 | i B A C b
+                10 => (5, symbols![nt 1, t 1, t 0, t 2, nt 2]), // 10: a_1 -> ε       | ◄10         | 5 | i B A C b
             ], Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
             // a -> (<L=i> A | A B A | C)+
@@ -1241,27 +1241,27 @@ mod wrapper_source {
             //  - a: parent_+_or_* (2048)
             //  - i: child_+_or_* | parent_left_fact | L-form | parent_+_or_* (2209)
             //  - j: child_+_or_* | parent_left_fact | L-form (161)
-            //  - a_1: child_left_fact (64)
-            //  - a_2: child_left_fact (64)
+            //  - i_1: child_left_fact (64)
+            //  - j_1: child_left_fact (64)
             // parents:
             //  - i -> a
             //  - j -> i
-            //  - a_1 -> i
-            //  - a_2 -> j
+            //  - i_1 -> i
+            //  - j_1 -> j
             (258, true, false, 0, btreemap![
             ], btreemap![
                 0 => (1, symbols![nt 1]),               //  0: a -> i     | ◄0 ►i       | 1 | i
-                1 => (0, symbols![]),                   //  1: i -> A a_1 | ►a_1 A!     | 0 |
+                1 => (0, symbols![]),                   //  1: i -> A i_1 | ►i_1 A!     | 0 |
                 2 => (2, symbols![nt 1, t 2]),          //  2: i -> C i   | ●i ◄2 C!    | 2 | i C
                 3 => (3, symbols![nt 1, t 3, nt 2]),    //  3: i -> D j i | ●i ◄3 ►j D! | 3 | i D j
                 4 => (1, symbols![nt 1]),               //  4: i -> ε     | ◄4          | 1 | i
-                5 => (0, symbols![]),                   //  5: j -> E a_2 | ►a_2 E!     | 0 |
+                5 => (0, symbols![]),                   //  5: j -> E j_1 | ►j_1 E!     | 0 |
                 6 => (2, symbols![nt 2, t 6]),          //  6: j -> G j   | ●j ◄6 G!    | 2 | j G
                 7 => (1, symbols![nt 2]),               //  7: j -> ε     | ◄7          | 1 | j
-                8 => (3, symbols![nt 1, t 0, t 1]),     //  8: a_1 -> B i | ●i ◄8 B!    | 3 | i A B
-                9 => (2, symbols![nt 1, t 0]),          //  9: a_1 -> i   | ●i ◄9       | 2 | i A
-                10 => (3, symbols![nt 2, t 4, t 5]),    // 10: a_2 -> F j | ●j ◄10 F!   | 3 | j E F
-                11 => (2, symbols![nt 2, t 4]),         // 11: a_2 -> j   | ●j ◄11      | 2 | j E
+                8 => (3, symbols![nt 1, t 0, t 1]),     //  8: i_1 -> B i | ●i ◄8 B!    | 3 | i A B
+                9 => (2, symbols![nt 1, t 0]),          //  9: i_1 -> i   | ●i ◄9       | 2 | i A
+                10 => (3, symbols![nt 2, t 4, t 5]),    // 10: j_1 -> F j | ●j ◄10 F!   | 3 | j E F
+                11 => (2, symbols![nt 2, t 4]),         // 11: j_1 -> j   | ●j ◄11      | 2 | j E
             ], Default, btreemap![0 => vec![0]]),
 
             // a -> (<L=i> A | A B | C | D (<L=j> E | E F | G)+)+
@@ -1269,47 +1269,47 @@ mod wrapper_source {
             //  - a: parent_+_or_* | plus (6144)
             //  - i: child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus (6305)
             //  - j: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - a_1: parent_left_fact | child_left_fact (96)
+            //  - i_1: parent_left_fact | child_left_fact (96)
+            //  - i_2: child_left_fact (64)
+            //  - i_3: child_left_fact (64)
+            //  - j_1: parent_left_fact | child_left_fact (96)
+            //  - j_2: child_left_fact (64)
+            //  - a_1: child_left_fact (64)
             //  - a_2: child_left_fact (64)
-            //  - a_3: child_left_fact (64)
-            //  - a_4: parent_left_fact | child_left_fact (96)
-            //  - a_5: child_left_fact (64)
-            //  - a_6: child_left_fact (64)
-            //  - a_7: child_left_fact (64)
             // parents:
             //  - i -> a
             //  - j -> i
-            //  - a_1 -> i
-            //  - a_2 -> i
-            //  - a_3 -> i
-            //  - a_4 -> j
-            //  - a_5 -> j
-            //  - a_6 -> a_1
-            //  - a_7 -> a_4
+            //  - i_1 -> i
+            //  - i_2 -> i
+            //  - i_3 -> i
+            //  - j_1 -> j
+            //  - j_2 -> j
+            //  - a_1 -> i_1
+            //  - a_2 -> j_1
             (259, true, false, 0, btreemap![
             ], btreemap![
                 0 => (1, symbols![nt 1]),               //  0: a -> i       | ◄0 ►i      | 1 | i
-                1 => (0, symbols![]),                   //  1: i -> A a_1   | ►a_1 A!    | 0 |
-                2 => (0, symbols![]),                   //  2: i -> C a_2   | ►a_2 C!    | 0 |
-                3 => (0, symbols![]),                   //  3: i -> D j a_3 | ►a_3 ►j D! | 0 |
-                4 => (0, symbols![]),                   //  4: j -> E a_4   | ►a_4 E!    | 0 |
-                5 => (0, symbols![]),                   //  5: j -> G a_5   | ►a_5 G!    | 0 |
-                6 => (0, symbols![]),                   //  6: a_1 -> B a_6 | ►a_6 B!    | 0 |
-                7 => (2, symbols![nt 1, t 0]),          //  7: a_1 -> i     | ●i ◄7      | 2 | i A
-                8 => (2, symbols![nt 1, t 0]),          //  8: a_1 -> ε     | ◄8         | 2 | i A
-                9 => (2, symbols![nt 1, t 2]),          //  9: a_2 -> i     | ●i ◄9      | 2 | i C
-                10 => (2, symbols![nt 1, t 2]),         // 10: a_2 -> ε     | ◄10        | 2 | i C
-                11 => (3, symbols![nt 1, t 3, nt 2]),   // 11: a_3 -> i     | ●i ◄11     | 3 | i D j
-                12 => (3, symbols![nt 1, t 3, nt 2]),   // 12: a_3 -> ε     | ◄12        | 3 | i D j
-                13 => (0, symbols![]),                  // 13: a_4 -> F a_7 | ►a_7 F!    | 0 |
-                14 => (2, symbols![nt 2, t 4]),         // 14: a_4 -> j     | ●j ◄14     | 2 | j E
-                15 => (2, symbols![nt 2, t 4]),         // 15: a_4 -> ε     | ◄15        | 2 | j E
-                16 => (2, symbols![nt 2, t 6]),         // 16: a_5 -> j     | ●j ◄16     | 2 | j G
-                17 => (2, symbols![nt 2, t 6]),         // 17: a_5 -> ε     | ◄17        | 2 | j G
-                18 => (3, symbols![nt 1, t 0, t 1]),    // 18: a_6 -> i     | ●i ◄18     | 3 | i A B
-                19 => (3, symbols![nt 1, t 0, t 1]),    // 19: a_6 -> ε     | ◄19        | 3 | i A B
-                20 => (3, symbols![nt 2, t 4, t 5]),    // 20: a_7 -> j     | ●j ◄20     | 3 | j E F
-                21 => (3, symbols![nt 2, t 4, t 5]),    // 21: a_7 -> ε     | ◄21        | 3 | j E F
+                1 => (0, symbols![]),                   //  1: i -> A i_1   | ►i_1 A!    | 0 |
+                2 => (0, symbols![]),                   //  2: i -> C i_2   | ►i_2 C!    | 0 |
+                3 => (0, symbols![]),                   //  3: i -> D j i_3 | ►i_3 ►j D! | 0 |
+                4 => (0, symbols![]),                   //  4: j -> E j_1   | ►j_1 E!    | 0 |
+                5 => (0, symbols![]),                   //  5: j -> G j_2   | ►j_2 G!    | 0 |
+                6 => (0, symbols![]),                   //  6: i_1 -> B a_1 | ►a_1 B!    | 0 |
+                7 => (2, symbols![nt 1, t 0]),          //  7: i_1 -> i     | ●i ◄7      | 2 | i A
+                8 => (2, symbols![nt 1, t 0]),          //  8: i_1 -> ε     | ◄8         | 2 | i A
+                9 => (2, symbols![nt 1, t 2]),          //  9: i_2 -> i     | ●i ◄9      | 2 | i C
+                10 => (2, symbols![nt 1, t 2]),         // 10: i_2 -> ε     | ◄10        | 2 | i C
+                11 => (3, symbols![nt 1, t 3, nt 2]),   // 11: i_3 -> i     | ●i ◄11     | 3 | i D j
+                12 => (3, symbols![nt 1, t 3, nt 2]),   // 12: i_3 -> ε     | ◄12        | 3 | i D j
+                13 => (0, symbols![]),                  // 13: j_1 -> F a_2 | ►a_2 F!    | 0 |
+                14 => (2, symbols![nt 2, t 4]),         // 14: j_1 -> j     | ●j ◄14     | 2 | j E
+                15 => (2, symbols![nt 2, t 4]),         // 15: j_1 -> ε     | ◄15        | 2 | j E
+                16 => (2, symbols![nt 2, t 6]),         // 16: j_2 -> j     | ●j ◄16     | 2 | j G
+                17 => (2, symbols![nt 2, t 6]),         // 17: j_2 -> ε     | ◄17        | 2 | j G
+                18 => (3, symbols![nt 1, t 0, t 1]),    // 18: a_1 -> i     | ●i ◄18     | 3 | i A B
+                19 => (3, symbols![nt 1, t 0, t 1]),    // 19: a_1 -> ε     | ◄19        | 3 | i A B
+                20 => (3, symbols![nt 2, t 4, t 5]),    // 20: a_2 -> j     | ●j ◄20     | 3 | j E F
+                21 => (3, symbols![nt 2, t 4, t 5]),    // 21: a_2 -> ε     | ◄21        | 3 | j E F
             ], Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- right_rec

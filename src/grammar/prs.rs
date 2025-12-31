@@ -846,6 +846,7 @@ impl<T> ProdRuleSet<T> {
         let mut i = 0;
         while i < prules.len() {
             let prule = &mut prules[i];
+            let var_flags = self.flags[i];
             let var = i as VarId;
             i += 1;
             if prule.len() < 2 {
@@ -880,7 +881,7 @@ impl<T> ProdRuleSet<T> {
                     f.v.drain(0..min);
                 }
                 if child[0].v.is_empty() {
-                    if self.flags[var as usize] & ruleflag::CHILD_REPEAT != 0 {
+                    if var_flags & ruleflag::CHILD_REPEAT != 0 {
                         factorized.origin = child[0].origin;
                     }
                     child[0].v.push(Symbol::Empty);
@@ -891,7 +892,8 @@ impl<T> ProdRuleSet<T> {
                 new_var += 1;
                 self.set_flags(var, ruleflag::PARENT_L_FACTOR);
                 self.set_flags(var_prime, ruleflag::CHILD_L_FACT);
-                let top = self.get_top_parent(var);
+                let rep_l_form = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
+                let top = if var_flags & rep_l_form == rep_l_form { var } else { self.get_top_parent(var) };
                 self.symbol_table.as_mut().map(|table| assert_eq!(table.add_child_nonterminal(top), var_prime));
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);
