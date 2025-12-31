@@ -1055,6 +1055,20 @@ impl ProdRuleSet<LL1> {
         if !self.log.has_no_errors() {
             return LLParsingTable::new();
         }
+        if VERBOSE {
+            fn p_hash_hash(title: &str, tbl: Option<&SymbolTable>, table: &HashMap<Symbol, HashSet<Symbol>>) {
+                let mut syms = table.iter().map(|(s, hs)| {
+                    let mut f = hs.iter().cloned().to_vec();
+                    f.sort();
+                    (*s, f)
+                }).to_vec();
+                syms.sort();
+                println!("{title}\n{}",
+                         syms.into_iter().map(|(s, f)| format!("- {} -> {}", s.to_str(tbl), f.into_iter().map(|s2| s2.to_str(tbl)).join(", "))).join("\n"));
+            }
+            p_hash_hash("first:", self.get_symbol_table(), first);
+            p_hash_hash("follow:", self.get_symbol_table(), follow);
+        }
         let mut alts = self.prules.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone()))).to_vec();
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol

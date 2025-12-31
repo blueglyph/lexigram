@@ -2070,6 +2070,89 @@ mod wrapper_source {
                 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60],
                 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
 
+            // program -> (<L=decl_i> decl)* (<L=inst_i> inst)+
+            // decl -> Type Id ("," Id)* ";" | "typedef" Type Id ";"
+            // inst -> "let" Id "=" expr ";" | "print" expr ";"
+            // expr -> "-" expr | expr "+" expr | expr <P> "-" expr | Id | Num
+            // NT flags:
+            //  - program: parent_+_or_* | plus (6144)
+            //  - decl_i: child_+_or_* | L-form (129)
+            //  - inst_i: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - decl: parent_+_or_* (2048)
+            //  - expr: parent_left_rec | parent_amb (1536)
+            //  - decl_1: child_+_or_* (1)
+            //  - expr_1: child_left_rec (4)
+            //  - expr_2: right_rec (2)
+            //  - inst_i_1: child_left_fact (64)
+            // parents:
+            //  - decl_i -> program
+            //  - inst_i -> program
+            //  - decl_1 -> decl
+            //  - expr_1 -> expr
+            //  - expr_2 -> expr
+            //  - inst_i_1 -> inst_i
+            (902, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (2, symbols![nt 1, nt 2]),         //  0: program -> decl_i inst_i      | ◄0 ►inst_i ►decl_i         | 2 | decl_i inst_i
+                1 => (2, symbols![nt 1, nt 3]),         //  1: decl_i -> decl decl_i         | ●decl_i ◄1 ►decl           | 2 | decl_i decl
+                2 => (1, symbols![nt 1]),               //  2: decl_i -> ε                   | ◄2                         | 1 | decl_i
+                3 => (0, symbols![]),                   //  3: inst_i -> inst inst_i_1       | ►inst_i_1 ►inst            | 0 |
+                4 => (4, symbols![t 2, t 1, nt 6]),     //  4: decl -> Type Id decl_1 ";"    | ◄4 ";" ►decl_1 Id! Type!   | 4 | Type Id decl_1
+                5 => (4, symbols![t 2, t 1]),           //  5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! "typedef" | 4 | Type Id
+                6 => (5, symbols![t 1, nt 5]),          //  6: inst -> "let" Id "=" expr ";" | ◄6 ";" ►expr "=" Id! "let" | 5 | Id expr
+                7 => (3, symbols![nt 5]),               //  7: inst -> "print" expr ";"      | ◄7 ";" ►expr "print"       | 3 | expr
+                8 => (1, symbols![nt 5]),               //  8: expr -> expr_2 expr_1         | ►expr_1 ◄8 ►expr_2         | 1 | expr
+                9 => (3, symbols![nt 6, t 1]),          //  9: decl_1 -> "," Id decl_1       | ●decl_1 ◄9 Id! ","         | 3 | decl_1 Id
+                10 => (1, symbols![nt 6]),              // 10: decl_1 -> ε                   | ◄10                        | 1 | decl_1
+                11 => (3, symbols![nt 5, nt 5]),        // 11: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄11 ►expr_2 "+"    | 3 | expr expr
+                12 => (3, symbols![nt 5, nt 5]),        // 12: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "-"    | 3 | expr expr
+                13 => (1, symbols![nt 5]),              // 13: expr_1 -> ε                   | ◄13                        | 1 | expr
+                14 => (2, symbols![nt 5]),              // 14: expr_2 -> "-" expr_2          | ◄14 ►expr_2 "-"            | 2 | expr
+                15 => (1, symbols![t 1]),               // 15: expr_2 -> Id                  | ◄15 Id!                    | 1 | Id
+                16 => (1, symbols![t 0]),               // 16: expr_2 -> Num                 | ◄16 Num!                   | 1 | Num
+                17 => (2, symbols![nt 2, nt 4]),        // 17: inst_i_1 -> inst_i            | ●inst_i ◄17                | 2 | inst_i inst
+                18 => (2, symbols![nt 2, nt 4]),        // 18: inst_i_1 -> ε                 | ◄18                        | 2 | inst_i inst
+            ], Default, btreemap![0 => vec![0], 3 => vec![4, 5], 4 => vec![6, 7], 5 => vec![8]]),
+
+            // program -> (<L=stmt_i> stmt)*
+            // stmt -> decl | inst
+            // decl -> Type Id ("," Id)* ";" | "typedef" Type Id ";"
+            // inst -> Id "=" expr ";" | "print" expr ";"
+            // expr -> "-" expr | expr "+" expr | expr <P> "-" expr | Id | Num
+            // NT flags:
+            //  - program: parent_+_or_* (2048)
+            //  - stmt_i: child_+_or_* | L-form (129)
+            //  - decl: parent_+_or_* (2048)
+            //  - expr: parent_left_rec | parent_amb (1536)
+            //  - decl_1: child_+_or_* (1)
+            //  - expr_1: child_left_rec (4)
+            //  - expr_2: right_rec (2)
+            // parents:
+            //  - stmt_i -> program
+            //  - decl_1 -> decl
+            //  - expr_1 -> expr
+            //  - expr_2 -> expr
+            (903, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (1, symbols![nt 1]),               //  0: program -> stmt_i             | ◄0 ►stmt_i                 | 1 | stmt_i
+                1 => (2, symbols![nt 1, nt 2]),         //  1: stmt_i -> stmt stmt_i         | ●stmt_i ◄1 ►stmt           | 2 | stmt_i stmt
+                2 => (1, symbols![nt 1]),               //  2: stmt_i -> ε                   | ◄2                         | 1 | stmt_i
+                3 => (1, symbols![nt 3]),               //  3: stmt -> decl                  | ◄3 ►decl                   | 1 | decl
+                4 => (1, symbols![nt 4]),               //  4: stmt -> inst                  | ◄4 ►inst                   | 1 | inst
+                5 => (4, symbols![t 2, t 1, nt 6]),     //  5: decl -> Type Id decl_1 ";"    | ◄5 ";" ►decl_1 Id! Type!   | 4 | Type Id decl_1
+                6 => (4, symbols![t 2, t 1]),           //  6: decl -> "typedef" Type Id ";" | ◄6 ";" Id! Type! "typedef" | 4 | Type Id
+                7 => (4, symbols![t 1, nt 5]),          //  7: inst -> Id "=" expr ";"       | ◄7 ";" ►expr "=" Id!       | 4 | Id expr
+                8 => (3, symbols![nt 5]),               //  8: inst -> "print" expr ";"      | ◄8 ";" ►expr "print"       | 3 | expr
+                9 => (1, symbols![nt 5]),               //  9: expr -> expr_2 expr_1         | ►expr_1 ◄9 ►expr_2         | 1 | expr
+                10 => (3, symbols![nt 6, t 1]),         // 10: decl_1 -> "," Id decl_1       | ●decl_1 ◄10 Id! ","        | 3 | decl_1 Id
+                11 => (1, symbols![nt 6]),              // 11: decl_1 -> ε                   | ◄11                        | 1 | decl_1
+                12 => (3, symbols![nt 5, nt 5]),        // 12: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "+"    | 3 | expr expr
+                13 => (3, symbols![nt 5, nt 5]),        // 13: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄13 ►expr_2 "-"    | 3 | expr expr
+                14 => (1, symbols![nt 5]),              // 14: expr_1 -> ε                   | ◄14                        | 1 | expr
+                15 => (2, symbols![nt 5]),              // 15: expr_2 -> "-" expr_2          | ◄15 ►expr_2 "-"            | 2 | expr
+                16 => (1, symbols![t 1]),               // 16: expr_2 -> Id                  | ◄16 Id!                    | 1 | Id
+                17 => (1, symbols![t 0]),               // 17: expr_2 -> Num                 | ◄17 Num!                   | 1 | Num
+            ], Default, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9]]),
             /*
             (, false, false, 0, btreemap![], btreemap![], Default, btreemap![]),
             */
