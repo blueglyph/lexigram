@@ -40,6 +40,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen_typedef"
+version = "0.1.0"
+dependencies = [
+ "lexi-gram",
+ "lexigram-lib",
+]
+
+[[package]]
 name = "iter-index"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -83,6 +91,13 @@ dependencies = [
 
 [[package]]
 name = "pandemonium"
+version = "0.1.0"
+dependencies = [
+ "lexigram-core",
+]
+
+[[package]]
+name = "typedef"
 version = "0.1.0"
 dependencies = [
  "lexigram-core",

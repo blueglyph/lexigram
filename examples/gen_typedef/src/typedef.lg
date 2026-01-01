@@ -1,0 +1,82 @@
+// -----------------------------------------------------------------------------
+// [typedef_type_lexicon]
+
+lexer Typedef;
+
+Comma           : ',';
+SemiColon       : ';';
+Eq              : '=';
+Sub             : '-';
+Add             : '+';
+Typedef         : 'typedef';
+Print           : 'print';
+
+Num             : [0-9]+;
+Id              : [a-zA-Z][a-zA-Z_0-9]*;
+(Type)                                      -> hook;
+
+// [typedef_type_lexicon]
+// -----------------------------------------------------------------------------
+// [typedef_type_grammar]
+
+grammar Typedef;
+
+program:
+    (<L=stmt_i> stmt)*;
+stmt:
+    decl | inst;
+decl:
+    Type Id (Comma Id)* SemiColon
+|   Typedef Type Id SemiColon;
+inst:
+    Id Eq expr SemiColon
+|   Print expr SemiColon;
+expr:
+    Sub expr
+|   expr (Add | <P> Sub) expr
+|   Id
+|   Num;
+
+// [typedef_type_grammar]
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// [typedef_id_type_lexicon]
+
+lexer Typedef;
+
+Comma           : ',';
+SemiColon       : ';';
+Eq              : '=';
+Sub             : '-';
+Add             : '+';
+Typedef         : 'typedef';
+Let             : 'let';
+Print           : 'print';
+
+Num             : [0-9]+;
+Id              : [a-zA-Z][a-zA-Z_0-9]*     -> hook;
+(Type)                                      -> hook;
+
+// [typedef_id_type_lexicon]
+// -----------------------------------------------------------------------------
+// [typedef_id_type_grammar]
+
+grammar Typedef;
+
+program:
+    (<L=decl_i> decl)* (<L=inst_i> inst)+;
+decl:
+    Type Id (Comma Id)* SemiColon
+|   Typedef Type Id SemiColon;
+inst:
+    Let Id Eq expr SemiColon
+|   Print expr SemiColon;
+expr:
+    Sub expr
+|   expr (Add | <P> Sub) expr
+|   Id
+|   Num;
+
+// [typedef_id_type_grammar]
+// -----------------------------------------------------------------------------
