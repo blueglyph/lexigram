@@ -6,7 +6,7 @@ use lexigram_lib::lexergen::LexigramCrate;
 
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Action { Generate, Verify }
 
 /// Specification of the lexer or parser (lexicon or grammar content or location)
