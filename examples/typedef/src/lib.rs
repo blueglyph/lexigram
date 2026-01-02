@@ -136,6 +136,8 @@ pub mod typedef_type_parser {
         )
     }
 
+    // hooks: 9:Type
+
     #[derive(Debug)]
     pub enum CtxProgram {
         /// `program -> (<L> stmt)*`
@@ -611,6 +613,8 @@ pub mod typedef_id_type_parser {
             START_SYMBOL
         )
     }
+
+    // hooks: 9:Id, 10:Type
 
     #[derive(Debug)]
     pub enum CtxProgram {

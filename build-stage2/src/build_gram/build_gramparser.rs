@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::HashMap;
-use lexigram_lib::{gnode, LL1, VarId};
+use lexigram_lib::{gnode, LL1, VarId, TokenId};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::ParserGen;
@@ -74,12 +74,20 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
 
     // [gramparser_stage_2]
     // -------------------------------------------------------------------------
+    // [gramparser_stage_2_hooks]
+
+    static TERMINAL_HOOKS: [TokenId; 0] = [
+    ];
+
+    // [gramparser_stage_2_hooks]
+    // -------------------------------------------------------------------------
 
     // - gets data from stage 1
     let ll1 = ProdRuleSet::<LL1>::build_from(ll1_tables);
 
     // - generates Gram's parser source code (parser + listener):
     let mut builder = ParserGen::build_from(ll1);
+    builder.set_terminal_hooks(TERMINAL_HOOKS.to_vec());
     if verbose {
         builder.print_flags(4);
         println!("Parsing table of grammar '{}':", builder.get_name());

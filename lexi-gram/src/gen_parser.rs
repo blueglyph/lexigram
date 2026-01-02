@@ -34,7 +34,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     let lexi = Lexi::new(lexicon_stream);
 
     // - reads the lexicon and builds the DFA
-    let SymbolicDfa { dfa, symbol_table, .. } = lexi.try_build_into()?;
+    let SymbolicDfa { dfa, symbol_table, terminal_hooks } = lexi.try_build_into()?;
 
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
@@ -61,6 +61,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
         // - generates Lexi's parser source code (parser + listener):
         let mut builder = ParserGen::try_build_from(ll1)?;
+        builder.set_terminal_hooks(terminal_hooks);
         builder.set_parents_have_value();
         builder.set_include_alts(options.gen_parser_alts);
         builder.extend_headers(&options.parser_headers);

@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use iter_index::IndexerIterator;
 use lexigram_core::alt::Alternative;
+use lexigram_core::TokenId;
 use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
 use crate::{columns_to_str, indent_source, AltId, General, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
@@ -145,6 +146,7 @@ fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
 pub struct ParserGen {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
+    terminal_hooks: Vec<TokenId>,
     name: String,
     nt_value: Vec<bool>,
     /// `nt_parent[v]` is the vector of all variables having `v` has top parent (including `v` itself)
@@ -180,7 +182,10 @@ impl ParserGen {
     /// to name the user listener trait in the generated code.
     ///
     /// If [`rules`] already has a name, it is best to use the [BuildFrom<ProdRuleSet<T>>](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn build_from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
+    pub fn build_from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self
+    where
+        ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
+    {
         let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.make_parsing_table(true);
@@ -199,14 +204,15 @@ impl ParserGen {
         let mut builder = ParserGen {
             parsing_table,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
+            gen_span_params: false,
             name,
             nt_value: vec![false; num_nt],
             nt_parent,
             var_alts,
             origin,
+            terminal_hooks: Vec::new(),
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
-            gen_span_params: false,
             span_nbrs: Vec::new(),
             start,
             nt_conversion,
@@ -239,6 +245,13 @@ impl ParserGen {
     #[inline]
     pub fn get_parsing_table(&self) -> &LLParsingTable {
         &self.parsing_table
+    }
+
+    #[inline]
+    pub fn set_terminal_hooks(&mut self, terminal_hooks: Vec<TokenId>) {
+        self.terminal_hooks = terminal_hooks;
+        self.make_opcodes();        // TODO: better method than redoing this?
+        // self.make_span_nbrs();   // shouldn't be necessary: spans won't change
     }
 
     #[inline]
@@ -431,6 +444,7 @@ impl ParserGen {
 
     fn make_opcodes(&mut self) {
         const VERBOSE: bool = false;
+        self.opcodes.clear();
         for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
             if VERBOSE {
                 println!("{alt_id}: {}", alt.to_rule_str(*var_id, self.get_symbol_table(), 0));
@@ -1312,6 +1326,12 @@ impl ParserGen {
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
+
+        // FIXME: dummy test
+        if !self.terminal_hooks.is_empty() {
+            src.push(format!("// hooks: {}", self.terminal_hooks.iter().map(|t| format!("{t}:{}", self.symbol_table.get_t_name(*t))).join(", ")));
+            src.add_space();
+        }
 
         // Defines missing type names
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {

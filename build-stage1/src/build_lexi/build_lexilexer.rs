@@ -8,17 +8,18 @@ use lexi_gram::lexi::SymbolicDfa;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::file_utils::replace_tagged_source;
-use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
+use crate::gen_hooks_source_code;
+use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_HOOKS_TAG};
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
 
 /// Generates Lexi's lexer source code from the lexicon file.
-fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String), BufLog> {
+fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String, String), BufLog> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
-    let SymbolicDfa { dfa, symbol_table, .. } = lexi.build_into();
+    let SymbolicDfa { dfa, symbol_table, terminal_hooks } = lexi.build_into();
     if !dfa.get_log().has_no_errors() || dfa.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
         let mut log = dfa.give_log();
         if log.num_warnings() != EXPECTED_NBR_WARNINGS {
@@ -34,7 +35,8 @@ fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     // - exports data to stage 2
     let sym_src = symbol_table.gen_source_code_t(0, false, true);
     let dfa_src = dfa.gen_tables_source_code(4);
-    Ok((dfa.give_log(), sym_src, dfa_src))
+    let hooks_src = gen_hooks_source_code(&terminal_hooks, 4);
+    Ok((dfa.give_log(), sym_src, dfa_src, hooks_src))
 }
 
 fn get_versions() -> String {
@@ -45,14 +47,16 @@ fn get_versions() -> String {
 }
 
 pub fn write_lexilexer() {
-    let (log, result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
+    let (log, result_sym, result_src, result_hooks) = lexilexer_source(LEXILEXER_LEXICON, true)
         .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");
     replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG, &result_sym)
-        .expect("parser symbol replacement failed");
+        .expect("lexer symbol replacement failed");
+    replace_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_HOOKS_TAG, &result_hooks)
+        .expect("parser hooks replacement failed");
     replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG, &result_src)
         .expect("lexer source replacement failed");
     let versions = get_versions();
@@ -69,7 +73,7 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
 
-        let (log, result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
+        let (log, result_sym, result_src, result_hooks) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
             .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
@@ -77,6 +81,8 @@ mod tests {
             let expected_sym1 = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
             let expected_sym2 = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
             assert_eq!(expected_sym1, expected_sym2, "T symbols are different in {BUILD_LEXIPARSER_FILENAME} and {LEXILEXER_STAGE2_FILENAME}");
+            let expected_hooks = get_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_HOOKS_TAG).unwrap_or(String::new());
+            assert_eq!(result_hooks, expected_hooks);
             let expected_src = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG).unwrap_or(String::new());
             assert_eq!(result_sym, expected_sym1);
             assert_eq!(result_src, expected_src);

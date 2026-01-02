@@ -10,6 +10,7 @@ const LEXIPARSER_STAGE2_FILENAME: &str = "../build-stage2/src/build_lexi/build_l
 
 const LEXILEXER_STAGE2_TAG: &str = "lexilexer_stage_2";
 const LEXIPARSER_STAGE2_TAG: &str = "lexiparser_stage_2";
+const LEXIPARSER_STAGE2_HOOKS_TAG: &str = "lexiparser_stage_2_hooks";
 
 const BUILD_LEXIPARSER_FILENAME: &str = "./src/build_lexi/build_lexiparser.rs";
 const LEXI_SYM_T_TAG: &str = "terminal_symbols";

@@ -10,6 +10,7 @@ const GRAMPARSER_STAGE2_FILENAME: &str = "../build-stage2/src/build_gram/build_g
 
 const GRAMLEXER_STAGE2_TAG: &str = "gramlexer_stage_2";
 const GRAMPARSER_STAGE2_TAG: &str = "gramparser_stage_2";
+const GRAMPARSER_STAGE2_HOOKS_TAG: &str = "gramparser_stage_2_hooks";
 
 const BUILD_GRAMPARSER_FILENAME: &str = "./src/build_gram/build_gramparser.rs";
 const GRAM_SYM_T_TAG: &str = "terminal_symbols";

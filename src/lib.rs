@@ -120,7 +120,7 @@ pub fn columns_to_str(cols: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) ->
     }).collect::<String>()).collect()
 }
 
-pub(crate) fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
+pub fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
     // SAFETY: ' ' is ASCII, and `indent` is >= 0
     let s = unsafe { String::from_utf8_unchecked(vec![32; indent]) };
     let mut source = String::new();
