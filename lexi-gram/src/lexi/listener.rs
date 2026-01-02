@@ -24,7 +24,7 @@ pub enum LexActionOption {
     None,
     Skip,
     Token(TokenId),
-    More
+    More,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
@@ -36,11 +36,13 @@ pub enum LexActionOption {
 /// - push(n)       => returns token + push mode
 /// - pop           => returns token + pop mode
 /// - channel(n)    => returns token + channel
+/// - hook          => triggers a listener callback
 pub struct LexAction {
     pub option: LexActionOption,
     pub channel: Option<ChannelId>,
     pub mode: ModeOption,
-    pub pop: bool
+    pub pop: bool,
+    pub hook: bool,
 }
 
 impl LexAction {
@@ -74,6 +76,7 @@ impl LexAction {
             channel: self.channel.or_else(|| rhs.channel),
             mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
             pop: self.pop || rhs.pop,
+            hook: self.hook || rhs.hook,
         })
     }
 
@@ -92,6 +95,9 @@ impl LexAction {
         }
         if self.pop {
             result.push("pop".to_string());
+        }
+        if self.hook {
+            result.push("hook".to_string());
         }
         match self.option {
             LexActionOption::None => {}
@@ -140,6 +146,8 @@ pub struct LexiListener {
     pub(crate) terminals: Vec<VecTree<ReNode>>,
     /// Optional constant literal for terminal keywords; e.g. `COMMA: ',';` -> Some(',')
     pub(crate) terminal_literals: Vec<Option<String>>,
+    /// Terminals with a hook
+    pub(crate) terminal_hooks: Vec<TokenId>,
     /// True if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
     terminal_ret: Vec<bool>,
     /// Future tokens reserved by `type(T)`.
@@ -189,6 +197,7 @@ impl LexiListener {
             fragment_literals: Vec::new(),
             terminals: Vec::new(),
             terminal_literals: Vec::new(),
+            terminal_hooks: Vec::new(),
             terminal_ret: Vec::new(),
             terminal_reserved: HashSet::new(),
             terminal_remap: HashMap::new(),
@@ -506,6 +515,9 @@ impl LexiParserListener for LexiListener {
                 }
             }
         }
+        // Remaps the hooks
+        self.terminal_hooks.iter_mut()
+            .for_each(|old| *old = *remap.get(&old).unwrap_or(&old));
         self.terminal_remap = remap;
 
         // TODO: remap the modes...
@@ -557,18 +569,31 @@ impl LexiParserListener for LexiListener {
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
-        let (id, rule_type, action_maybe, const_literal) = match ctx {
-            CtxRule::V1 { rule_fragment_name: SynRuleFragmentName(id), match1 } => {             // rule -> rule_fragment_name : match ;
+        let (id, rule_type, action_maybe, const_literal, reserve_only) = match ctx {
+            // `rule -> rule_fragment_name ":" match ";"`
+            CtxRule::V1 { rule_fragment_name: SynRuleFragmentName(id), match1 } => {
                 let rule_id = self.add_fragment_or_abort();
-                (id, RuleType::Fragment(rule_id), None, match1.0)
+                (id, RuleType::Fragment(rule_id), None, match1.0, false)
             }
-            CtxRule::V2 { rule_terminal_name: SynRuleTerminalName(id), match1, actions } => {    // rule -> rule_terminal_name : match -> actions ;
+            // `rule -> rule_terminal_name ":" match "->" actions ";"`
+            CtxRule::V2 { rule_terminal_name: SynRuleTerminalName(id), match1, actions } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), Some(actions.0), match1.0)
+                (id, RuleType::Terminal(rule_id), Some(actions.0), match1.0, false)
             }
-            CtxRule::V3 { rule_terminal_name: SynRuleTerminalName(id), match1 } => {             // rule -> rule_terminal_name : match ;
+            // `rule -> rule_terminal_name ":" match ";"`
+            CtxRule::V3 { rule_terminal_name: SynRuleTerminalName(id), match1 } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), None, match1.0)
+                (id, RuleType::Terminal(rule_id), None, match1.0, false)
+            }
+            // `rule -> "(" rule_terminal_name ")" opt_str_lit "->" "hook" ";"`
+            CtxRule::V4 { rule_terminal_name: SynRuleTerminalName(id), opt_str_lit: SynOptStrLit(opt_str) } => {
+                let rule_id = self.add_terminal_or_abort();
+                (id, RuleType::Terminal(rule_id), Some(action!(hook)), opt_str, true)
+            }
+            // `rule -> "(" rule_terminal_name ")" opt_str_lit ";"`
+            CtxRule::V5 { rule_terminal_name: SynRuleTerminalName(id), opt_str_lit: SynOptStrLit(opt_str) } => {
+                let rule_id = self.add_terminal_or_abort();
+                (id, RuleType::Terminal(rule_id), None, opt_str, true)
             }
         };
         if self.abort { return SynRule() }
@@ -591,28 +616,37 @@ impl LexiParserListener for LexiListener {
             self.log.add_error(format!("rule {}: symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
             self.abort = true;
         } else {
-            let mut rule = self.curr.take().unwrap();
+            let rule_maybe = self.curr.take();
             match rule_type {
                 RuleType::Fragment(_) => {
-                    self.fragments.push(rule);
+                    self.fragments.push(rule_maybe.unwrap());
                     self.fragment_literals.push(const_literal);
                 }
                 RuleType::Terminal(rule_id) => {
+                    self.terminal_literals.push(const_literal);
+                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                     // if no action, only return
                     let rule_action = action_maybe.unwrap_or(action!(= rule_id));
-                    let mut root = rule.get_root().unwrap();
-                    if *rule.get(root).get_type() != ReType::Concat {
-                        let new_root = rule.addci(None, node!(&), root);
-                        rule.set_root(new_root);
-                        root = new_root;
+                    if rule_action.hook {
+                        self.terminal_hooks.push(rule_id);
                     }
-                    let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
-                    let ret = was_reserved || matches!(terminal.action, ActionOption::Token(tid) if tid == rule_id);
-                    rule.add(Some(root), ReNode::end(terminal));
-                    self.terminals.push(rule);
-                    self.terminal_literals.push(const_literal);
-                    self.terminal_ret.push(ret);
-                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                    if reserve_only {
+                        self.terminals.push(VecTree::new());
+                        self.terminal_ret.push(true);
+                    } else {
+                        let mut rule = rule_maybe.unwrap();
+                        let mut root = rule.get_root().unwrap();
+                        if *rule.get(root).get_type() != ReType::Concat {
+                            let new_root = rule.addci(None, node!(&), root);
+                            rule.set_root(new_root);
+                            root = new_root;
+                        }
+                        let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
+                        let ret = was_reserved || matches!(terminal.action, ActionOption::Token(tid) if tid == rule_id);
+                        rule.add(Some(root), ReNode::end(terminal));
+                        self.terminals.push(rule);
+                        self.terminal_ret.push(ret);
+                    }
                 }
             }
             if !was_reserved {
@@ -622,6 +656,19 @@ impl LexiParserListener for LexiListener {
         self.curr_name = None;
         // CAUTION! There are aborts above: don't add code here that could trigger secondary errors
         SynRule()
+    }
+
+    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit) -> SynOptStrLit {
+        SynOptStrLit(match ctx {
+            CtxOptStrLit::V1 { strlit } => {
+                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the string literal {strlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
+                });
+                Some(s)
+            }
+            CtxOptStrLit::V2 => None
+        })
     }
 
     fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName) -> SynRuleFragmentName {
@@ -652,18 +699,18 @@ impl LexiParserListener for LexiListener {
 
     fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         let action = match ctx {
-            CtxAction::V1 { id } => {              // action -> mode ( Id )
+            CtxAction::V1 { id } => {               // action -> "mode" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
                 action!(mode id_val)
             }
-            CtxAction::V2 { id } => {              // action -> push ( Id )
+            CtxAction::V2 { id } => {               // action -> "push" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
                 action!(push id_val)
             },
-            CtxAction::V3 => action!(pop),         // action -> pop
-            CtxAction::V4 => action!(skip),        // action -> skip
-            CtxAction::V5 => action!(more),        // action -> more
-            CtxAction::V6 { id } => {              // action -> type ( Id )
+            CtxAction::V3 => action!(pop),          // action -> "pop"
+            CtxAction::V4 => action!(skip),         // action -> "skip"
+            CtxAction::V5 => action!(more),         // action -> "more"
+            CtxAction::V6 { id } => {               // action -> "type" "(" Id ")"
                 // returns the token if that rule exists, otherwise reserves it; the action will have to be changed when we know the ID
                 // we won't copy the terminal_literal to Id because
                 // - there could be several rules with different literals
@@ -688,13 +735,16 @@ impl LexiParserListener for LexiListener {
                 };
                 action!(= token)
             }
-            CtxAction::V7 { id } => {              // action -> channel ( Id )
+            CtxAction::V7 { id } => {               // action -> "channel" "(" Id ")"
                 // we don't allow to define new channels here on the fly because typos would induce annoying errors
                 let channel = *self.channels.get(&id).unwrap_or_else(|| {
                     self.log.add_error(format!("action in rule {}: channel '{id}' undefined", self.curr_name.as_ref().unwrap()));
                     &0
                 });
                 action!(# channel)
+            }
+            CtxAction::V8 => {                      // action -> "hook"
+                action!(hook)
             }
         };
         // CAUTION! There are aborts above: don't add code here that could trigger secondary errors
@@ -709,9 +759,9 @@ impl LexiParserListener for LexiListener {
     fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
         // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
         if self.verbose { println!("- exit_match({ctx:?})"); }
-        let CtxMatch::V1 { alt_items } = ctx;
-        self.curr.as_mut().unwrap().set_root(alt_items.0.0);
-        SynMatch(alt_items.0.1)
+        let CtxMatch::V1 { alt_items: SynAltItems((id, const_literal)) } = ctx;
+        self.curr.as_mut().unwrap().set_root(id);
+        SynMatch(const_literal)
     }
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
@@ -720,7 +770,7 @@ impl LexiParserListener for LexiListener {
         let CtxAltItems::V1 { alt_item, star: SynAltItems1(alt_items) } = ctx;
         let (id, const_literal) = if !alt_items.is_empty() {
             let id = tree.addci(None, node!(|), alt_item.0.0);
-            tree.attach_children(id, alt_items.into_iter().map(|i| i.0.0));
+            tree.attach_children(id, alt_items.into_iter().map(|SynAltItem((id1, _))| id1));
             (id, None)
         } else {
             alt_item.0
@@ -749,21 +799,21 @@ impl LexiParserListener for LexiListener {
         if self.verbose { print!("- exit_repeat_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
-            CtxRepeatItem::V1 { item } => {   // repeat_item -> item *? (lazy)
+            CtxRepeatItem::V1 { item } => {   // repeat_item -> item "*?" (lazy)
                 let star = tree.addci(None, node!(*), item.0.0);
                 (tree.addci(None, node!(??), star), None)
             }
-            CtxRepeatItem::V2 { item } => {   // repeat_item -> item *
+            CtxRepeatItem::V2 { item } => {   // repeat_item -> item "*"
                 (tree.addci(None, node!(*), item.0.0), None)
             }
-            CtxRepeatItem::V3 { item } => {   // repeat_item -> item +? (lazy)
+            CtxRepeatItem::V3 { item } => {   // repeat_item -> item "+?" (lazy)
                 let plus = tree.addci(None, node!(+), item.0.0);
                 (tree.addci(None, node!(??), plus), None)
             }
-            CtxRepeatItem::V4 { item } => {   // repeat_item -> item +
+            CtxRepeatItem::V4 { item } => {   // repeat_item -> item "+"
                 (tree.addci(None, node!(+), item.0.0), None)
             }
-            CtxRepeatItem::V5 { item } => {   // repeat_item -> item ?
+            CtxRepeatItem::V5 { item } => {   // repeat_item -> item "?"
                 let empty = tree.add(None, node!(e));
                 (tree.addci_iter(None, node!(|), [item.0.0, empty]), None)
             }
@@ -790,7 +840,7 @@ impl LexiParserListener for LexiListener {
                     (tree.add(None, ReNode::string(&fake)), Some(fake))
                 }
             }
-            CtxItem::V2 { charlit } => {         // item -> CharLit .. CharLit
+            CtxItem::V2 { charlit } => {         // item -> CharLit ".." CharLit
                 let [first, last] = charlit.map(|clit| {
                     decode_char(&clit[1..clit.len() - 1]).unwrap_or_else(|e| {
                         self.log.add_error(format!("rule {}: cannot decode the character literal '{clit}': {e}", self.curr_name.as_ref().unwrap()));
@@ -818,10 +868,10 @@ impl LexiParserListener for LexiListener {
             CtxItem::V5 { char_set } => {         // item -> char_set
                 (tree.add(None, ReNode::char_range(char_set.0)), None)
             }
-            CtxItem::V6 { alt_items } => {       // item -> ( alt_items )
+            CtxItem::V6 { alt_items } => {       // item -> "(" alt_items ")"
                 alt_items.0
             }
-            CtxItem::V7 { item } => {            // item -> ~ item
+            CtxItem::V7 { item } => {            // item -> "~" item
                 let node = tree.get_mut(item.0.0);
                 if let ReType::CharRange(range) = node.get_mut_type() {
                     *range = Box::new(range.not());
@@ -842,10 +892,10 @@ impl LexiParserListener for LexiListener {
         // |   FIXED_SET;
         if self.verbose { print!("- exit_char_set({ctx:?})"); }
         let seg = match ctx {
-            CtxCharSet::V1 { plus } => {              // char_set -> [ [char_set_one]+ ]
+            CtxCharSet::V1 { plus } => {              // char_set -> "[" char_set_one+ "]"
                 plus.0.into_iter().map(|one| one.0).sum()
             }
-            CtxCharSet::V2 => {                       // char_set -> .
+            CtxCharSet::V2 => {                       // char_set -> "."
                 Segments::dot()
             }
             CtxCharSet::V3 { fixedset } => {          // char_set -> FixedSet
@@ -866,7 +916,7 @@ impl LexiParserListener for LexiListener {
         // |   FIXED_SET;
         if self.verbose { print!("- exit_char_set_one({ctx:?})"); }
         let seg = match ctx {
-            CtxCharSetOne::V1 { setchar } => {     // char_set_one -> SetChar - SetChar
+            CtxCharSetOne::V1 { setchar } => {     // char_set_one -> SetChar "-" SetChar
                 let [first, last] = setchar.map(|sc| {
                     decode_set_char(&sc).unwrap_or_else(|e| {
                         self.log.add_error(format!("rule {}: cannot decode the character '{sc}': {e}", self.curr_name.as_ref().unwrap()));
@@ -1013,13 +1063,14 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
 pub mod macros {
     #[macro_export]
     macro_rules! action {
-        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
-        (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (skip) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false } };
-        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
-        (pop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
-        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
-        (nop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (skip) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false, hook: false } };
+        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false, hook: false } };
+        (pop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true , hook: false } };
+        (hook) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: true  } };
+        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false, hook: false } };
+        (nop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
     }
 }

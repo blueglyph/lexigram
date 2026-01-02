@@ -29,7 +29,7 @@ fn gen_typedef_source(action: Action) {
             .indent(LEXER_INDENT)
             .parser(genspec!(filename: GRAMMAR_FILENAME, tag: grammar_tag), gencode!(filename: SOURCE_FILENAME, tag: parser_tag))
             .indent(PARSER_INDENT)
-            .extra_libs(["super::listener_types::*"])
+            .extra_libs([format!("super::listener{}_type_types::*", if i == 0 { "" } else { "_id" })])
             .build()
             .expect("should have no error");
         match try_gen_parser(action, options) {

@@ -8,13 +8,13 @@
 use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use lexiparser_types::*;
 
-const PARSER_NUM_T: usize = 33;
-const PARSER_NUM_NT: usize = 31;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None)];
-static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "rule_fragment_name", "rule_terminal_name", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_items_1", "alt_item_1", "char_set_1", "rule_1", "repeat_item_1", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "repeat_item_2", "repeat_item_3"];
-static ALT_VAR: [VarId; 63] = [0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 10, 11, 12, 13, 14, 14, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 22, 23, 23, 24, 24, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30];
-static PARSING_TABLE: [AltId; 1054] = [63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 1, 1, 0, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 2, 4, 63, 3, 63, 63, 63, 63, 63, 63, 4, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 5, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 63, 6, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 7, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 8, 63, 64, 63, 63, 63, 63, 63, 63, 9, 63, 63, 63, 63, 63, 63, 64, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 10, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 11, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 12, 12, 12, 12, 12, 12, 12, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 13, 15, 14, 17, 16, 18, 19, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 20, 63, 63, 20, 20, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 20, 20, 20, 20, 20, 63, 63, 63, 64, 63, 63, 21, 63, 63, 21, 21, 63, 63, 63, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 21, 21, 21, 21, 21, 63, 63, 63, 64, 63, 63, 22, 63, 63, 22, 22, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 22, 22, 22, 22, 22, 63, 63, 63, 64, 63, 63, 23, 63, 63, 23, 23, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 23, 23, 23, 23, 23, 63, 63, 63, 64, 63, 63, 29, 63, 63, 24, 25, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 26, 27, 28, 29, 29, 63, 63, 63, 64, 63, 63, 31, 63, 63, 64, 64, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 64, 32, 30, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 33, 63, 64, 34, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 35, 35, 63, 35, 63, 63, 63, 63, 63, 63, 35, 63, 63, 63, 63, 63, 63, 36, 63, 63, 37, 63, 63, 63, 63, 63, 63, 63, 63, 63, 38, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 39, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 40, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 41, 63, 63, 42, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 43, 63, 63, 43, 43, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 43, 43, 43, 43, 43, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 44, 63, 64, 44, 63, 45, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 46, 63, 64, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 50, 63, 63, 50, 63, 63, 50, 50, 63, 47, 50, 48, 63, 50, 50, 49, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 50, 50, 50, 50, 50, 63, 63, 63, 52, 63, 63, 52, 51, 63, 52, 52, 63, 52, 52, 52, 63, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 52, 52, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 53, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 54, 63, 54, 54, 63, 56, 63, 63, 55, 63, 63, 55, 55, 63, 63, 56, 63, 63, 56, 56, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 57, 63, 58, 57, 63, 60, 63, 63, 60, 63, 63, 60, 60, 63, 63, 60, 59, 63, 60, 60, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 60, 60, 60, 60, 60, 63, 63, 63, 62, 63, 63, 62, 63, 63, 62, 62, 63, 63, 62, 61, 63, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 62, 62, 62, 62, 62, 63, 63, 63];
-static OPCODES: [&[OpCode]; 63] = [&[OpCode::Exit(0), OpCode::NT(17), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(17)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(14), OpCode::T(26), OpCode::T(18)], &[OpCode::Exit(6), OpCode::T(14), OpCode::T(26), OpCode::T(19)], &[OpCode::Exit(7), OpCode::T(12), OpCode::NT(18), OpCode::T(26), OpCode::T(5), OpCode::T(16)], &[OpCode::Exit(8), OpCode::T(14), OpCode::NT(10), OpCode::T(1), OpCode::NT(6)], &[OpCode::NT(23), OpCode::NT(10), OpCode::T(1), OpCode::NT(7)], &[OpCode::Exit(10), OpCode::T(26), OpCode::T(17)], &[OpCode::Exit(11), OpCode::T(26)], &[OpCode::Exit(12), OpCode::NT(19), OpCode::NT(9)], &[OpCode::Exit(13), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(19)], &[OpCode::Exit(14), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(21)], &[OpCode::Exit(15), OpCode::T(20)], &[OpCode::Exit(16), OpCode::T(23)], &[OpCode::Exit(17), OpCode::T(22)], &[OpCode::Exit(18), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(24)], &[OpCode::Exit(19), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(25)], &[OpCode::Exit(20), OpCode::NT(11)], &[OpCode::Exit(21), OpCode::NT(20), OpCode::NT(12)], &[OpCode::Exit(22), OpCode::NT(21)], &[OpCode::NT(24), OpCode::NT(14)], &[OpCode::Exit(24), OpCode::T(13), OpCode::NT(11), OpCode::T(6)], &[OpCode::Exit(25), OpCode::NT(14), OpCode::T(7)], &[OpCode::Exit(26), OpCode::T(26)], &[OpCode::NT(25), OpCode::T(27)], &[OpCode::Exit(28), OpCode::T(28)], &[OpCode::Exit(29), OpCode::NT(15)], &[OpCode::Exit(30), OpCode::T(31), OpCode::NT(22), OpCode::T(30)], &[OpCode::Exit(31), OpCode::T(3)], &[OpCode::Exit(32), OpCode::T(29)], &[OpCode::Exit(33), OpCode::T(29)], &[OpCode::NT(26), OpCode::T(32)], &[OpCode::Loop(17), OpCode::Exit(35), OpCode::NT(1)], &[OpCode::Exit(36)], &[OpCode::Loop(18), OpCode::Exit(37), OpCode::T(26), OpCode::T(2)], &[OpCode::Exit(38)], &[OpCode::Loop(19), OpCode::Exit(39), OpCode::NT(9), OpCode::T(2)], &[OpCode::Exit(40)], &[OpCode::Loop(20), OpCode::Exit(41), OpCode::NT(12), OpCode::T(10)], &[OpCode::Exit(42)], &[OpCode::NT(27), OpCode::NT(13)], &[OpCode::NT(28), OpCode::NT(16)], &[OpCode::Exit(45), OpCode::T(14), OpCode::NT(8), OpCode::T(0)], &[OpCode::Exit(46), OpCode::T(14)], &[OpCode::NT(29), OpCode::T(9)], &[OpCode::Exit(48), OpCode::T(11)], &[OpCode::NT(30), OpCode::T(15)], &[OpCode::Exit(50)], &[OpCode::Exit(51), OpCode::T(27), OpCode::T(4)], &[OpCode::Exit(52)], &[OpCode::Exit(53), OpCode::T(32), OpCode::T(8)], &[OpCode::Exit(54)], &[OpCode::Loop(21), OpCode::Exit(55)], &[OpCode::Exit(56)], &[OpCode::Loop(22), OpCode::Exit(57)], &[OpCode::Exit(58)], &[OpCode::Exit(59), OpCode::T(11)], &[OpCode::Exit(60)], &[OpCode::Exit(61), OpCode::T(11)], &[OpCode::Exit(62)]];
+const PARSER_NUM_T: usize = 34;
+const PARSER_NUM_NT: usize = 33;
+static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("Hook", Some("hook")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None)];
+static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "opt_str_lit", "rule_fragment_name", "rule_terminal_name", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_items_1", "alt_item_1", "char_set_1", "rule_1", "rule_2", "repeat_item_1", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "repeat_item_2", "repeat_item_3"];
+static ALT_VAR: [VarId; 69] = [0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 5, 6, 6, 7, 8, 9, 10, 10, 10, 10, 10, 10, 10, 10, 11, 12, 13, 14, 15, 15, 15, 15, 15, 15, 16, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 23, 24, 24, 25, 25, 26, 26, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32, 32];
+static PARSING_TABLE: [AltId; 1155] = [69, 69, 69, 69, 69, 69, 1, 69, 69, 69, 69, 69, 69, 69, 69, 69, 1, 1, 0, 1, 69, 69, 69, 69, 69, 69, 69, 1, 69, 69, 69, 69, 69, 69, 1, 69, 69, 69, 69, 69, 69, 4, 69, 69, 69, 69, 69, 69, 69, 69, 69, 2, 4, 69, 3, 69, 69, 69, 69, 69, 69, 69, 4, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 70, 5, 70, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 70, 69, 6, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 7, 70, 69, 70, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 8, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 9, 69, 70, 69, 69, 69, 69, 69, 69, 69, 10, 69, 69, 69, 69, 69, 69, 70, 12, 11, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 12, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 13, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 14, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 15, 15, 15, 15, 15, 15, 15, 15, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 16, 18, 17, 20, 19, 21, 22, 23, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 24, 69, 69, 24, 24, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 24, 24, 24, 24, 24, 69, 69, 69, 70, 69, 69, 25, 69, 69, 25, 25, 69, 69, 69, 69, 69, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 25, 25, 25, 25, 25, 69, 69, 69, 70, 69, 69, 26, 69, 69, 26, 26, 69, 69, 70, 69, 69, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 26, 26, 26, 26, 26, 69, 69, 69, 70, 69, 69, 27, 69, 69, 27, 27, 69, 69, 70, 69, 69, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 27, 27, 27, 27, 27, 69, 69, 69, 70, 69, 69, 33, 69, 69, 28, 29, 69, 70, 70, 70, 69, 70, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 30, 31, 32, 33, 33, 69, 69, 69, 70, 69, 69, 35, 69, 69, 70, 70, 69, 70, 70, 70, 69, 70, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 70, 70, 36, 34, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 37, 69, 70, 38, 69, 69, 69, 69, 69, 69, 69, 39, 69, 69, 69, 69, 69, 69, 69, 69, 69, 39, 39, 69, 39, 69, 69, 69, 69, 69, 69, 69, 39, 69, 69, 69, 69, 69, 69, 40, 69, 69, 41, 69, 69, 69, 69, 69, 69, 69, 69, 69, 42, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 43, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 44, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 46, 69, 69, 69, 69, 69, 69, 69, 69, 69, 45, 69, 69, 46, 46, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 47, 69, 69, 47, 47, 69, 69, 70, 69, 69, 70, 70, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 47, 47, 47, 47, 47, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 48, 69, 70, 48, 69, 49, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 50, 69, 70, 70, 69, 70, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 51, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 69, 52, 69, 70, 70, 69, 70, 69, 69, 69, 69, 69, 69, 69, 70, 69, 69, 69, 69, 69, 69, 70, 56, 69, 69, 56, 69, 69, 56, 56, 69, 53, 56, 54, 69, 56, 56, 55, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 56, 56, 56, 56, 56, 69, 69, 69, 58, 69, 69, 58, 57, 69, 58, 58, 69, 58, 58, 58, 69, 58, 58, 58, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 58, 58, 58, 58, 58, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 59, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 60, 69, 60, 60, 69, 62, 69, 69, 61, 69, 69, 61, 61, 69, 69, 62, 69, 69, 62, 62, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 61, 61, 61, 61, 61, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 63, 69, 64, 63, 69, 66, 69, 69, 66, 69, 69, 66, 66, 69, 69, 66, 65, 69, 66, 66, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 66, 66, 66, 66, 66, 69, 69, 69, 68, 69, 69, 68, 69, 69, 68, 68, 69, 69, 68, 67, 69, 68, 68, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 68, 68, 68, 68, 68, 69, 69, 69];
+static OPCODES: [&[OpCode]; 69] = [&[OpCode::Exit(0), OpCode::NT(18), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(18)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(14), OpCode::T(27), OpCode::T(18)], &[OpCode::Exit(6), OpCode::T(14), OpCode::T(27), OpCode::T(19)], &[OpCode::Exit(7), OpCode::T(12), OpCode::NT(19), OpCode::T(27), OpCode::T(5), OpCode::T(16)], &[OpCode::NT(24), OpCode::NT(6), OpCode::T(13), OpCode::NT(8), OpCode::T(6)], &[OpCode::Exit(9), OpCode::T(14), OpCode::NT(11), OpCode::T(1), OpCode::NT(7)], &[OpCode::NT(25), OpCode::NT(11), OpCode::T(1), OpCode::NT(8)], &[OpCode::Exit(11), OpCode::T(29), OpCode::T(1)], &[OpCode::Exit(12)], &[OpCode::Exit(13), OpCode::T(27), OpCode::T(17)], &[OpCode::Exit(14), OpCode::T(27)], &[OpCode::Exit(15), OpCode::NT(20), OpCode::NT(10)], &[OpCode::Exit(16), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(19)], &[OpCode::Exit(17), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(21)], &[OpCode::Exit(18), OpCode::T(20)], &[OpCode::Exit(19), OpCode::T(23)], &[OpCode::Exit(20), OpCode::T(22)], &[OpCode::Exit(21), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(24)], &[OpCode::Exit(22), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(25)], &[OpCode::Exit(23), OpCode::T(26)], &[OpCode::Exit(24), OpCode::NT(12)], &[OpCode::Exit(25), OpCode::NT(21), OpCode::NT(13)], &[OpCode::Exit(26), OpCode::NT(22)], &[OpCode::NT(26), OpCode::NT(15)], &[OpCode::Exit(28), OpCode::T(13), OpCode::NT(12), OpCode::T(6)], &[OpCode::Exit(29), OpCode::NT(15), OpCode::T(7)], &[OpCode::Exit(30), OpCode::T(27)], &[OpCode::NT(27), OpCode::T(28)], &[OpCode::Exit(32), OpCode::T(29)], &[OpCode::Exit(33), OpCode::NT(16)], &[OpCode::Exit(34), OpCode::T(32), OpCode::NT(23), OpCode::T(31)], &[OpCode::Exit(35), OpCode::T(3)], &[OpCode::Exit(36), OpCode::T(30)], &[OpCode::Exit(37), OpCode::T(30)], &[OpCode::NT(28), OpCode::T(33)], &[OpCode::Loop(18), OpCode::Exit(39), OpCode::NT(1)], &[OpCode::Exit(40)], &[OpCode::Loop(19), OpCode::Exit(41), OpCode::T(27), OpCode::T(2)], &[OpCode::Exit(42)], &[OpCode::Loop(20), OpCode::Exit(43), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(44)], &[OpCode::Loop(21), OpCode::Exit(45), OpCode::NT(13), OpCode::T(10)], &[OpCode::Exit(46)], &[OpCode::NT(29), OpCode::NT(14)], &[OpCode::NT(30), OpCode::NT(17)], &[OpCode::Exit(49), OpCode::T(14), OpCode::T(26), OpCode::T(0)], &[OpCode::Exit(50), OpCode::T(14)], &[OpCode::Exit(51), OpCode::T(14), OpCode::NT(9), OpCode::T(0)], &[OpCode::Exit(52), OpCode::T(14)], &[OpCode::NT(31), OpCode::T(9)], &[OpCode::Exit(54), OpCode::T(11)], &[OpCode::NT(32), OpCode::T(15)], &[OpCode::Exit(56)], &[OpCode::Exit(57), OpCode::T(28), OpCode::T(4)], &[OpCode::Exit(58)], &[OpCode::Exit(59), OpCode::T(33), OpCode::T(8)], &[OpCode::Exit(60)], &[OpCode::Loop(22), OpCode::Exit(61)], &[OpCode::Exit(62)], &[OpCode::Loop(23), OpCode::Exit(63)], &[OpCode::Exit(64)], &[OpCode::Exit(65), OpCode::T(11)], &[OpCode::Exit(66)], &[OpCode::Exit(67), OpCode::T(11)], &[OpCode::Exit(68)]];
 static START_SYMBOL: VarId = 0;
 
 pub fn build_parser() -> Parser<'static> {
@@ -72,6 +72,17 @@ pub enum CtxRule {
     V2 { rule_terminal_name: SynRuleTerminalName, match1: SynMatch, actions: SynActions },
     /// `rule -> rule_terminal_name ":" match ";"`
     V3 { rule_terminal_name: SynRuleTerminalName, match1: SynMatch },
+    /// `rule -> "(" rule_terminal_name ")" opt_str_lit "->" "hook" ";"`
+    V4 { rule_terminal_name: SynRuleTerminalName, opt_str_lit: SynOptStrLit },
+    /// `rule -> "(" rule_terminal_name ")" opt_str_lit ";"`
+    V5 { rule_terminal_name: SynRuleTerminalName, opt_str_lit: SynOptStrLit },
+}
+#[derive(Debug)]
+pub enum CtxOptStrLit {
+    /// `opt_str_lit -> ":" StrLit`
+    V1 { strlit: String },
+    /// `opt_str_lit -> ε`
+    V2,
 }
 #[derive(Debug)]
 pub enum CtxRuleFragmentName {
@@ -104,6 +115,8 @@ pub enum CtxAction {
     V6 { id: String },
     /// `action -> "channel" "(" Id ")"`
     V7 { id: String },
+    /// `action -> "hook"`
+    V8,
 }
 #[derive(Debug)]
 pub enum CtxMatch {
@@ -185,6 +198,8 @@ pub enum CtxCharSetOne {
 // #[derive(Debug, PartialEq)] pub struct SynOption();
 // /// User-defined type for `rule`
 // #[derive(Debug, PartialEq)] pub struct SynRule();
+// /// User-defined type for `opt_str_lit`
+// #[derive(Debug, PartialEq)] pub struct SynOptStrLit();
 // /// User-defined type for `rule_fragment_name`
 // #[derive(Debug, PartialEq)] pub struct SynRuleFragmentName();
 // /// User-defined type for `rule_terminal_name`
@@ -227,7 +242,7 @@ pub struct SynAltItem1(pub Vec<SynRepeatItem>);
 pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 
 #[derive(Debug)]
-enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), RuleFragmentName(SynRuleFragmentName), RuleTerminalName(SynRuleTerminalName), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
+enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), OptStrLit(SynOptStrLit), RuleFragmentName(SynRuleFragmentName), RuleTerminalName(SynRuleTerminalName), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
 
 impl SynValue {
     fn get_file(self) -> SynFile {
@@ -247,6 +262,9 @@ impl SynValue {
     }
     fn get_rule(self) -> SynRule {
         if let SynValue::Rule(val) = self { val } else { panic!() }
+    }
+    fn get_opt_str_lit(self) -> SynOptStrLit {
+        if let SynValue::OptStrLit(val) = self { val } else { panic!() }
     }
     fn get_rule_fragment_name(self) -> SynRuleFragmentName {
         if let SynValue::RuleFragmentName(val) = self { val } else { panic!() }
@@ -320,6 +338,8 @@ pub trait LexiParserListener {
     fn exit_option(&mut self, ctx: CtxOption) -> SynOption;
     fn init_rule(&mut self) {}
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
+    fn init_opt_str_lit(&mut self) {}
+    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit) -> SynOptStrLit;
     fn init_rule_fragment_name(&mut self) {}
     fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName) -> SynRuleFragmentName;
     fn init_rule_terminal_name(&mut self) {}
@@ -364,35 +384,36 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
             Call::Enter => {
                 match nt {
                     0 => self.listener.init_file(),               // file
-                    17 => self.init_file1(),                      // file_1
+                    18 => self.init_file1(),                      // file_1
                     1 => self.listener.init_file_item(),          // file_item
                     2 => self.listener.init_header(),             // header
                     3 => self.listener.init_declaration(),        // declaration
                     4 => self.listener.init_option(),             // option
-                    18 => self.init_option1(),                    // option_1
+                    19 => self.init_option1(),                    // option_1
                     5 => self.listener.init_rule(),               // rule
-                    23 => {}                                      // rule_1
-                    6 => self.listener.init_rule_fragment_name(), // rule_fragment_name
-                    7 => self.listener.init_rule_terminal_name(), // rule_terminal_name
-                    8 => self.listener.init_actions(),            // actions
-                    19 => self.init_actions1(),                   // actions_1
-                    9 => self.listener.init_action(),             // action
-                    10 => self.listener.init_match(),             // match
-                    11 => self.listener.init_alt_items(),         // alt_items
-                    20 => self.init_alt_items1(),                 // alt_items_1
-                    12 => self.listener.init_alt_item(),          // alt_item
-                    21 => self.init_alt_item1(),                  // alt_item_1
-                    27 => {}                                      // alt_item_2
-                    13 => self.listener.init_repeat_item(),       // repeat_item
-                    24 => {}                                      // repeat_item_1
-                    29 | 30 => {}                                 // repeat_item_2, repeat_item_3
-                    14 => self.listener.init_item(),              // item
-                    25 => {}                                      // item_1
-                    15 => self.listener.init_char_set(),          // char_set
-                    22 => self.init_char_set1(),                  // char_set_1
-                    28 => {}                                      // char_set_2
-                    16 => self.listener.init_char_set_one(),      // char_set_one
-                    26 => {}                                      // char_set_one_1
+                    24 | 25 => {}                                 // rule_1, rule_2
+                    6 => self.listener.init_opt_str_lit(),        // opt_str_lit
+                    7 => self.listener.init_rule_fragment_name(), // rule_fragment_name
+                    8 => self.listener.init_rule_terminal_name(), // rule_terminal_name
+                    9 => self.listener.init_actions(),            // actions
+                    20 => self.init_actions1(),                   // actions_1
+                    10 => self.listener.init_action(),            // action
+                    11 => self.listener.init_match(),             // match
+                    12 => self.listener.init_alt_items(),         // alt_items
+                    21 => self.init_alt_items1(),                 // alt_items_1
+                    13 => self.listener.init_alt_item(),          // alt_item
+                    22 => self.init_alt_item1(),                  // alt_item_1
+                    29 => {}                                      // alt_item_2
+                    14 => self.listener.init_repeat_item(),       // repeat_item
+                    26 => {}                                      // repeat_item_1
+                    31 | 32 => {}                                 // repeat_item_2, repeat_item_3
+                    15 => self.listener.init_item(),              // item
+                    27 => {}                                      // item_1
+                    16 => self.listener.init_char_set(),          // char_set
+                    23 => self.init_char_set1(),                  // char_set_1
+                    30 => {}                                      // char_set_2
+                    17 => self.listener.init_char_set_one(),      // char_set_one
+                    28 => {}                                      // char_set_one_1
                     _ => panic!("unexpected enter nonterminal id: {nt}")
                 }
             }
@@ -401,67 +422,73 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                 match alt_id {
                     0 |                                         // file -> header file_1
                     1 => self.exit_file(alt_id),                // file -> file_1
-                    35 => self.exit_file1(),                    // file_1 -> file_item file_1
-                    36 => {}                                    // file_1 -> ε
+                    39 => self.exit_file1(),                    // file_1 -> file_item file_1
+                    40 => {}                                    // file_1 -> ε
                     2 |                                         // file_item -> option
                     3 |                                         // file_item -> declaration
                     4 => self.exit_file_item(alt_id),           // file_item -> rule
                     5 => self.exit_header(),                    // header -> "lexicon" Id ";"
                     6 => self.exit_declaration(),               // declaration -> "mode" Id ";"
                     7 => self.exit_option(),                    // option -> "channels" "{" Id option_1 "}"
-                    37 => self.exit_option1(),                  // option_1 -> "," Id option_1
-                    38 => {}                                    // option_1 -> ε
-                    8 |                                         // rule -> rule_fragment_name ":" match ";"
-                    45 |                                        // rule_1 -> "->" actions ";"
-                    46 => self.exit_rule(alt_id),               // rule_1 -> ";"
-                 /* 9 */                                        // rule -> rule_terminal_name ":" match rule_1 (never called)
-                    10 => self.exit_rule_fragment_name(),       // rule_fragment_name -> "fragment" Id
-                    11 => self.exit_rule_terminal_name(),       // rule_terminal_name -> Id
-                    12 => self.exit_actions(),                  // actions -> action actions_1
-                    39 => self.exit_actions1(),                 // actions_1 -> "," action actions_1
-                    40 => {}                                    // actions_1 -> ε
-                    13 |                                        // action -> "mode" "(" Id ")"
-                    14 |                                        // action -> "push" "(" Id ")"
-                    15 |                                        // action -> "pop"
-                    16 |                                        // action -> "skip"
-                    17 |                                        // action -> "more"
-                    18 |                                        // action -> "type" "(" Id ")"
-                    19 => self.exit_action(alt_id),             // action -> "channel" "(" Id ")"
-                    20 => self.exit_match(),                    // match -> alt_items
-                    21 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
-                    41 => self.exit_alt_items1(),               // alt_items_1 -> "|" alt_item alt_items_1
-                    42 => {}                                    // alt_items_1 -> ε
-                    22 => self.exit_alt_item(),                 // alt_item -> alt_item_1
-                    55 |                                        // alt_item_2 -> alt_item_1
-                    56 => self.exit_alt_item1(),                // alt_item_2 -> ε
-                 /* 43 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
-                    48 |                                        // repeat_item_1 -> "?"
-                    50 |                                        // repeat_item_1 -> ε
-                    59 |                                        // repeat_item_2 -> "?"
-                    60 |                                        // repeat_item_2 -> ε
-                    61 |                                        // repeat_item_3 -> "?"
-                    62 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
-                 /* 23 */                                       // repeat_item -> item repeat_item_1 (never called)
-                 /* 47 */                                       // repeat_item_1 -> "+" repeat_item_2 (never called)
-                 /* 49 */                                       // repeat_item_1 -> "*" repeat_item_3 (never called)
-                    24 |                                        // item -> "(" alt_items ")"
-                    25 |                                        // item -> "~" item
-                    26 |                                        // item -> Id
-                    28 |                                        // item -> StrLit
-                    29 |                                        // item -> char_set
-                    51 |                                        // item_1 -> ".." CharLit
-                    52 => self.exit_item(alt_id),               // item_1 -> ε
-                 /* 27 */                                       // item -> CharLit item_1 (never called)
-                    30 |                                        // char_set -> "[" char_set_1 "]"
-                    31 |                                        // char_set -> "."
-                    32 => self.exit_char_set(alt_id),           // char_set -> FixedSet
-                    57 |                                        // char_set_2 -> char_set_1
-                    58 => self.exit_char_set1(),                // char_set_2 -> ε
-                 /* 44 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
-                    33 |                                        // char_set_one -> FixedSet
-                    53 |                                        // char_set_one_1 -> "-" SetChar
-                    54 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
-                 /* 34 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
+                    41 => self.exit_option1(),                  // option_1 -> "," Id option_1
+                    42 => {}                                    // option_1 -> ε
+                    9 |                                         // rule -> rule_fragment_name ":" match ";"
+                    49 |                                        // rule_1 -> "->" "hook" ";"
+                    50 |                                        // rule_1 -> ";"
+                    51 |                                        // rule_2 -> "->" actions ";"
+                    52 => self.exit_rule(alt_id),               // rule_2 -> ";"
+                 /* 8 */                                        // rule -> "(" rule_terminal_name ")" opt_str_lit rule_1 (never called)
+                 /* 10 */                                       // rule -> rule_terminal_name ":" match rule_2 (never called)
+                    11 |                                        // opt_str_lit -> ":" StrLit
+                    12 => self.exit_opt_str_lit(alt_id),        // opt_str_lit -> ε
+                    13 => self.exit_rule_fragment_name(),       // rule_fragment_name -> "fragment" Id
+                    14 => self.exit_rule_terminal_name(),       // rule_terminal_name -> Id
+                    15 => self.exit_actions(),                  // actions -> action actions_1
+                    43 => self.exit_actions1(),                 // actions_1 -> "," action actions_1
+                    44 => {}                                    // actions_1 -> ε
+                    16 |                                        // action -> "mode" "(" Id ")"
+                    17 |                                        // action -> "push" "(" Id ")"
+                    18 |                                        // action -> "pop"
+                    19 |                                        // action -> "skip"
+                    20 |                                        // action -> "more"
+                    21 |                                        // action -> "type" "(" Id ")"
+                    22 |                                        // action -> "channel" "(" Id ")"
+                    23 => self.exit_action(alt_id),             // action -> "hook"
+                    24 => self.exit_match(),                    // match -> alt_items
+                    25 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
+                    45 => self.exit_alt_items1(),               // alt_items_1 -> "|" alt_item alt_items_1
+                    46 => {}                                    // alt_items_1 -> ε
+                    26 => self.exit_alt_item(),                 // alt_item -> alt_item_1
+                    61 |                                        // alt_item_2 -> alt_item_1
+                    62 => self.exit_alt_item1(),                // alt_item_2 -> ε
+                 /* 47 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
+                    54 |                                        // repeat_item_1 -> "?"
+                    56 |                                        // repeat_item_1 -> ε
+                    65 |                                        // repeat_item_2 -> "?"
+                    66 |                                        // repeat_item_2 -> ε
+                    67 |                                        // repeat_item_3 -> "?"
+                    68 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
+                 /* 27 */                                       // repeat_item -> item repeat_item_1 (never called)
+                 /* 53 */                                       // repeat_item_1 -> "+" repeat_item_2 (never called)
+                 /* 55 */                                       // repeat_item_1 -> "*" repeat_item_3 (never called)
+                    28 |                                        // item -> "(" alt_items ")"
+                    29 |                                        // item -> "~" item
+                    30 |                                        // item -> Id
+                    32 |                                        // item -> StrLit
+                    33 |                                        // item -> char_set
+                    57 |                                        // item_1 -> ".." CharLit
+                    58 => self.exit_item(alt_id),               // item_1 -> ε
+                 /* 31 */                                       // item -> CharLit item_1 (never called)
+                    34 |                                        // char_set -> "[" char_set_1 "]"
+                    35 |                                        // char_set -> "."
+                    36 => self.exit_char_set(alt_id),           // char_set -> FixedSet
+                    63 |                                        // char_set_2 -> char_set_1
+                    64 => self.exit_char_set1(),                // char_set_2 -> ε
+                 /* 48 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
+                    37 |                                        // char_set_one -> FixedSet
+                    59 |                                        // char_set_one_1 -> "-" SetChar
+                    60 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
+                 /* 38 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
                     _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }
@@ -606,18 +633,28 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_rule(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            8 => {
+            9 => {
                 let match1 = self.stack.pop().unwrap().get_match();
                 let rule_fragment_name = self.stack.pop().unwrap().get_rule_fragment_name();
                 CtxRule::V1 { rule_fragment_name, match1 }
             }
-            45 => {
+            49 => {
+                let opt_str_lit = self.stack.pop().unwrap().get_opt_str_lit();
+                let rule_terminal_name = self.stack.pop().unwrap().get_rule_terminal_name();
+                CtxRule::V4 { rule_terminal_name, opt_str_lit }
+            }
+            50 => {
+                let opt_str_lit = self.stack.pop().unwrap().get_opt_str_lit();
+                let rule_terminal_name = self.stack.pop().unwrap().get_rule_terminal_name();
+                CtxRule::V5 { rule_terminal_name, opt_str_lit }
+            }
+            51 => {
                 let actions = self.stack.pop().unwrap().get_actions();
                 let match1 = self.stack.pop().unwrap().get_match();
                 let rule_terminal_name = self.stack.pop().unwrap().get_rule_terminal_name();
                 CtxRule::V2 { rule_terminal_name, match1, actions }
             }
-            46 => {
+            52 => {
                 let match1 = self.stack.pop().unwrap().get_match();
                 let rule_terminal_name = self.stack.pop().unwrap().get_rule_terminal_name();
                 CtxRule::V3 { rule_terminal_name, match1 }
@@ -626,6 +663,21 @@ impl<T: LexiParserListener> Wrapper<T> {
         };
         let val = self.listener.exit_rule(ctx);
         self.stack.push(SynValue::Rule(val));
+    }
+
+    fn exit_opt_str_lit(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
+            11 => {
+                let strlit = self.stack_t.pop().unwrap();
+                CtxOptStrLit::V1 { strlit }
+            }
+            12 => {
+                CtxOptStrLit::V2
+            }
+            _ => panic!("unexpected alt id {alt_id} in fn exit_opt_str_lit")
+        };
+        let val = self.listener.exit_opt_str_lit(ctx);
+        self.stack.push(SynValue::OptStrLit(val));
     }
 
     fn exit_rule_fragment_name(&mut self) {
@@ -665,30 +717,33 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_action(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            13 => {
+            16 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::V1 { id }
             }
-            14 => {
+            17 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::V2 { id }
             }
-            15 => {
+            18 => {
                 CtxAction::V3
             }
-            16 => {
+            19 => {
                 CtxAction::V4
             }
-            17 => {
+            20 => {
                 CtxAction::V5
             }
-            18 => {
+            21 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::V6 { id }
             }
-            19 => {
+            22 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::V7 { id }
+            }
+            23 => {
+                CtxAction::V8
             }
             _ => panic!("unexpected alt id {alt_id} in fn exit_action")
         };
@@ -746,27 +801,27 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_repeat_item(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            48 => {
+            54 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V5 { item }
             }
-            50 => {
+            56 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V6 { item }
             }
-            59 => {
+            65 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V3 { item }
             }
-            60 => {
+            66 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V4 { item }
             }
-            61 => {
+            67 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V1 { item }
             }
-            62 => {
+            68 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::V2 { item }
             }
@@ -778,32 +833,32 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_item(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            24 => {
+            28 => {
                 let alt_items = self.stack.pop().unwrap().get_alt_items();
                 CtxItem::V6 { alt_items }
             }
-            25 => {
+            29 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxItem::V7 { item }
             }
-            26 => {
+            30 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxItem::V1 { id }
             }
-            28 => {
+            32 => {
                 let strlit = self.stack_t.pop().unwrap();
                 CtxItem::V4 { strlit }
             }
-            29 => {
+            33 => {
                 let char_set = self.stack.pop().unwrap().get_char_set();
                 CtxItem::V5 { char_set }
             }
-            51 => {
+            57 => {
                 let charlit_2 = self.stack_t.pop().unwrap();
                 let charlit_1 = self.stack_t.pop().unwrap();
                 CtxItem::V2 { charlit: [charlit_1, charlit_2] }
             }
-            52 => {
+            58 => {
                 let charlit = self.stack_t.pop().unwrap();
                 CtxItem::V3 { charlit }
             }
@@ -815,14 +870,14 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_char_set(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            30 => {
+            34 => {
                 let plus = self.stack.pop().unwrap().get_char_set1();
                 CtxCharSet::V1 { plus }
             }
-            31 => {
+            35 => {
                 CtxCharSet::V2
             }
-            32 => {
+            36 => {
                 let fixedset = self.stack_t.pop().unwrap();
                 CtxCharSet::V3 { fixedset }
             }
@@ -847,16 +902,16 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_char_set_one(&mut self, alt_id: AltId) {
         let ctx = match alt_id {
-            33 => {
+            37 => {
                 let fixedset = self.stack_t.pop().unwrap();
                 CtxCharSetOne::V3 { fixedset }
             }
-            53 => {
+            59 => {
                 let setchar_2 = self.stack_t.pop().unwrap();
                 let setchar_1 = self.stack_t.pop().unwrap();
                 CtxCharSetOne::V1 { setchar: [setchar_1, setchar_2] }
             }
-            54 => {
+            60 => {
                 let setchar = self.stack_t.pop().unwrap();
                 CtxCharSetOne::V2 { setchar }
             }
@@ -886,6 +941,8 @@ pub(crate) mod lexiparser_types {
     #[derive(Debug, PartialEq)] pub struct SynOption();
     /// SynRule: User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
+    /// User-defined type for `opt_str_lit`
+    #[derive(Debug, PartialEq)] pub struct SynOptStrLit(pub Option<String>);
     /// User-defined type for `rule_fragment_name`
     #[derive(Debug, PartialEq)] pub struct SynRuleFragmentName(pub String);
     /// User-defined type for `rule_terminal_name`

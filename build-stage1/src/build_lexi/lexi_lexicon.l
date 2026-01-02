@@ -39,6 +39,7 @@ More            : 'more';
 Skip            : 'skip';
 Type            : 'type';
 Channel         : 'channel';
+Hook            : 'hook';
 //SymEof          : 'EOF';
 
 SComment        : BlockComment              -> skip;

@@ -100,6 +100,19 @@ const TXT5: &str = r#"
     A: 'r' -> skip;
 "#;
 
+const TXT6: &str = r#"
+    lexicon F;
+    Test1: '?' -> type(Test);
+    (If): 'if' -> hook;
+    (Else): 'else' -> hook;
+    End: 'end';
+    (Print) -> hook;
+    (Test) -> hook;
+    (Return);
+    Return2: '=' -> type(Return);
+    Id: [a-zA-Z][a-zA-Z_0-9]* -> hook;
+"#;
+
 /// Returns the set of characters that are valid at the given lexer state.
 ///
 /// Note: This function can be quite slow, as it must test every possibility.
@@ -168,6 +181,7 @@ mod listener {
 mod simple {
     use std::collections::BTreeMap;
     use std::io::Cursor;
+    use iter_index::IndexerIterator;
     use lexigram_lib::{branch, btreemap, term};
     use lexigram_lib::build::{BuildFrom, BuildInto};
     use lexigram_lib::dfa::{tree_to_string, ReType};
@@ -185,8 +199,22 @@ mod simple {
     fn lexiparser() {
         let tests = vec![
             (
-                TXT1,
-                btreemap![
+                TXT1, vec![],
+                vec![
+                    ("A", None),
+                    ("B", None),
+                    ("C", None),
+                    ("D", None),
+                    ("E", None),
+                    ("F", None),
+                    ("G", None),
+                    ("H", None),
+                    ("I", None),
+                    ("J", None),
+                    ("K", None),
+                    ("L", None),
+                    ("M", None),
+                ], btreemap![
                     0 => branch!('\t'-'\n', '\r', ' ' => 33, 'a' => 1, 'b' => 17, 'c' => 18, 'd' => 19, 'e' => 20, 'f' => 21, 'g' => 22, 'h' => 23, 'i' => 24, 'j' => 29, 'k' => 30, 'l' => 32, 'm' => 25),
                     1 => branch!(':' => 2),
                     2 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 34),
@@ -255,8 +283,13 @@ mod simple {
             ]
             ),
             (
-                TXT2,
-                btreemap![
+                TXT2, vec![],
+                vec![
+                    ("TAG", None),
+                    ("REF_TAG", None),
+                    ("SPEC", None),
+                    ("ARRAY", None),
+                ], btreemap![
                     0 => branch!('<' => 6, '[' => 7),
                     1 => branch!('\t', ' ', ',' => 9, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 11, '@' => 2),
                     2 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12),
@@ -277,8 +310,7 @@ mod simple {
                     17 => branch!(), // <more>
                     18 => branch!('0'-'9' => 18), // <more>
                     19 => branch!(), // <end:10,mode(0,state 0)>
-                ],
-                btreemap![
+                ], btreemap![
                     6 => term!(skip) + term!(push 1) + term!(pushst 1), 7 => term!(more) + term!(mode 3) + term!(pushst 5),
                     8 => term!(skip) + term!(push 2) + term!(pushst 3), 9 => term!(skip), 10 => term!(=0), 11 => term!(skip) + term!(pop),
                     12 => term!(=1) + term!(#1), 13 => term!(skip), 14 => term!(=2), 15 => term!(skip) + term!(pop), 16 => term!(skip),
@@ -298,7 +330,12 @@ mod simple {
                 ]
             ),
             (
-                TXT3, btreemap![
+                TXT3, vec![],
+                vec![
+                    ("A", Some("a")),
+                    ("ID", None),
+                    ("B", Some("b")),
+                ], btreemap![
                     0 => branch!('A'-'Z' => 1, 'a' => 2, 'b' => 3, 'c'-'z' => 4),
                     1 => branch!('A'-'Z' => 1), // <end:1>
                     2 => branch!('a'-'z' => 4), // <end:0>
@@ -309,7 +346,13 @@ mod simple {
                 ], vec![]
             ),
             (
-                TXT4, btreemap![
+                TXT4, vec![],
+                vec![
+                    ("B", Some("b")),
+                    ("D", Some("d")),
+                    ("E", Some("e")),
+                    ("F", Some("f")),
+                ], btreemap![
                     0 => branch!('a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6),
                     1 => branch!(), // <end:1>
                     2 => branch!(), // <end:0>
@@ -322,7 +365,21 @@ mod simple {
                 ], vec![]
             ),
             (
-                TXT5, btreemap![
+                TXT5, vec![],
+                vec![
+                    ("R", Some("a")),
+                    ("P", Some("c")),
+                    ("O", Some("d")),
+                    ("M", Some("f")),
+                    ("K", Some("h")),
+                    ("I", Some("j")),
+                    ("H", Some("k")),
+                    ("G", Some("l")),
+                    ("E", Some("n")),
+                    ("C", Some("p")),
+                    ("B", Some("q")),
+                    ("A", Some("r")),
+                ], btreemap![
                     0 => branch!('a' => 2, 'b' => 3, 'c' => 4, 'd' => 5, 'e' => 6, 'f' => 7, 'g' => 8, 'h' => 9, 'i' => 10, 'j' => 11, 'k' => 12),
                     1 => branch!('l' => 13, 'm' => 14, 'n' => 15, 'o' => 16, 'p' => 17, 'q' => 18, 'r' => 19),
                     2 => branch!(), // <end:1>
@@ -344,13 +401,39 @@ mod simple {
                     18 => branch!(), // <end:10,mode(0,state 0)>
                     19 => branch!(), // <skip>
                 ], btreemap![
-                    2 => term!(=1), 3 => term!(skip), 4 => term!(=0), 5 => term!(skip), 6 => term!(=2), 7 => term!(=2), 8 => term!(=3), 9 => term!(=4), 10 => term!(skip) + term!(mode 1) + term!(pushst 1), 11 => term!(=8), 12 => term!(=6), 13 => term!(=7), 14 => term!(=5), 15 => term!(=6), 16 => term!(=9), 17 => term!(=11), 18 => term!(=10) + term!(mode 0) + term!(pushst 0), 19 => term!(skip)
+                    2 => term!(=1), 3 => term!(skip), 4 => term!(=0), 5 => term!(skip), 6 => term!(=2), 7 => term!(=2),
+                    8 => term!(=3), 9 => term!(=4), 10 => term!(skip) + term!(mode 1) + term!(pushst 1), 11 => term!(=8),
+                    12 => term!(=6), 13 => term!(=7), 14 => term!(=5), 15 => term!(=6), 16 => term!(=9), 17 => term!(=11),
+                    18 => term!(=10) + term!(mode 0) + term!(pushst 0), 19 => term!(skip)
+                ], vec![]
+            ),
+            (
+                TXT6, vec![0, 1, 3, 4, 6],
+                vec![
+                    ("If", Some("if")),
+                    ("Else", Some("else")),
+                    ("End", Some("end")),
+                    ("Print", None),
+                    ("Test", None),
+                    ("Return", None),
+                    ("Id", None),
+                ], btreemap![
+                    0 => branch!('=' => 1, '?' => 2, 'A'-'Z', 'a'-'d', 'f'-'z' => 3, 'e' => 4),
+                    1 => branch!(), // <end:5>
+                    2 => branch!(), // <end:4>
+                    3 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 3), // <end:6,hook>
+                    4 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'m', 'o'-'z' => 3, 'n' => 5), // <end:6,hook>
+                    5 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'c', 'e'-'z' => 3, 'd' => 6), // <end:6,hook>
+                    6 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 3), // <end:2>
+                ], btreemap![
+                    1 => term!(=5), 2 => term!(=4), 3 => term!(=6), 4 => term!(=6),
+                    5 => term!(=6), 6 => term!(=2)
                 ], vec![]
             ),
         ];
         const VERBOSE: bool = false;
 
-        for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
+        for (test_id, (input, expected_hooks, expected_terminals, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = Lexi::new(stream);
@@ -358,9 +441,8 @@ mod simple {
             let listener = lexi.get_listener();
             let result_is_ok = listener.get_log().has_no_errors();
             if VERBOSE {
-                let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
-                if !msg.is_empty() {
-                    println!("Messages:\n{msg}");
+                if !listener.get_log().is_empty() {
+                    println!("Messages:\n{}", listener.get_log());
                 }
             }
             let text = format!("test {test_id} failed");
@@ -378,6 +460,24 @@ mod simple {
                     println!("- [{i:3}] {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
                 }
             }
+            let sym_table = listener.make_symbol_table();
+            let terminal_hooks = listener.terminal_hooks.iter().cloned().collect::<HashSet<_>>();
+            let result_terminals = sym_table.get_terminals().cloned().to_vec();
+            if VERBOSE {
+                println!(
+                    "Hooks: {}",
+                    (0..=terminal_hooks.iter().cloned().max().unwrap_or(0))
+                        .filter_map(|i| if terminal_hooks.contains(&i) { Some(i.to_string()) } else { None })
+                        .join(", "));
+                println!(
+                    "Symbol table (terminals):\n{}",
+                    result_terminals.iter().index()
+                        .map(|(t, x)| format!("{: <20}{x:?}{}", "", if terminal_hooks.contains(&t) { "  // hook" } else { "" }))
+                        .join("\n"));
+            }
+            assert_eq!(listener.terminal_hooks, expected_hooks, "{text}: mismatch hooks");
+            let expected_terminals = expected_terminals.into_iter().map(|(s, t)| (s.to_string(), t.map(|st| st.to_string()))).to_vec();
+            assert_eq!(result_terminals, expected_terminals, "{text}: mismatch terminals");
             let SymbolicDfa { dfa, .. } = lexi.build_into();
             if VERBOSE {
                 println!("Final optimized Dfa:");
@@ -571,7 +671,7 @@ mod simple {
                     }
                 )
             }).collect::<BTreeMap<_,_>>();
-            let SymbolicDfa { dfa: _dfa, symbol_table } = lexi.build_into();
+            let SymbolicDfa { dfa: _dfa, symbol_table, .. } = lexi.build_into();
             let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             if JUST_SHOW_ANSWERS {
                 println!("             vec![{}],", result_sym.iter().map(|s| format!("\"{s}\"")).join(", "));
@@ -662,6 +762,20 @@ mod lexicon {
                 r#"lexicon test11; A: 'bad:\u100'; B: 'b';"#,
                 vec!["lexical error: invalid character '1'"]
             ),
+            (
+                r#"lexicon test12; (A): [a-z]; B: 'b';"#,
+                vec!["syntax error: found input '[' instead of 'StrLit!'"]
+            ),
+            (
+                r#"lexicon test13; (A) -> skip;"#,
+                vec!["syntax error: found input 'skip' instead of 'hook'"]
+            ),
+            /* template:
+            (
+                r#""#,
+                vec![]
+            ),
+            */
         ];
         const VERBOSE: bool = false;
         const CHECK_ALL_ERRORS: bool = false;

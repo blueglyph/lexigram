@@ -21,6 +21,12 @@ option:
 rule:
     rule_fragment_name Colon match Semicolon
 |   rule_terminal_name Colon match (Arrow actions)? Semicolon
+    // only reserve the token, but doesn't add a rule to scan it:
+|   Lparen rule_terminal_name Rparen opt_str_lit (Arrow Hook)? Semicolon
+;
+
+opt_str_lit:
+    (Colon StrLit)?
 ;
 
 rule_fragment_name:
@@ -43,6 +49,7 @@ action:
 |   More
 |   Type Lparen Id Rparen
 |   Channel Lparen Id Rparen
+|   Hook
 ;
 
 match:

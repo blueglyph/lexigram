@@ -18,7 +18,7 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
-    let SymbolicDfa { dfa, symbol_table } = lexi.build_into();
+    let SymbolicDfa { dfa, symbol_table, .. } = lexi.build_into();
     if !dfa.get_log().has_no_errors() {
         return Err(dfa.give_log());
     }

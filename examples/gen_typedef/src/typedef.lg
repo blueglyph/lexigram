@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // [typedef_type_lexicon]
 
-lexer Typedef;
+lexicon Typedef;
 
 Comma           : ',';
 SemiColon       : ';';
@@ -43,7 +43,7 @@ expr:
 // -----------------------------------------------------------------------------
 // [typedef_id_type_lexicon]
 
-lexer Typedef;
+lexicon Typedef;
 
 Comma           : ',';
 SemiColon       : ';';

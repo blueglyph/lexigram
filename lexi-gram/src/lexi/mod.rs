@@ -7,7 +7,7 @@ use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto, TryBuildFrom};
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{Normalized, SymbolTable};
+use lexigram_lib::{Normalized, SymbolTable, TokenId};
 use lexigram_lib::build::{BuildError, BuildErrorSource, HasBuildErrorSource};
 use lexilexer::build_lexer;
 use lexiparser::{build_parser, Wrapper};
@@ -21,7 +21,8 @@ mod tests;
 
 pub struct SymbolicDfa {
     pub dfa: Dfa<Normalized>,
-    pub symbol_table: SymbolTable
+    pub symbol_table: SymbolTable,
+    pub terminal_hooks: Vec<TokenId>,
 }
 
 pub struct Lexi<'a, 'b, R: Read> {
@@ -101,9 +102,11 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
         lexi.make();
         let listener = lexi.wrapper.give_listener();
         let symbol_table = listener.make_symbol_table();
+        let terminal_hooks = listener.terminal_hooks.clone();
         SymbolicDfa {
             dfa: listener.build_into(),
-            symbol_table
+            symbol_table,
+            terminal_hooks
         }
     }
 }

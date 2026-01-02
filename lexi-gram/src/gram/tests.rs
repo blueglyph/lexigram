@@ -71,7 +71,7 @@ fn make_lexer_tables(lexicon: &str) -> (LexerTables, SymbolTable) {
     let lexicon_stream = CharReader::new(Cursor::new(lexicon));
     let lexi = Lexi::new(lexicon_stream);
     let symbolic_dfa: SymbolicDfa = lexi.build_into();
-    let SymbolicDfa { dfa, symbol_table } = symbolic_dfa;
+    let SymbolicDfa { dfa, symbol_table, .. } = symbolic_dfa;
     let msg = dfa.get_log().get_messages_str();
     assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
     if VERBOSE && !msg.is_empty() {
