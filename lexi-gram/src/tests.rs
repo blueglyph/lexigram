@@ -698,6 +698,7 @@ mod gen_test_lexer {
         match action(Action::Verify) {
             Ok(_) => { }
             Err(e) => {
+                println!("{e:?}");
                 let msg = e.to_string();
                 if let Some(log) = e.get_log() {
                     println!("{log}");

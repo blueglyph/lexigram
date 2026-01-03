@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::io::{BufRead, BufReader, BufWriter, Read, Write, Seek};
+use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
 use std::fs::{File, OpenOptions};
 use lexigram_core::CollectJoin;
 
@@ -108,4 +108,25 @@ pub fn replace_tagged_source(filename: &str, tag: &str, new_src: &str) -> Result
     buf.seek(std::io::SeekFrom::End(0))?;
     write!(&mut buf, "\n{new_src}\n{after}")?;
     Ok(())
+}
+
+/// Result of a line-by-line comparison of two strings. Reports
+/// either that everything was equal or the first line mismatch.
+pub enum DiffResult {
+    /// The two strings are equal line by line (EOL may differ in nature: Linux vs Windows)
+    Equal,
+    /// The two strings differ, starting at line `line_num` (differing lines included)
+    Mismatch { line_num: usize, line1: String, line2: String }
+}
+
+/// Compares two strings line by line.
+pub fn simple_diff(text1: &str, text2: &str) -> DiffResult {
+    let mut line_num = 0;
+    for (line1, line2) in text1.lines().zip(text2.lines()) {
+        line_num += 1;
+        if line1 != line2 {
+            return DiffResult::Mismatch { line_num, line1: line1.to_string(), line2: line2.to_string() }
+        }
+    }
+    DiffResult::Equal
 }

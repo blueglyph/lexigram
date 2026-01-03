@@ -10,10 +10,10 @@ use lexigram_lib::build::{BuildError, TryBuildFrom, TryBuildInto};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::lexergen::LexerGen;
-use lexigram_lib::LL1;
+use lexigram_lib::{file_utils, LL1};
 use lexigram_lib::log::BufLog;
 use lexigram_lib::parsergen::ParserGen;
-use lexigram_lib::file_utils::SrcTagError;
+use lexigram_lib::file_utils::{DiffResult, SrcTagError};
 use crate::{Gram, Lexi};
 use crate::lexi::SymbolicDfa;
 use crate::options::{Action, Options};
@@ -141,16 +141,24 @@ pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenPar
             if let Some(expected_lexer) = options.lexer_code.read()
                 .map_err(|e| GenParserError::Source(e, format!("error while reading the expected lexer code ({})", options.lexer_code.get_type())))?
             {
-                if lexer_source != expected_lexer {
-                    return Err(GenParserError::Mismatch("lexer sources differ".to_string()))
+                match file_utils::simple_diff(&lexer_source, &expected_lexer) {
+                    DiffResult::Equal => {}
+                    DiffResult::Mismatch { line_num, line1, line2 } => {
+                        return Err(GenParserError::Mismatch(
+                            format!("lexer sources differ, line {line_num}:\ngenerated: '{line1}'\nreference: '{line2}'")))
+                    }
                 }
             }
             if let Some(expected_parser) = options.parser_code.read()
                 .map_err(|e| GenParserError::Source(e, format!("error while reading the expected parser code ({})", options.parser_code.get_type())))?
             {
                 if let Some(parser_source) = parser_source_opt {
-                    if parser_source != expected_parser {
-                        return Err(GenParserError::Mismatch("parser sources differ".to_string()));
+                    match file_utils::simple_diff(&parser_source, &expected_parser) {
+                        DiffResult::Equal => {}
+                        DiffResult::Mismatch { line_num, line1, line2 } => {
+                            return Err(GenParserError::Mismatch(
+                                format!("parser sources differ, line {line_num}:\ngenerated: '{line1}'\nreference: '{line2}'")))
+                        }
                     }
                 } else {
                     return Err(GenParserError::InvalidParameter("parser source code verification required but no grammar was provided".to_string()));
