@@ -654,6 +654,7 @@ mod failing_tests {
 // Generates the test lexer in lexigram-core/src/lexer/tests.rs
 
 mod gen_test_lexer {
+    use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
 
@@ -668,7 +669,7 @@ mod gen_test_lexer {
                 gencode!(filename: LEXER_TEST_FILENAME, tag: TAG_CODE))
             .indent(4)
             .headers([
-                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", file!()),
+                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", filename!()),
                 format!("// and corresponds to the lexicon above between tags [{}]", TAG_LEXICON)])
             .set_crate(LexigramCrate::Custom("crate".to_string()))
             .build()
@@ -713,6 +714,7 @@ mod gen_test_lexer {
 // Generates the test lexer/parser in lexigram-core/src/parser/tests.rs
 
 mod gen_test_parser {
+    use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
 
@@ -729,13 +731,13 @@ mod gen_test_parser {
                 genspec!(filename: SOURCE_FILENAME, tag: TAG_LEXICON),
                 gencode!(filename: SOURCE_FILENAME, tag: TAG_LEXER_CODE))
             .headers([
-                format!("// This code is generated from {}", file!()),
+                format!("// This code is generated from {}", filename!()),
                 format!("// and corresponds to the lexicon above between tags [{}]", TAG_LEXICON)])
             .parser(
                 genspec!(filename: SOURCE_FILENAME, tag: TAG_GRAMMAR),
                 gencode!(filename: SOURCE_FILENAME, tag: TAG_PARSER_CODE))
             .headers([
-                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", file!()),
+                format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", filename!()),
                 format!("// and corresponds to the grammar above between tags [{}]", TAG_GRAMMAR)])
             .wrapper(false)
             .set_crate(LexigramCrate::Custom("crate".to_string()))

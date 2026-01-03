@@ -44,7 +44,7 @@ instruction:
 mod lexer {
     // [lexer_source]
 
-    // This code is generated from lexi-gram\src\tests.rs
+    // This code is generated from lexi-gram/src/tests.rs
     // and corresponds to the lexicon above between tags [lexer_lexicon]
 
     use std::collections::HashMap;
@@ -131,7 +131,7 @@ mod lexer {
 mod parser {
     // [parser_source]
 
-    // This code is generated with lexigram version 0.8.3 from lexi-gram\src\tests.rs
+    // This code is generated with lexigram version 0.8.3 from lexi-gram/src/tests.rs
     // and corresponds to the grammar above between tags [parser_grammar]
 
     use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser}};

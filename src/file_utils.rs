@@ -130,3 +130,11 @@ pub fn simple_diff(text1: &str, text2: &str) -> DiffResult {
     }
     DiffResult::Equal
 }
+
+/// Expands to the file name in which it was invoked, like [file!](file!()),
+/// but transforms Windows path separators to `/`, so that they match on a
+/// Linux system (useful when generated text is verified in unit tests).
+#[macro_export]
+macro_rules! filename {
+    () => { file!().replace("\\", "/") };
+}
