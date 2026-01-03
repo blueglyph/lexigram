@@ -3,6 +3,8 @@
 // =============================================================================================
 // Generates the source of the typedef parser
 
+#![allow(unused)]
+
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexi_gram::options::{Action, OptionsBuilder};
