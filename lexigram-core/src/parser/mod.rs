@@ -87,10 +87,11 @@ impl Display for Symbol {
 pub enum OpCode {
     Empty,              // empty symbol
     T(TokenId),         // terminal
-    NT(VarId),          // non-terminal
-    Loop(VarId),        // loop to same non-terminal
-    Exit(VarId),        // exit non-terminal
-    End                 // end of stream
+    NT(VarId),          // nonterminal
+    Loop(VarId),        // loop to same nonterminal
+    Exit(VarId),        // exit nonterminal
+    Hook,               // terminal hook callback
+    End,                // end of stream
 }
 
 
@@ -102,6 +103,7 @@ impl Display for OpCode {
             OpCode::NT(v) => write!(f, "►{v}"),
             OpCode::Loop(v) => write!(f, "●{v}"),
             OpCode::Exit(v) => write!(f, "◄{v}"),
+            OpCode::Hook => write!(f, "▲"),
             OpCode::End => write!(f, "$"),
         }
     }
@@ -126,8 +128,9 @@ impl OpCode {
             OpCode::T(t) => s == Symbol::T(*t),
             OpCode::NT(v) => s == Symbol::NT(*v),
             OpCode::End => s == Symbol::End,
-            OpCode::Loop(_) => false,
-            OpCode::Exit(_) => false,
+            OpCode::Loop(_)
+            | OpCode::Exit(_)
+            | OpCode::Hook => false,
         }
     }
 
@@ -139,6 +142,7 @@ impl OpCode {
                 OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
                 OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
                 OpCode::Exit(f) => format!("◄{f}"),
+                OpCode::Hook => "▲".to_string(),
                 OpCode::End => "$".to_string(),
             }
         } else {
@@ -190,6 +194,7 @@ impl OpCode {
             OpCode::NT(v) => format!("nt {v}"),
             OpCode::Loop(v) => format!("loop {v}"),
             OpCode::Exit(v) => format!("exit {v}"),
+            OpCode::Hook => "hook".to_string(),
             OpCode::End => "end".to_string(),
         }
     }

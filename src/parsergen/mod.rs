@@ -155,6 +155,7 @@ pub struct ParserGen {
     origin: Origin<VarId, FromPRS>,
     item_ops: HashMap<AltId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
+    init_opcodes: Vec<OpCode>,
     /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
     gen_span_params: bool,
     span_nbrs: Vec<SpanNbr>,
@@ -213,6 +214,7 @@ impl ParserGen {
             terminal_hooks: Vec::new(),
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
+            init_opcodes: Vec::new(),
             span_nbrs: Vec::new(),
             start,
             nt_conversion,
@@ -250,8 +252,7 @@ impl ParserGen {
     #[inline]
     pub fn set_terminal_hooks(&mut self, terminal_hooks: Vec<TokenId>) {
         self.terminal_hooks = terminal_hooks;
-        self.make_opcodes();        // TODO: better method than redoing this?
-        // self.make_span_nbrs();   // shouldn't be necessary: spans won't change
+        self.add_opcode_hooks();
     }
 
     #[inline]
@@ -445,6 +446,7 @@ impl ParserGen {
     fn make_opcodes(&mut self) {
         const VERBOSE: bool = false;
         self.opcodes.clear();
+        self.init_opcodes = vec![OpCode::End, OpCode::NT(self.start)];
         for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
             if VERBOSE {
                 println!("{alt_id}: {}", alt.to_rule_str(*var_id, self.get_symbol_table(), 0));
@@ -558,6 +560,103 @@ impl ParserGen {
             });
             if VERBOSE { println!("  -> {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             self.opcodes.push(opcode);
+        }
+    }
+
+    /// Adds hook opcodes that must be popped before the corresponding terminal is processed,
+    /// and possibly modified. For example, an `Id` terminal must be changed into `Type`
+    /// when that id has been previously declared as type in the parsed text.
+    ///
+    /// ```
+    ///          | Num Id  Type  ,   ;  typedef let  =  print  -   +   $
+    /// ---------+--------------------------------------------------------
+    /// program  |  .   .   0    .   .     0     0   .    0    .   .   p
+    /// decl_i   |  .   .   1    .   .     1     2   .    2    .   .   .
+    /// inst_i   |  .   .   .    .   .     .     3   .    3    .   .   p
+    /// decl     |  .   .   4    .   .     5     p   .    p    .   .   .
+    /// […]
+    ///
+    ///  0: program -> decl_i inst_i      | ◄0 ►inst_i ►decl_i
+    ///  1: decl_i -> decl decl_i         | ●decl_i ◄1 ►decl
+    ///  2: decl_i -> ε                   | ◄2
+    ///  3: inst_i -> inst inst_i_1       | ►inst_i_1 ►inst
+    ///  4: decl -> Type Id decl_1 ";"    | ◄4 ";" ►decl_1 Id! Type!
+    ///  5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! "typedef"
+    /// […]
+    /// ```
+    /// - create set of NT that need hooked terminal to make a decision in the table:
+    ///
+    ///     `deps = { ►program, ►decl_i, ►decl }`
+    ///
+    /// - hook required at init if start NT in deps:
+    ///
+    ///     `init stack = [end ►program hook]`
+    ///
+    /// - hook required after each deps item that isn't in last opcode position:
+    ///     ```
+    ///     1: decl_i -> decl decl_i         | ●decl_i hook ◄1 ►decl hook
+    ///                                                ^^^^
+    ///     ```
+    /// - hook required after each hooked terminal that isn't in last opcode position:
+    ///     ```
+    ///     5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! hook "typedef"
+    ///                                                         ^^^^
+    ///     ```
+    fn add_opcode_hooks(&mut self) {
+        const VERBOSE: bool = false;
+        let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
+        let num_nt = self.parsing_table.num_nt;
+        let num_t = self.parsing_table.num_t;
+        let err = self.parsing_table.alts.len() as AltId;
+        if VERBOSE {
+            self.parsing_table.print(self.get_symbol_table(), 0);
+            println!("num_nt = {num_nt}\nnum_t = {num_t}\ntable: {}", self.parsing_table.table.len());
+        }
+        if VERBOSE { println!("hooks: {}", self.terminal_hooks.iter().map(|t| self.symbol_table.get_t_name(*t)).join(", ")); }
+        let deps: HashSet<VarId> = (0..num_nt as VarId)
+            .filter(|&nt| hooks.iter().any(|&t| self.parsing_table.table[nt as usize * num_t + t as usize] < err))
+            .collect();
+        if VERBOSE { println!("deps = {deps:?} = {}", deps.iter().map(|nt| self.symbol_table.get_nt_name(*nt)).join(", ")); }
+
+        // hook required when parser starts?
+        if deps.contains(&self.start) {
+            self.init_opcodes = vec![OpCode::End, OpCode::NT(self.start), OpCode::Hook];
+        }
+        let mut changed = false;
+        for opcodes in self.opcodes.iter_mut() {
+            let mut new = vec![];
+            let n = opcodes.len();
+            for op in &opcodes[..n - 1] {
+                new.push(*op);
+                match op {
+                    OpCode::T(t) if hooks.contains(t) => {
+                        new.push(OpCode::Hook);
+                    }
+                    OpCode::NT(nt) | OpCode::Loop(nt) if deps.contains(nt) => {
+                        new.push(OpCode::Hook);
+                    }
+                    _ => {}
+                }
+            }
+            if new.len() + 1 > n {
+                new.push(opcodes[n - 1]);
+                *opcodes = new;
+                changed = true;
+            }
+        }
+        if VERBOSE && changed {
+            println!("new opcodes:");
+            let mut cols = vec![];
+            let tbl = self.get_symbol_table();
+            for (i, (opcodes, (nt, alt))) in self.opcodes.iter().zip(&self.parsing_table.alts).enumerate() {
+                cols.push(vec![
+                    i.to_string(),
+                    format!("{} -> ", Symbol::NT(*nt).to_str(tbl)),
+                    opcodes.iter().map(|op| op.to_str(tbl)).join(" "),
+                    alt.to_str(tbl),
+                ]);
+            }
+            println!("{}", indent_source(vec![columns_to_str(cols, None)], 4))
         }
     }
 
@@ -1326,12 +1425,6 @@ impl ParserGen {
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
-
-        // FIXME: dummy test
-        if !self.terminal_hooks.is_empty() {
-            src.push(format!("// hooks: {}", self.terminal_hooks.iter().map(|t| format!("{t}:{}", self.symbol_table.get_t_name(*t))).join(", ")));
-            src.add_space();
-        }
 
         // Defines missing type names
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {

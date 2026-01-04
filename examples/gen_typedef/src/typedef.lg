@@ -9,6 +9,7 @@ Eq              : '=';
 Sub             : '-';
 Add             : '+';
 Typedef         : 'typedef';
+Let             : 'let';
 Print           : 'print';
 
 Num             : [0-9]+;
@@ -22,14 +23,12 @@ Id              : [a-zA-Z][a-zA-Z_0-9]*;
 grammar Typedef;
 
 program:
-    (<L=stmt_i> stmt)*;
-stmt:
-    decl | inst;
+    (<L=decl_i> decl)* (<L=inst_i> inst)+;
 decl:
     Type Id (Comma Id)* SemiColon
 |   Typedef Type Id SemiColon;
 inst:
-    Id Eq expr SemiColon
+    Let Id Eq expr SemiColon
 |   Print expr SemiColon;
 expr:
     Sub expr
@@ -51,7 +50,6 @@ Eq              : '=';
 Sub             : '-';
 Add             : '+';
 Typedef         : 'typedef';
-Let             : 'let';
 Print           : 'print';
 
 Num             : [0-9]+;
@@ -65,12 +63,14 @@ Id              : [a-zA-Z][a-zA-Z_0-9]*     -> hook;
 grammar Typedef;
 
 program:
-    (<L=decl_i> decl)* (<L=inst_i> inst)+;
+    (<L=stmt_i> stmt)*;
+stmt:
+    decl | inst;
 decl:
     Type Id (Comma Id)* SemiColon
 |   Typedef Type Id SemiColon;
 inst:
-    Let Id Eq expr SemiColon
+    Id Eq expr SemiColon
 |   Print expr SemiColon;
 expr:
     Sub expr

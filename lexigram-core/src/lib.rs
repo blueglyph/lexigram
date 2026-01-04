@@ -52,6 +52,7 @@ pub mod macros {
     /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
     /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
     /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
+    /// assert_eq!(opcode!(hook), OpCode::Hook);
     /// assert_eq!(opcode!(end), OpCode::End);
     #[macro_export]
     macro_rules! opcode {
@@ -63,6 +64,7 @@ pub mod macros {
         (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::VarId, 0) };
         (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::VarId, 0) };
         (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::VarId, 0) };
+        (hook) => { $crate::parser::OpCode::Hook };
         (end) => { $crate::parser::OpCode::End };
     }
 

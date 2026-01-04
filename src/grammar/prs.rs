@@ -58,7 +58,7 @@ struct AltInfo {
 #[derive(Debug)]
 pub struct LLParsingTable {
     pub num_nt: usize,
-    pub num_t: usize,
+    pub num_t: usize,               // includes the end $ symbol
     pub alts: Vec<(VarId, Alternative)>,
     pub table: Vec<AltId>,
     pub flags: Vec<u32>,            // NT -> flags (+ or * normalization)
