@@ -143,9 +143,10 @@ mod parser {
     static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
     static PARSING_TABLE: [AltId; 27] = [6, 0, 6, 6, 6, 6, 6, 6, 7, 6, 6, 7, 6, 2, 3, 1, 6, 6, 6, 6, 5, 6, 4, 4, 4, 6, 6];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(1), OpCode::T(3), OpCode::T(7), OpCode::T(0), OpCode::T(6)], &[OpCode::Exit(2), OpCode::T(3), OpCode::T(6), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(3), OpCode::T(6), OpCode::T(5)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1)], &[OpCode::Exit(5)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -155,11 +156,12 @@ mod parser {
             &ALT_VAR,
             Vec::new(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     // [parser_source]
 }

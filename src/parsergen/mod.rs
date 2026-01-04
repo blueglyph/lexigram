@@ -67,6 +67,7 @@ pub struct ParserTables {
     alt_var: Vec<VarId>,
     alts: Vec<Alternative>,
     opcodes: Vec<Vec<OpCode>>,
+    init_opcodes: Vec<OpCode>,
     table: Vec<AltId>,
     symbol_table: FixedSymTable,
     start: VarId,
@@ -74,13 +75,20 @@ pub struct ParserTables {
 }
 
 impl ParserTables {
-    pub fn new(parsing_table: LLParsingTable, symbol_table: FixedSymTable, opcodes: Vec<Vec<OpCode>>, start: VarId, include_alts: bool) -> Self {
+    pub fn new(
+        parsing_table: LLParsingTable,
+        symbol_table: FixedSymTable,
+        opcodes: Vec<Vec<OpCode>>,
+        init_opcodes: Vec<OpCode>,
+        start: VarId,
+        include_alts: bool
+    ) -> Self {
         assert!(parsing_table.num_nt > start as usize);
         let num_nt = parsing_table.num_nt;
         let num_t = parsing_table.num_t;
         let table = parsing_table.table;
         let (factor_var, alts): (Vec<_>, Vec<_>) = parsing_table.alts.into_iter().unzip();
-        ParserTables { num_nt, num_t, alt_var: factor_var, alts, opcodes, table, symbol_table, start, include_alts }
+        ParserTables { num_nt, num_t, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
     }
 
     pub fn make_parser(&self) -> Parser<'_> {
@@ -90,6 +98,7 @@ impl ParserTables {
             self.alt_var.as_slice(),
             if self.include_alts { self.alts.clone() } else { vec![] },
             self.opcodes.clone(),
+            self.init_opcodes.clone(),
             self.table.as_slice(),
             self.symbol_table.clone(),
             self.start,
@@ -105,6 +114,7 @@ impl BuildFrom<ParserGen> for ParserTables {
             parser_gen.parsing_table,
             parser_gen.symbol_table.to_fixed_sym_table(),
             parser_gen.opcodes,
+            parser_gen.init_opcodes,
             parser_gen.start,
             parser_gen.include_alts
         )
@@ -567,7 +577,7 @@ impl ParserGen {
     /// and possibly modified. For example, an `Id` terminal must be changed into `Type`
     /// when that id has been previously declared as type in the parsed text.
     ///
-    /// ```
+    /// ```text
     ///          | Num Id  Type  ,   ;  typedef let  =  print  -   +   $
     /// ---------+--------------------------------------------------------
     /// program  |  .   .   0    .   .     0     0   .    0    .   .   p
@@ -593,12 +603,12 @@ impl ParserGen {
     ///     `init stack = [end ►program hook]`
     ///
     /// - hook required after each deps item that isn't in last opcode position:
-    ///     ```
+    ///     ```text
     ///     1: decl_i -> decl decl_i         | ●decl_i hook ◄1 ►decl hook
     ///                                                ^^^^
     ///     ```
     /// - hook required after each hooked terminal that isn't in last opcode position:
-    ///     ```
+    ///     ```text
     ///     5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! hook "typedef"
     ///                                                         ^^^^
     ///     ```
@@ -652,8 +662,8 @@ impl ParserGen {
                 cols.push(vec![
                     i.to_string(),
                     format!("{} -> ", Symbol::NT(*nt).to_str(tbl)),
-                    opcodes.iter().map(|op| op.to_str(tbl)).join(" "),
                     alt.to_str(tbl),
+                    opcodes.iter().map(|op| op.to_str(tbl)).join(" "),
                 ]);
             }
             println!("{}", indent_source(vec![columns_to_str(cols, None)], 4))
@@ -1285,32 +1295,75 @@ impl ParserGen {
         }
         self.log.add_note(format!("- creating parsing tables: {} items, {} opcodes", self.parsing_table.table.len(), self.opcodes.len()));
         src.extend(vec![
-            format!("static PARSING_TABLE: [AltId; {}] = [{}];",
-                     self.parsing_table.table.len(),
-                     self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
-            format!("static OPCODES: [&[OpCode]; {}] = [{}];", self.opcodes.len(),
-                     self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
+            format!(
+                "static PARSING_TABLE: [AltId; {}] = [{}];",
+                self.parsing_table.table.len(),
+                self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
+            format!(
+                "static OPCODES: [&[OpCode]; {}] = [{}];",
+                self.opcodes.len(),
+                self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
+            format!(
+                "static INIT_OPCODES: [OpCode; {}] = [{}];",
+                self.init_opcodes.len(),
+                self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
-
-            format!("pub fn build_parser() -> Parser<'static> {{"),
-            format!("    let symbol_table = FixedSymTable::new("),
-            format!("        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),"),
-            format!("        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()"),
-            format!("    );"),
-            format!("    Parser::new("),
-            format!("        PARSER_NUM_NT, PARSER_NUM_T + 1,"),
-            format!("        &ALT_VAR,"),
+        ]);
+        if !self.terminal_hooks.is_empty() {
+            src.add_space();
+            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
+            src.push("#[repr(u16)]".to_string());
+            src.push("pub enum Term {".to_string());
+            let cols = self.symbol_table.get_terminals().enumerate()
+                .map(|(t, (s, s_opt))| vec![
+                    // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
+                    // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
+                    format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
+                    format!("{s} = {t},", )])
+                .to_vec();
+            src.extend(columns_to_str(cols, Some(vec![16, 0])));
+            src.push("}\n".to_string());
+            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
+            src.push("#[repr(u16)]".to_string());
+            src.push("pub enum NTerm {".to_string());
+            let cols = self.symbol_table.get_nonterminals().index()
+                .map(|(t, s)| vec![
+                    format!(
+                        "    #[doc = \"`{s}`{}\"]",
+                        if let Some(p) = self.get_nt_parent(t) {
+                            format!(", parent: `{}`", Symbol::NT(p).to_str(self.get_symbol_table()))
+                        } else {
+                            String::new()
+                        }),
+                    format!("{} = {t},", s.to_camelcase())])
+                .to_vec();
+            src.extend(columns_to_str(cols, Some(vec![16, 0])));
+            src.push("}\n".to_string());
+            src.push("    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
+            src.push("        SYMBOLS_T[t as usize]".to_string());
+            src.push("    }\n".to_string());
+        }
+        src.extend(vec![
+            "pub fn build_parser() -> Parser<'static> {{".to_string(),
+            "    let symbol_table = FixedSymTable::new(".to_string(),
+            "        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),".to_string(),
+            "        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
+            "    );".to_string(),
+            "    Parser::new(".to_string(),
+            "        PARSER_NUM_NT, PARSER_NUM_T + 1,".to_string(),
+            "        &ALT_VAR,".to_string(),
             if self.include_alts {
-                format!("        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),")
+                "        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),".to_string()
             } else {
-                format!("        Vec::new(),")
+                "        Vec::new(),".to_string()
             },
-            format!("        OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),"),
-            format!("        &PARSING_TABLE,"),
-            format!("        symbol_table,"),
-            format!("        START_SYMBOL"),
-            format!("    )"),
-            format!("}}"),
+            "        OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),".to_string(),
+            "        INIT_OPCODES.to_vec(),".to_string(),
+            "        &PARSING_TABLE,".to_string(),
+            "        symbol_table,".to_string(),
+            "        START_SYMBOL".to_string(),
+            "    )".to_string(),
+            "}}".to_string(),
         ]);
         src
     }
@@ -2056,6 +2109,11 @@ impl ParserGen {
         src.push(format!("    fn check_abort_request(&self) -> bool {{ false }}"));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
         let extra_param = if self.gen_span_params { ", span: PosSpan" } else { "" };
+        if !self.terminal_hooks.is_empty() {
+            self.used_libs.add(format!("{}::TokenId", self.lib_crate));
+            src.push(format!("    #[allow(unused)]"));
+            src.push(format!("    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
+        }
         if self.nt_value[self.start as usize] || self.gen_span_params {
             src.push(format!("    #[allow(unused)]"));
         }
@@ -2182,9 +2240,15 @@ impl ParserGen {
         src.push(format!("        self.stack_t.is_empty()"));
         src.push(format!("    }}"));
         if self.gen_span_params {
-            src.push(format!(""));
+            src.add_space();
             src.push(format!("    fn is_stack_span_empty(&self) -> bool {{"));
             src.push(format!("        self.stack_span.is_empty()"));
+            src.push(format!("    }}"));
+        }
+        if !self.terminal_hooks.is_empty() {
+            src.add_space();
+            src.push(format!("    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
+            src.push(format!("        self.listener.hook(token, text, span)"));
             src.push(format!("    }}"));
         }
         src.push(format!("}}"));

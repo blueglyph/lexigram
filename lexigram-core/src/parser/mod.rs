@@ -223,6 +223,11 @@ pub trait ListenerWrapper {
     fn is_stack_t_empty(&self) -> bool { true }
     /// Checks that the stack_span is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_span_empty(&self) -> bool { true }
+    /// Allows to dynamically translates a token
+    #[allow(unused)]
+    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        token
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -262,6 +267,7 @@ pub struct Parser<'a> {
     alt_var: &'a [VarId],
     alts: Vec<Alternative>,
     opcodes: Vec<Vec<OpCode>>,
+    init_opcodes: Vec<OpCode>,
     table: &'a [AltId],
     symbol_table: FixedSymTable,
     start: VarId,
@@ -279,11 +285,12 @@ impl<'a> Parser<'a> {
         alt_var: &'a [VarId],
         alts: Vec<Alternative>,
         opcodes: Vec<Vec<OpCode>>,
+        init_opcodes: Vec<OpCode>,
         table: &'a [AltId],
         symbol_table: FixedSymTable,
         start: VarId,
     ) -> Self {
-        Parser { num_nt, num_t, alt_var, alts, opcodes, table, symbol_table, start, try_recover: true }
+        Parser { num_nt, num_t, alt_var, alts, opcodes, init_opcodes, table, symbol_table, start, try_recover: true }
     }
 
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
@@ -348,7 +355,7 @@ impl<'a> Parser<'a> {
     {
         const VERBOSE: bool = false;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
-        let mut stack = Vec::<OpCode>::new();
+        let mut stack = self.init_opcodes.clone();
         let mut stack_t = Vec::<String>::new();
         let error_skip_alt_id = self.alt_var.len() as AltId;
         let error_pop_alt_id = error_skip_alt_id + 1;
@@ -357,8 +364,6 @@ impl<'a> Parser<'a> {
         let mut nbr_recovers = 0;
         let mut nbr_lexer_errors = 0;
         let end_var_id = (self.num_t - 1) as VarId;
-        stack.push(OpCode::End);
-        stack.push(OpCode::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
         let mut stream_n = 0;
         let mut stream_pos = None;
@@ -366,6 +371,7 @@ impl<'a> Parser<'a> {
         let mut stream_sym = Symbol::default(); // must set fake value to comply with borrow checker
         let mut stream_str = String::default(); // must set fake value to comply with borrow checker
         let mut advance_stream = true;
+        let mut hook_active = false;
         loop {
             if advance_stream {
                 stream_n += 1;
@@ -382,6 +388,7 @@ impl<'a> Parser<'a> {
                     }
                 });
                 advance_stream = false;
+                hook_active = true;
             }
             if VERBOSE {
                 println!("{:-<40}", "");
@@ -404,6 +411,15 @@ impl<'a> Parser<'a> {
                         return Err(ParserError::TooManyErrors);
                     }
                     advance_stream = true;
+                }
+                (OpCode::Hook, _) => {
+                    if hook_active {
+                        let Symbol::T(t) = stream_sym else { panic!("hook on a {stream_sym:?}"); };
+                        let new_t = wrapper.hook(t, stream_str.as_str(), &stream_span);
+                        stream_sym = Symbol::T(new_t);
+                        hook_active = false;
+                    }
+                    stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };

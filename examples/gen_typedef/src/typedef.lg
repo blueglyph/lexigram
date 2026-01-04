@@ -16,6 +16,10 @@ Num             : [0-9]+;
 Id              : [a-zA-Z][a-zA-Z_0-9]*;
 (Type)                                      -> hook;
 
+SComment        : '/*' .*? '*/'             -> skip;
+SLineComment    : '//' ~[\r\n]*             -> skip;
+SWhiteSpace     : [ \n\r\t]+                -> skip;
+
 // [typedef_type_lexicon]
 // -----------------------------------------------------------------------------
 // [typedef_type_grammar]
@@ -55,6 +59,10 @@ Print           : 'print';
 Num             : [0-9]+;
 Id              : [a-zA-Z][a-zA-Z_0-9]*     -> hook;
 (Type)                                      -> hook;
+
+SComment        : '/*' .*? '*/'             -> skip;
+SLineComment    : '//' ~[\r\n]*             -> skip;
+SWhiteSpace     : [ \n\r\t]+                -> skip;
 
 // [typedef_id_type_lexicon]
 // -----------------------------------------------------------------------------

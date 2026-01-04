@@ -13,9 +13,10 @@ static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "
 static ALT_VAR: [VarId; 26] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
 static PARSING_TABLE: [AltId; 224] = [26, 26, 26, 26, 26, 26, 26, 26, 0, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 1, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 2, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 3, 27, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 4, 26, 26, 5, 5, 26, 26, 5, 5, 26, 26, 5, 5, 5, 5, 5, 5, 26, 26, 6, 6, 26, 26, 6, 6, 26, 26, 6, 6, 6, 6, 6, 6, 26, 26, 7, 27, 26, 26, 27, 27, 26, 26, 27, 7, 7, 7, 7, 7, 26, 26, 13, 27, 27, 27, 27, 27, 27, 26, 27, 9, 10, 11, 12, 8, 26, 26, 14, 15, 26, 26, 15, 15, 26, 26, 15, 14, 14, 14, 14, 14, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 16, 17, 26, 26, 18, 26, 26, 19, 19, 26, 26, 19, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 20, 26, 26, 21, 26, 26, 26, 26, 27, 27, 26, 25, 25, 22, 23, 25, 25, 24, 26, 25, 25, 25, 25, 25, 25, 26];
 static OPCODES: [&[OpCode]; 26] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(14), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(14)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(14)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(13)], &[OpCode::Exit(13), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(14), OpCode::NT(7)], &[OpCode::Exit(15)], &[OpCode::Loop(10), OpCode::Exit(16), OpCode::NT(3)], &[OpCode::Exit(17)], &[OpCode::Loop(11), OpCode::Exit(18), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(19)], &[OpCode::Exit(20), OpCode::T(6)], &[OpCode::Exit(21), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(22), OpCode::T(3)], &[OpCode::Exit(23), OpCode::T(4)], &[OpCode::Exit(24), OpCode::T(7)], &[OpCode::Exit(25)]];
+static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
 static START_SYMBOL: VarId = 0;
 
-pub fn build_parser() -> Parser<'static> {
+pub fn build_parser() -> Parser<'static> {{
     let symbol_table = FixedSymTable::new(
         SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
         SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -25,11 +26,12 @@ pub fn build_parser() -> Parser<'static> {
         &ALT_VAR,
         Vec::new(),
         OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+        INIT_OPCODES.to_vec(),
         &PARSING_TABLE,
         symbol_table,
         START_SYMBOL
     )
-}
+}}
 
 #[derive(Debug)]
 pub enum CtxFile {

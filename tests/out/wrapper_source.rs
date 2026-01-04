@@ -2908,9 +2908,10 @@ pub(crate) mod rules_153_1 {
     static ALTERNATIVES: [&[Symbol]; 11] = [&[Symbol::T(0), Symbol::NT(2), Symbol::T(4)], &[Symbol::T(5)], &[Symbol::T(1), Symbol::NT(3)], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::NT(1), Symbol::T(2), Symbol::NT(1), Symbol::T(1), Symbol::T(2), Symbol::NT(5)], &[Symbol::NT(2)], &[Symbol::Empty], &[Symbol::NT(2)], &[Symbol::Empty], &[Symbol::NT(2)], &[Symbol::Empty]];
     static PARSING_TABLE: [AltId; 42] = [0, 11, 11, 11, 11, 11, 12, 11, 12, 12, 11, 11, 1, 11, 11, 2, 11, 3, 12, 4, 11, 11, 5, 11, 5, 6, 5, 11, 11, 7, 11, 7, 8, 7, 11, 11, 9, 11, 9, 10, 9, 11];
     static OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::T(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(1), OpCode::T(5)], &[OpCode::NT(3), OpCode::T(1)], &[OpCode::NT(4), OpCode::T(3)], &[OpCode::NT(5), OpCode::T(2), OpCode::T(1), OpCode::NT(1), OpCode::T(2), OpCode::NT(1)], &[OpCode::Loop(2), OpCode::Exit(5)], &[OpCode::Exit(6)], &[OpCode::Loop(2), OpCode::Exit(7)], &[OpCode::Exit(8)], &[OpCode::Loop(2), OpCode::Exit(9)], &[OpCode::Exit(10)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -2920,11 +2921,12 @@ pub(crate) mod rules_153_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -9371,9 +9373,10 @@ pub(crate) mod rules_603_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [10, 10, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -9383,11 +9386,12 @@ pub(crate) mod rules_603_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -9655,9 +9659,10 @@ pub(crate) mod rules_604_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(2)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [9, 9, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -9667,11 +9672,12 @@ pub(crate) mod rules_604_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -9938,9 +9944,10 @@ pub(crate) mod rules_605_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(4)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [9, 9, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -9950,11 +9957,12 @@ pub(crate) mod rules_605_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -10221,9 +10229,10 @@ pub(crate) mod rules_606_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -10233,11 +10242,12 @@ pub(crate) mod rules_606_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -10501,9 +10511,10 @@ pub(crate) mod rules_607_1 {
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -10513,11 +10524,12 @@ pub(crate) mod rules_607_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -10782,9 +10794,10 @@ pub(crate) mod rules_608_1 {
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -10794,11 +10807,12 @@ pub(crate) mod rules_608_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -11066,9 +11080,10 @@ pub(crate) mod rules_609_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [9, 9, 9, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -11078,11 +11093,12 @@ pub(crate) mod rules_609_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -11345,9 +11361,10 @@ pub(crate) mod rules_610_1 {
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -11357,11 +11374,12 @@ pub(crate) mod rules_610_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -11625,9 +11643,10 @@ pub(crate) mod rules_611_1 {
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -11637,11 +11656,12 @@ pub(crate) mod rules_611_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -11908,9 +11928,10 @@ pub(crate) mod rules_612_1 {
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -11920,11 +11941,12 @@ pub(crate) mod rules_612_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -12192,9 +12214,10 @@ pub(crate) mod rules_613_1 {
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [9, 9, 9, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -12204,11 +12227,12 @@ pub(crate) mod rules_613_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -12472,9 +12496,10 @@ pub(crate) mod rules_614_1 {
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -12484,11 +12509,12 @@ pub(crate) mod rules_614_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -12753,9 +12779,10 @@ pub(crate) mod rules_630_1 {
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -12765,11 +12792,12 @@ pub(crate) mod rules_630_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -13032,9 +13060,10 @@ pub(crate) mod rules_631_1 {
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -13044,11 +13073,12 @@ pub(crate) mod rules_631_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -13311,9 +13341,10 @@ pub(crate) mod rules_632_1 {
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
     static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {
+    pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
@@ -13323,11 +13354,12 @@ pub(crate) mod rules_632_1 {
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            INIT_OPCODES.to_vec(),
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
         )
-    }
+    }}
 
     #[derive(Debug)]
     pub enum CtxE {
