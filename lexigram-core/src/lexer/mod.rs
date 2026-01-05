@@ -254,6 +254,25 @@ impl AddAssign<&PosSpan> for PosSpan {
     }
 }
 
+impl Add<&PosSpan> for &PosSpan {
+    type Output = PosSpan;
+
+    fn add(self, rhs: &PosSpan) -> Self::Output {
+        let mut sum = self.clone();
+        sum += rhs;
+        sum
+    }
+}
+
+impl Add<PosSpan> for PosSpan {
+    type Output = PosSpan;
+
+    fn add(mut self, rhs: PosSpan) -> Self::Output {
+        self += &rhs;
+        self
+    }
+}
+
 impl Default for PosSpan {
     fn default() -> Self {
         PosSpan::empty()

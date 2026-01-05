@@ -905,6 +905,13 @@ impl ParserGen {
             }
         }
         self.item_ops = items;
+        self.log.add_note(
+            format!(
+                "NT with value: {}",
+                self.nt_value.iter().index()
+                    .filter(|&(_, val)| *val)
+                    .map(|(var, _)| Symbol::NT(var).to_str(self.get_symbol_table()))
+                    .join(", ")));
     }
 
     fn sort_alt_ids(&self, top_nt: VarId, alts: &[AltId]) -> Vec<AltId> {

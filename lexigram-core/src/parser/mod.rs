@@ -412,13 +412,16 @@ impl<'a> Parser<'a> {
                     }
                     advance_stream = true;
                 }
-                (OpCode::Hook, _) => {
+                (OpCode::Hook, Symbol::T(t)) => {
                     if hook_active {
-                        let Symbol::T(t) = stream_sym else { panic!("hook on a {stream_sym:?}"); };
                         let new_t = wrapper.hook(t, stream_str.as_str(), &stream_span);
                         stream_sym = Symbol::T(new_t);
                         hook_active = false;
                     }
+                    stack_sym = stack.pop().unwrap();
+                }
+                (OpCode::Hook, _) => {
+                    // hooks may happen on other alternative symbols, in which case they're irrelevant
                     stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {

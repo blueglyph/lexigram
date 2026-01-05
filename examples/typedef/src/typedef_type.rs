@@ -6,84 +6,142 @@ use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::Parser;
-use lexigram_core::TokenId;
-use crate::text_span::GetLine;
+use lexigram_core::{CollectJoin, TokenId};
+use crate::text_span::{GetLine, GetTextSpan};
 use crate::typedef_type::typedef_type_lexer::build_lexer;
 use listener_type_types::*;
 use typedef_type_parser::*;
 
-const VERBOSE: bool = true;
+const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
-// program:
-//     (<L=decl_i> decl)* (<L=inst_i> inst)+;
-// decl:
-//     Type Id (Comma Id)* SemiColon
-// |   Typedef Type Id SemiColon;
-// inst:
-//     Let Id Eq expr SemiColon
-// |   Print expr SemiColon;
-// expr:
-//     Sub expr
-// |   expr (Add | <P> Sub) expr
-// |   Id
-// |   Num;
 static TXT1: &str = r#"
-int a, b;
+float a, b;
 typedef int type_int;
 typedef type_int type_int2;
 type_int c;
 type_int2 d;
-int type_int; // this is a var
+type_int type_int; // this is a var
 let a = 0;
 let type_int = 1 + a;
 print a;
 print type_int - 1;
 "#;
 
+static TXT2: &str = r#"
+int wrong, wrong2;
+float wrong;
+int a, b,
+    c, wrong2;
+print wrong;
+"#;
+
+static TXT3: &str = r#"
+typedef int a;
+typedef float a;
+a b;
+let b = 5;
+"#;
+
 #[test]
 fn test_type_lexer() {
-    if VERBOSE { println!("{:=<80}\n{TXT1}\n{0:-<80}", ""); }
-    let mut demo = TypeParser::new();
-    match demo.parse(TXT1) {
-        Ok(log) => {
-            if VERBOSE {
-                println!("parsing successful\n{log}");
+    let tests = vec![
+        (
+            TXT1,
+            "a:float, b:float, c:int, d:int, type_int:int",
+            "type_int2:int, type_int:int",
+            vec![],
+        ),
+        (
+            TXT2,
+            "", "",
+            vec!["var 'wrong' was already declared", "var 'wrong2' was already declared"]
+        ),
+        (
+            TXT3,
+            "", "",
+            vec!["type 'a' was already defined"]
+        ),
+    ];
+    for (test_id, (txt, expected_vars, expected_types, expected_errors)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
+        let mut parser = TypeParser::new();
+        match parser.parse(txt) {
+            Ok((vars, types, log)) => {
+                let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                lvars.sort();
+                let result_vars = lvars.join(", ");
+                let mut ltypes = types.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                ltypes.sort();
+                let result_types = ltypes.join(", ");
+                if VERBOSE {
+                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_vars}");
+                }
+                assert_eq!(result_vars, expected_vars, "var mismatch in test {test_id}");
+                assert_eq!(result_types, expected_types, "type mismatch in test {test_id}");
+                assert!(expected_errors.is_empty(), "errors were expected in test {test_id}: {expected_errors:?}");
             }
-        },
-        Err(log) => panic!("errors during parsing:\n{log}"),
+            Err(log) => {
+                assert!(!expected_errors.is_empty(), "unexpected error(s) in test {test_id}\n{log}");
+                if VERBOSE {
+                    println!("errors during parsing:\n{log}");
+                }
+                let mut errors = log.get_errors();
+                for exp_err in expected_errors {
+                    let mut next_err = errors.next();
+                    while let Some(err) = next_err {
+                        if err.contains(exp_err) {
+                            break;
+                        }
+                        next_err = errors.next();
+                    }
+                    if next_err.is_none() {
+                        panic!("didn't find this expected error in test {test_id}: {exp_err}");
+                    }
+                }
+            }
+        }
     }
 }
 
 pub struct TypeParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
-    wrapper: Wrapper<TypeListener<'ls>>,
+    wrapper: Option<Wrapper<TypeListener<'ls>>>,
     lines: Vec<String>,
 }
 
 impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
+    /// Creates a new parser
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        let wrapper = Wrapper::new(TypeListener::new(), VERBOSE_WRAPPER);
-        TypeParser { lexer, parser, wrapper, lines: vec![] }
+        TypeParser { lexer, parser, wrapper: None, lines: vec![] }
     }
 
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<BufLog, BufLog> {
+    /// Parses a text.
+    ///
+    /// On success, returns
+    /// * `vars`, a `HashMap<String, String>` that contains the variables and their resolved type
+    /// * `types`, a `HashMap<String, String>` that contains the defined types and what type they resolve to
+    /// * `log`, a `BufLog` object.
+    ///
+    /// On failure, returns the log with the error messages.
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<(HashMap<String, String>, HashMap<String, String>, BufLog), BufLog> {
+        self.wrapper = Some(Wrapper::new(TypeListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         self.lines = text.lines().map(|l| l.to_string()).collect();
-        self.wrapper.get_listener_mut().attach_lines(&self.lines);
+        self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(&self.lines);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
-        if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
-            self.wrapper.get_listener_mut().get_mut_log().add_error(e.to_string());
+        if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
+            self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let log = std::mem::take(&mut self.wrapper.get_listener_mut().log);
+        let TypeListener { log, vars, types, .. } = self.wrapper.take().unwrap().give_listener();
         if log.has_no_errors() {
-            Ok(log)
+            Ok((vars, types, log))
         } else {
             Err(log)
         }
@@ -96,8 +154,8 @@ struct TypeListener<'ls> {
     log: BufLog,
     abort: bool,
     lines: Option<&'ls Vec<String>>,
-    types: HashMap<String, String>,
     vars: HashMap<String, String>,
+    types: HashMap<String, String>,
 }
 
 impl<'ls> TypeListener<'ls> {
@@ -106,19 +164,26 @@ impl<'ls> TypeListener<'ls> {
             log: BufLog::new(),
             abort: false,
             lines: None,
-            types: HashMap::new(),
             vars: HashMap::new(),
+            types: HashMap::new(),
         }
     }
 
     fn attach_lines(&mut self, lines: &'ls Vec<String>) {
         self.lines = Some(lines);
     }
+
+    fn solve_type<'s>(&'s self, mut typ: &'s str) -> &'s str {
+        while let Some(solved) = self.types.get(typ) {
+           typ = solved.as_str();
+        }
+        typ
+    }
 }
 
 impl GetLine for TypeListener<'_> {
     fn get_line(&self, n: usize) -> &str {
-        &self.lines.unwrap()[n]
+        &self.lines.unwrap()[n - 1]
     }
 }
 
@@ -141,7 +206,7 @@ impl TypedefListener for TypeListener<'_> {
                 if self.types.contains_key(t) {
                     Term::Type as u16
                 } else {
-                    token //Term::Id as u16
+                    token
                 }
             }
         };
@@ -159,21 +224,20 @@ impl TypedefListener for TypeListener<'_> {
 
     fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
         match ctx {
-            // decl -> Type Id ("," Id)* ";"
+            // decl -> Type Id (<L> "," Id)* ";"
             CtxDecl::V1 { type1, id, star: SynDecl1(mut ids) } => {
                 ids.push(id);
                 for (i, id) in ids.into_iter().enumerate() {
-                    if let Some(prev) = self.vars.insert(id.clone(), type1.clone()) {
-                        let mut span = spans[1].clone();
-                        span += &spans[2];
-                        self.log.add_error(format!("{span}: {id} was already declared"));
+                    if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                        let mut span = &spans[1] + &spans[2];
+                        self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
                     }
                 }
             }
             // decl -> "typedef" Type Id ";"
             CtxDecl::V2 { type1, id } => {
-                if let Some(prev) = self.types.insert(id.clone(), type1) {
-                    self.log.add_error(format!("{}: {id} was already defined", spans[2]));
+                if let Some(prev) = self.types.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                    self.log.add_error(format!("type '{id}' was already defined ({}):\n{}", &spans[2], self.annotate_text(&spans[2])));
                 }
             }
         }
