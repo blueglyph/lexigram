@@ -1,5 +1,7 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
+#![cfg(test)]
+
 use std::collections::HashMap;
 use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;

@@ -7,7 +7,7 @@
 
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
-use lexi_gram::options::{Action, OptionsBuilder};
+use lexi_gram::options::{Action, NTValue, OptionsBuilder};
 use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/typedef.lg";
@@ -33,6 +33,7 @@ fn gen_typedef_source(action: Action) {
             .indent(PARSER_INDENT)
             .extra_libs([format!("super::listener{}_type_types::*", if i == 0 { "" } else { "_id" })])
             .span_params(true)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         match try_gen_parser(action, options) {

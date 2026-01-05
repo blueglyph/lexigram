@@ -321,11 +321,23 @@ impl ParserGen {
         self.nt_value[v as usize] = has_value;
     }
 
+    /// Sets the following nonterminals as valuable:
+    /// * all top parents
+    /// * child +* that are <L>
+    pub fn set_default_nt_have_values(&mut self) {
+        for v in 0..self.get_symbol_table().unwrap().get_num_nt() as VarId {
+            if self.get_nt_parent(v).is_none() || self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
+                self.set_nt_has_value(v, true);
+            }
+        }
+    }
+
+    /// Sets the following nonterminals as valuable:
+    /// * all top parents
     pub fn set_parents_have_value(&mut self) {
         for v in 0..self.get_symbol_table().unwrap().get_num_nt() as VarId {
             if self.get_nt_parent(v).is_none() {
                 self.set_nt_has_value(v, true);
-            } else {
             }
         }
     }

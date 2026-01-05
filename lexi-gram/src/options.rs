@@ -3,6 +3,7 @@
 use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
 use lexigram_lib::lexergen::LexigramCrate;
+use lexigram_lib::VarId;
 
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
@@ -102,6 +103,22 @@ impl CodeLocation {
     }
 }
 
+/// Determines which nonterminals have a value, so a dedicated type and field in contexts:
+/// * `None`: No nonterminal has a value
+/// * `Parent`: Only the top nonterminal parents have a value
+/// * `Default`: The top nonterminal parents and the children of `(<L> )+*` have a value
+/// * `Set(Vec<VarId>)`: The set of nonterminals that have a value is set explicitly
+#[derive(Clone, PartialEq, Debug)]
+pub enum NTValue {
+    /// No nonterminal has a value
+    None,
+    /// Only the top nonterminal parents have a value
+    Parents,
+    /// The top nonterminal parents and the children of `(<L> )+*` have a value
+    Default,
+    /// The set of nonterminals that have a value is set explicitly
+    Set(Vec<VarId>),
+}
 // ---------------------------------------------------------------------------------------------
 
 /// Options used to generate the source code of the lexer, parser, wrapper, and listener from a lexicon and a grammar
@@ -145,6 +162,8 @@ pub struct Options {
     ///
     /// Default: `false`
     pub lib_crate: LexigramCrate,
+    /// Sets the nonterminals that have a value.
+    pub nt_value: NTValue,
 }
 
 impl Options {
@@ -169,6 +188,7 @@ impl Default for Options {
             gen_wrapper: true,
             gen_span_params: false,
             lib_crate: LexigramCrate::Core,
+            nt_value: NTValue::Default,
         }
     }
 }
@@ -495,6 +515,11 @@ impl OptionsBuilder {
     /// -> `use core::parser::Parser;` and so on
     pub fn set_crate(&mut self, lcrate: LexigramCrate) -> &mut Self {
         self.options.lib_crate = lcrate;
+        self
+    }
+
+    pub fn set_nt_value(&mut self, nt_value: NTValue) -> &mut Self {
+        self.options.nt_value = nt_value;
         self
     }
 

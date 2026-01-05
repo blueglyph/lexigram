@@ -31,6 +31,7 @@ fn gen_init_content() {
 // ---------------------------------------------------------------------------------------------
 
 mod test1 {
+    use crate::options::NTValue;
     use super::*;
 
     const TEST1_LEXER_FILENAME: &str = "tests/out/test1_lexer.rs";
@@ -44,6 +45,7 @@ mod test1 {
             .extra_libs(["super::listener_types::test1::*"])
             .span_params(true)
             .use_full_lib(true)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         try_gen_parser(action, options)
@@ -98,6 +100,7 @@ mod test1 {
 // ---------------------------------------------------------------------------------------------
 
 mod test2 {
+    use crate::options::NTValue;
     use super::*;
 
     const TEST2_TAGS_FILENAME: &str = "tests/out/test2_tags.rs";
@@ -112,6 +115,7 @@ mod test2 {
             .extra_libs(["super::listener_types::test1::*"])
             .span_params(true)
             .set_crate(LexigramCrate::Custom("core".to_string()))
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         try_gen_parser(action, options)
@@ -169,6 +173,7 @@ mod test2 {
 // ---------------------------------------------------------------------------------------------
 
 mod test3 {
+    use crate::options::NTValue;
     use super::*;
 
     const TEST3_TAGS_FILENAME: &str = "tests/out/test3_tags.rs";
@@ -188,6 +193,7 @@ mod test3 {
             .extra_libs(["super::listener_types::test1::*"])
             .span_params(true)
             .set_crate(LexigramCrate::Full)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         try_gen_parser(action, options)
@@ -245,6 +251,7 @@ mod test3 {
 // ---------------------------------------------------------------------------------------------
 
 mod test4 {
+    use crate::options::NTValue;
     use super::*;
 
     // those files and tags needn't exist
@@ -273,6 +280,7 @@ mod test4 {
             gen_wrapper: true,
             gen_span_params: false,
             lib_crate: LexigramCrate::Core,
+            nt_value: NTValue::Parents,
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -283,6 +291,7 @@ mod test4 {
             .parser_alts(true)
             .wrapper(true)
             .span_params(false)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         let options1c = OptionsBuilder::new()
@@ -291,6 +300,7 @@ mod test4 {
             .parser(genspec!(filename: TEST_GRAMMAR_FILENAME), gencode!(filename: TEST4_PARSER_FILENAME))
             .extra_libs(["super::listener_types::test1::*"])
             .parser_alts(true)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         assert_eq!(options1b, options1_expected);
@@ -312,12 +322,14 @@ mod test4 {
             gen_wrapper: true,
             gen_span_params: false,
             lib_crate: LexigramCrate::Full,
+            nt_value: NTValue::Parents,
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
             .parser(genspec!(string: grammar), gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG))
             .extra_libs(["super::listener_types::test1::*"])
             .set_crate(LexigramCrate::Full)
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         assert_eq!(options2, options2_expected);
@@ -336,11 +348,13 @@ mod test4 {
             gen_wrapper: true,
             gen_span_params: false,
             lib_crate: LexigramCrate::Core,
+            nt_value: NTValue::Parents,
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
             .parser(genspec!(filename: TEST4_GRAMMAR_FILENAME, tag: TEST4_GRAMMAR_TAG), gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG))
             .extra_libs(["super::listener_types::test1::*"])
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
         assert_eq!(options3, options3_expected);
@@ -350,6 +364,7 @@ mod test4 {
 // ---------------------------------------------------------------------------------------------
 
 mod failing_tests {
+    use crate::options::NTValue;
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -373,6 +388,7 @@ mod failing_tests {
             gen_wrapper: false,
             gen_span_params: false,
             lib_crate: LexigramCrate::Core,
+            nt_value: NTValue::Parents,
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
@@ -388,6 +404,7 @@ mod failing_tests {
             gen_wrapper: false,
             gen_span_params: false,
             lib_crate: LexigramCrate::Full,
+            nt_value: NTValue::Parents,
         };
 
         let tests = vec![
@@ -657,6 +674,7 @@ mod gen_test_lexer {
     use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
+    use crate::options::NTValue;
 
     const LEXER_TEST_FILENAME: &str = "../lexigram-core/src/lexer/tests.rs";
     const TAG_LEXICON: &str = "lexer1_lexicon";
@@ -672,6 +690,7 @@ mod gen_test_lexer {
                 format!("// This code is generated with lexigram version {LEXIGRAM_PKG_VERSION} from {}", filename!()),
                 format!("// and corresponds to the lexicon above between tags [{}]", TAG_LEXICON)])
             .set_crate(LexigramCrate::Custom("crate".to_string()))
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("option build error");
         try_gen_parser(action, options)
@@ -717,6 +736,7 @@ mod gen_test_parser {
     use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
+    use crate::options::NTValue;
 
     const SOURCE_FILENAME: &str = "../lexigram-core/src/parser/tests.rs";
     const TAG_LEXICON: &str = "lexer_lexicon";
@@ -741,6 +761,7 @@ mod gen_test_parser {
                 format!("// and corresponds to the grammar above between tags [{}]", TAG_GRAMMAR)])
             .wrapper(false)
             .set_crate(LexigramCrate::Custom("crate".to_string()))
+            .set_nt_value(NTValue::Parents)
             .build()
             .expect("option build error");
         try_gen_parser(action, options)
