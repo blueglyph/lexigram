@@ -3,7 +3,9 @@
 use std::iter::Peekable;
 use std::str::FromStr;
 use lexi_gram::{gencode, genspec};
+use lexi_gram::lexigram_lib::CollectJoin;
 use lexi_gram::lexigram_lib::lexergen::LexigramCrate;
+use lexi_gram::lexigram_lib::parsergen::NTValue;
 use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::ExeError;
 
@@ -85,6 +87,26 @@ Other options related to the generated code:
                             See also the --use-full-lib option for the most common situations.
 
                             Example: --lib-crate "core"
+
+  --nt-value <type>         Defines which nonterminals have a value in the listener. Those
+                            which have a value are included in the contexts and must be
+                            given a value in the corresponding exit callback.
+
+                            The list of nonterminals is defined by the argument <type>
+
+                            - none: no nonterminal
+                            - parents: only top parents
+                            - default: top parents and children of (<L> ...)+*
+                            - set <list>: explicit list of nonterminal names; "<default>"
+                                and "<parents>" can be included to set an entire
+                                predefined class.
+
+                            By default, "default" is used, which is usually a good strategy.
+
+                            Example if rules include (<L=id_i> Id)* and (<L=decl_i> decl)+
+                            and each Id and decl must update a loop value:
+
+                                --nt-value set "<parents>,id_i,decl_i"
 
 General options:
 
@@ -214,6 +236,20 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             "--lib-crate" => {
                 let path = take_argument(&mut args, "missing argument after --lib-crate")?;
                 builder.set_crate(LexigramCrate::Custom(path.to_string()));
+            }
+            "--nt-value" => {
+                let nt_type = take_argument(&mut args, "missing argument after --nt-value")?;
+                let nt_value = match nt_type {
+                    "none" => NTValue::None,
+                    "parents" => NTValue::Parents,
+                    "default" => NTValue::Default,
+                    "set" => {
+                        let ids = take_argument(&mut args, "missing list after --nt-value set")?;
+                        NTValue::SetNames(ids.split(",").map(|s| s.trim().to_string()).to_vec())
+                    }
+                    _ => return Err(ExeError::Option(format!("ERROR: incorrect type after --nt-value: {nt_type}"))),
+                };
+                builder.set_nt_value(nt_value);
             }
             "--log" => {
                 show_log = true;
