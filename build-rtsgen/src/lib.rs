@@ -2,10 +2,11 @@
 
 #![cfg(test)]
 
-use lexi_gram::{lexigram_lib, genspec, gencode};
+use lexi_gram::{gencode, genspec, lexigram_lib};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexigram_lib::log::LogStatus;
-use lexi_gram::options::{Action, NTValue, OptionsBuilder};
+use lexi_gram::options::{Action, OptionsBuilder};
+use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_FILENAME: &str = "src/rtsgen.l";
 static GRAMMAR_FILENAME: &str = "src/rtsgen.g";

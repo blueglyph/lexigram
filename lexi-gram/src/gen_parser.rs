@@ -16,7 +16,7 @@ use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::file_utils::{DiffResult, SrcTagError};
 use crate::{Gram, Lexi};
 use crate::lexi::SymbolicDfa;
-use crate::options::{Action, NTValue, Options};
+use crate::options::{Action, Options};
 
 // ---------------------------------------------------------------------------------------------
 
@@ -62,21 +62,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         // - generates Lexi's parser source code (parser + listener):
         let mut builder = ParserGen::try_build_from(ll1)?;
         builder.set_terminal_hooks(terminal_hooks);
-        match &options.nt_value {
-            NTValue::None => {}
-            NTValue::Parents => {
-                builder.set_parents_have_value();
-            }
-            NTValue::Default => {
-                builder.set_default_nt_have_values();
-            }
-            NTValue::Set(list) => {
-                for nt in list {
-                    builder.set_nt_has_value(*nt, true);
-                }
-            }
-        }
-
+        builder.set_nt_value(&options.nt_value);
         builder.set_include_alts(options.gen_parser_alts);
         builder.extend_headers(&options.parser_headers);
         builder.extend_libs(options.extra_libs.clone());

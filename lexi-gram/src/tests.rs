@@ -31,7 +31,7 @@ fn gen_init_content() {
 // ---------------------------------------------------------------------------------------------
 
 mod test1 {
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
     use super::*;
 
     const TEST1_LEXER_FILENAME: &str = "tests/out/test1_lexer.rs";
@@ -100,7 +100,7 @@ mod test1 {
 // ---------------------------------------------------------------------------------------------
 
 mod test2 {
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
     use super::*;
 
     const TEST2_TAGS_FILENAME: &str = "tests/out/test2_tags.rs";
@@ -173,7 +173,7 @@ mod test2 {
 // ---------------------------------------------------------------------------------------------
 
 mod test3 {
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
     use super::*;
 
     const TEST3_TAGS_FILENAME: &str = "tests/out/test3_tags.rs";
@@ -251,7 +251,7 @@ mod test3 {
 // ---------------------------------------------------------------------------------------------
 
 mod test4 {
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
     use super::*;
 
     // those files and tags needn't exist
@@ -364,7 +364,7 @@ mod test4 {
 // ---------------------------------------------------------------------------------------------
 
 mod failing_tests {
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -674,7 +674,7 @@ mod gen_test_lexer {
     use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
 
     const LEXER_TEST_FILENAME: &str = "../lexigram-core/src/lexer/tests.rs";
     const TAG_LEXICON: &str = "lexer1_lexicon";
@@ -736,7 +736,7 @@ mod gen_test_parser {
     use lexigram_lib::filename;
     use super::*;
     use crate::LEXIGRAM_PKG_VERSION;
-    use crate::options::NTValue;
+    use lexigram_lib::parsergen::NTValue;
 
     const SOURCE_FILENAME: &str = "../lexigram-core/src/parser/tests.rs";
     const TAG_LEXICON: &str = "lexer_lexicon";

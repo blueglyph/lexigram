@@ -136,6 +136,34 @@ impl TryBuildFrom<ParserGen> for ParserTables {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Determines which nonterminals have a value, so a dedicated type and field in contexts:
+/// * [`None`](NTValue::None): No nonterminal has a value
+/// * [`Parents`](NTValue::Parents): Only the top nonterminal parents have a value
+/// * [`Default`](NTValue::Default): The top nonterminal parents and the children of `(<L> )+*` have a value
+/// * [`SetIds(Vec<VarId>)`](NTValue::SetIds): The nonterminals that have a value is set explicitly by ID
+/// * [`SetNames(Vec<String>)`](NTValue::SetNames): The nonterminals that have a value is set explicitly by name.
+///   The names "<default>" and "<parents>" can be used to set all the nonterminals of the corresponding class.
+#[derive(Clone, PartialEq, Debug)]
+pub enum NTValue {
+    /// No nonterminal has a value
+    None,
+    /// Only the top nonterminal parents have a value
+    Parents,
+    /// The top nonterminal parents and the children of `(<L> )+*` have a value
+    Default,
+    /// The set of nonterminals that have a value is set explicitly by ID
+    SetIds(Vec<VarId>),
+    /// The set of nonterminals that have a value is set explicitly by name
+    SetNames(Vec<String>),
+}
+
+impl NTValue {
+    pub const DEFAULT: &str = "<default>";
+    pub const PARENTS: &str = "<parents>";
+}
+
+// ---------------------------------------------------------------------------------------------
+
 pub static DEFAULT_LISTENER_NAME: &str = "Parser";
 
 static FOLD_SPAN_CODE: [&str; 4] = [
@@ -316,30 +344,61 @@ impl ParserGen {
         self.nt_extra_info.get(&nt)
     }
 
+    /// Sets which nonterminals have a value, from [nt_value](NTValue).
+    pub fn set_nt_value(&mut self, nt_value: &NTValue) {
+        let num_nt = self.get_symbol_table().unwrap().get_num_nt() as VarId;
+        let mut stack = vec![nt_value];
+        while let Some(nt_value) = stack.pop() {
+            match nt_value {
+                NTValue::None => {}
+                NTValue::Parents => {
+                    for v in 0..num_nt {
+                        if self.get_nt_parent(v).is_none() {
+                            self.nt_value[v as usize] = true;
+                        }
+                    }
+                }
+                NTValue::Default => {
+                    for v in 0..num_nt {
+                        if self.get_nt_parent(v).is_none() || self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
+                            self.nt_value[v as usize] = true;
+                        }
+                    }
+                }
+                NTValue::SetIds(ids) => {
+                    for v in ids {
+                        if *v < num_nt {
+                            self.nt_value[*v as usize] = true;
+                        } else {
+                            self.log.add_error(format!("setting value of NT #{v}, which doesn't exist"));
+                        }
+                    }
+                }
+                NTValue::SetNames(names) => {
+                    let name_to_id = self.symbol_table.get_nonterminals().index::<VarId>()
+                        .map(|(v, name)| (name, v))
+                        .collect::<HashMap<&String, VarId>>();
+                    for name in names {
+                        match name.as_str() {
+                            NTValue::DEFAULT => stack.push(&NTValue::Default),
+                            NTValue::PARENTS => stack.push(&NTValue::Parents),
+                            _ => {
+                                if let Some(v) = name_to_id.get(&name) {
+                                    self.nt_value[*v as usize] = true;
+                                } else {
+                                    self.log.add_error(format!("setting value of NT '{name}', which doesn't exist"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[inline]
     pub fn set_nt_has_value(&mut self, v: VarId, has_value: bool) {
         self.nt_value[v as usize] = has_value;
-    }
-
-    /// Sets the following nonterminals as valuable:
-    /// * all top parents
-    /// * child +* that are <L>
-    pub fn set_default_nt_have_values(&mut self) {
-        for v in 0..self.get_symbol_table().unwrap().get_num_nt() as VarId {
-            if self.get_nt_parent(v).is_none() || self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
-                self.set_nt_has_value(v, true);
-            }
-        }
-    }
-
-    /// Sets the following nonterminals as valuable:
-    /// * all top parents
-    pub fn set_parents_have_value(&mut self) {
-        for v in 0..self.get_symbol_table().unwrap().get_num_nt() as VarId {
-            if self.get_nt_parent(v).is_none() {
-                self.set_nt_has_value(v, true);
-            }
-        }
     }
 
     /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.

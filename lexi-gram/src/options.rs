@@ -3,8 +3,7 @@
 use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
 use lexigram_lib::lexergen::LexigramCrate;
-use lexigram_lib::VarId;
-
+use lexigram_lib::parsergen::NTValue;
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -103,22 +102,6 @@ impl CodeLocation {
     }
 }
 
-/// Determines which nonterminals have a value, so a dedicated type and field in contexts:
-/// * `None`: No nonterminal has a value
-/// * `Parent`: Only the top nonterminal parents have a value
-/// * `Default`: The top nonterminal parents and the children of `(<L> )+*` have a value
-/// * `Set(Vec<VarId>)`: The set of nonterminals that have a value is set explicitly
-#[derive(Clone, PartialEq, Debug)]
-pub enum NTValue {
-    /// No nonterminal has a value
-    None,
-    /// Only the top nonterminal parents have a value
-    Parents,
-    /// The top nonterminal parents and the children of `(<L> )+*` have a value
-    Default,
-    /// The set of nonterminals that have a value is set explicitly
-    Set(Vec<VarId>),
-}
 // ---------------------------------------------------------------------------------------------
 
 /// Options used to generate the source code of the lexer, parser, wrapper, and listener from a lexicon and a grammar

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use lexigram_lib::{gnode, LL1, VarId, TokenId};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
-use lexigram_lib::parsergen::ParserGen;
+use lexigram_lib::parsergen::{NTValue, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prule};
@@ -96,7 +96,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     if !builder.get_log().has_no_errors() {
         return Err(builder.give_log());
     }
-    builder.set_parents_have_value();
+    builder.set_nt_value(&NTValue::Parents);
     builder.add_lib("gramparser_types::*");
     builder.use_full_lib(true);
     let src = builder.gen_source_code(indent, true);

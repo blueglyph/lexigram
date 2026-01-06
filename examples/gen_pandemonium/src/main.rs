@@ -4,9 +4,10 @@
 // Generates the source of the pandemonium parser
 
 use lexi_gram::{gencode, genspec};
-use lexi_gram::gen_parser::{try_gen_parser};
-use lexi_gram::options::{Action, NTValue, OptionsBuilder};
+use lexi_gram::gen_parser::try_gen_parser;
+use lexi_gram::options::{Action, OptionsBuilder};
 use lexigram_lib::log::LogStatus;
+use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_FILENAME: &str = "src/pandemonium.l";
 static GRAMMAR_FILENAME: &str = "src/pandemonium.g";
