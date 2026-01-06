@@ -158,7 +158,9 @@ pub enum NTValue {
 }
 
 impl NTValue {
+    /// Only the top nonterminal parents have a value (can be used in [NTValue::SetNames])
     pub const DEFAULT: &str = "<default>";
+    /// The top nonterminal parents and the children of `(<L> )+*` have a value (can be used in [NTValue::SetNames])
     pub const PARENTS: &str = "<parents>";
 }
 

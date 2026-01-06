@@ -29,7 +29,7 @@ grammar Typedef;
 program:
     (<L=decl_i> decl)* (<L=inst_i> inst)+;
 decl:
-    Type Id (Comma Id)* SemiColon
+    Type Id (<L=id_i> Comma Id)* SemiColon
 |   Typedef Type Id SemiColon;
 inst:
     Let Id Eq expr SemiColon
@@ -75,7 +75,7 @@ program:
 stmt:
     decl | inst;
 decl:
-    Type Id (Comma Id)* SemiColon
+    Type Id (<L=id_i> Comma Id)* SemiColon
 |   Typedef Type Id SemiColon;
 inst:
     Id Eq expr SemiColon

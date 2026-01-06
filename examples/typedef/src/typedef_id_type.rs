@@ -9,6 +9,8 @@ pub mod listener_id_type_types {
     #[derive(Debug, PartialEq)] pub struct SynStmt();
     /// User-defined type for `decl`
     #[derive(Debug, PartialEq)] pub struct SynDecl();
+    /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+    #[derive(Debug, PartialEq)] pub struct SynIdI();
     /// User-defined type for `inst`
     #[derive(Debug, PartialEq)] pub struct SynInst();
     /// User-defined type for `expr`
@@ -129,10 +131,10 @@ pub mod typedef_id_type_parser {
     const PARSER_NUM_T: usize = 10;
     const PARSER_NUM_NT: usize = 9;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Comma", Some(",")), ("SemiColon", Some(";")), ("Eq", Some("=")), ("Sub", Some("-")), ("Add", Some("+")), ("Typedef", Some("typedef")), ("Print", Some("print")), ("Num", None), ("Id", None), ("Type", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "stmt_i", "stmt", "decl", "inst", "expr", "decl_1", "expr_1", "expr_2"];
-    static ALT_VAR: [VarId; 18] = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7, 7, 7, 8, 8, 8];
-    static PARSING_TABLE: [AltId; 99] = [18, 18, 18, 18, 18, 0, 0, 18, 0, 0, 0, 18, 18, 18, 18, 18, 1, 1, 18, 1, 1, 2, 18, 18, 18, 18, 18, 3, 4, 18, 4, 3, 19, 18, 18, 18, 18, 18, 6, 19, 18, 19, 5, 19, 18, 18, 18, 18, 18, 19, 8, 18, 7, 19, 19, 18, 19, 18, 9, 18, 18, 18, 9, 9, 18, 18, 10, 11, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 14, 18, 13, 12, 18, 18, 18, 18, 18, 18, 18, 19, 18, 15, 19, 18, 18, 17, 16, 18, 18];
-    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(6), OpCode::T(8), OpCode::Hook, OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(8), OpCode::Hook, OpCode::T(9), OpCode::Hook, OpCode::T(5)], &[OpCode::Exit(7), OpCode::T(1), OpCode::NT(5), OpCode::Hook, OpCode::T(2), OpCode::T(8)], &[OpCode::Exit(8), OpCode::T(1), OpCode::NT(5), OpCode::Hook, OpCode::T(6)], &[OpCode::NT(7), OpCode::Exit(9), OpCode::NT(8)], &[OpCode::Loop(6), OpCode::Exit(10), OpCode::T(8), OpCode::Hook, OpCode::T(0)], &[OpCode::Exit(11)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::Hook, OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(8)], &[OpCode::Exit(17), OpCode::T(7)]];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "stmt_i", "stmt", "decl", "id_i", "inst", "expr", "expr_1", "expr_2"];
+    static ALT_VAR: [VarId; 18] = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7, 7, 8, 8, 8];
+    static PARSING_TABLE: [AltId; 99] = [18, 18, 18, 18, 18, 0, 0, 18, 0, 0, 0, 18, 18, 18, 18, 18, 1, 1, 18, 1, 1, 2, 18, 18, 18, 18, 18, 3, 4, 18, 4, 3, 19, 18, 18, 18, 18, 18, 6, 19, 18, 19, 5, 19, 7, 8, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 10, 18, 9, 19, 19, 18, 19, 18, 11, 18, 18, 18, 11, 11, 18, 18, 18, 14, 18, 13, 12, 18, 18, 18, 18, 18, 18, 18, 19, 18, 15, 19, 18, 18, 17, 16, 18, 18];
+    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(4), OpCode::T(8), OpCode::Hook, OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(8), OpCode::Hook, OpCode::T(9), OpCode::Hook, OpCode::T(5)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::T(8), OpCode::Hook, OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(2), OpCode::T(8)], &[OpCode::Exit(10), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(6)], &[OpCode::NT(7), OpCode::Exit(11), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::Hook, OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(8)], &[OpCode::Exit(17), OpCode::T(7)]];
     static INIT_OPCODES: [OpCode; 3] = [OpCode::End, OpCode::NT(0), OpCode::Hook];
     static START_SYMBOL: VarId = 0;
 
@@ -159,9 +161,9 @@ pub mod typedef_id_type_parser {
         #[doc = "`stmt_i`, parent: `program`"] StmtI = 1,
         #[doc = "`stmt`"]                      Stmt = 2,
         #[doc = "`decl`"]                      Decl = 3,
-        #[doc = "`inst`"]                      Inst = 4,
-        #[doc = "`expr`"]                      Expr = 5,
-        #[doc = "`decl_1`, parent: `decl`"]    Decl1 = 6,
+        #[doc = "`id_i`, parent: `decl`"]      IdI = 4,
+        #[doc = "`inst`"]                      Inst = 5,
+        #[doc = "`expr`"]                      Expr = 6,
         #[doc = "`expr_1`, parent: `expr`"]    Expr1 = 7,
         #[doc = "`expr_2`, parent: `expr`"]    Expr2 = 8,
     }
@@ -206,10 +208,15 @@ pub mod typedef_id_type_parser {
     }
     #[derive(Debug)]
     pub enum CtxDecl {
-        /// `decl -> Type Id ("," Id)* ";"`
-        V1 { type1: String, id: String, star: SynDecl1 },
+        /// `decl -> Type Id (<L> "," Id)* ";"`
+        V1 { type1: String, id: String, star: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIdI {
+        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        V1 { star_acc: SynIdI, id: String },
     }
     #[derive(Debug)]
     pub enum CtxInst {
@@ -240,16 +247,15 @@ pub mod typedef_id_type_parser {
     // #[derive(Debug, PartialEq)] pub struct SynStmt();
     // /// User-defined type for `decl`
     // #[derive(Debug, PartialEq)] pub struct SynDecl();
+    // /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+    // #[derive(Debug, PartialEq)] pub struct SynIdI();
     // /// User-defined type for `inst`
     // #[derive(Debug, PartialEq)] pub struct SynInst();
     // /// User-defined type for `expr`
     // #[derive(Debug, PartialEq)] pub struct SynExpr();
-    /// Computed `("," Id)*` array in `decl -> Type Id  ►► ("," Id)* ◄◄  ";" | "typedef" Type Id ";"`
-    #[derive(Debug, PartialEq)]
-    pub struct SynDecl1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { Program(SynProgram), Stmt(SynStmt), Decl(SynDecl), Inst(SynInst), Expr(SynExpr), Decl1(SynDecl1) }
+    enum SynValue { Program(SynProgram), Stmt(SynStmt), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 
     impl SynValue {
         fn get_program(self) -> SynProgram {
@@ -261,14 +267,14 @@ pub mod typedef_id_type_parser {
         fn get_decl(self) -> SynDecl {
             if let SynValue::Decl(val) = self { val } else { panic!() }
         }
+        fn get_id_i(self) -> SynIdI {
+            if let SynValue::IdI(val) = self { val } else { panic!() }
+        }
         fn get_inst(self) -> SynInst {
             if let SynValue::Inst(val) = self { val } else { panic!() }
         }
         fn get_expr(self) -> SynExpr {
             if let SynValue::Expr(val) = self { val } else { panic!() }
-        }
-        fn get_decl1(self) -> SynDecl1 {
-            if let SynValue::Decl1(val) = self { val } else { panic!() }
         }
     }
 
@@ -290,6 +296,10 @@ pub mod typedef_id_type_parser {
         fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt;
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
+        fn init_id_i(&mut self) -> SynIdI;
+        fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) -> SynIdI;
+        #[allow(unused)]
+        fn exitloop_id_i(&mut self, star_acc: &mut SynIdI) {}
         fn init_inst(&mut self) {}
         fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
         fn init_expr(&mut self) {}
@@ -315,7 +325,7 @@ pub mod typedef_id_type_parser {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 1 | 6) {
+                    if matches!(nt, 1 | 4) {
                         self.stack_span.push(PosSpan::empty());
                     }
                     match nt {
@@ -323,9 +333,9 @@ pub mod typedef_id_type_parser {
                         1 => self.listener.init_stmt_i(),           // stmt_i
                         2 => self.listener.init_stmt(),             // stmt
                         3 => self.listener.init_decl(),             // decl
-                        6 => self.init_decl1(),                     // decl_1
-                        4 => self.listener.init_inst(),             // inst
-                        5 => self.listener.init_expr(),             // expr
+                        4 => self.init_id_i(),                      // id_i
+                        5 => self.listener.init_inst(),             // inst
+                        6 => self.listener.init_expr(),             // expr
                         7 | 8 => {}                                 // expr_1, expr_2
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
@@ -338,18 +348,18 @@ pub mod typedef_id_type_parser {
                         2 => {}                                     // stmt_i -> <L> ε (not used)
                         3 |                                         // stmt -> decl
                         4 => self.exit_stmt(alt_id),                // stmt -> inst
-                        5 |                                         // decl -> Type Id decl_1 ";"
+                        5 |                                         // decl -> Type Id id_i ";"
                         6 => self.exit_decl(alt_id),                // decl -> "typedef" Type Id ";"
-                        10 => self.exit_decl1(),                    // decl_1 -> "," Id decl_1
-                        11 => {}                                    // decl_1 -> ε
-                        7 |                                         // inst -> Id "=" expr ";"
-                        8 => self.exit_inst(alt_id),                // inst -> "print" expr ";"
+                        7 => self.exit_id_i(),                      // id_i -> <L> "," Id id_i
+                        8 => self.exitloop_id_i(),                  // id_i -> <L> ε
+                        9 |                                         // inst -> Id "=" expr ";"
+                        10 => self.exit_inst(alt_id),               // inst -> "print" expr ";"
                         12 |                                        // expr_1 -> "+" expr_2 expr_1
                         13 => self.exit_expr1(alt_id),              // expr_1 -> "-" expr_2 expr_1
                         15 |                                        // expr_2 -> "-" expr_2
                         16 |                                        // expr_2 -> Id
                         17 => self.exit_expr2(alt_id),              // expr_2 -> Num
-                        9 => {}                                     // expr -> expr_2 expr_1 (not used)
+                        11 => {}                                    // expr -> expr_2 expr_1 (not used)
                         14 => {}                                    // expr_1 -> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -466,7 +476,7 @@ pub mod typedef_id_type_parser {
         fn exit_decl(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 5 => {
-                    let star = self.stack.pop().unwrap().get_decl1();
+                    let star = self.stack.pop().unwrap().get_id_i();
                     let id = self.stack_t.pop().unwrap();
                     let type1 = self.stack_t.pop().unwrap();
                     (4, CtxDecl::V1 { type1, id, star })
@@ -486,32 +496,37 @@ pub mod typedef_id_type_parser {
             self.stack.push(SynValue::Decl(val));
         }
 
-        fn init_decl1(&mut self) {
-            let val = SynDecl1(Vec::new());
-            self.stack.push(SynValue::Decl1(val));
+        fn init_id_i(&mut self) {
+            let val = self.listener.init_id_i();
+            self.stack.push(SynValue::IdI(val));
         }
 
-        fn exit_decl1(&mut self) {
+        fn exit_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
+            let star_acc = self.stack.pop().unwrap().get_id_i();
+            let ctx = CtxIdI::V1 { star_acc, id };
             let n = 3;
-            let Some(SynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynDecl1 item on wrapper stack");
-            };
-            star_acc.push(id);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             let mut new_span = PosSpan::empty();
             spans.iter().for_each(|span| new_span += span);
             self.stack_span.push(new_span);
+            let val = self.listener.exit_id_i(ctx, spans);
+            self.stack.push(SynValue::IdI(val));
+        }
+
+        fn exitloop_id_i(&mut self) {
+            let SynValue::IdI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_id_i(star_acc);
         }
 
         fn exit_inst(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                7 => {
+                9 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
                     (4, CtxInst::V1 { id, expr })
                 }
-                8 => {
+                10 => {
                     let expr = self.stack.pop().unwrap().get_expr();
                     (3, CtxInst::V2 { expr })
                 }

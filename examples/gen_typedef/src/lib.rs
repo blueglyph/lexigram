@@ -34,7 +34,10 @@ fn gen_typedef_source(action: Action) {
             .indent(PARSER_INDENT)
             .extra_libs([format!("super::listener{}_type_types::*", if i == 0 { "" } else { "_id" })])
             .span_params(true)
-            .set_nt_value(NTValue::Parents)
+            .set_nt_value(NTValue::SetNames(vec![
+                NTValue::PARENTS.to_string(),
+                "id_i".to_string()
+            ]))
             .build()
             .expect("should have no error");
         match try_gen_parser(action, options) {
