@@ -278,7 +278,7 @@ impl TestRules {
             902 => vec![
                 r#"token Num, Id, Type;"#,
                 r#"program -> (<L=decl_i> decl)* (<L=inst_i> inst)+;"#,
-                r#"decl ->    Type Id ("," Id)* ";""#,
+                r#"decl ->    Type Id (<L=id_i> "," Id)* ";""#,
                 r#"         | "typedef" Type Id ";";"#,
                 r#"inst ->    "let" Id "=" expr ";""#,
                 r#"         | "print" expr ";";"#,

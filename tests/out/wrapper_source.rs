@@ -17138,3 +17138,764 @@ pub(crate) mod rules_901_1 {
     // [wrapper source for rule 901 #1, start file]
     // ------------------------------------------------------------
 }
+
+pub(crate) mod rules_902_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 902 #1, start program]
+
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_902_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxProgram {
+        /// `program -> (<L> decl)* (<L> inst)+`
+        V1 { star: SynDeclI, plus: SynInstI },
+    }
+    #[derive(Debug)]
+    pub enum CtxDeclI {
+        /// `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
+        V1 { star_acc: SynDeclI, decl: SynDecl },
+    }
+    #[derive(Debug)]
+    pub enum CtxInstI {
+        /// `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
+        V1 { plus_acc: SynInstI, inst: SynInst, last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxDecl {
+        /// `decl -> Type Id (<L> "," Id)* ";"`
+        V1 { type1: String, id: String, star: SynIdI },
+        /// `decl -> "typedef" Type Id ";"`
+        V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIdI {
+        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        V1 { star_acc: SynIdI, id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxInst {
+        /// `inst -> "let" Id "=" expr ";"`
+        V1 { id: String, expr: SynExpr },
+        /// `inst -> "print" expr ";"`
+        V2 { expr: SynExpr },
+    }
+    #[derive(Debug)]
+    pub enum CtxExpr {
+        /// `expr -> "-" expr`
+        V1 { expr: SynExpr },
+        /// `expr -> expr "+" expr`
+        V2 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "-" expr`
+        V3 { expr: [SynExpr; 2] },
+        /// `expr -> Id`
+        V4 { id: String },
+        /// `expr -> Num`
+        V5 { num: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `program`
+    // #[derive(Debug, PartialEq)] pub struct SynProgram();
+    // /// User-defined type for `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
+    // #[derive(Debug, PartialEq)] pub struct SynDeclI();
+    // /// User-defined type for `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
+    // #[derive(Debug, PartialEq)] pub struct SynInstI();
+    // /// User-defined type for `decl`
+    // #[derive(Debug, PartialEq)] pub struct SynDecl();
+    // /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+    // #[derive(Debug, PartialEq)] pub struct SynIdI();
+    // /// User-defined type for `inst`
+    // #[derive(Debug, PartialEq)] pub struct SynInst();
+    // /// User-defined type for `expr`
+    // #[derive(Debug, PartialEq)] pub struct SynExpr();
+
+    #[derive(Debug)]
+    enum SynValue { Program(SynProgram), DeclI(SynDeclI), InstI(SynInstI), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
+
+    impl SynValue {
+        fn get_program(self) -> SynProgram {
+            if let SynValue::Program(val) = self { val } else { panic!() }
+        }
+        fn get_decl_i(self) -> SynDeclI {
+            if let SynValue::DeclI(val) = self { val } else { panic!() }
+        }
+        fn get_inst_i(self) -> SynInstI {
+            if let SynValue::InstI(val) = self { val } else { panic!() }
+        }
+        fn get_decl(self) -> SynDecl {
+            if let SynValue::Decl(val) = self { val } else { panic!() }
+        }
+        fn get_id_i(self) -> SynIdI {
+            if let SynValue::IdI(val) = self { val } else { panic!() }
+        }
+        fn get_inst(self) -> SynInst {
+            if let SynValue::Inst(val) = self { val } else { panic!() }
+        }
+        fn get_expr(self) -> SynExpr {
+            if let SynValue::Expr(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused)]
+        fn exit(&mut self, program: SynProgram, span: PosSpan) {}
+        fn init_program(&mut self) {}
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
+        fn init_decl_i(&mut self) -> SynDeclI;
+        fn exit_decl_i(&mut self, ctx: CtxDeclI, spans: Vec<PosSpan>) -> SynDeclI;
+        #[allow(unused)]
+        fn exitloop_decl_i(&mut self, star_acc: &mut SynDeclI) {}
+        fn init_inst_i(&mut self) -> SynInstI;
+        fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) -> SynInstI;
+        fn init_decl(&mut self) {}
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
+        fn init_id_i(&mut self) -> SynIdI;
+        fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) -> SynIdI;
+        #[allow(unused)]
+        fn exitloop_id_i(&mut self, star_acc: &mut SynIdI) {}
+        fn init_inst(&mut self) {}
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
+        fn init_expr(&mut self) {}
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    if matches!(nt, 1 | 2 | 4) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
+                    match nt {
+                        0 => self.listener.init_program(),          // program
+                        1 => self.init_decl_i(),                    // decl_i
+                        2 => self.init_inst_i(),                    // inst_i
+                        9 => {}                                     // inst_i_1
+                        3 => self.listener.init_decl(),             // decl
+                        4 => self.init_id_i(),                      // id_i
+                        5 => self.listener.init_inst(),             // inst
+                        6 => self.listener.init_expr(),             // expr
+                        7 | 8 => {}                                 // expr_1, expr_2
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_program(),                   // program -> decl_i inst_i
+                        1 => self.exit_decl_i(),                    // decl_i -> <L> decl decl_i
+                        2 => self.exitloop_decl_i(),                // decl_i -> <L> ε
+                        17 |                                        // inst_i_1 -> inst_i
+                        18 => self.exit_inst_i(alt_id),             // inst_i_1 -> ε
+                     /* 3 */                                        // inst_i -> <L> inst inst_i_1 (never called)
+                        4 |                                         // decl -> Type Id id_i ";"
+                        5 => self.exit_decl(alt_id),                // decl -> "typedef" Type Id ";"
+                        6 => self.exit_id_i(),                      // id_i -> <L> "," Id id_i
+                        7 => self.exitloop_id_i(),                  // id_i -> <L> ε
+                        8 |                                         // inst -> "let" Id "=" expr ";"
+                        9 => self.exit_inst(alt_id),                // inst -> "print" expr ";"
+                        11 |                                        // expr_1 -> "+" expr_2 expr_1
+                        12 => self.exit_expr1(alt_id),              // expr_1 -> "-" expr_2 expr_1
+                        14 |                                        // expr_2 -> "-" expr_2
+                        15 |                                        // expr_2 -> Id
+                        16 => self.exit_expr2(alt_id),              // expr_2 -> Num
+                        10 => {}                                    // expr -> expr_2 expr_1 (not used)
+                        13 => {}                                    // expr_1 -> ε (not used)
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let program = self.stack.pop().unwrap().get_program();
+            let span = self.stack_span.pop().unwrap();
+            self.listener.exit(program, span);
+        }
+
+        fn exit_program(&mut self) {
+            let plus = self.stack.pop().unwrap().get_inst_i();
+            let star = self.stack.pop().unwrap().get_decl_i();
+            let ctx = CtxProgram::V1 { star, plus };
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_program(ctx, spans);
+            self.stack.push(SynValue::Program(val));
+        }
+
+        fn init_decl_i(&mut self) {
+            let val = self.listener.init_decl_i();
+            self.stack.push(SynValue::DeclI(val));
+        }
+
+        fn exit_decl_i(&mut self) {
+            let decl = self.stack.pop().unwrap().get_decl();
+            let star_acc = self.stack.pop().unwrap().get_decl_i();
+            let ctx = CtxDeclI::V1 { star_acc, decl };
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_decl_i(ctx, spans);
+            self.stack.push(SynValue::DeclI(val));
+        }
+
+        fn exitloop_decl_i(&mut self) {
+            let SynValue::DeclI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_decl_i(star_acc);
+        }
+
+        fn init_inst_i(&mut self) {
+            let val = self.listener.init_inst_i();
+            self.stack.push(SynValue::InstI(val));
+        }
+
+        fn exit_inst_i(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 18;
+            let inst = self.stack.pop().unwrap().get_inst();
+            let plus_acc = self.stack.pop().unwrap().get_inst_i();
+            let ctx = CtxInstI::V1 { plus_acc, inst, last_iteration };
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_inst_i(ctx, spans);
+            self.stack.push(SynValue::InstI(val));
+        }
+
+        fn exit_decl(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                4 => {
+                    let star = self.stack.pop().unwrap().get_id_i();
+                    let id = self.stack_t.pop().unwrap();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (4, CtxDecl::V1 { type1, id, star })
+                }
+                5 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (4, CtxDecl::V2 { type1, id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_decl")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_decl(ctx, spans);
+            self.stack.push(SynValue::Decl(val));
+        }
+
+        fn init_id_i(&mut self) {
+            let val = self.listener.init_id_i();
+            self.stack.push(SynValue::IdI(val));
+        }
+
+        fn exit_id_i(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let star_acc = self.stack.pop().unwrap().get_id_i();
+            let ctx = CtxIdI::V1 { star_acc, id };
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_id_i(ctx, spans);
+            self.stack.push(SynValue::IdI(val));
+        }
+
+        fn exitloop_id_i(&mut self) {
+            let SynValue::IdI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_id_i(star_acc);
+        }
+
+        fn exit_inst(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                8 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    let id = self.stack_t.pop().unwrap();
+                    (5, CtxInst::V1 { id, expr })
+                }
+                9 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (3, CtxInst::V2 { expr })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_inst")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_inst(ctx, spans);
+            self.stack.push(SynValue::Inst(val));
+        }
+
+        fn exit_expr1(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                11 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V2 { expr: [expr_1, expr_2] })
+                }
+                12 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V3 { expr: [expr_1, expr_2] })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_expr(ctx, spans);
+            self.stack.push(SynValue::Expr(val));
+        }
+
+        fn exit_expr2(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                14 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (2, CtxExpr::V1 { expr })
+                }
+                15 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V4 { id })
+                }
+                16 => {
+                    let num = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V5 { num })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr2")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            let val = self.listener.exit_expr(ctx, spans);
+            self.stack.push(SynValue::Expr(val));
+        }
+    }
+
+    // [wrapper source for rule 902 #1, start program]
+    // ------------------------------------------------------------
+}
+
+#[allow(unused)]
+pub(crate) mod rules_902_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 902 #2, start program]
+
+    use lexigram_lib::{AltId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_902_2::*;
+
+    #[derive(Debug)]
+    pub enum CtxProgram {
+        /// `program -> (<L> decl)* (<L> inst)+`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxDeclI {
+        /// `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxInstI {
+        /// `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxDecl {
+        /// `decl -> Type Id (<L> "," Id)* ";"`
+        V1 { type1: String, id: String },
+        /// `decl -> "typedef" Type Id ";"`
+        V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIdI {
+        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxInst {
+        /// `inst -> "let" Id "=" expr ";"`
+        V1 { id: String },
+        /// `inst -> "print" expr ";"`
+        V2,
+    }
+    #[derive(Debug)]
+    pub enum CtxExpr {
+        /// `expr -> "-" expr`
+        V1,
+        /// `expr -> expr "+" expr`
+        V2,
+        /// `expr -> expr <P> "-" expr`
+        V3,
+        /// `expr -> Id`
+        V4 { id: String },
+        /// `expr -> Num`
+        V5 { num: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    /// Top non-terminal Program (has no value)
+    #[derive(Debug, PartialEq)]
+    pub struct SynProgram();
+
+    #[derive(Debug)]
+    enum SynValue {  }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused)]
+        fn exit(&mut self, span: PosSpan) {}
+        fn init_program(&mut self) {}
+        #[allow(unused)]
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) {}
+        fn init_decl_i(&mut self) {}
+        #[allow(unused)]
+        fn exit_decl_i(&mut self, ctx: CtxDeclI, spans: Vec<PosSpan>) {}
+        fn init_inst_i(&mut self) {}
+        #[allow(unused)]
+        fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) {}
+        fn init_decl(&mut self) {}
+        #[allow(unused)]
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) {}
+        fn init_id_i(&mut self) {}
+        #[allow(unused)]
+        fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) {}
+        fn init_inst(&mut self) {}
+        #[allow(unused)]
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) {}
+        fn init_expr(&mut self) {}
+        #[allow(unused)]
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) {}
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    if matches!(nt, 1 | 2 | 4) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
+                    match nt {
+                        0 => self.listener.init_program(),          // program
+                        1 => self.listener.init_decl_i(),           // decl_i
+                        2 => self.listener.init_inst_i(),           // inst_i
+                        9 => {}                                     // inst_i_1
+                        3 => self.listener.init_decl(),             // decl
+                        4 => self.listener.init_id_i(),             // id_i
+                        5 => self.listener.init_inst(),             // inst
+                        6 => self.listener.init_expr(),             // expr
+                        7 | 8 => {}                                 // expr_1, expr_2
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_program(),                   // program -> decl_i inst_i
+                        1 => self.exit_decl_i(),                    // decl_i -> <L> decl decl_i
+                        17 |                                        // inst_i_1 -> inst_i
+                        18 => self.exit_inst_i(alt_id),             // inst_i_1 -> ε
+                        2 => {}                                     // decl_i -> <L> ε (not used)
+                     /* 3 */                                        // inst_i -> <L> inst inst_i_1 (never called)
+                        4 |                                         // decl -> Type Id id_i ";"
+                        5 => self.exit_decl(alt_id),                // decl -> "typedef" Type Id ";"
+                        6 => self.exit_id_i(),                      // id_i -> <L> "," Id id_i
+                        7 => {}                                     // id_i -> <L> ε (not used)
+                        8 |                                         // inst -> "let" Id "=" expr ";"
+                        9 => self.exit_inst(alt_id),                // inst -> "print" expr ";"
+                        11 |                                        // expr_1 -> "+" expr_2 expr_1
+                        12 => self.exit_expr1(alt_id),              // expr_1 -> "-" expr_2 expr_1
+                        14 |                                        // expr_2 -> "-" expr_2
+                        15 |                                        // expr_2 -> Id
+                        16 => self.exit_expr2(alt_id),              // expr_2 -> Num
+                        10 => {}                                    // expr -> expr_2 expr_1 (not used)
+                        13 => {}                                    // expr_1 -> ε (not used)
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    let span = self.stack_span.pop().unwrap();
+                    self.listener.exit(span);
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_program(&mut self) {
+            let ctx = CtxProgram::V1;
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_program(ctx, spans);
+        }
+
+        fn exit_decl_i(&mut self) {
+            let ctx = CtxDeclI::V1;
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_decl_i(ctx, spans);
+        }
+
+        fn exit_inst_i(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 18;
+            let ctx = CtxInstI::V1 { last_iteration };
+            let n = 2;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_inst_i(ctx, spans);
+        }
+
+        fn exit_decl(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                4 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (4, CtxDecl::V1 { type1, id })
+                }
+                5 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (4, CtxDecl::V2 { type1, id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_decl")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_decl(ctx, spans);
+        }
+
+        fn exit_id_i(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxIdI::V1 { id };
+            let n = 3;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_id_i(ctx, spans);
+        }
+
+        fn exit_inst(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                8 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (5, CtxInst::V1 { id })
+                }
+                9 => {
+                    (3, CtxInst::V2)
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_inst")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_inst(ctx, spans);
+        }
+
+        fn exit_expr1(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                11 => {
+                    (3, CtxExpr::V2)
+                }
+                12 => {
+                    (3, CtxExpr::V3)
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_expr(ctx, spans);
+        }
+
+        fn exit_expr2(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                14 => {
+                    (2, CtxExpr::V1)
+                }
+                15 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V4 { id })
+                }
+                16 => {
+                    let num = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V5 { num })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr2")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let mut new_span = PosSpan::empty();
+            spans.iter().for_each(|span| new_span += span);
+            self.stack_span.push(new_span);
+            self.listener.exit_expr(ctx, spans);
+        }
+    }
+
+    // [wrapper source for rule 902 #2, start program]
+    // ------------------------------------------------------------
+}
+

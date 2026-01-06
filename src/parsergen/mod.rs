@@ -845,9 +845,10 @@ impl ParserGen {
                                  if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                              ).join(", "));
                 }
+                let g_top_has_value = self.nt_value[g_top as usize];
                 for (nt, alt_id) in &group {
-                    let ambig_loop = is_ambig && self.nt_has_all_flags(*nt, ruleflag::CHILD_L_RECURSION);
-                    items.insert(*alt_id, if ambig_loop { vec![Symbol::NT(g_top)] } else { vec![] });
+                    let ambig_loop_value = g_top_has_value && is_ambig && self.nt_has_all_flags(*nt, ruleflag::CHILD_L_RECURSION);
+                    items.insert(*alt_id, if ambig_loop_value { vec![Symbol::NT(g_top)] } else { vec![] });
                 }
                 for (var_id, alt_id) in &group {
                     let opcode = &self.opcodes[*alt_id as usize];
@@ -1468,13 +1469,14 @@ impl ParserGen {
     /// Structure elements used in a context or in a +* child type
     fn source_infos(&self, infos: &Vec<ItemInfo>, add_pub: bool) -> String {
         let pub_str = if add_pub { "pub " } else { "" };
-        infos.iter().filter_map(|info| {
-            if info.index.is_none() || info.index == Some(0) {
-                let type_name = self.get_info_type(&infos, &info);
-                Some(format!("{pub_str}{}: {}", info.name, type_name))
-            } else {
-                None
-            }
+        infos.iter()
+            .filter_map(|info| {
+                if info.index.is_none() || info.index == Some(0) {
+                    let type_name = self.get_info_type(&infos, &info);
+                    Some(format!("{pub_str}{}: {}", info.name, type_name))
+                } else {
+                    None
+                }
         }).join(", ")
     }
 

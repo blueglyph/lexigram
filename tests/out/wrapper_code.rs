@@ -444,3 +444,23 @@ pub(crate) mod code_901_1 {
     /// User-defined type for `char_set_one`
     #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
 }
+
+pub(crate) mod code_902_1 {
+    #[derive(Debug, PartialEq)] pub struct SynProgram();
+    /// User-defined type for `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
+    #[derive(Debug, PartialEq)] pub struct SynDeclI();
+    /// User-defined type for `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
+    #[derive(Debug, PartialEq)] pub struct SynInstI();
+    /// User-defined type for `decl`
+    #[derive(Debug, PartialEq)] pub struct SynDecl();
+    /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+    #[derive(Debug, PartialEq)] pub struct SynIdI();
+    /// User-defined type for `inst`
+    #[derive(Debug, PartialEq)] pub struct SynInst();
+    /// User-defined type for `expr`
+    #[derive(Debug, PartialEq)] pub struct SynExpr();
+}
+
+pub(crate) mod code_902_2 {
+
+}
