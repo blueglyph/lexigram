@@ -225,7 +225,7 @@ pub trait ListenerWrapper {
     fn is_stack_span_empty(&self) -> bool { true }
     /// Allows to dynamically translates a token
     #[allow(unused)]
-    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         token
     }
 }

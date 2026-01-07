@@ -284,7 +284,7 @@ pub mod typedef_id_type_parser {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         fn init_program(&mut self) {}
@@ -399,7 +399,7 @@ pub mod typedef_id_type_parser {
             self.stack_span.is_empty()
         }
 
-        fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.hook(token, text, span)
         }
     }

@@ -53,23 +53,36 @@ fn test_type_lexer() {
             "a:float, b:float, c:int, d:int, type_int:int",
             "type_int2:int, type_int:int",
             vec![],
+            vec![
+                "token=Id, text='float', span=2:1-5 -> Type",
+                "token=Typedef, text='typedef', span=3:1-7 -> Typedef",
+                "token=Id, text='int', span=3:9-11 -> Type",
+                "token=Typedef, text='typedef', span=4:1-7 -> Typedef",
+                "token=Id, text='type_int', span=4:9-16 -> Type",
+                "token=Id, text='type_int', span=5:1-8 -> Type",
+                "token=Id, text='type_int2', span=6:1-9 -> Type",
+                "token=Id, text='type_int', span=7:1-8 -> Type",
+                "token=Let, text='let', span=8:1-3 -> Let"
+            ],
         ),
         (
             TXT2,
             "", "",
-            vec!["var 'wrong' was already declared", "var 'wrong2' was already declared"]
+            vec!["var 'wrong' was already declared", "var 'wrong2' was already declared"],
+            vec![],
         ),
         (
             TXT3,
             "", "",
-            vec!["type 'a' was already defined"]
+            vec!["type 'a' was already defined"],
+            vec![],
         ),
     ];
-    for (test_id, (txt, expected_vars, expected_types, expected_errors)) in tests.into_iter().enumerate() {
+    for (test_id, (txt, expected_vars, expected_types, expected_errors, expected_calls)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
         let mut parser = TypeParser::new();
         match parser.parse(txt) {
-            Ok((vars, types, log)) => {
+            Ok(ParserData { vars, types, log, hook_calls }) => {
                 let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
                 lvars.sort();
                 let result_vars = lvars.join(", ");
@@ -77,10 +90,12 @@ fn test_type_lexer() {
                 ltypes.sort();
                 let result_types = ltypes.join(", ");
                 if VERBOSE {
-                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_vars}");
+                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_vars}\nhook_calls: {hook_calls:?}");
                 }
+
                 assert_eq!(result_vars, expected_vars, "var mismatch in test {test_id}");
                 assert_eq!(result_types, expected_types, "type mismatch in test {test_id}");
+                assert_eq!(hook_calls, expected_calls, "hook call mismatch in test {test_id}");
                 assert!(expected_errors.is_empty(), "errors were expected in test {test_id}: {expected_errors:?}");
             }
             Err(log) => {
@@ -106,6 +121,14 @@ fn test_type_lexer() {
     }
 }
 
+#[derive(Debug)]
+pub struct ParserData {
+    pub vars: HashMap<String, String>,
+    pub types: HashMap<String, String>,
+    pub log: BufLog,
+    pub hook_calls: Vec<String>,
+}
+
 pub struct TypeParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
@@ -129,7 +152,7 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
     /// * `log`, a `BufLog` object.
     ///
     /// On failure, returns the log with the error messages.
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<(HashMap<String, String>, HashMap<String, String>, BufLog), BufLog> {
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
         self.wrapper = Some(Wrapper::new(TypeListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
@@ -141,9 +164,9 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
         if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
             self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let TypeListener { log, vars, types, .. } = self.wrapper.take().unwrap().give_listener();
+        let TypeListener { log, vars, types, hook_calls, .. } = self.wrapper.take().unwrap().give_listener();
         if log.has_no_errors() {
-            Ok((vars, types, log))
+            Ok(ParserData { vars, types, log, hook_calls })
         } else {
             Err(log)
         }
@@ -158,6 +181,7 @@ struct TypeListener<'ls> {
     lines: Option<&'ls Vec<String>>,
     vars: HashMap<String, String>,
     types: HashMap<String, String>,
+    hook_calls: Vec<String>,
 }
 
 impl<'ls> TypeListener<'ls> {
@@ -168,6 +192,7 @@ impl<'ls> TypeListener<'ls> {
             lines: None,
             vars: HashMap::new(),
             types: HashMap::new(),
+            hook_calls: vec![],
         }
     }
 
@@ -201,7 +226,7 @@ impl TypedefListener for TypeListener<'_> {
         &mut self.log
     }
 
-    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         let new = match text {
             "int" | "float" | "double" => Term::Type as u16,
             t => {
@@ -212,11 +237,11 @@ impl TypedefListener for TypeListener<'_> {
                 }
             }
         };
+        let report = format!("token={}, text='{text}', span={span} -> {}", get_term_name(token).0, get_term_name(new).0);
         if VERBOSE {
-            println!(
-                "hook(token={token}[{}], text={text:?}, span={span}) -> {new}[{}]",
-                get_term_name(token).0, get_term_name(new).0);
+            println!("    {report},");
         }
+        self.hook_calls.push(report);
         new
     }
 
@@ -551,7 +576,7 @@ pub mod typedef_type_parser {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused)]
-        fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         fn init_program(&mut self) {}
@@ -669,7 +694,7 @@ pub mod typedef_type_parser {
             self.stack_span.is_empty()
         }
 
-        fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.hook(token, text, span)
         }
     }

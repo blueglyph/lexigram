@@ -2194,7 +2194,7 @@ impl ParserGen {
         if !self.terminal_hooks.is_empty() {
             self.used_libs.add(format!("{}::TokenId", self.lib_crate));
             src.push(format!("    #[allow(unused)]"));
-            src.push(format!("    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
         }
         if self.nt_value[self.start as usize] || self.gen_span_params {
             src.push(format!("    #[allow(unused)]"));
@@ -2329,7 +2329,7 @@ impl ParserGen {
         }
         if !self.terminal_hooks.is_empty() {
             src.add_space();
-            src.push(format!("    fn hook(&self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
             src.push(format!("        self.listener.hook(token, text, span)"));
             src.push(format!("    }}"));
         }
