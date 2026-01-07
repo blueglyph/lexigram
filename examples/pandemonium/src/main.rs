@@ -3,7 +3,6 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
-use std::io::Cursor;
 use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, Pos, PosSpan, TokenSpliterator};
@@ -153,7 +152,7 @@ static SPANS1: &[&str] = &[
 // minimalist parser, top level
 
 pub struct PanDemo<'l, 'p, 'ls> {
-    lexer: Lexer<'l, Cursor<&'l str>>,
+    lexer: Lexer<'l, &'ls [u8]>,
     parser: Parser<'p>,
     wrapper: Wrapper<PanDemoListener<'ls>>,
     lines: Vec<String>,
@@ -168,7 +167,7 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
     }
 
     pub fn parse(&'ls mut self, text: &'ls str) -> Result<(BufLog, Vec<String>), BufLog> {
-        let stream = CharReader::new(Cursor::new(text));
+        let stream = CharReader::new(text.as_bytes());
         self.lexer.attach_stream(stream);
         self.lines = text.lines().map(|l| l.to_string()).collect();
         self.wrapper.get_listener_mut().attach_lines(&self.lines);

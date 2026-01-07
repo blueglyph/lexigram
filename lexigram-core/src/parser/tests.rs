@@ -373,7 +373,6 @@ mod wrapper {
 }
 
 mod simple {
-    use std::io::Cursor;
     use crate::char_reader::CharReader;
     use crate::CollectJoin;
     use crate::lexer::TokenSpliterator;
@@ -409,7 +408,7 @@ mod simple {
             ),
         ];
         for (id, (text, expected_insts, expected_reprs, expected_span)) in tests.into_iter().enumerate() {
-            let stream = CharReader::new(Cursor::new(text));
+            let stream = CharReader::new(text.as_bytes());
             lexer.attach_stream(stream);
             let token_stream = lexer.tokens().keep_channel0();
             let mut wrapper = Wrapper::new(symtable);

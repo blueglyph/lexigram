@@ -4,7 +4,6 @@
 
 use crate::dfa::DfaBundle;
 use std::collections::BTreeSet;
-use std::io::Cursor;
 use std::mem::size_of_val;
 use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::escape_string;
@@ -95,13 +94,13 @@ fn lexilexer_source() {
 fn lexilexer_tokens() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
-        let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
+        let mut lexer: Lexer<&[u8]> = lexer_tables.make_lexer();
         check_lexer_tokens(&mut lexer, opt);
     }
 }
 
 /// We scan source files and check the tokens and the source text they cover.
-pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
+pub fn check_lexer_tokens(lexer: &mut Lexer<&[u8]>, opt: LexerType) {
     const VERBOSE: bool = false;
     let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
         (1, vec![
@@ -117,7 +116,7 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
         for (input, expected_tokens, expected_texts) in inputs {
             //let expected_texts = expected_texts.iter().map(|s| s.escape_default());
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
-            let stream = CharReader::new(Cursor::new(input));
+            let stream = CharReader::new(input.as_bytes());
             lexer.attach_stream(stream);
             let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _pos_span)| {
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
@@ -145,7 +144,7 @@ fn regexgen_stability() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
         let mut lexer = lexer_tables.make_lexer();
-        let stream = CharReader::new(Cursor::new(LEXICON));
+        let stream = CharReader::new(LEXICON.as_bytes());
         lexer.attach_stream(stream);
         let mut source2 = String::new();
         let mut mode1 = false;
@@ -170,7 +169,7 @@ fn regexgen_stability() {
             .unzip();
         source2.pop(); // remove trailing space
         if VERBOSE { println!("{source2}"); }
-        let stream2 = CharReader::new(Cursor::new(source2.as_str()));
+        let stream2 = CharReader::new(source2.as_str().as_bytes());
         lexer.detach_stream();
         lexer.attach_stream(stream2);
         let (tokens2, texts2): (Vec<TokenId>, Vec<String>) = lexer

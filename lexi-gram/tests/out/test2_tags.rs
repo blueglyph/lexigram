@@ -541,25 +541,23 @@ impl<T: Test1Listener> Wrapper<T> {
 // ---------------------------------------------------------------------------------------------
 
 mod test1_check {
-    use std::io::Cursor;
     use lexigram_lib::lexer::Lexer;
     use crate::out::test1_lexer::*;
     use crate::out::test1_parser::*;
 
     #[test]
     fn compilation_check() {
-        let lexer: Lexer<'_, Cursor<String>> = build_lexer();
+        let lexer: Lexer<'_, &[u8]> = build_lexer();
         let parser = build_parser();
     }
 }
 
 mod test2_check {
-    use std::io::Cursor;
     use super::*;
 
     #[test]
     fn compilation_check() {
-        let lexer: Lexer<'_, Cursor<String>> = build_lexer();
+        let lexer: Lexer<'_, &[u8]> = build_lexer();
         let parser = build_parser();
     }
 }

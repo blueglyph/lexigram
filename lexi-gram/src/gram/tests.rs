@@ -2,7 +2,6 @@
 
 #![cfg(test)]
 
-use std::io::Cursor;
 use iter_index::IndexerIterator;
 use lexigram_lib::{CollectJoin, SymbolTable, VarId};
 use lexigram_lib::build::{BuildFrom, BuildInto};
@@ -68,7 +67,7 @@ fn make_lexer_tables(lexicon: &str) -> (LexerTables, SymbolTable) {
     const VERBOSE: bool = false;
 
     // parses the test lexicon
-    let lexicon_stream = CharReader::new(Cursor::new(lexicon));
+    let lexicon_stream = CharReader::new(lexicon.as_bytes());
     let lexi = Lexi::new(lexicon_stream);
     let symbolic_dfa: SymbolicDfa = lexi.build_into();
     let SymbolicDfa { dfa, symbol_table, .. } = symbolic_dfa;
@@ -100,7 +99,6 @@ mod listener {
     use lexigram_lib::lexer::TokenSpliterator;
     use lexigram_lib::parsergen::{ParserGen, ParserTables};
     use lexigram_lib::{AltId, VarId, LL1};
-    use std::io::Cursor;
     use lexigram_lib::CollectJoin;
 
     struct Stub {
@@ -213,7 +211,7 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let grammar_stream = CharReader::new(Cursor::new(grammar));
+            let grammar_stream = CharReader::new(grammar.as_bytes());
             let gram = Gram::new(symbol_table.clone(), grammar_stream);
             let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages_str();
@@ -255,7 +253,7 @@ mod listener {
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {
                     if VERBOSE { println!("- input '{input}'"); }
-                    let input_stream = CharReader::new(Cursor::new(input));
+                    let input_stream = CharReader::new(input.as_bytes());
                     lexer.attach_stream(input_stream);
                     let mut stub = Stub::new();
                     stub.set_verbose(VERBOSE_WRAPPER);
@@ -279,14 +277,13 @@ mod listener {
         let tests = vec![TXT_GRAM2];
 
         let (_lexer_tables, symbol_table) = make_lexer_tables(TXT_LEXI1);
-        // let mut lexer: Lexer<'_, Cursor> = lexer_tables.make_lexer();
 
         for (test_id, grammar) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id}", ""); }
             let _text = format!("test {test_id} failed");
 
             // grammar parser
-            let grammar_stream = CharReader::new(Cursor::new(grammar));
+            let grammar_stream = CharReader::new(grammar.as_bytes());
             let gram = Gram::new(symbol_table.clone(), grammar_stream);
             let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages_str();

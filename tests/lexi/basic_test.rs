@@ -156,7 +156,6 @@ impl LexiParserListener for LexiListener {
 }
 
 mod tests {
-    use std::io::Cursor;
     use lexigram_core::CollectJoin;
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexi::LEXICON;
@@ -180,7 +179,7 @@ mod tests {
         for method in 0..3 {
             for (test_id, (input, expected_tokens)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-                let stream = CharReader::new(Cursor::new(input));
+                let stream = CharReader::new(input.as_bytes());
                 let mut lexer = build_lexer();
                 lexer.set_tab_width(4);
                 lexer.attach_stream(stream);

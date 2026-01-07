@@ -260,7 +260,6 @@ mod tok {
 }
 
 mod lexicon {
-    use std::io::Cursor;
     use crate::char_reader::CharReader;
     use crate::{CollectJoin, TokenId};
     use crate::lexer::{Lexer, LexerError, Pos, PosSpan};
@@ -372,7 +371,7 @@ mod lexicon {
         let mut lexer = build_lexer();
         for (id, (text, exp_err, exp_ch0, exp_ch1, exp_ch2, exp_ch_s0, exp_ch_s1, exp_ch_s2, exp_spans)) in tests.into_iter().enumerate() {
             // if VERBOSE { println!("{:-<80}\ntest {id}\ninput: {text}", "")}
-            let stream = CharReader::new(Cursor::new(text));
+            let stream = CharReader::new(text.as_bytes());
             lexer.attach_stream(stream);
             let mut ch = vec![vec![], vec![], vec![]];
             let mut ch_s = vec![vec![], vec![], vec![]];
@@ -409,10 +408,10 @@ mod lexicon {
     #[test]
     fn test_get_token() {
         /// Gets the state of the lexer: (has_error, error, is_eos, is_open)
-        fn get_lexer_state(lexer: &Lexer<Cursor<&str>>) -> (bool, LexerError, bool, bool) {
+        fn get_lexer_state(lexer: &Lexer<&[u8]>) -> (bool, LexerError, bool, bool) {
             (lexer.has_error(), lexer.get_error().clone(), lexer.is_eos(), lexer.is_open())
         }
-        fn check_next_eos(lexer: &mut Lexer<Cursor<&str>>, expected_msg: &str) {
+        fn check_next_eos(lexer: &mut Lexer<&[u8]>, expected_msg: &str) {
             assert_eq!(lexer.get_token().err().map(|e| e.to_string()), Some(expected_msg.to_string()));
             let error = lexer.get_error().clone();
             assert!(matches!(error, LexerError::EndOfStream { .. }), "error is {error:?} instead of EndOfStream");
@@ -420,7 +419,7 @@ mod lexicon {
         }
         let mut lexer = build_lexer();
         let text = "* id 1()";
-        let stream = CharReader::new(Cursor::new(text));
+        let stream = CharReader::new(text.as_bytes());
         lexer.attach_stream(stream);
         // (tokenid, channelid, string, posspan)
         assert_eq!(lexer.get_token(), Ok(Some((STAR, CH_DEFAULT, "*".to_string(), PosSpan::new(Pos(1, 1), Pos(1, 1))))));
@@ -434,7 +433,7 @@ mod lexicon {
         check_next_eos(&mut lexer, "end of stream, line 1, col 9 (stream pos = 8)");
 
         let text = "\n *+";
-        let stream = CharReader::new(Cursor::new(text));
+        let stream = CharReader::new(text.as_bytes());
         lexer.attach_stream(stream);
         // (tokenid, channelid, string, posspan)
         assert_eq!(lexer.get_token(), Ok(Some((STAR, CH_DEFAULT, "*".to_string(), PosSpan::new(Pos(2, 2), Pos(2, 2))))));
@@ -448,7 +447,7 @@ mod lexicon {
         check_next_eos(&mut lexer, "end of stream, line 2, col 4 (stream pos = 4)");
 
         let text = " + end";
-        let stream = CharReader::new(Cursor::new(text));
+        let stream = CharReader::new(text.as_bytes());
         lexer.attach_stream(stream);
         assert_eq!(lexer.get_token().err().map(|e| e.to_string()), Some("unrecognized character '+', line 1, col 2 (stream pos = 1)".to_string()));
         let error = lexer.get_error().clone();

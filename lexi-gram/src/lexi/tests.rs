@@ -180,7 +180,6 @@ mod listener {
 
 mod simple {
     use std::collections::BTreeMap;
-    use std::io::Cursor;
     use iter_index::IndexerIterator;
     use lexigram_lib::{branch, btreemap, term};
     use lexigram_lib::build::{BuildFrom, BuildInto};
@@ -435,7 +434,7 @@ mod simple {
 
         for (test_id, (input, expected_hooks, expected_terminals, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-            let stream = CharReader::new(Cursor::new(input));
+            let stream = CharReader::new(input.as_bytes());
             let mut lexi = Lexi::new(stream);
             lexi.make();
             let listener = lexi.get_listener();
@@ -492,7 +491,7 @@ mod simple {
                 if VERBOSE {
                     println!("Testing input '{input}'")
                 }
-                let stream = CharReader::new(Cursor::new(input));
+                let stream = CharReader::new(input.as_bytes());
                 lexer.attach_stream(stream);
                 let tokens = lexer.tokens().to_vec();
                 if VERBOSE {
@@ -547,7 +546,7 @@ mod simple {
         for (test_id, (lexicon, inputs)) in tests.into_iter().enumerate() {
             if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
-            let stream = CharReader::new(Cursor::new(lexicon));
+            let stream = CharReader::new(lexicon.as_bytes());
             let mut lexi = Lexi::new(stream);
             lexi.make();
             let listener = lexi.get_listener();
@@ -573,7 +572,7 @@ mod simple {
                 if VERBOSE {
                     println!("Testing input '{input}'")
                 }
-                let stream = CharReader::new(Cursor::new(input));
+                let stream = CharReader::new(input.as_bytes());
                 lexer.attach_stream(stream);
                 let tokens = lexer.tokens().to_vec();
                 let (result_error, valid_segments) = match lexer.get_error() {
@@ -640,7 +639,7 @@ mod simple {
 
         for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-            let stream = CharReader::new(Cursor::new(input));
+            let stream = CharReader::new(input.as_bytes());
             let mut lexi = Lexi::new(stream);
             lexi.make();
             let listener = lexi.get_listener();
@@ -685,7 +684,6 @@ mod simple {
 }
 
 mod lexicon {
-    use std::io::Cursor;
     use lexigram_lib::CollectJoin;
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::log::{LogReader, LogStatus};
@@ -782,7 +780,7 @@ mod lexicon {
 
         for (test_id, (lexicon, mut expected_errors)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
-            let stream = CharReader::new(Cursor::new(lexicon));
+            let stream = CharReader::new(lexicon.as_bytes());
             let mut lexi = Lexi::new(stream);
             let _result = lexi.make();
             let listener = lexi.wrapper.give_listener();

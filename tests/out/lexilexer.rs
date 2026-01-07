@@ -228,7 +228,6 @@ pub(super) mod lexilexer {
 
 #[cfg(test)]
 mod test {
-    use std::io::Cursor;
     use lexigram_lib::TokenId;
     use lexigram_core::char_reader::escape_string;
     use lexigram_lib::char_reader::CharReader;
@@ -252,7 +251,7 @@ mod test {
             for (input, expected_tokens, expected_texts) in inputs {
                 //let expected_texts = expected_texts.iter().map(|s| s.escape_default());
                 if VERBOSE { print!("\"{}\":", escape_string(input)); }
-                let stream = CharReader::new(Cursor::new(input));
+                let stream = CharReader::new(input.as_bytes());
                 lexer.attach_stream(stream);
                 let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _pos_span)| {
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
