@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::io::{BufReader, Read};
+use std::io::Read;
 
 // Note on UTF-8 encoding
 //
@@ -88,7 +88,7 @@ pub enum CharReaderError {
 }
 
 pub struct CharReader<R> {
-    reader: BufReader<R>,
+    reader: R,
     /// offset of next character, in bytes
     offset: u64,
     status: CharReaderStatus,
@@ -98,7 +98,7 @@ pub struct CharReader<R> {
 impl<R: Read> CharReader<R> {
     pub fn new(source: R) -> Self {
         CharReader {
-            reader: BufReader::new(source),
+            reader: source,
             offset: 0,
             status: CharReaderStatus::Reading,
             peek: None,
@@ -237,7 +237,6 @@ pub mod macros {
 
 #[cfg(test)]
 mod char_reader {
-    use std::io::Cursor;
     use crate::CollectJoin;
     use crate::char_reader::escape_char;
     use super::*;
@@ -264,7 +263,7 @@ mod char_reader {
     #[test]
     fn read_rewind() {
         let text = "aαbβgΔs∑z";
-        let mut reader = CharReader::new(Cursor::new(text));
+        let mut reader = CharReader::new(text.as_bytes());
         assert!(reader.is_reading());
         let mut counter = 0;
         while reader.is_reading() {
@@ -303,7 +302,7 @@ mod char_reader {
         for (index, (text, expected_pos)) in tests.iter().enumerate() {
             let mut result = String::new();
             let mut result_pos = Vec::new();
-            let mut reader = CharReader::new(Cursor::new(text));
+            let mut reader = CharReader::new(text.as_bytes());
             for c in reader.chars() {
                 result.push(c.char);
                 result_pos.push(c.offset);
@@ -321,7 +320,7 @@ mod char_reader {
             for (index, (text, expected_pos)) in tests.iter().enumerate() {
                 let mut result = String::new();
                 let mut result_pos = Vec::new();
-                let mut reader = CharReader::new(Cursor::new(text));
+                let mut reader = CharReader::new(text.as_bytes());
                 let mut result_peek = Vec::new();
                 let mut i = 0;
                 if early_peek {
@@ -360,7 +359,7 @@ mod char_reader {
     fn partial_iterations() {
         let tests = get_tests();
         for (index, (text, _)) in tests.into_iter().enumerate() {
-            let mut reader = CharReader::new(Cursor::new(text));
+            let mut reader = CharReader::new(text.as_bytes());
             let length = text.chars().count();
             let mut result = reader.chars().take(length/2).map(|it| it.char).collect::<String>();
             while let Some(c) = reader.get_char() {
