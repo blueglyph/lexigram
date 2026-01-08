@@ -11,7 +11,7 @@ use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_FILENAME: &str = "src/pandemonium.l";
 static GRAMMAR_FILENAME: &str = "src/pandemonium.g";
-static SOURCE_FILENAME: &str = "../pandemonium/src/main.rs";
+static SOURCE_FILENAME: &str = "../pandemonium/src/lib.rs";
 static LEXER_TAG: &str = "pandemonium_lexer";
 static PARSER_TAG: &str = "pandemonium_parser";
 const LEXER_INDENT: usize = 4;
@@ -21,10 +21,10 @@ const PARSER_INDENT: usize = 4;
 
 fn main() {
     std::env::set_current_dir("examples/gen_pandemonium").expect("couldn't change directory");
-    gen_source(Action::Generate);
+    gen_pandemonium_source(Action::Generate);
 }
 
-fn gen_source(action: Action) {
+fn gen_pandemonium_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -51,12 +51,12 @@ mod tests {
 
     #[ignore]
     #[test]
-    fn test_gen_source() {
-        gen_source(Action::Generate);
+    fn gen_source() {
+        gen_pandemonium_source(Action::Generate);
     }
 
     #[test]
-    fn test_check_source() {
-        gen_source(Action::Verify);
+    fn check_source() {
+        gen_pandemonium_source(Action::Verify);
     }
 }

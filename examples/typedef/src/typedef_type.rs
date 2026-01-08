@@ -14,7 +14,7 @@ use crate::typedef_type::typedef_type_lexer::build_lexer;
 use listener_type_types::*;
 use typedef_type_parser::*;
 
-const VERBOSE: bool = true;
+const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 static TXT1: &str = r#"
