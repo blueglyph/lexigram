@@ -7,6 +7,7 @@ pub mod fixed_sym_table;
 pub mod log;
 pub mod lexer;
 pub mod parser;
+pub mod text_span;
 
 /// ID of a lexer token
 pub type TokenId = u16;

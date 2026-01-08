@@ -9,7 +9,7 @@ use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::Parser;
 use lexigram_core::{CollectJoin, TokenId};
-use crate::text_span::{GetLine, GetTextSpan};
+use lexigram_core::text_span::{GetLine, GetTextSpan};
 use crate::typedef_type::typedef_type_lexer::build_lexer;
 use listener_type_types::*;
 use typedef_type_parser::*;

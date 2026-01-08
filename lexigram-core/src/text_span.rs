@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_core::lexer::{Pos, PosSpan};
+use crate::lexer::{Pos, PosSpan};
 
 pub trait GetLine {
     /// Gets line number n, where n = 1 for the first line.
@@ -16,7 +16,7 @@ pub trait GetTextSpan: GetLine {
             self.get_line(l1 as usize).chars().skip(c1 as usize - 1).take((c2 - c1) as usize + 1).collect()
         } else {
             let mut result = self.get_line(l1 as usize).chars().skip(c1 as usize - 1).collect::<String>();
-            for i in (l1 as usize)..(l2 as usize) {
+            for i in (l1 as usize) + 1..(l2 as usize) {
                 result.push('\n');
                 result.push_str(&self.get_line(i));
             }
