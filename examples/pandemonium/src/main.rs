@@ -155,7 +155,6 @@ pub struct PanDemo<'l, 'p, 'ls> {
     lexer: Lexer<'l, &'ls [u8]>,
     parser: Parser<'p>,
     wrapper: Wrapper<PanDemoListener<'ls>>,
-    lines: Vec<String>,
 }
 
 impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
@@ -163,14 +162,13 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
         let lexer = build_lexer();
         let parser = build_parser();
         let wrapper = Wrapper::new(PanDemoListener::new(), VERBOSE_WRAPPER);
-        PanDemo { lexer, parser, wrapper, lines: vec![] }
+        PanDemo { lexer, parser, wrapper }
     }
 
     pub fn parse(&'ls mut self, text: &'ls str) -> Result<(BufLog, Vec<String>), BufLog> {
         let stream = CharReader::new(text.as_bytes());
         self.lexer.attach_stream(stream);
-        self.lines = text.lines().map(|l| l.to_string()).collect();
-        self.wrapper.get_listener_mut().attach_lines(&self.lines);
+        self.wrapper.get_listener_mut().attach_lines(text.lines().collect());
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
@@ -194,7 +192,7 @@ struct PanDemoListener<'ls> {
     log: BufLog,
     abort: bool,
     spans: Vec<String>,
-    lines: Option<&'ls Vec<String>>,
+    lines: Option<Vec<&'ls str>>,
 }
 
 impl<'ls> PanDemoListener<'ls> {
@@ -207,7 +205,7 @@ impl<'ls> PanDemoListener<'ls> {
         }
     }
 
-    fn attach_lines(&mut self, lines: &'ls Vec<String>) {
+    fn attach_lines(&mut self, lines: Vec<&'ls str>) {
         self.lines = Some(lines);
     }
 
@@ -215,15 +213,15 @@ impl<'ls> PanDemoListener<'ls> {
         if span.is_empty() { return String::new() }
         let &PosSpan { first: Pos(l1, c1), last: Pos(l2, c2) } = span;
         if l1 == l2 {
-            self.lines.unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).take((c2 - c1) as usize + 1).collect()
+            self.lines.as_ref().unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).take((c2 - c1) as usize + 1).collect()
         } else {
-            let mut result = self.lines.unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).collect::<String>();
+            let mut result = self.lines.as_ref().unwrap()[l1 as usize - 1].chars().skip(c1 as usize - 1).collect::<String>();
             for i in (l1 as usize)..(l2 as usize) {
                 result.push('\n');
-                result.push_str(&self.lines.unwrap()[i]);
+                result.push_str(self.lines.as_ref().unwrap()[i]);
             }
             result.push('\n');
-            result.push_str(&self.lines.unwrap()[l2 as usize - 1].chars().take(c2 as usize).collect::<String>());
+            result.push_str(&self.lines.as_ref().unwrap()[l2 as usize - 1].chars().take(c2 as usize).collect::<String>());
             result
         }
     }

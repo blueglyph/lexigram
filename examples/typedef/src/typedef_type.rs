@@ -14,7 +14,7 @@ use crate::typedef_type::typedef_type_lexer::build_lexer;
 use listener_type_types::*;
 use typedef_type_parser::*;
 
-const VERBOSE: bool = false;
+const VERBOSE: bool = true;
 const VERBOSE_WRAPPER: bool = false;
 
 static TXT1: &str = r#"
@@ -133,7 +133,6 @@ pub struct TypeParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
     wrapper: Option<Wrapper<TypeListener<'ls>>>,
-    lines: Vec<String>,
 }
 
 impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
@@ -141,7 +140,7 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        TypeParser { lexer, parser, wrapper: None, lines: vec![] }
+        TypeParser { lexer, parser, wrapper: None }
     }
 
     /// Parses a text.
@@ -156,8 +155,7 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
         self.wrapper = Some(Wrapper::new(TypeListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
-        self.lines = text.lines().map(|l| l.to_string()).collect();
-        self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(&self.lines);
+        self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
@@ -178,7 +176,7 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
 struct TypeListener<'ls> {
     log: BufLog,
     abort: bool,
-    lines: Option<&'ls Vec<String>>,
+    lines: Option<Vec<&'ls str>>,
     vars: HashMap<String, String>,
     types: HashMap<String, String>,
     hook_calls: Vec<String>,
@@ -196,7 +194,7 @@ impl<'ls> TypeListener<'ls> {
         }
     }
 
-    fn attach_lines(&mut self, lines: &'ls Vec<String>) {
+    fn attach_lines(&mut self, lines: Vec<&'ls str>) {
         self.lines = Some(lines);
     }
 
@@ -210,7 +208,7 @@ impl<'ls> TypeListener<'ls> {
 
 impl GetLine for TypeListener<'_> {
     fn get_line(&self, n: usize) -> &str {
-        &self.lines.unwrap()[n - 1]
+        self.lines.as_ref().unwrap()[n - 1]
     }
 }
 
