@@ -150,6 +150,17 @@ impl OpCode {
         }
     }
 
+    pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        if let Some(tbl) = symbol_table {
+            match self {
+                OpCode::T(v) => format!("{}", tbl.get_t_str(*v)),
+                _ => self.to_str(symbol_table),
+            }
+        } else {
+            self.to_string()
+        }
+    }
+
     pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         if let Some(t) = symbol_table {
             match self {
@@ -397,7 +408,7 @@ impl<'a> Parser<'a> {
                          stream_sym.to_str_ext(sym_table, &stream_str),
                          stack_t.join(", "),
                          stack.iter().map(|s| s.to_str(sym_table)).collect::<Vec<_>>().join(" "),
-                         stack_sym.to_str(sym_table));
+                         stack_sym.to_str_name(sym_table));
             }
             match (stack_sym, stream_sym) {
                 (_, Symbol::Empty) => {
@@ -443,7 +454,7 @@ impl<'a> Parser<'a> {
                     if !recover_mode && alt_id >= error_skip_alt_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
-                            .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() }))
+                            .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(sym_table) } else { "<EOF>".to_string() }))
                             .collect::<Vec<_>>().join(", ");
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
                         let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
@@ -533,8 +544,11 @@ impl<'a> Parser<'a> {
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if !recover_mode && sk != sr {
-                        let msg = format!("syntax error: found input '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                          if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                        let msg = format!(
+                            "syntax error: found input '{}' instead of '{}'{}",
+                            stream_sym.to_str(sym_table),
+                            Symbol::T(sk).to_str(sym_table),
+                            if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
@@ -551,7 +565,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     if recover_mode {
-                        if VERBOSE { println!("!T {} <-> {}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
+                        if VERBOSE { println!("!T {} <-> {}", Symbol::T(sk).to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if sk == sr {
                             recover_mode = false;
                             let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
@@ -559,7 +573,7 @@ impl<'a> Parser<'a> {
                                                                    stream_sym.to_str(self.get_symbol_table())));
                             if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                         } else {
-                            if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
+                            if VERBOSE { println!("(recovering) popping {}", Symbol::T(sk).to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap();
                         }
                     }
@@ -585,13 +599,13 @@ impl<'a> Parser<'a> {
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    wrapper.get_mut_log().add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str(sym_table)));
+                    wrapper.get_mut_log().add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str_name(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
                     wrapper.get_mut_log().add_error(format!("unexpected syntax error: input '{}' while expecting '{}'{}",
-                                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                                                            stream_sym.to_str(sym_table), stack_sym.to_str_name(sym_table),
                                                             if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedError);

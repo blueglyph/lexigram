@@ -762,7 +762,7 @@ mod lexicon {
             ),
             (
                 r#"lexicon test12; (A): [a-z]; B: 'b';"#,
-                vec!["syntax error: found input '[' instead of 'StrLit!'"]
+                vec!["syntax error: found input '[' instead of 'StrLit'"]
             ),
             (
                 r#"lexicon test13; (A) -> skip;"#,
