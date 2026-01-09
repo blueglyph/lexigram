@@ -1,8 +1,319 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
+#![cfg(test)]
+
+use std::collections::HashMap;
+use std::io::Cursor;
+use lexigram_core::char_reader::CharReader;
+use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
+use lexigram_core::log::{BufLog, LogStatus, Logger};
+use lexigram_core::parser::Parser;
+use lexigram_core::text_span::{GetLine, GetTextSpan};
+use lexigram_core::{CollectJoin, TokenId};
+use crate::typedef_id_type::typedef_id_type_lexer::build_lexer;
+use crate::typedef_id_type::typedef_id_type_parser::{build_parser, CtxProgram, TypedefListener, Wrapper};
+use listener_id_type_types::*;
+use typedef_id_type_parser::*;
+
+const VERBOSE: bool = false;
+const VERBOSE_WRAPPER: bool = false;
+
+// program:
+//     (<L=stmt_i> stmt)*;
+// stmt:
+//     decl | inst;
+// decl:
+//     Type Id (<L=id_i> Comma Id)* SemiColon
+// |   Typedef Type Id SemiColon;
+// inst:
+//     Id Eq expr SemiColon
+// |   Print expr SemiColon;
+// expr:
+//     Sub expr
+// |   expr (Add | <P> Sub) expr
+// |   Id
+// |   Num;
+
+static TXT1: &str = r#"
+float a, b;
+typedef int type_int;
+typedef type_int type_int2;
+type_int c;
+type_int2 d;
+a = 0;
+print a;
+"#;
+
+static TXT2: &str = r#"
+int wrong, wrong2;
+float wrong;
+int a, b,
+    c, wrong2;
+print wrong;
+"#;
+
+static TXT3: &str = r#"
+typedef int a;
+typedef float a;
+a b;
+b = 5;
+"#;
+
+#[test]
+fn test_id_type_lexer() {
+    let tests = vec![
+        (
+            TXT1,
+            "a:float, b:float, c:int, d:int",
+            "type_int2:int, type_int:int",
+            vec![],
+            vec![
+                "token=Id, text='float', span=2:1-5 -> Type",
+                "token=Id, text='a', span=2:7 -> Id",
+                "token=Id, text='b', span=2:10 -> Id",
+                "token=Typedef, text='typedef', span=3:1-7 -> Typedef",
+                "token=Id, text='int', span=3:9-11 -> Type",
+                "token=Id, text='type_int', span=3:13-20 -> Id",
+                "token=Typedef, text='typedef', span=4:1-7 -> Typedef",
+                "token=Id, text='type_int', span=4:9-16 -> Type",
+                "token=Id, text='type_int2', span=4:18-26 -> Id",
+                "token=Id, text='type_int', span=5:1-8 -> Type",
+                "token=Id, text='c', span=5:10 -> Id",
+                "token=Id, text='type_int2', span=6:1-9 -> Type",
+                "token=Id, text='d', span=6:11 -> Id",
+                "token=Id, text='a', span=7:1 -> Id",
+                "token=Num, text='0', span=7:5 -> Num",
+                "token=Print, text='print', span=8:1-5 -> Print",
+                "token=Id, text='a', span=8:7 -> Id",
+            ],
+        ),
+        (
+            TXT2,
+            "", "",
+            vec!["var 'wrong' was already declared", "var 'wrong2' was already declared"],
+            vec![],
+        ),
+        (
+            TXT3,
+            "", "",
+            vec!["syntax error: found input 'Type' instead of 'Id'"],
+            vec![],
+        ),
+    ];
+    for (test_id, (txt, expected_vars, expected_types, expected_errors, expected_calls)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
+        let mut parser = IdTypeParser::new();
+        match parser.parse(txt) {
+            Ok(ParserData { vars, types, log, hook_calls }) => {
+                let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                lvars.sort();
+                let result_vars = lvars.join(", ");
+                let mut ltypes = types.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                ltypes.sort();
+                let result_types = ltypes.join(", ");
+                if VERBOSE {
+                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_types}\nhook_calls: {hook_calls:?}");
+                }
+
+                assert_eq!(result_vars, expected_vars, "var mismatch in test {test_id}");
+                assert_eq!(result_types, expected_types, "type mismatch in test {test_id}");
+                assert_eq!(hook_calls, expected_calls, "hook call mismatch in test {test_id}");
+                assert!(expected_errors.is_empty(), "errors were expected in test {test_id}: {expected_errors:?}");
+            }
+            Err(log) => {
+                assert!(!expected_errors.is_empty(), "unexpected error(s) in test {test_id}\n{log}");
+                if VERBOSE {
+                    println!("errors during parsing:\n{log}");
+                }
+                let mut errors = log.get_errors();
+                for exp_err in expected_errors {
+                    let mut next_err = errors.next();
+                    while let Some(err) = next_err {
+                        if err.contains(exp_err) {
+                            break;
+                        }
+                        next_err = errors.next();
+                    }
+                    if next_err.is_none() {
+                        panic!("didn't find this expected error in test {test_id}: {exp_err}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ParserData {
+    pub vars: HashMap<String, String>,
+    pub types: HashMap<String, String>,
+    pub log: BufLog,
+    pub hook_calls: Vec<String>,
+}
+
+pub struct IdTypeParser<'l, 'p, 'ls> {
+    lexer: Lexer<'l, Cursor<&'l str>>,
+    parser: Parser<'p>,
+    wrapper: Option<Wrapper<IdTypeListener<'ls>>>,
+}
+
+impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
+    /// Creates a new parser
+    pub fn new() -> Self {
+        let lexer = build_lexer();
+        let parser = build_parser();
+        IdTypeParser { lexer, parser, wrapper: None }
+    }
+
+    /// Parses a text.
+    ///
+    /// On success, returns
+    /// * `vars`, a `HashMap<String, String>` that contains the variables and their resolved type
+    /// * `types`, a `HashMap<String, String>` that contains the defined types and what type they resolve to
+    /// * `log`, a `BufLog` object.
+    ///
+    /// On failure, returns the log with the error messages.
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
+        self.wrapper = Some(Wrapper::new(IdTypeListener::new(), VERBOSE_WRAPPER));
+        let stream = CharReader::new(Cursor::new(text));
+        self.lexer.attach_stream(stream);
+        self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
+        );
+        if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
+            self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
+        }
+        let IdTypeListener { log, vars, types, hook_calls, .. } = self.wrapper.take().unwrap().give_listener();
+        if log.has_no_errors() {
+            Ok(ParserData { vars, types, log, hook_calls })
+        } else {
+            Err(log)
+        }
+    }
+}
+
+// listener
+
+struct IdTypeListener<'ls> {
+    log: BufLog,
+    lines: Option<Vec<&'ls str>>,
+    vars: HashMap<String, String>,
+    types: HashMap<String, String>,
+    hook_calls: Vec<String>,
+}
+
+impl<'ls> IdTypeListener<'ls> {
+    fn new() -> Self {
+        IdTypeListener {
+            log: BufLog::new(),
+            lines: None,
+            vars: HashMap::new(),
+            types: HashMap::new(),
+            hook_calls: vec![],
+        }
+    }
+
+    fn attach_lines(&mut self, lines: Vec<&'ls str>) {
+        self.lines = Some(lines);
+    }
+
+    fn solve_type<'s>(&'s self, mut typ: &'s str) -> &'s str {
+        while let Some(solved) = self.types.get(typ) {
+           typ = solved.as_str();
+        }
+        typ
+    }
+}
+
+impl GetLine for IdTypeListener<'_> {
+    fn get_line(&self, n: usize) -> &str {
+        self.lines.as_ref().unwrap()[n - 1]
+    }
+}
+
+// listener trait implementation
+
+#[allow(unused)]
+impl TypedefListener for IdTypeListener<'_> {
+    fn get_mut_log(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        let new = match text {
+            "int" | "float" | "double" => Term::Type as u16,
+            t => {
+                if self.types.contains_key(t) {
+                    Term::Type as u16
+                } else {
+                    token
+                }
+            }
+        };
+        let report = format!("token={}, text='{text}', span={span} -> {}", get_term_name(token).0, get_term_name(new).0);
+        if VERBOSE {
+            println!("    {report},");
+        }
+        self.hook_calls.push(report);
+        new
+    }
+
+    fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
+        SynProgram()
+    }
+
+    fn exit_stmt(&mut self, _ctx: CtxStmt, _spans: Vec<PosSpan>) -> SynStmt {
+        SynStmt()
+    }
+
+    fn exit_decl(&mut self, ctx: CtxDecl, mut spans: Vec<PosSpan>) -> SynDecl {
+        match ctx {
+            // decl -> Type Id (<L> "," Id)* ";"
+            CtxDecl::V1 { type1, id, star: SynIdI(mut ids) } => {
+                ids.push((id, std::mem::take(&mut spans[1])));
+                for (i, (id, span)) in ids.into_iter().enumerate() {
+                    if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                        self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
+                    }
+                }
+            }
+            // decl -> "typedef" Type Id ";"
+            CtxDecl::V2 { type1, id } => {
+                if let Some(prev) = self.types.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                    self.log.add_error(format!("type '{id}' was already defined ({}):\n{}", &spans[2], self.annotate_text(&spans[2])));
+                }
+            }
+        }
+        SynDecl()
+    }
+
+    fn init_id_i(&mut self) -> SynIdI {
+        SynIdI(vec![])
+    }
+
+    fn exit_id_i(&mut self, ctx: CtxIdI, mut spans: Vec<PosSpan>) -> SynIdI {
+        // `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";"`
+        let CtxIdI::V1 { star_acc: SynIdI(mut items), id } = ctx;
+        let span = spans.pop().unwrap();
+        items.push((id, span));
+        SynIdI(items)
+    }
+
+    fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
+        SynInst()
+    }
+
+    fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
+        SynExpr()
+    }
+}
+
 //==============================================================================
 
 pub mod listener_id_type_types {
+    use lexigram_core::lexer::PosSpan;
+
     /// User-defined type for `program`
     #[derive(Debug, PartialEq)] pub struct SynProgram();
     /// User-defined type for `stmt`
@@ -10,7 +321,7 @@ pub mod listener_id_type_types {
     /// User-defined type for `decl`
     #[derive(Debug, PartialEq)] pub struct SynDecl();
     /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
-    #[derive(Debug, PartialEq)] pub struct SynIdI();
+    #[derive(Debug, PartialEq)] pub struct SynIdI(pub Vec<(String, PosSpan)>);
     /// User-defined type for `inst`
     #[derive(Debug, PartialEq)] pub struct SynInst();
     /// User-defined type for `expr`

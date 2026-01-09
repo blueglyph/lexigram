@@ -90,7 +90,7 @@ fn test_type_lexer() {
                 ltypes.sort();
                 let result_types = ltypes.join(", ");
                 if VERBOSE {
-                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_vars}\nhook_calls: {hook_calls:?}");
+                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_types}\nhook_calls: {hook_calls:?}");
                 }
 
                 assert_eq!(result_vars, expected_vars, "var mismatch in test {test_id}");
@@ -175,7 +175,6 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
 
 struct TypeListener<'ls> {
     log: BufLog,
-    abort: bool,
     lines: Option<Vec<&'ls str>>,
     vars: HashMap<String, String>,
     types: HashMap<String, String>,
@@ -186,7 +185,6 @@ impl<'ls> TypeListener<'ls> {
     fn new() -> Self {
         TypeListener {
             log: BufLog::new(),
-            abort: false,
             lines: None,
             vars: HashMap::new(),
             types: HashMap::new(),
@@ -216,10 +214,6 @@ impl GetLine for TypeListener<'_> {
 
 #[allow(unused)]
 impl TypedefListener for TypeListener<'_> {
-    fn check_abort_request(&self) -> bool {
-        self.abort
-    }
-
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
