@@ -10,10 +10,10 @@ use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::Parser;
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use lexigram_core::{CollectJoin, TokenId};
-use crate::typedef_id_type::typedef_id_type_lexer::build_lexer;
-use crate::typedef_id_type::typedef_id_type_parser::{build_parser, CtxProgram, TypedefListener, Wrapper};
-use listener_id_type_types::*;
-use typedef_id_type_parser::*;
+use crate::typedef_match::typedef_match_lexer::build_lexer;
+use crate::typedef_match::typedef_match_parser::{build_parser, CtxProgram, TypedefListener, Wrapper};
+use listener_match_types::*;
+use typedef_match_parser::*;
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
@@ -44,7 +44,7 @@ b = 5;
 "#;
 
 #[test]
-fn test_id_type_lexer() {
+fn test_match_lexer() {
     let tests = vec![
         (
             TXT1,
@@ -55,10 +55,10 @@ fn test_id_type_lexer() {
                 "token=Id, text='float', span=2:1-5 -> Type",
                 "token=Id, text='a', span=2:7 -> Id",
                 "token=Id, text='b', span=2:10 -> Id",
-                "token=Typedef, text='typedef', span=3:1-7 -> Typedef",
+                "token=Id, text='typedef', span=3:1-7 -> Typedef",
                 "token=Id, text='int', span=3:9-11 -> Type",
                 "token=Id, text='type_int', span=3:13-20 -> Id",
-                "token=Typedef, text='typedef', span=4:1-7 -> Typedef",
+                "token=Id, text='typedef', span=4:1-7 -> Typedef",
                 "token=Id, text='type_int', span=4:9-16 -> Type",
                 "token=Id, text='type_int2', span=4:18-26 -> Id",
                 "token=Id, text='type_int', span=5:1-8 -> Type",
@@ -66,8 +66,7 @@ fn test_id_type_lexer() {
                 "token=Id, text='type_int2', span=6:1-9 -> Type",
                 "token=Id, text='d', span=6:11 -> Id",
                 "token=Id, text='a', span=7:1 -> Id",
-                "token=Num, text='0', span=7:5 -> Num",
-                "token=Print, text='print', span=8:1-5 -> Print",
+                "token=Id, text='print', span=8:1-5 -> Print",
                 "token=Id, text='a', span=8:7 -> Id",
             ],
         ),
@@ -86,7 +85,7 @@ fn test_id_type_lexer() {
     ];
     for (test_id, (txt, expected_vars, expected_types, expected_errors, expected_calls)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
-        let mut parser = IdTypeParser::new();
+        let mut parser = MatchParser::new();
         match parser.parse(txt) {
             Ok(ParserData { vars, types, log, hook_calls }) => {
                 let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
@@ -135,18 +134,18 @@ pub struct ParserData {
     pub hook_calls: Vec<String>,
 }
 
-pub struct IdTypeParser<'l, 'p, 'ls> {
+pub struct MatchParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: Parser<'p>,
-    wrapper: Option<Wrapper<IdTypeListener<'ls>>>,
+    wrapper: Option<Wrapper<MatchListener<'ls>>>,
 }
 
-impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
+impl<'l, 'ls: 'l> MatchParser<'l, '_, 'ls> {
     /// Creates a new parser
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        IdTypeParser { lexer, parser, wrapper: None }
+        MatchParser { lexer, parser, wrapper: None }
     }
 
     /// Parses a text.
@@ -158,7 +157,7 @@ impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
     ///
     /// On failure, returns the log with the error messages.
     pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
-        self.wrapper = Some(Wrapper::new(IdTypeListener::new(), VERBOSE_WRAPPER));
+        self.wrapper = Some(Wrapper::new(MatchListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
@@ -168,7 +167,7 @@ impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
         if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
             self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let IdTypeListener { log, vars, types, hook_calls, .. } = self.wrapper.take().unwrap().give_listener();
+        let MatchListener { log, vars, types, hook_calls, .. } = self.wrapper.take().unwrap().give_listener();
         if log.has_no_errors() {
             Ok(ParserData { vars, types, log, hook_calls })
         } else {
@@ -179,7 +178,7 @@ impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
 
 // listener
 
-struct IdTypeListener<'ls> {
+struct MatchListener<'ls> {
     log: BufLog,
     lines: Option<Vec<&'ls str>>,
     vars: HashMap<String, String>,
@@ -187,9 +186,9 @@ struct IdTypeListener<'ls> {
     hook_calls: Vec<String>,
 }
 
-impl<'ls> IdTypeListener<'ls> {
+impl<'ls> MatchListener<'ls> {
     fn new() -> Self {
-        IdTypeListener {
+        MatchListener {
             log: BufLog::new(),
             lines: None,
             vars: HashMap::new(),
@@ -210,7 +209,7 @@ impl<'ls> IdTypeListener<'ls> {
     }
 }
 
-impl GetLine for IdTypeListener<'_> {
+impl GetLine for MatchListener<'_> {
     fn get_line(&self, n: usize) -> &str {
         self.lines.as_ref().unwrap()[n - 1]
     }
@@ -219,28 +218,34 @@ impl GetLine for IdTypeListener<'_> {
 // listener trait implementation
 
 #[allow(unused)]
-impl TypedefListener for IdTypeListener<'_> {
+impl TypedefListener for MatchListener<'_> {
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
 
-    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
-        let new = match text {
-            "int" | "float" | "double" => Term::Type as u16,
-            t => {
-                if self.types.contains_key(t) {
-                    Term::Type as u16
-                } else {
-                    token
+    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        if token == Term::Id as u16 {
+            let new = match text {
+                "int" | "float" | "double" => Term::Type as u16,
+                "print" => Term::Print as u16,
+                "typedef" => Term::Typedef as u16,
+                t => {
+                    if self.types.contains_key(t) {
+                        Term::Type as u16
+                    } else {
+                        token
+                    }
                 }
+            };
+            let report = format!("token={}, text='{text}', span={span} -> {}", get_term_name(token).0, get_term_name(new).0);
+            if VERBOSE {
+                println!("    {report},");
             }
-        };
-        let report = format!("token={}, text='{text}', span={span} -> {}", get_term_name(token).0, get_term_name(new).0);
-        if VERBOSE {
-            println!("    {report},");
+            self.hook_calls.push(report);
+            new
+        } else {
+            token
         }
-        self.hook_calls.push(report);
-        new
     }
 
     fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
@@ -259,6 +264,8 @@ impl TypedefListener for IdTypeListener<'_> {
                 for (i, (id, span)) in ids.into_iter().enumerate() {
                     if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
                         self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
+                    } else {
+                        self.log.add_note(format!("var '{id}': '{}' declared", self.vars.get(&id).unwrap()));
                     }
                 }
             }
@@ -266,6 +273,8 @@ impl TypedefListener for IdTypeListener<'_> {
             CtxDecl::V2 { type1, id } => {
                 if let Some(prev) = self.types.insert(id.clone(), self.solve_type(&type1).to_string()) {
                     self.log.add_error(format!("type '{id}' was already defined ({}):\n{}", &spans[2], self.annotate_text(&spans[2])));
+                } else {
+                    self.log.add_note(format!("type '{id}' defined as '{}'", self.types.get(&id).unwrap()));
                 }
             }
         }
@@ -295,7 +304,7 @@ impl TypedefListener for IdTypeListener<'_> {
 
 //==============================================================================
 
-pub mod listener_id_type_types {
+pub mod listener_match_types {
     use lexigram_core::lexer::PosSpan;
 
     /// User-defined type for `program`
@@ -312,88 +321,64 @@ pub mod listener_id_type_types {
     #[derive(Debug, PartialEq)] pub struct SynExpr();
 }
 
-pub mod typedef_id_type_lexer {
+pub mod typedef_match_lexer {
     // Generated code, don't modify manually anything between the tags below
 
-    // [typedef_id_type_lexer]
+    // [typedef_match_lexer]
 
     use std::collections::HashMap;
     use std::io::Read;
     use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 22;
+    const NBR_GROUPS: u32 = 13;
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 4;
-    const NBR_STATES: StateId = 26;
+    const NBR_STATES: StateId = 14;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         13,  13,  13,  13,  13,  13,  13,  13,  13,   0,  21,  13,  13,  21,  13,  13,   // 0-15
-         13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,   // 16-31
-          0,  13,  13,  13,  13,  13,  13,  13,  13,  13,  11,   1,   2,   3,  13,   4,   // 32-47
-          5,   5,   5,   5,   5,   5,   5,   5,   5,   5,  13,   6,  13,   7,  13,  13,   // 48-63
-         13,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   // 64-79
-          8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,  13,  13,  13,  13,  12,   // 80-95
-         13,   8,   8,   8,  17,  16,  18,   8,   8,  19,   8,   8,   8,   8,  20,   8,   // 96-111
-          9,   8,  14,   8,  10,   8,   8,   8,   8,  15,   8,  13,  13,  13,  13,  13,   // 112-127
+         11,  11,  11,  11,  11,  11,  11,  11,  11,   0,  12,  11,  11,  12,  11,  11,   // 0-15
+         11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,   // 16-31
+          0,  11,  11,  11,  11,  11,  11,  11,  11,  11,   9,   1,   2,   3,  11,   4,   // 32-47
+          5,   5,   5,   5,   5,   5,   5,   5,   5,   5,  11,   6,  11,   7,  11,  11,   // 48-63
+         11,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   // 64-79
+          8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,  11,  11,  11,  11,  10,   // 80-95
+         11,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   // 96-111
+          8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,  11,  11,  11,  11,  11,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
     static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
-        (Seg(128, 55295), 13),
-        (Seg(57344, 1114111), 13),
+        (Seg(128, 55295), 11),
+        (Seg(57344, 1114111), 11),
     ];
-    static TERMINAL_TABLE: [Terminal;22] = [
+    static TERMINAL_TABLE: [Terminal;10] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 573] = [
-          4,   5,   6,   7,   1,   8,   9,  10,  11,  12,  13,  26,  26,  26,  11,  11,  11,  11,  11,  11,  11,   4, // state 0
-         26,  26,  26,  26,  24,  26,  26,  26,  26,  26,  26,   2,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 1
-          2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 2
-          2,   2,   2,   2,  25,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 3
-          4,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,   4, // state 4 <skip>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 5 <end:4>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 6 <end:0>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 7 <end:3>
-         26,  26,  26,  26,  26,   8,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 8 <end:7>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 9 <end:1>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 10 <end:2>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 11 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  20,  11,  11,  11,  11,  11,  11,  26, // state 12 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  14,  11,  11,  11,  11,  11,  26, // state 13 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  15,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 14 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  16,  11,  11,  11,  11,  26, // state 15 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  17,  11,  11,  11,  26, // state 16 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  18,  11,  11,  11,  11,  26, // state 17 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  19,  11,  11,  26, // state 18 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 19 <end:5>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  21,  11,  26, // state 20 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  22,  26, // state 21 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  23,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 22 <end:8>
-         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 23 <end:6>
-         24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  26, // state 24 <skip>
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 25 <skip>
-         26 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 183] = [
+          4,   5,   6,   7,   1,   8,   9,  10,  11,  14,  14,  14,   4, // state 0
+         14,  14,  14,  14,  12,  14,  14,  14,  14,   2,  14,  14,  14, // state 1
+          2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2, // state 2
+          2,   2,   2,   2,  13,   2,   2,   2,   2,   3,   2,   2,   2, // state 3
+          4,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,   4, // state 4 <skip>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 5 <end:4>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 6 <end:0>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 7 <end:3>
+         14,  14,  14,  14,  14,   8,  14,  14,  14,  14,  14,  14,  14, // state 8 <end:5>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 9 <end:1>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 10 <end:2>
+         14,  14,  14,  14,  14,  11,  14,  14,  11,  14,  11,  14,  14, // state 11 <end:6>
+         12,  12,  12,  12,  12,  12,  12,  12,  12,  12,  12,  12,  14, // state 12 <skip>
+         14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14, // state 13 <skip>
+         14 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -412,24 +397,24 @@ pub mod typedef_id_type_lexer {
         )
     }
 
-    // [typedef_id_type_lexer]
+    // [typedef_match_lexer]
 }
 
-pub mod typedef_id_type_parser {
+pub mod typedef_match_parser {
     // Generated code, don't modify manually anything between the tags below
 
-    // [typedef_id_type_parser]
+    // [typedef_match_parser]
 
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
-    use super::listener_id_type_types::*;
+    use super::listener_match_types::*;
 
     const PARSER_NUM_T: usize = 10;
     const PARSER_NUM_NT: usize = 9;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Comma", Some(",")), ("SemiColon", Some(";")), ("Eq", Some("=")), ("Sub", Some("-")), ("Add", Some("+")), ("Typedef", Some("typedef")), ("Print", Some("print")), ("Num", None), ("Id", None), ("Type", None)];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Comma", Some(",")), ("SemiColon", Some(";")), ("Eq", Some("=")), ("Sub", Some("-")), ("Add", Some("+")), ("Num", None), ("Id", None), ("Typedef", Some("typedef")), ("Print", Some("print")), ("Type", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "stmt_i", "stmt", "decl", "id_i", "inst", "expr", "expr_1", "expr_2"];
     static ALT_VAR: [VarId; 18] = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7, 7, 8, 8, 8];
-    static PARSING_TABLE: [AltId; 99] = [18, 18, 18, 18, 18, 0, 0, 18, 0, 0, 0, 18, 18, 18, 18, 18, 1, 1, 18, 1, 1, 2, 18, 18, 18, 18, 18, 3, 4, 18, 4, 3, 19, 18, 18, 18, 18, 18, 6, 19, 18, 19, 5, 19, 7, 8, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 10, 18, 9, 19, 19, 18, 19, 18, 11, 18, 18, 18, 11, 11, 18, 18, 18, 14, 18, 13, 12, 18, 18, 18, 18, 18, 18, 18, 19, 18, 15, 19, 18, 18, 17, 16, 18, 18];
-    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(4), OpCode::T(8), OpCode::Hook, OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(8), OpCode::Hook, OpCode::T(9), OpCode::Hook, OpCode::T(5)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::T(8), OpCode::Hook, OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(2), OpCode::T(8)], &[OpCode::Exit(10), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(6)], &[OpCode::NT(7), OpCode::Exit(11), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::Hook, OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(8)], &[OpCode::Exit(17), OpCode::T(7)]];
+    static PARSING_TABLE: [AltId; 99] = [18, 18, 18, 18, 18, 18, 0, 0, 0, 0, 0, 18, 18, 18, 18, 18, 18, 1, 1, 1, 1, 2, 18, 18, 18, 18, 18, 18, 4, 3, 4, 3, 19, 18, 18, 18, 18, 18, 18, 19, 6, 19, 5, 19, 7, 8, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 9, 19, 10, 19, 19, 18, 19, 18, 11, 18, 11, 11, 18, 18, 18, 18, 18, 14, 18, 13, 12, 18, 18, 18, 18, 18, 18, 18, 19, 18, 15, 19, 17, 16, 18, 18, 18, 18];
+    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(4), OpCode::T(6), OpCode::Hook, OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(6), OpCode::Hook, OpCode::T(9), OpCode::T(7)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::T(6), OpCode::Hook, OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(2), OpCode::T(6)], &[OpCode::Exit(10), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(8)], &[OpCode::NT(7), OpCode::Exit(11), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::Hook, OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(6)], &[OpCode::Exit(17), OpCode::T(5)]];
     static INIT_OPCODES: [OpCode; 3] = [OpCode::End, OpCode::NT(0), OpCode::Hook];
     static START_SYMBOL: VarId = 0;
 
@@ -442,10 +427,10 @@ pub mod typedef_id_type_parser {
         #[doc = "'='"]        Eq = 2,
         #[doc = "'-'"]        Sub = 3,
         #[doc = "'+'"]        Add = 4,
-        #[doc = "'typedef'"]  Typedef = 5,
-        #[doc = "'print'"]    Print = 6,
-        #[doc = "(variable)"] Num = 7,
-        #[doc = "(variable)"] Id = 8,
+        #[doc = "(variable)"] Num = 5,
+        #[doc = "(variable)"] Id = 6,
+        #[doc = "'typedef'"]  Typedef = 7,
+        #[doc = "'print'"]    Print = 8,
         #[doc = "(variable)"] Type = 9,
     }
 
@@ -888,5 +873,5 @@ pub mod typedef_id_type_parser {
         }
     }
 
-    // [typedef_id_type_parser]
+    // [typedef_match_parser]
 }

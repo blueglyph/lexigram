@@ -235,8 +235,12 @@ pub trait ListenerWrapper {
     /// Checks that the stack_span is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_span_empty(&self) -> bool { true }
     /// Allows to dynamically translates a token
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        token
+    }
+    #[allow(unused_variables)]
+    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         token
     }
 }
@@ -387,9 +391,10 @@ impl<'a> Parser<'a> {
             if advance_stream {
                 stream_n += 1;
                 (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
+                    let new_t = wrapper.intercept_token(t, &s, &span);
                     stream_pos = Some(span.first_forced());
                     stream_span = span;
-                    (Symbol::T(t), s)
+                    (Symbol::T(new_t), s)
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end
                     if let Some((_t, s, _span)) = stream.next() {

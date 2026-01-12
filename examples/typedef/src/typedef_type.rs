@@ -567,23 +567,25 @@ pub mod typedef_type_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
-        #[allow(unused)]
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         fn init_program(&mut self) {}
         fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
         fn init_decl_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_decl_i(&mut self, ctx: CtxDeclI, spans: Vec<PosSpan>) {}
         fn init_inst_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) {}
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
         fn init_id_i(&mut self) -> SynIdI;
         fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) -> SynIdI;
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exitloop_id_i(&mut self, star_acc: &mut SynIdI) {}
         fn init_inst(&mut self) {}
         fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
@@ -688,6 +690,10 @@ pub mod typedef_type_parser {
 
         fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.hook(token, text, span)
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
         }
     }
 

@@ -1883,7 +1883,7 @@ impl ParserGen {
                         if f_valued {
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {};", self.get_nt_type(fnt as VarId)));
                         } else {
-                            src_listener_decl.push(format!("    #[allow(unused)]"));
+                            src_listener_decl.push(format!("    #[allow(unused_variables)]"));
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
                         }
                     }
@@ -2129,7 +2129,7 @@ impl ParserGen {
                             let (variant, _, fnname) = &nt_name[info.owner as usize];
                             let typ = self.get_nt_type(info.owner);
                             let varname = &info.name;
-                            src_listener_decl.push(format!("    #[allow(unused)]"));
+                            src_listener_decl.push(format!("    #[allow(unused_variables)]"));
                             src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
                             let (v, pf) = &self.parsing_table.alts[a as usize];
                             let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
@@ -2193,11 +2193,13 @@ impl ParserGen {
         let extra_param = if self.gen_span_params { ", span: PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
             self.used_libs.add(format!("{}::TokenId", self.lib_crate));
-            src.push(format!("    #[allow(unused)]"));
+            src.push(format!("    #[allow(unused_variables)]"));
             src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
         }
+        src.push(format!("    #[allow(unused_variables)]"));
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
         if self.nt_value[self.start as usize] || self.gen_span_params {
-            src.push(format!("    #[allow(unused)]"));
+            src.push(format!("    #[allow(unused_variables)]"));
         }
         if self.nt_value[self.start as usize] {
             src.push(format!("    fn exit(&mut self, {}: {}{extra_param}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
@@ -2208,7 +2210,7 @@ impl ParserGen {
                               fn init_a(&mut self) {}
                               fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
                               fn init_a_iter(&mut self) -> SynAIter;
-                              #[allow(unused)]
+                              #[allow(unused_variables)]
                               fn exit_a_iter(&mut self, ctx: CtxAIter) -> SynAIter {};
         */
         src.extend(src_listener_decl);
@@ -2333,6 +2335,10 @@ impl ParserGen {
             src.push(format!("        self.listener.hook(token, text, span)"));
             src.push(format!("    }}"));
         }
+        src.add_space();
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
+        src.push(format!("        self.listener.intercept_token(token, text, span)"));
+        src.push(format!("    }}"));
         src.push(format!("}}"));
 
         src.add_space();

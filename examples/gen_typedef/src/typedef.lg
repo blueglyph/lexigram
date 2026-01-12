@@ -1,3 +1,13 @@
+// Run-time modification of tokens
+
+// =============================================================================
+// First version
+//
+// The hook is attached only to the token that must be chosen if its name is
+// found in a dynamic list: here, a type. The type is either native (int,
+// float, double) or declared by the user.
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 // [typedef_type_lexicon]
 
@@ -43,6 +53,17 @@ expr:
 // [typedef_type_grammar]
 // -----------------------------------------------------------------------------
 
+// =============================================================================
+// Second version
+//
+// Because of `decl | inst`, `decl` starting with `Type` and `inst` starting
+// with `Id`, the tokens `Id` and `Type` are in competition, and it's not
+// always possible to tell which one we're expecting next. We must put a hook
+// on both of them and sort them out at runtime.
+// The runtime code can be the same as the first version, but it will be called
+// more often.
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 // [typedef_id_type_lexicon]
 
@@ -87,4 +108,62 @@ expr:
 |   Num;
 
 // [typedef_id_type_grammar]
+// -----------------------------------------------------------------------------
+
+// =============================================================================
+// Third version
+//
+// All the keywords are determined at runtime.
+// A match with many relatively short strings is very efficient, so if we're
+// already using one to determine native types, and if the types are competing
+// with keywords in the grammar, we may as well simplify the lexer and put all
+// the keywords in the same match.
+// We don't use a hook any more, though we could. Instead, we intercept the
+// `Id` tokens between the lexer and the parser.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// [typedef_match_lexicon]
+
+lexicon Typedef;
+
+Comma           : ',';
+SemiColon       : ';';
+Eq              : '=';
+Sub             : '-';
+Add             : '+';
+
+Num             : [0-9]+;
+Id              : [a-zA-Z][a-zA-Z_0-9]*     -> hook;
+(Typedef)       : 'typedef';
+(Print)         : 'print';
+(Type);
+
+SComment        : '/*' .*? '*/'             -> skip;
+SLineComment    : '//' ~[\r\n]*             -> skip;
+SWhiteSpace     : [ \n\r\t]+                -> skip;
+
+// [typedef_match_lexicon]
+// -----------------------------------------------------------------------------
+// [typedef_match_grammar]
+
+grammar Typedef;
+
+program:
+    (<L=stmt_i> stmt)*;
+stmt:
+    decl | inst;
+decl:
+    Type Id (<L=id_i> Comma Id)* SemiColon
+|   Typedef Type Id SemiColon;
+inst:
+    Id Eq expr SemiColon
+|   Print expr SemiColon;
+expr:
+    Sub expr
+|   expr (Add | <P> Sub) expr
+|   Id
+|   Num;
+
+// [typedef_match_grammar]
 // -----------------------------------------------------------------------------

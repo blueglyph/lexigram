@@ -12,19 +12,23 @@ use lexigram_lib::log::LogStatus;
 use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_FILENAME: &str = "src/typedef.lg";
-static LEXICON_TAGS: [&str; 2] = ["typedef_type_lexicon", "typedef_id_type_lexicon"];
+static LEXICON_TAGS: [&str; 3] = ["typedef_type_lexicon", "typedef_id_type_lexicon", "typedef_match_lexicon"];
 static GRAMMAR_FILENAME: &str = "src/typedef.lg";
-static GRAMMAR_TAGS: [&str; 2] = ["typedef_type_grammar", "typedef_id_type_grammar"];
-static SOURCE_FILENAMES: [&str; 2] = ["../typedef/src/typedef_type.rs", "../typedef/src/typedef_id_type.rs"];
-static LEXER_TAGS: [&str; 2] = ["typedef_type_lexer", "typedef_id_type_lexer"];
-static PARSER_TAGS: [&str; 2] = ["typedef_type_parser", "typedef_id_type_parser"];
+static GRAMMAR_TAGS: [&str; 3] = ["typedef_type_grammar", "typedef_id_type_grammar", "typedef_match_grammar"];
+static SOURCE_FILENAMES: [&str; 3] = [
+    "../typedef/src/typedef_type.rs",
+    "../typedef/src/typedef_id_type.rs",
+    "../typedef/src/typedef_match.rs"];
+static LEXER_TAGS: [&str; 3] = ["typedef_type_lexer", "typedef_id_type_lexer", "typedef_match_lexer"];
+static PARSER_TAGS: [&str; 3] = ["typedef_type_parser", "typedef_id_type_parser", "typedef_match_parser"];
+static LIBS: [&str; 3] = ["super::listener_type_types::*", "super::listener_id_type_types::*", "super::listener_match_types::*"];
 const LEXER_INDENT: usize = 4;
 const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
 fn gen_typedef_source(action: Action) {
-    for i in 0..2 {
+    for i in 0..LEXICON_TAGS.len() {
         let (lexicon_tag, grammar_tag) = (LEXICON_TAGS[i], GRAMMAR_TAGS[i]);
         let (lexer_tag, parser_tag, source_filename) = (LEXER_TAGS[i], PARSER_TAGS[i], SOURCE_FILENAMES[i]);
         let options = OptionsBuilder::new()
@@ -32,7 +36,7 @@ fn gen_typedef_source(action: Action) {
             .indent(LEXER_INDENT)
             .parser(genspec!(filename: GRAMMAR_FILENAME, tag: grammar_tag), gencode!(filename: source_filename, tag: parser_tag))
             .indent(PARSER_INDENT)
-            .extra_libs([format!("super::listener{}_type_types::*", if i == 0 { "" } else { "_id" })])
+            .extra_libs([LIBS[i]])
             .span_params(true)
             .set_nt_value(NTValue::SetNames(vec![
                 NTValue::PARENTS.to_string(),
