@@ -1420,9 +1420,9 @@ impl ParserGen {
                 .to_vec();
             src.extend(columns_to_str(cols, Some(vec![16, 0])));
             src.push("}\n".to_string());
-            src.push("    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
-            src.push("        SYMBOLS_T[t as usize]".to_string());
-            src.push("    }\n".to_string());
+            src.push("pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
+            src.push("    SYMBOLS_T[t as usize]".to_string());
+            src.push("}\n".to_string());
         }
         src.extend(vec![
             "pub fn build_parser() -> Parser<'static> {{".to_string(),

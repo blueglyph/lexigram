@@ -18,22 +18,6 @@ use typedef_id_type_parser::*;
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
-// program:
-//     (<L=stmt_i> stmt)*;
-// stmt:
-//     decl | inst;
-// decl:
-//     Type Id (<L=id_i> Comma Id)* SemiColon
-// |   Typedef Type Id SemiColon;
-// inst:
-//     Id Eq expr SemiColon
-// |   Print expr SemiColon;
-// expr:
-//     Sub expr
-// |   expr (Add | <P> Sub) expr
-// |   Id
-// |   Num;
-
 static TXT1: &str = r#"
 float a, b;
 typedef int type_int;
@@ -479,9 +463,9 @@ pub mod typedef_id_type_parser {
         #[doc = "`expr_2`, parent: `expr`"]    Expr2 = 8,
     }
 
-        pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
-            SYMBOLS_T[t as usize]
-        }
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(

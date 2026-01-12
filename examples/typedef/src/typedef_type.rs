@@ -459,9 +459,9 @@ pub mod typedef_type_parser {
         #[doc = "`inst_i_1`, parent: `inst_i`"] InstI1 = 9,
     }
 
-        pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
-            SYMBOLS_T[t as usize]
-        }
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> Parser<'static> {{
         let symbol_table = FixedSymTable::new(
