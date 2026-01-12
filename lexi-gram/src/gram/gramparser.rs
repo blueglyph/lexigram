@@ -4,7 +4,7 @@
 // [gramparser]
 
 use gramparser_types::*;
-use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
 const PARSER_NUM_T: usize = 15;
 const PARSER_NUM_NT: usize = 14;
@@ -166,7 +166,9 @@ pub trait GramParserListener {
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
     fn get_mut_log(&mut self) -> &mut impl Logger;
-    #[allow(unused)]
+    #[allow(unused_variables)]
+    fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
+    #[allow(unused_variables)]
     fn exit(&mut self, file: SynFile) {}
     fn init_file(&mut self) {}
     fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
@@ -174,7 +176,7 @@ pub trait GramParserListener {
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader;
     fn init_rules(&mut self) {}
     fn exit_rules(&mut self, ctx: CtxRules) -> SynRules;
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn exitloop_rules(&mut self, rules: &mut SynRules) {}
     fn init_rule(&mut self) {}
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
@@ -182,7 +184,7 @@ pub trait GramParserListener {
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName;
     fn init_prod(&mut self) {}
     fn exit_prod(&mut self, ctx: CtxProd) -> SynProd;
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn exitloop_prod(&mut self, prod: &mut SynProd) {}
     fn init_prod_term(&mut self) {}
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm;
@@ -285,6 +287,10 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
 
     fn is_stack_t_empty(&self) -> bool {
         self.stack_t.is_empty()
+    }
+
+    fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
+        self.listener.intercept_token(token, text)
     }
 }
 

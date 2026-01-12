@@ -684,7 +684,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 27;
@@ -1020,12 +1020,14 @@ pub mod pandemonium_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
         fn exit(&mut self, text: SynText, span: PosSpan) {}
         fn init_text(&mut self) {}
         fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText;
         fn init_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
         fn init_example(&mut self) {}
         fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample;
@@ -1036,12 +1038,12 @@ pub mod pandemonium_parser {
         fn init_l_star(&mut self) {}
         fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar;
         fn init_l_star_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) {}
         fn init_l_plus(&mut self) {}
         fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus;
         fn init_l_plus_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_l_plus_i(&mut self, ctx: CtxLPlusI, spans: Vec<PosSpan>) {}
         fn init_rrec(&mut self) {}
         fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec;
@@ -1058,12 +1060,12 @@ pub mod pandemonium_parser {
         fn init_l_star_a(&mut self) {}
         fn exit_l_star_a(&mut self, ctx: CtxLStarA, spans: Vec<PosSpan>) -> SynLStarA;
         fn init_l_star_a_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_l_star_a_i(&mut self, ctx: CtxLStarAI, spans: Vec<PosSpan>) {}
         fn init_l_plus_a(&mut self) {}
         fn exit_l_plus_a(&mut self, ctx: CtxLPlusA, spans: Vec<PosSpan>) -> SynLPlusA;
         fn init_l_plus_a_i(&mut self) {}
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exit_l_plus_a_i(&mut self, ctx: CtxLPlusAI, spans: Vec<PosSpan>) {}
         fn init_rrec_i(&mut self) {}
         fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) -> SynRrecI;
@@ -1071,7 +1073,7 @@ pub mod pandemonium_parser {
         fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI;
         fn init_lrec_i(&mut self) {}
         fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI;
-        #[allow(unused)]
+        #[allow(unused_variables)]
         fn exitloop_lrec_i(&mut self, lrec_i: &mut SynLrecI) {}
         fn init_amb_i(&mut self) {}
         fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) -> SynAmbI;
@@ -1256,6 +1258,10 @@ pub mod pandemonium_parser {
 
         fn is_stack_span_empty(&self) -> bool {
             self.stack_span.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
         }
     }
 

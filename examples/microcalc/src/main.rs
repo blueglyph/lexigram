@@ -359,7 +359,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_core::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 28;
@@ -550,7 +550,9 @@ pub mod microcalc_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
+        #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram) {}
         fn init_program(&mut self) {}
         fn exit_program(&mut self, ctx: CtxProgram) -> SynProgram;
@@ -698,6 +700,10 @@ pub mod microcalc_parser {
 
         fn is_stack_t_empty(&self) -> bool {
             self.stack_t.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text)
         }
     }
 

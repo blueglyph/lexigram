@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -289,7 +289,9 @@ pub(crate) mod lexiparser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        #[allow(unused)]
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
+        #[allow(unused_variables)]
         fn exit(&mut self, file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
@@ -465,6 +467,10 @@ pub(crate) mod lexiparser {
 
         fn is_stack_t_empty(&self) -> bool {
             self.stack_t.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text)
         }
     }
 

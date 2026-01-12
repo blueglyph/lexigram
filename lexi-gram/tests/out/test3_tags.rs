@@ -180,7 +180,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test3_parser_tag]
 
-use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;
@@ -280,12 +280,14 @@ pub trait Test1Listener {
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
     fn get_mut_log(&mut self) -> &mut impl Logger;
-    #[allow(unused)]
+    #[allow(unused_variables)]
+    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+    #[allow(unused_variables)]
     fn exit(&mut self, program: SynProgram, span: PosSpan) {}
     fn init_program(&mut self) {}
     fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
     fn init_inst(&mut self) {}
-    #[allow(unused)]
+    #[allow(unused_variables)]
     fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) {}
     fn init_instruction(&mut self) {}
     fn exit_instruction(&mut self, ctx: CtxInstruction, spans: Vec<PosSpan>) -> SynInstruction;
@@ -390,6 +392,10 @@ impl<T: Test1Listener> ListenerWrapper for Wrapper<T> {
 
     fn is_stack_span_empty(&self) -> bool {
         self.stack_span.is_empty()
+    }
+
+    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        self.listener.intercept_token(token, text, span)
     }
 }
 

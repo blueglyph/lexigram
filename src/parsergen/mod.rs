@@ -1542,9 +1542,9 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
-        static PARSER_LIBS: [&str; 5] = [
+        static PARSER_LIBS: [&str; 7] = [
             "::VarId", "::parser::Call", "::parser::ListenerWrapper",
-            "::AltId", "::log::Logger",
+            "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan"
         ];
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
@@ -2190,21 +2190,21 @@ impl ParserGen {
         src.push(format!("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`."));
         src.push(format!("    fn check_abort_request(&self) -> bool {{ false }}"));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
-        let extra_param = if self.gen_span_params { ", span: PosSpan" } else { "" };
+        let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
+        let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
-            self.used_libs.add(format!("{}::TokenId", self.lib_crate));
             src.push(format!("    #[allow(unused_variables)]"));
-            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
         }
         src.push(format!("    #[allow(unused_variables)]"));
-        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{ token }}"));
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
         if self.nt_value[self.start as usize] || self.gen_span_params {
             src.push(format!("    #[allow(unused_variables)]"));
         }
         if self.nt_value[self.start as usize] {
-            src.push(format!("    fn exit(&mut self, {}: {}{extra_param}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
+            src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
         } else {
-            src.push(format!("    fn exit(&mut self{extra_param}) {{}}"));
+            src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
         }
         /*
                               fn init_a(&mut self) {}
@@ -2329,15 +2329,17 @@ impl ParserGen {
             src.push(format!("        self.stack_span.is_empty()"));
             src.push(format!("    }}"));
         }
+        let unused_span = if self.gen_span_params { "" } else { "_" };
+        let extra_span_arg = if self.gen_span_params { ", span" } else { "" };
         if !self.terminal_hooks.is_empty() {
             src.add_space();
-            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
-            src.push(format!("        self.listener.hook(token, text, span)"));
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
+            src.push(format!("        self.listener.hook(token, text{extra_span_arg})"));
             src.push(format!("    }}"));
         }
         src.add_space();
-        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {{"));
-        src.push(format!("        self.listener.intercept_token(token, text, span)"));
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
+        src.push(format!("        self.listener.intercept_token(token, text{extra_span_arg})"));
         src.push(format!("    }}"));
         src.push(format!("}}"));
 
