@@ -18,5 +18,7 @@ readme = "README.md"
 default = ["generated_tests"]
 test_utils = []
 generated_tests = []
+# Delays the capture of the next token and the call to `intercept_token()` if it's possible.
+delay_stream_interception = []
 
 [dependencies]

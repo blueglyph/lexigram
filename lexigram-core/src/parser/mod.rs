@@ -369,6 +369,12 @@ impl<'a> Parser<'a> {
               L: ListenerWrapper,
     {
         const VERBOSE: bool = false;
+
+        /// Delays the capture of the next token and the call to `intercept_token()` if it's possible.
+        /// That allows to call as many `exit_*()` methods as possible in the listener, and so to
+        /// update any information that may impact the translation of the next token.
+        const DELAY_STREAM_INTERCEPTION: bool = cfg!(feature = "delay_stream_interception");
+
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let mut stack = self.init_opcodes.clone();
         let mut stack_t = Vec::<String>::new();
@@ -388,9 +394,15 @@ impl<'a> Parser<'a> {
         let mut advance_stream = true;
         let mut hook_active = false;
         loop {
-            if advance_stream {
+            if advance_stream &&
+                (!DELAY_STREAM_INTERCEPTION                     // if optimization == false, only checks advance_stream
+                    || (!matches!(stack_sym, OpCode::Exit(_))   // exit => needn't advance, unless...
+                    || stream_sym == Symbol::Empty))            // Symbol::Empty => must advance no matter what
+            {
                 stream_n += 1;
                 (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
+                    // reads the next token and possibly transforms it in intercept_token() if it's used
+                    // (if intercept_token() isn't used, it's optimized away)
                     let new_t = wrapper.intercept_token(t, &s, &span);
                     stream_pos = Some(span.first_forced());
                     stream_span = span;
