@@ -198,6 +198,7 @@ pub struct ParserGen {
     init_opcodes: Vec<OpCode>,
     /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
     gen_span_params: bool,
+    gen_token_enums: bool,
     span_nbrs: Vec<SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
@@ -246,6 +247,7 @@ impl ParserGen {
             parsing_table,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             gen_span_params: false,
+            gen_token_enums: false,
             name,
             nt_value: vec![false; num_nt],
             nt_parent,
@@ -291,6 +293,9 @@ impl ParserGen {
 
     #[inline]
     pub fn set_terminal_hooks(&mut self, terminal_hooks: Vec<TokenId>) {
+        if !terminal_hooks.is_empty() {
+            self.gen_token_enums = true;
+        }
         self.terminal_hooks = terminal_hooks;
         self.add_opcode_hooks();
     }
@@ -406,6 +411,30 @@ impl ParserGen {
     /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.
     pub fn set_gen_span_params(&mut self, gen_span_params: bool) {
         self.gen_span_params = gen_span_params;
+    }
+
+    /// Generates enums for the terminal and nonterminal values. They may be helpful in the optional
+    /// listener trait methods like `hook()` and `intercept_token()` when they are used.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// #[derive(Clone, Copy, PartialEq, Debug)]
+    /// #[repr(u16)]
+    /// pub enum Term {
+    ///     #[doc = "','"]        Comma = 0,
+    ///     #[doc = "';'"]        SemiColon = 1,
+    /// }
+    ///
+    /// #[derive(Clone, Copy, PartialEq, Debug)]
+    /// #[repr(u16)]
+    /// pub enum NTerm {
+    ///     #[doc = "`program`"]                   Program = 0,
+    ///     #[doc = "`stmt_i`, parent: `program`"] StmtI = 1,
+    /// }
+    /// ```
+    pub fn set_gen_token_enums(&mut self, gen_token_enums: bool) {
+        self.gen_token_enums = gen_token_enums;
     }
 
     #[inline]
@@ -1390,7 +1419,7 @@ impl ParserGen {
                 self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
         ]);
-        if !self.terminal_hooks.is_empty() {
+        if self.gen_token_enums {
             src.add_space();
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());

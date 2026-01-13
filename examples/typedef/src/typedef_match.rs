@@ -414,8 +414,8 @@ pub mod typedef_match_parser {
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "stmt_i", "stmt", "decl", "id_i", "inst", "expr", "expr_1", "expr_2"];
     static ALT_VAR: [VarId; 18] = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7, 7, 8, 8, 8];
     static PARSING_TABLE: [AltId; 99] = [18, 18, 18, 18, 18, 18, 0, 0, 0, 0, 0, 18, 18, 18, 18, 18, 18, 1, 1, 1, 1, 2, 18, 18, 18, 18, 18, 18, 4, 3, 4, 3, 19, 18, 18, 18, 18, 18, 18, 19, 6, 19, 5, 19, 7, 8, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 9, 19, 10, 19, 19, 18, 19, 18, 11, 18, 11, 11, 18, 18, 18, 18, 18, 14, 18, 13, 12, 18, 18, 18, 18, 18, 18, 18, 19, 18, 15, 19, 17, 16, 18, 18, 18, 18];
-    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(4), OpCode::T(6), OpCode::Hook, OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(6), OpCode::Hook, OpCode::T(9), OpCode::T(7)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::T(6), OpCode::Hook, OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(2), OpCode::T(6)], &[OpCode::Exit(10), OpCode::T(1), OpCode::NT(6), OpCode::Hook, OpCode::T(8)], &[OpCode::NT(7), OpCode::Exit(11), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::Hook, OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::Hook, OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(6)], &[OpCode::Exit(17), OpCode::T(5)]];
-    static INIT_OPCODES: [OpCode; 3] = [OpCode::End, OpCode::NT(0), OpCode::Hook];
+    static OPCODES: [&[OpCode]; 18] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(1), OpCode::NT(4), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(6), OpCode::T(1), OpCode::T(6), OpCode::T(9), OpCode::T(7)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::T(6), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::T(2), OpCode::T(6)], &[OpCode::Exit(10), OpCode::T(1), OpCode::NT(6), OpCode::T(8)], &[OpCode::NT(7), OpCode::Exit(11), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(13), OpCode::NT(8), OpCode::T(3)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(8), OpCode::T(3)], &[OpCode::Exit(16), OpCode::T(6)], &[OpCode::Exit(17), OpCode::T(5)]];
+    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
 
@@ -564,8 +564,6 @@ pub mod typedef_match_parser {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
-        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
-        #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
@@ -679,10 +677,6 @@ pub mod typedef_match_parser {
 
         fn is_stack_span_empty(&self) -> bool {
             self.stack_span.is_empty()
-        }
-
-        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
-            self.listener.hook(token, text, span)
         }
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {

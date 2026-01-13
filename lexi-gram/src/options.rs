@@ -140,6 +140,8 @@ pub struct Options {
     ///
     /// Default: `false`
     pub gen_span_params: bool,
+    /// Generates enums for the terminal and nonterminal values.
+    pub gen_token_enums: bool,
     /// Uses the full library instead of the core library in the generated code. Use this option for a lexer / parser that
     /// needs [lexigram_lib] instead of the smaller [lexigram_core].
     ///
@@ -170,6 +172,7 @@ impl Default for Options {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Default,
         }
@@ -452,6 +455,31 @@ impl OptionsBuilder {
     /// Default: `false`
     pub fn span_params(&mut self, span_params: bool) -> &mut Self {
         self.options.gen_span_params = span_params;
+        self
+    }
+
+    /// Generates enums for the terminal and nonterminal values. They may be helpful in the optional
+    /// listener trait methods like `hook()` and `intercept_token()` when they are used.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// #[derive(Clone, Copy, PartialEq, Debug)]
+    /// #[repr(u16)]
+    /// pub enum Term {
+    ///     #[doc = "','"]        Comma = 0,
+    ///     #[doc = "';'"]        SemiColon = 1,
+    /// }
+    ///
+    /// #[derive(Clone, Copy, PartialEq, Debug)]
+    /// #[repr(u16)]
+    /// pub enum NTerm {
+    ///     #[doc = "`program`"]                   Program = 0,
+    ///     #[doc = "`stmt_i`, parent: `program`"] StmtI = 1,
+    /// }
+    /// ```
+    pub fn token_enums(&mut self, token_enums: bool) -> &mut Self {
+        self.options.gen_token_enums = token_enums;
         self
     }
 

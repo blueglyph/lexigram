@@ -42,6 +42,7 @@ fn gen_typedef_source(action: Action) {
                 NTValue::PARENTS.to_string(),
                 "id_i".to_string()
             ]))
+            .token_enums(true)
             .build()
             .expect("should have no error");
         match try_gen_parser(action, options) {

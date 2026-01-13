@@ -134,7 +134,7 @@ Sub             : '-';
 Add             : '+';
 
 Num             : [0-9]+;
-Id              : [a-zA-Z][a-zA-Z_0-9]*     -> hook;
+Id              : [a-zA-Z][a-zA-Z_0-9]*;
 (Typedef)       : 'typedef';
 (Print)         : 'print';
 (Type);

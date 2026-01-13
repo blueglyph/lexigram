@@ -279,6 +279,7 @@ mod test4 {
             gen_parser_alts: true,
             gen_wrapper: true,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
         };
@@ -321,6 +322,7 @@ mod test4 {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Full,
             nt_value: NTValue::Parents,
         };
@@ -347,6 +349,7 @@ mod test4 {
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
         };
@@ -387,6 +390,7 @@ mod failing_tests {
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
         };
@@ -403,6 +407,7 @@ mod failing_tests {
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
+            gen_token_enums: false,
             lib_crate: LexigramCrate::Full,
             nt_value: NTValue::Parents,
         };
