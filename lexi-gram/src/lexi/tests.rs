@@ -429,6 +429,34 @@ mod simple {
                     5 => term!(=6), 6 => term!(=2)
                 ], vec![]
             ),
+            (
+                r#"lexicon test14;
+                A: 'a' -> mode(A_MODE);
+                B: 'b' -> mode(B_MODE);
+                mode B_MODE;
+                BB: '\n' -> mode(DEFAULT_MODE);
+                mode A_MODE;
+                AA: '\n' -> mode(DEFAULT_MODE);"#,
+                vec![],
+                vec![
+                    ("A", Some("a")),
+                    ("B", Some("b")),
+                    ("BB", Some("\n")),
+                    ("AA", Some("\n")),
+                ], btreemap![
+                    0 => branch!('a' => 3, 'b' => 4),
+                    1 => branch!('\n' => 5),
+                    2 => branch!('\n' => 6),
+                    3 => branch!(), // <end:0,mode(1,state 1)>
+                    4 => branch!(), // <end:1,mode(2,state 2)>
+                    5 => branch!(), // <end:3,mode(0,state 0)>
+                    6 => branch!(), // <end:2,mode(0,state 0)>
+                ], btreemap![
+                    3 => term!(=0) + term!(mode 1) + term!(pushst 1), 4 => term!(=1) + term!(mode 2) + term!(pushst 2),
+                    5 => term!(=3) + term!(mode 0) + term!(pushst 0), 6 => term!(=2) + term!(mode 0) + term!(pushst 0)
+                ],
+                vec![("a\nb\n", vec![(0, 0, "a"), (0, 3, "\n"), (0, 1, "b"), (0, 2, "\n")])],
+            ),
         ];
         const VERBOSE: bool = false;
 
@@ -471,7 +499,7 @@ mod simple {
                 println!(
                     "Symbol table (terminals):\n{}",
                     result_terminals.iter().index()
-                        .map(|(t, x)| format!("{: <20}{x:?}{}", "", if terminal_hooks.contains(&t) { "  // hook" } else { "" }))
+                        .map(|(t, x)| format!("{: <20}{x:?}{},", "", if terminal_hooks.contains(&t) { "  // hook" } else { "" }))
                         .join("\n"));
             }
             assert_eq!(listener.terminal_hooks, expected_hooks, "{text}: mismatch hooks");
@@ -489,7 +517,7 @@ mod simple {
             let mut lexer = lexer_tables.make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
-                    println!("Testing input '{input}'")
+                    println!("Testing input {input:?}")
                 }
                 let stream = CharReader::new(input.as_bytes());
                 lexer.attach_stream(stream);
@@ -511,7 +539,7 @@ mod simple {
                     .map(|(tokenid, channelid, string, _)| (channelid, tokenid, string))
                     .to_vec();
                 if VERBOSE {
-                    println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
+                    println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, {s:?})")).join(", "));
                 }
                 let expected_tokens = expected_tokens.into_iter().map(|(c, i, s)| (c, i, s.to_string())).to_vec();
                 assert_eq!(result_tokens, expected_tokens, "{text}, input {input_id}");
@@ -691,22 +719,26 @@ mod lexicon {
 
     #[test]
     fn errors() {
-        let tests = vec![
+        let tests: Vec<(&str, Vec<&str>, Vec<&str>)> = vec![
             (
                 r#"lexicon test0; channels { CH1, CH1 }"#,
-                vec!["channel 'CH1' defined twice"]
+                vec!["channel 'CH1' defined twice"],
+                vec![],
             ),
             (
                 r"lexicon test1; fragment A: 'a1'; fragment A: 'a2';",
-                vec!["symbol 'A' is already defined"]
+                vec!["symbol 'A' is already defined"],
+                vec![],
             ),
             (
                 r"lexicon test2; fragment A: 'a1'; A: 'a2';",
-                vec!["symbol 'A' is already defined"]
+                vec!["symbol 'A' is already defined"],
+                vec![],
             ),
             (
                 r"lexicon test3; A: 'a1'; A: 'a2';",
-                vec!["symbol 'A' is already defined"]
+                vec!["symbol 'A' is already defined"],
+                vec![],
             ),
             (
                 r#"lexicon test4;
@@ -714,35 +746,43 @@ mod lexicon {
                     S: 'dummy';
                     A: 'a' -> type(R), type(S);
                     B: 'b' -> skip, type(R);
-                    C: 'c' -> skip, more, push(MODE_A);
+                    C: 'c' -> skip, more, push(A_MODE);
                     D: 'd' -> type(R), more, pop;
-                    E: 'e' -> mode(X), mode(Y), skip;"#,
+                    E: 'e' -> mode(X_MODE), mode(Y_MODE), skip;"#,
                 vec![
                     "can't add actions 'type(R)' and 'type(S)'",
                     "can't add actions 'skip' and 'type(R)'",
                     "can't add actions 'skip' and 'more'",
                     "can't add actions 'type(R)' and 'more'",
-                    "can't add actions 'mode(X)' and 'mode(Y)",
-                ]
+                    "can't add actions 'mode(X_MODE)' and 'mode(Y_MODE)",
+                    "mode 'A_MODE' referenced but not defined",
+                    "mode 'X_MODE' referenced but not defined",
+                    "mode 'Y_MODE' referenced but not defined",
+                ],
+                vec![],
             ),
             (
                 r"lexicon test5; fragment A: 'a'; B: 'b' -> type(A);",
-                vec!["rule B: 'A' is not a terminal; it's a fragment"]
+                vec!["rule B: 'A' is not a terminal; it's a fragment"],
+                vec![],
             ),
             (
                 r"lexicon test6; channels { CH1 } A: 'a' -> channel(CH2);",
-                vec!["rule A: channel 'CH2' undefined"]
+                vec!["rule A: channel 'CH2' undefined"],
+                vec![],
             ),
             (
                 r"lexicon test7; A: ~'abc'; B: ~('ab'|'cd');",
                 vec![
                     "rule A: ~ can only be applied to a char set, not to 'abc'",
                     "rule B: ~ can only be applied to a char set, not to |", // not a great message...
-                ]
+                ],
+                vec![],
             ),
             (
                 r"lexicon test8; fragment A: B;",
-                vec!["rule A: unknown fragment 'B'"]
+                vec!["rule A: unknown fragment 'B'"],
+                vec![],
             ),
             (
                 r#"lexicon test9; A: ':\u{d800}'; B: '\u{110000}'; C: 'a'..'\u{d800}';"#,
@@ -750,35 +790,52 @@ mod lexicon {
                     "rule A: cannot decode the string literal ':\\u{d800}': 'd800' isn't a valid unicode",
                     "rule B: cannot decode the character literal '\\u{110000}': '110000' isn't a valid unicode",
                     "rule C: cannot decode the character literal ''\\u{d800}'': 'd800' isn't a valid unicode",
-                ]
+                ],
+                vec![],
             ),
             (
                 r#"lexicon test10; A: 'bad:\a'; B: 'b';"#,
-                vec!["lexical error: invalid character 'a'"]
+                vec!["lexical error: invalid character 'a'"],
+                vec![],
             ),
             (
                 r#"lexicon test11; A: 'bad:\u100'; B: 'b';"#,
-                vec!["lexical error: invalid character '1'"]
+                vec!["lexical error: invalid character '1'"],
+                vec![],
             ),
             (
                 r#"lexicon test12; (A): [a-z]; B: 'b';"#,
-                vec!["syntax error: found input '[' instead of 'StrLit'"]
+                vec!["syntax error: found input '[' instead of 'StrLit'"],
+                vec![],
             ),
             (
                 r#"lexicon test13; (A) -> skip;"#,
-                vec!["syntax error: found input 'skip' instead of 'hook'"]
+                vec!["syntax error: found input 'skip' instead of 'hook'"],
+                vec![],
+            ),
+            (
+                r#"lexicon test14;
+                A: 'a' -> mode(A_MODE);
+                B: 'b';
+                mode B_MODE;
+                BB: '\n';
+                mode A_MODE;
+                AA: '\n';
+                "#,
+                vec![],
+                vec!["mode 'B_MODE' is defined but not used"],
             ),
             /* template:
             (
                 r#""#,
-                vec![]
+                vec![],
+                vec![],
             ),
             */
         ];
         const VERBOSE: bool = false;
-        const CHECK_ALL_ERRORS: bool = false;
 
-        for (test_id, (lexicon, mut expected_errors)) in tests.into_iter().enumerate() {
+        for (test_id, (lexicon, mut expected_errors, mut expected_warnings)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
             let stream = CharReader::new(lexicon.as_bytes());
             let mut lexi = Lexi::new(stream);
@@ -791,28 +848,45 @@ mod lexicon {
                     println!("Messages:{msg}");
                 }
             }
-            let mut extra_errors = vec![];
-            for m in listener.get_log().get_errors() {
-                let mut i = 0;
-                let mut found = false;
-                while i < expected_errors.len() {
-                    if m.contains(expected_errors[i]) {
-                        expected_errors.remove(i);
-                        found = true;
-                        break;
-                    } else {
-                        i += 1;
+            let msg_errors = listener.get_log().get_errors().map(|s| format!("\n- {s}")).join("");
+            if expected_errors.is_empty() {
+                assert!(listener.get_log().has_no_errors(), "{text} wasn't expecting any error but got those:{msg_errors}")
+            } else {
+                for m in listener.get_log().get_errors() {
+                    let mut i = 0;
+                    while i < expected_errors.len() {
+                        if m.contains(expected_errors[i]) {
+                            expected_errors.remove(i);
+                            break;
+                        } else {
+                            i += 1;
+                        }
                     }
                 }
-                if !found {
-                    extra_errors.push(m.to_string());
-                }
-            }
-            assert!(expected_errors.is_empty(), "{text} was expecting to find those errors while parsing the lexicon:{}\nbut got those messages:{msg}",
+                assert!(
+                    expected_errors.is_empty(),
+                    "{text} was expecting to find those errors while parsing the lexicon:{}\nbut got only those:{msg_errors}",
                     expected_errors.iter().map(|s| format!("\n- {s}")).join(""));
-            if CHECK_ALL_ERRORS {
-                assert!(extra_errors.is_empty(), "{text} generated unforseen errors:{}",
-                        extra_errors.iter().map(|s| format!("\n- {s}")).join(""));
+            }
+            let msg_warnings = listener.get_log().get_warnings().map(|s| format!("\n- {s}")).join("");
+            if expected_warnings.is_empty() {
+                assert!(listener.get_log().has_no_warnings(), "{text} wasn't expecting any warning but got those:{msg_warnings}")
+            } else {
+                for m in listener.get_log().get_warnings() {
+                    let mut i = 0;
+                    while i < expected_warnings.len() {
+                        if m.contains(expected_warnings[i]) {
+                            expected_warnings.remove(i);
+                            break;
+                        } else {
+                            i += 1;
+                        }
+                    }
+                }
+                assert!(
+                    expected_warnings.is_empty(),
+                    "{text} was expecting to find those warnings while parsing the lexicon:{}\nbut got only those:{msg_warnings}",
+                    expected_warnings.iter().map(|s| format!("\n- {s}")).join(""));
             }
         }
     }

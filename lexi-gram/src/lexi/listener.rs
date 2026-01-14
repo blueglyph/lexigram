@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::CollectJoin;
+use lexigram_lib::{hashset, CollectJoin};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundle, ReType};
 use lexigram_lib::dfa::ReNode;
@@ -156,8 +156,10 @@ pub struct LexiListener {
     terminal_remap: HashMap<TokenId, TokenId>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,
+    /// Modes that are actually referenced in actions
+    referenced_modes: HashSet<ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
-    mode_terminals: Vec<Range<TokenId>>,
+    mode_terminals: Vec<Option<Range<TokenId>>>,
     log: BufLog,
     abort: bool,
 }
@@ -203,7 +205,8 @@ impl LexiListener {
             terminal_remap: HashMap::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
-            mode_terminals: vec![0..0],
+            referenced_modes: hashset!(0),
+            mode_terminals: vec![Some(0..0)],
             log: BufLog::new(),
             abort: false,
         }
@@ -217,9 +220,11 @@ impl LexiListener {
         &self.name
     }
 
-    fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
-        let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
-        sorted_modes.sort();
+    fn get_sorted_modes(&self) -> Vec<(ModeId, &str)> {
+        let mut sorted_modes = vec![(0, ""); self.modes.len()];
+        for (name, id) in &self.modes {
+            sorted_modes[*id as usize] = (*id, name);
+        }
         sorted_modes
     }
 
@@ -252,7 +257,6 @@ impl LexiListener {
                                  "ret".to_string(), "token ".to_string(), "tree".to_string()]];
         let mut rules = self.rules.iter().to_vec();
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
-        let mut imode = 0;
         for (_i, (s, rt)) in rules.into_iter().enumerate() {
             let (t, lit, ret, sym_maybe, _end_maybe) = match rt {
                 RuleType::Fragment(id) => (
@@ -282,16 +286,19 @@ impl LexiListener {
                 },
             };
             let mode = if let RuleType::Terminal(id) = rt {
-                if !self.mode_terminals[imode].contains(id) {
-                    imode += 1;
+                if let Some(imode) = self.mode_terminals.iter()
+                    .position(|range_opt| range_opt.as_ref().map(|r| r.contains(id)).unwrap_or(false))
+                {
+                    imode.to_string()
+                } else {
+                    "-".to_string()
                 }
-                imode.to_string()
             } else {
                 String::new()
             };
             cols.push(vec![format!("  {rt:?}"),
                            format!("{s}"),
-                           format!("{}", lit.as_ref().map(|s| format!("\"{s}\"")).unwrap_or_default()),
+                           format!("{}", lit.as_ref().map(|s| format!("{s:?}")).unwrap_or_default()),
                            format!("{mode}"),
                            format!("{}", if let Some(b) = ret { if b { "Y" } else { "N" } } else { "" }),
                            if let Some(sym) = sym_maybe { format!("{sym}") } else { String::new() },
@@ -405,7 +412,7 @@ impl BuildFrom<LexiListener> for Dfa<Normalized> {
         let sorted_modes = source.get_sorted_modes();
         for (mode_id, mode_name) in sorted_modes {
             if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
-            let range = &source.mode_terminals[*mode_id as usize];
+            let range = source.mode_terminals[mode_id as usize].as_ref().unwrap();
             if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
             let range = range.start as usize..range.end as usize;
             let mut tree = VecTree::<ReNode>::new();
@@ -420,7 +427,7 @@ impl BuildFrom<LexiListener> for Dfa<Normalized> {
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
             let dfa_builder = DfaBuilder::build_from(tree);
             assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
-            dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
+            dfas.push((mode_id, Dfa::<General>::build_from(dfa_builder)));
             if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
         if VERBOSE { println!("merging dfa modes"); }
@@ -520,12 +527,28 @@ impl LexiParserListener for LexiListener {
             .for_each(|old| *old = *remap.get(&old).unwrap_or(&old));
         self.terminal_remap = remap;
 
-        // TODO: remap the modes...
-        if self.verbose {
-            println!("\nModes: ");
-            for (mode_id, mode) in self.get_sorted_modes() {
-                println!("- {mode_id} - {mode}: terminals {:?}", self.mode_terminals[*mode_id as usize]);
+        // Checks the modes
+        if self.verbose { println!("\nModes: "); }
+        let mut mode_errors = vec![];
+        let mut mode_warnings = vec![];
+        for (mode_id, mode) in self.get_sorted_modes() {
+            if !self.referenced_modes.contains(&mode_id) {
+                mode_warnings.push(format!("mode '{mode}' is defined but not used"));
             }
+            let terminals = match self.mode_terminals.get(mode_id as usize) {
+                Some(Some(range)) => format!("{range:?}"),
+                _ => {
+                    mode_errors.push(format!("mode '{mode}' referenced but not defined"));
+                    format!("## ERROR: undefined")
+                }
+            };
+            if self.verbose { println!("- {mode_id} - {mode}: terminals = {terminals}"); }
+        }
+        for err in mode_errors {
+            self.log.add_error(err);
+        }
+        for warn in mode_warnings {
+            self.log.add_warning(warn);
         }
         SynFile()
     }
@@ -546,9 +569,12 @@ impl LexiParserListener for LexiListener {
         let mode_id = self.get_add_mode_or_abort(mode_name);
         if !self.abort {
             self.curr_mode = mode_id;
-            if self.verbose { println!(" -> mode {mode_id}, mode_terminals: {:?}", self.mode_terminals) }
             let next_token = self.add_terminal_or_abort();
-            self.mode_terminals.insert(mode_id as usize, next_token..next_token);
+            if self.mode_terminals.len() <= mode_id as usize {
+                self.mode_terminals.resize(mode_id as usize + 1, None);
+            }
+            self.mode_terminals[mode_id as usize] = Some(next_token..next_token);
+            if self.verbose { println!(" -> mode {mode_id}, mode_terminals: {:?}", self.mode_terminals) }
         }
         SynDeclaration()
     }
@@ -624,7 +650,7 @@ impl LexiParserListener for LexiListener {
                 }
                 RuleType::Terminal(rule_id) => {
                     self.terminal_literals.push(const_literal);
-                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().as_mut().unwrap().end += 1;
                     // if no action, only return
                     let rule_action = action_maybe.unwrap_or(action!(= rule_id));
                     if rule_action.hook {
@@ -701,10 +727,12 @@ impl LexiParserListener for LexiListener {
         let action = match ctx {
             CtxAction::V1 { id } => {               // action -> "mode" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
+                self.referenced_modes.insert(id_val);
                 action!(mode id_val)
             }
             CtxAction::V2 { id } => {               // action -> "push" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
+                self.referenced_modes.insert(id_val);
                 action!(push id_val)
             },
             CtxAction::V3 => action!(pop),          // action -> "pop"
