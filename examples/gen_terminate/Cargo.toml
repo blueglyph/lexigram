@@ -1,0 +1,9 @@
+[package]
+name = "gen_terminate"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lexigram-lib = { path = "../..", version = "0.8.3" }
+lexi-gram = { path = "../../lexi-gram", version = "0.8.3" }

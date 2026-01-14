@@ -1,0 +1,52 @@
+// [terminate_lexicon]
+
+lexicon Terminate;
+
+fragment ToEndLine  : ~[\n];
+
+MsgPrefix           : '##' [ \t]*               -> skip, mode(HEADER_MODE);
+Process             : 'PROCESS' [ \t]*          -> mode(ID_MODE);
+End                 : 'END' [ \t]*              -> mode(ID_MODE);
+Shutdown            : 'SHUTDOWN';
+
+Eol                 : [\n]                      -> skip;
+SkipUnrelated       : ToEndLine                 -> skip;
+SkipWindowsEol      : [\r]+                     -> skip;
+
+mode HEADER_MODE; // -------------------------------------------
+
+Note                : 'NOTE:' [ \t]*            -> mode(MSG_MODE);
+Warning             : 'WARNING:' [ \t]*         -> mode(MSG_MODE);
+Error               : 'ERROR:' [ \t]*           -> mode(MSG_MODE);
+Header              : [a-zA-Z][a-zA-Z_0-9]*     -> mode(MSG_MODE);
+
+mode MSG_MODE; // ----------------------------------------------
+
+Message             : ToEndLine                 -> mode(DEFAULT_MODE);
+
+mode ID_MODE; // -----------------------------------------------
+
+Id                  : [a-zA-Z][a-zA-Z_0-9]*     -> mode(DEFAULT_MODE);
+
+// [terminate_lexicon]
+
+// [terminate_grammar]
+
+grammar Terminate;
+
+log:
+    (<L=log_i> line)*
+;
+
+line:
+    message
+|   (Process | End) Id
+|   Shutdown
+;
+
+message:
+    (Note | Warning | Error) Message
+|   Header Message
+;
+
+// [terminate_grammar]

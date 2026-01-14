@@ -40,6 +40,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen_terminate"
+version = "0.1.0"
+dependencies = [
+ "lexi-gram",
+ "lexigram-lib",
+]
+
+[[package]]
 name = "gen_typedef"
 version = "0.1.0"
 dependencies = [
@@ -91,6 +99,13 @@ dependencies = [
 
 [[package]]
 name = "pandemonium"
+version = "0.1.0"
+dependencies = [
+ "lexigram-core",
+]
+
+[[package]]
+name = "terminate"
 version = "0.1.0"
 dependencies = [
  "lexigram-core",

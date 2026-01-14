@@ -10,10 +10,9 @@ use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::Parser;
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use lexigram_core::{CollectJoin, TokenId};
-use crate::typedef_id_type::typedef_id_type_lexer::build_lexer;
-use crate::typedef_id_type::typedef_id_type_parser::{build_parser, CtxProgram, TypedefListener, Wrapper};
-use listener_id_type_types::*;
+use typedef_id_type_lexer::build_lexer;
 use typedef_id_type_parser::*;
+use listener_id_type_types::*;
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
