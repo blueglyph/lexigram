@@ -6,7 +6,7 @@ use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
-use lexigram_lib::parser::Symbol;
+use lexigram_lib::parser::{Symbol, Terminate};
 use lexigram_lib::{General, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
@@ -22,7 +22,7 @@ pub struct GramListener {
     verbose: bool,
     name: String,
     log: BufLog,
-    abort: bool,
+    abort: Terminate,
     curr: Option<GrTree>,
     curr_name: Option<String>,
     curr_nt: Option<VarId>,
@@ -55,7 +55,7 @@ impl GramListener {
         GramListener {
             verbose: false,
             name: String::new(),
-            abort: false,
+            abort: Terminate::None,
             log: BufLog::new(),
             curr: None,
             curr_name: None,
@@ -208,7 +208,7 @@ impl Debug for GramListener {
 }
 
 impl GramParserListener for GramListener {
-    fn check_abort_request(&self) -> bool {
+    fn check_abort_request(&self) -> Terminate {
         self.abort
     }
 
@@ -298,7 +298,7 @@ impl GramParserListener for GramListener {
         let CtxRuleName::V1 { id: name } = ctx;
         self.curr_name = Some(name.clone());
         let Some(nt) = self.add_nt_symbol(&name) else {
-            self.abort = true;
+            self.abort = Terminate::Abort;
             return SynRuleName(String::new());
         };
         self.curr_nt = Some(nt);
@@ -387,7 +387,7 @@ impl GramParserListener for GramListener {
                             self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
                         } else {
                             // failure
-                            self.abort = true;
+                            self.abort = Terminate::Abort;
                             return SynProdAtom(0 /* don't care */);
                         }
                     }
@@ -412,18 +412,18 @@ impl GramParserListener for GramListener {
                     if let Some(sym @ Symbol::NT(_)) | Some(sym @ Symbol::T(_)) = self.symbols.get(&name) {
                         self.log.add_error(format!("rule {}: the rule name in <L={name}> is already defined as {}terminal",
                                                    self.curr_name.as_ref().unwrap(), if sym.is_nt() { "non-" } else { "" }));
-                        self.abort = true;
+                        self.abort = Terminate::Abort;
                         return SynProdAtom(0 /* don't care */);
                     } else if self.nt_reserved.contains_key(&name) {
                         self.log.add_error(format!("rule {}: the rule name in <L={name}> has already been used as non-terminal in a rule",
                                                    self.curr_name.as_ref().unwrap()));
-                        self.abort = true;
+                        self.abort = Terminate::Abort;
                         return SynProdAtom(0 /* don't care */);
                     }
                     match self.add_nt_symbol(&name) {
                         Some(nt) => nt,
                         None => {
-                            self.abort = true;
+                            self.abort = Terminate::Abort;
                             return SynProdAtom(0 /* don't care */)
                         }
                     }

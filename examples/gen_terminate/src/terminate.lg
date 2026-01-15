@@ -2,7 +2,7 @@
 
 lexicon Terminate;
 
-fragment ToEndLine  : ~[\n];
+fragment ToEndLine  : ~[\n\r]+;
 
 MsgPrefix           : '##' [ \t]*               -> skip, mode(HEADER_MODE);
 Process             : 'PROCESS' [ \t]*          -> mode(ID_MODE);
@@ -10,7 +10,6 @@ End                 : 'END' [ \t]*              -> mode(ID_MODE);
 Shutdown            : 'SHUTDOWN';
 
 Eol                 : [\n]                      -> skip;
-SkipUnrelated       : ToEndLine                 -> skip;
 SkipWindowsEol      : [\r]+                     -> skip;
 
 mode HEADER_MODE; // -------------------------------------------

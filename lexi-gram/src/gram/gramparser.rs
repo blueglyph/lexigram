@@ -4,7 +4,7 @@
 // [gramparser]
 
 use gramparser_types::*;
-use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
 
 const PARSER_NUM_T: usize = 15;
 const PARSER_NUM_NT: usize = 14;
@@ -164,12 +164,14 @@ impl SynValue {
 pub trait GramParserListener {
     /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-    fn check_abort_request(&self) -> bool { false }
+    fn check_abort_request(&self) -> Terminate { Terminate::None }
     fn get_mut_log(&mut self) -> &mut impl Logger;
     #[allow(unused_variables)]
     fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
     #[allow(unused_variables)]
     fn exit(&mut self, file: SynFile) {}
+    #[allow(unused_variables)]
+    fn abort(&mut self, terminate: Terminate) {}
     fn init_file(&mut self) {}
     fn exit_file(&mut self, ctx: CtxFile) -> SynFile;
     fn init_header(&mut self) {}
@@ -262,8 +264,14 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }
-            Call::End => {
-                self.exit();
+            Call::End(terminate) => {
+                match terminate {
+                    Terminate::None => {
+                        let val = self.stack.pop().unwrap().get_file();
+                        self.listener.exit(val);
+                    }
+                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                }
             }
         }
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -273,8 +281,13 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
         }
     }
 
-    fn check_abort_request(&self) -> bool {
+    fn check_abort_request(&self) -> Terminate {
         self.listener.check_abort_request()
+    }
+
+    fn abort(&mut self) {
+        self.stack.clear();
+        self.stack_t.clear();
     }
 
     fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -313,11 +326,6 @@ impl<T: GramParserListener> Wrapper<T> {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
-    }
-
-    fn exit(&mut self) {
-        let file = self.stack.pop().unwrap().get_file();
-        self.listener.exit(file);
     }
 
     fn exit_file(&mut self) {

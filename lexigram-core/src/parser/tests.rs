@@ -347,7 +347,7 @@ mod wrapper {
                         _ => panic!("unexpected alt_id {alt_id} in Exit"),
                     }
                 }
-                Call::End => {
+                Call::End(_) => {
                     assert_eq!(alt_id, 0, "unexpected alt_id {alt_id} in End");
                 }
             }

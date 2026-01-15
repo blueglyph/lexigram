@@ -12,11 +12,11 @@ use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
 use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Terminal};
+use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
 use crate::action;
 use crate::lexi::lexiparser::*;
 use crate::lexi::lexiparser::lexiparser_types::*;
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum LexActionOption {
@@ -161,7 +161,7 @@ pub struct LexiListener {
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Option<Range<TokenId>>>,
     log: BufLog,
-    abort: bool,
+    abort: Terminate,
 }
 
 impl LexiListener {
@@ -208,7 +208,7 @@ impl LexiListener {
             referenced_modes: hashset!(0),
             mode_terminals: vec![Some(0..0)],
             log: BufLog::new(),
-            abort: false,
+            abort: Terminate::None,
         }
     }
 
@@ -329,14 +329,14 @@ impl LexiListener {
     fn check_reserve_boundary(&mut self) {
         if self.terminals.len() + self.terminal_reserved.len() > TokenId::MAX as usize {
             self.log.add_error("collision between terminals and reserved terminals (too many of them)".to_string());
-            self.abort = true;
+            self.abort = Terminate::Abort;
         }
     }
 
     fn add_fragment_or_abort(&mut self) -> TokenId {
         TokenId::try_from(self.fragments.len()).unwrap_or_else(|_| {
             self.log.add_error(format!("too many fragments, max {}", TokenId::MAX));
-            self.abort = true;
+            self.abort = Terminate::Abort;
             0
         })
     }
@@ -345,7 +345,7 @@ impl LexiListener {
         self.check_reserve_boundary();
         TokenId::try_from(self.terminals.len()).unwrap_or_else(|_| {
             self.log.add_error(format!("too many terminals, max {}", TokenId::MAX));
-            self.abort = true;
+            self.abort = Terminate::Abort;
             0
         })
     }
@@ -354,7 +354,7 @@ impl LexiListener {
         self.check_reserve_boundary();
         if self.terminal_reserved.len() > TokenId::MAX as usize {
             self.log.add_error(format!("too many terminals reserved, max {}", TokenId::MAX));
-            self.abort = true;
+            self.abort = Terminate::Abort;
             0
         } else {
             TokenId::MAX - self.terminal_reserved.len() as TokenId
@@ -373,7 +373,7 @@ impl LexiListener {
                 }
                 Err(_) => {
                     self.log.add_error(format!("too many modes, max {}", ModeId::MAX));
-                    self.abort = true;
+                    self.abort = Terminate::Abort;
                     0
                 }
             }
@@ -460,7 +460,7 @@ impl Debug for LexiListener {
 }
 
 impl LexiParserListener for LexiListener {
-    fn check_abort_request(&self) -> bool {
+    fn check_abort_request(&self) -> Terminate {
         self.abort
     }
 
@@ -567,7 +567,7 @@ impl LexiParserListener for LexiListener {
         if self.verbose { print!("- exit_declaration({ctx:?}), modes: {:?}", self.modes); }
         let CtxDeclaration::V1 { id: mode_name } = ctx;    // declaration -> mode Id ;
         let mode_id = self.get_add_mode_or_abort(mode_name);
-        if !self.abort {
+        if self.abort == Terminate::None {
             self.curr_mode = mode_id;
             let next_token = self.add_terminal_or_abort();
             if self.mode_terminals.len() <= mode_id as usize {
@@ -622,7 +622,7 @@ impl LexiParserListener for LexiListener {
                 (id, RuleType::Terminal(rule_id), None, opt_str, true)
             }
         };
-        if self.abort { return SynRule() }
+        if self.abort != Terminate::None { return SynRule() }
         let was_reserved = if let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(&id) {
             // checks that it's indeed reserved and not a simple conflict with another terminal name
             if self.terminal_reserved.contains(&id) {
@@ -640,7 +640,7 @@ impl LexiParserListener for LexiListener {
         };
         if !was_reserved && self.rules.contains_key(&id) {
             self.log.add_error(format!("rule {}: symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
-            self.abort = true;
+            self.abort = Terminate::Abort;
         } else {
             let rule_maybe = self.curr.take();
             match rule_type {

@@ -214,14 +214,14 @@ impl OpCode {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(PartialEq, Debug)]
-pub enum Call { Enter, Loop, Exit, End }
+pub enum Call { Enter, Loop, Exit,  End(Terminate) }
 
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
     fn switch(&mut self, _call: Call, _nt: VarId, _alt_id: AltId, _t_data: Option<Vec<String>>) {}
     /// Checks if the wrapper requests an abort. This happens if an error is too difficult to recover from
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-    fn check_abort_request(&self) -> bool { false }
+    fn check_abort_request(&self) -> Terminate { Terminate::None }
     /// Aborts the parsing.
     fn abort(&mut self) {}
     /// Gets access to the listener's log to report possible errors and information about the parsing.
@@ -274,6 +274,16 @@ impl Display for ParserError {
             ParserError::AbortRequest => "abort request",
         })
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Terminate {
+    /// Normal behaviour: continues parsing the text
+    None,
+    /// Irrecoverable error: stops parsing, calls the listener abort method, and returns an error
+    Abort,
+    /// Stops parsing, calls the listener exit method, and returns an Ok
+    Conclude,
 }
 
 pub struct Parser<'a> {
@@ -606,31 +616,48 @@ impl<'a> Parser<'a> {
                 }
                 (OpCode::End, Symbol::End) => {
                     if nbr_recovers == 0 {
-                        wrapper.switch(Call::End, 0, 0, None);
+                        wrapper.switch(Call::End(Terminate::None), 0, 0, None);
                     }
                     break;
                 }
                 (OpCode::End, _) => {
-                    wrapper.get_mut_log().add_error(format!("syntax error: found extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                    wrapper.get_mut_log()
+                        .add_error(format!("syntax error: found extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    wrapper.get_mut_log().add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str_name(sym_table)));
+                    wrapper.get_mut_log()
+                        .add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str_name(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
-                    wrapper.get_mut_log().add_error(format!("unexpected syntax error: input '{}' while expecting '{}'{}",
-                                                            stream_sym.to_str(sym_table), stack_sym.to_str_name(sym_table),
-                                                            if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    wrapper.get_mut_log()
+                        .add_error(format!(
+                            "unexpected syntax error: input '{}' while expecting '{}'{}",
+                            stream_sym.to_str(sym_table), stack_sym.to_str_name(sym_table),
+                            if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedError);
                 }
             }
-            if wrapper.check_abort_request() {
-                wrapper.abort();
-                return Err(ParserError::AbortRequest);
+            match wrapper.check_abort_request() {
+                Terminate::None => {}
+                terminate @ (Terminate::Abort | Terminate::Conclude) => {
+                    if VERBOSE { println!("detected {terminate:?}"); }
+                    stack_t.clear();
+                    stack.clear();
+                    wrapper.abort();
+                    if nbr_recovers == 0 {
+                        wrapper.switch(Call::End(terminate), 0, 0, None);
+                    }
+                    if terminate == Terminate::Abort {
+                        return Err(ParserError::AbortRequest);
+                    } else {
+                        break;
+                    }
+                }
             }
         }
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));

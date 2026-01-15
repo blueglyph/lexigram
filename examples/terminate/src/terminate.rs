@@ -4,10 +4,11 @@
 
 use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;
+use lexigram_core::CollectJoin;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::Parser;
-use lexigram_core::text_span::GetLine;
+use lexigram_core::parser::{Parser, Terminate};
+use lexigram_core::text_span::{GetLine, GetTextSpan};
 use terminate_lexer::build_lexer;
 use terminate_parser::*;
 use listener_terminate_types::*;
@@ -16,6 +17,42 @@ const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 static TXT1: &str = r#"
+## ERROR: discard this
+PROCESS A1
+## NOTE: first note
+## WARNING: first warning
+END A1
+
+PROCESS B1
+## ERROR: first error
+END B1
+"#;
+
+static TXT2: &str = r#"
+## NOTE: previous process, to discard
+
+PROCESS C1
+END C1
+PROCESS C2
+## NOTE: start a
+## NOTE: start b
+## WARNING: limit reached
+END C2
+
+PROCESS C3
+## NOTE: start x
+
+## ERROR: parameter is out of range
+SHUTDOWN
+## ERROR: irrelevant message
+
+PROCESS D1
+"#;
+
+static TXT3: &str = r#"
+PROCESS D1
+## NOTE: OK so far
+END D2
 "#;
 
 #[test]
@@ -23,25 +60,38 @@ fn test_terminate() {
     let tests = vec![
         (
             TXT1,
-            vec![""],
-            vec![""],
+            vec!["A1,N,first note", "A1,W,first warning", "B1,E,first error"],
+            vec![],
+        ),
+        (
+            TXT2,
+            vec!["C2,N,start a", "C2,N,start b", "C2,W,limit reached", "C3,N,start x", "C3,E,parameter is out of range", "C3,S"],
+            vec![],
+        ),
+        (
+            TXT3,
+            vec!["D1,N,OK so far", "-,A"],
+            vec!["the END ID 'D2' doesn't match the expected ID 'D1'"],
         ),
     ];
-    for (test_id, (txt, expected_vars, expected_errors)) in tests.into_iter().enumerate() {
-        if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
+    for (test_id, (txt, expected_messages, expected_errors)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80} {test_id}\n{txt}\n{0:-<80}", ""); }
         let mut parser = TerminateParser::new();
         match parser.parse(txt) {
-            Ok(ParserData { log, vars }) => {
+            Ok(ParserData { log, messages }) => {
                 if VERBOSE {
+                    println!("messages: {}", messages.iter().map(|s| format!("{s:?}")).join(", "));
                     println!("parsing successful\n{log}");
                 }
-                assert_eq!(vars, expected_vars, "var mismatch in test {test_id}");
+                assert_eq!(messages, expected_messages, "var mismatch in test {test_id}");
             }
-            Err(log) => {
-                assert!(!expected_errors.is_empty(), "unexpected error(s) in test {test_id}\n{log}");
+            Err(ParserData { log, messages }) => {
                 if VERBOSE {
+                    println!("messages: {}", messages.iter().map(|s| format!("{s:?}")).join(", "));
                     println!("errors during parsing:\n{log}");
                 }
+                assert_eq!(messages, expected_messages, "var mismatch in test {test_id}");
+                assert!(!expected_errors.is_empty(), "unexpected error(s) in test {test_id}\n{log}");
                 let mut errors = log.get_errors();
                 for exp_err in expected_errors {
                     let mut next_err = errors.next();
@@ -52,7 +102,7 @@ fn test_terminate() {
                         next_err = errors.next();
                     }
                     if next_err.is_none() {
-                        panic!("didn't find this expected error in test {test_id}: {exp_err}");
+                        panic!("didn't find this expected error in test {test_id}: {exp_err}\n{log}");
                     }
                 }
             }
@@ -63,7 +113,7 @@ fn test_terminate() {
 #[derive(Debug)]
 pub struct ParserData {
     pub log: BufLog,
-    pub vars: Vec<String>,
+    pub messages: Vec<String>,
 }
 
 pub struct TerminateParser<'l, 'p, 'ls> {
@@ -88,7 +138,7 @@ impl<'l, 'ls: 'l> TerminateParser<'l, '_, 'ls> {
     /// * `log`, a `BufLog` object.
     ///
     /// On failure, returns the log with the error messages.
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
+    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, ParserData> {
         self.wrapper = Some(Wrapper::new(Listener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
@@ -99,11 +149,11 @@ impl<'l, 'ls: 'l> TerminateParser<'l, '_, 'ls> {
         if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
             self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let Listener { log, vars, .. } = self.wrapper.take().unwrap().give_listener();
+        let Listener { log, messages, .. } = self.wrapper.take().unwrap().give_listener();
         if log.has_no_errors() {
-            Ok(ParserData { log, vars })
+            Ok(ParserData { log, messages })
         } else {
-            Err(log)
+            Err(ParserData { log, messages })
         }
     }
 }
@@ -112,16 +162,22 @@ impl<'l, 'ls: 'l> TerminateParser<'l, '_, 'ls> {
 
 struct Listener<'ls> {
     log: BufLog,
+    abort: Terminate,
     lines: Option<Vec<&'ls str>>,
-    vars: Vec<String>,
+    messages: Vec<String>,
+    sync_first: bool,
+    curr_process: Option<String>,
 }
 
 impl<'ls> Listener<'ls> {
     fn new() -> Self {
         Listener {
             log: BufLog::new(),
+            abort: Terminate::None,
             lines: None,
-            vars: vec![],
+            messages: vec![],
+            sync_first: true,
+            curr_process: None,
         }
     }
 
@@ -140,36 +196,105 @@ impl GetLine for Listener<'_> {
 
 #[allow(unused)]
 impl TerminateListener for Listener<'_> {
+    fn check_abort_request(&self) -> Terminate {
+        self.abort
+    }
+
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
 
+    fn abort(&mut self, terminate: Terminate) {
+        assert_ne!(terminate, Terminate::None);
+        self.messages.push(
+            format!(
+                "{},{}", self.curr_process.take().unwrap_or_else(|| "-".to_string()),
+                if terminate == Terminate::Conclude { 'S' } else { 'A' }));
+    }
+
     fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog {
-        todo!()
+        SynLog()
     }
 
     fn init_log_i(&mut self) -> SynLogI {
-        todo!()
+        SynLogI()
     }
 
     fn exit_log_i(&mut self, ctx: CtxLogI, spans: Vec<PosSpan>) -> SynLogI {
-        todo!()
+        SynLogI()
     }
 
     fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine {
-        todo!()
+        let span = spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp);
+        match ctx {
+            // line -> message
+            CtxLine::V1 { .. } => {} // already processed in exit_message()
+            // line -> Process Id
+            CtxLine::V2 { process, id } => {
+                self.sync_first = false;
+                if self.curr_process.is_some() {
+                    self.log.add_error(
+                        format!("new PROCESS but {} wasn't closed with an END:\n{}", self.curr_process.as_ref().unwrap(), self.annotate_text(&span)));
+                }
+                self.curr_process = Some(id);
+            }
+            // line -> End Id
+            CtxLine::V3 { end, id } => {
+                if !self.sync_first {
+                    match &self.curr_process {
+                        None => {
+                            self.abort = Terminate::Abort;
+                            self.log.add_error(format!("END but there was no open PROCESS:\n{}", self.annotate_text(&span)));
+                        }
+                        Some(p_id) => {
+                            if &id != p_id {
+                                self.abort = Terminate::Abort;
+                                self.log.add_error(
+                                    format!("the END ID '{id}' doesn't match the expected ID '{p_id}':\n{}", self.annotate_text(&span)));
+                            }
+                            self.curr_process = None;
+                        }
+                    }
+                }
+            }
+            // line -> "SHUTDOWN"
+            CtxLine::V4 => {
+                println!("SHUTDOWN!");
+                self.log.add_note(format!("encountered SHUTDOWN, parsing ended:\n{}", self.annotate_text(&span)));
+                self.abort = Terminate::Conclude;
+            }
+        }
+        SynLine()
     }
 
     fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) -> SynMessage {
-        todo!()
+        println!("exit_message(ctx={ctx:?}, spans={})", spans.iter().map(|s| s.to_string()).join(", "));
+        if !self.sync_first {
+            if self.curr_process.is_none() && !matches!(ctx, CtxMessage::V4 { .. }) {
+                let span = spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp);
+                self.log.add_error(format!("out-of-process message:\n{}", self.annotate_text(&span)));
+            } else {
+                let msg_opt = match ctx {
+                    CtxMessage::V1 { note, message } => Some(format!("{},N,{message}", self.curr_process.as_ref().unwrap())),
+                    CtxMessage::V2 { warning, message } => Some(format!("{},W,{message}", self.curr_process.as_ref().unwrap())),
+                    CtxMessage::V3 { error, message } => Some(format!("{},E,{message}", self.curr_process.as_ref().unwrap())),
+                    CtxMessage::V4 { header, message } => {
+                        self.log.add_error(format!("unknown message category '{header}':\n{}", self.annotate_text(&spans[0])));
+                        None
+                    }
+                };
+                if let Some(msg) = msg_opt {
+                    self.messages.push(msg);
+                }
+            }
+        }
+        SynMessage()
     }
 }
 
 //==============================================================================
 
 pub mod listener_terminate_types {
-    use lexigram_core::lexer::PosSpan;
-
     /// User-defined type for `log`
     #[derive(Debug, PartialEq)] pub struct SynLog();
     /// User-defined type for `<L> line` iteration in `log -> ( ►► <L> line ◄◄ )*`
@@ -192,17 +317,17 @@ pub mod terminate_lexer {
 
     const NBR_GROUPS: u32 = 23;
     const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 16;
-    const NBR_STATES: StateId = 50;
+    const FIRST_END_STATE: StateId = 20;
+    const NBR_STATES: StateId = 48;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         20,  20,  20,  20,  20,  20,  20,  20,  20,  14,   1,  20,  20,   2,  20,  20,   // 0-15
+         20,  20,  20,  20,  20,  20,  20,  20,  20,  16,   0,  20,  20,   1,  20,  20,   // 0-15
          20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,   // 16-31
-         14,  20,  20,   3,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,   // 32-47
+         16,  20,  20,   2,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,   // 32-47
          17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  18,  20,  20,  20,  20,  20,   // 48-63
-         20,  19,  16,   7,   8,   4,  16,  22,  15,  21,  16,  16,  16,  16,  12,   0,   // 64-79
-          5,  16,  13,   6,  10,   9,  16,  11,  16,  16,  16,  20,  20,  20,  20,  17,   // 80-95
-         20,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,   // 96-111
-         16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  20,  20,  20,  20,  20,   // 112-127
+         20,  19,  15,  10,  11,   3,  15,  22,   8,  21,  15,  15,  15,  15,   6,   9,   // 64-79
+          4,  15,   7,   5,  13,  12,  15,  14,  15,  15,  15,  20,  20,  20,  20,  17,   // 80-95
+         20,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 96-111
+         15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  20,  20,  20,  20,  20,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
@@ -210,94 +335,86 @@ pub mod terminate_lexer {
         (Seg(128, 55295), 20),
         (Seg(57344, 1114111), 20),
     ];
-    static TERMINAL_TABLE: [Terminal;34] = [
+    static TERMINAL_TABLE: [Terminal;28] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(1), mode_state: Some(12), pop: false },
-        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::Mode(2), mode_state: Some(13), pop: false },
-        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::Mode(2), mode_state: Some(13), pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(1), mode_state: Some(16), pop: false },
+        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::Mode(2), mode_state: Some(17), pop: false },
+        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::Mode(2), mode_state: Some(17), pop: false },
         Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
-        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(14), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
+        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(18), pop: false },
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
         Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
     ];
-    static STATE_TABLE: [StateId; 1151] = [
-         16,  17,  18,  19,  20,  21,  22,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16,  16, // state 0
-          2,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 1
-         50,  50,  50,  50,  50,  50,  50,   3,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 2
-         50,  50,  50,  50,   4,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 3
-         50,  50,  50,  50,  50,  50,   5,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 4
-         50,  50,  50,  50,  50,  50,  24,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 5
-         50,  50,  50,  50,  50,  50,  50,  50,  25,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 6
-         50,  50,  50,  50,  50,  50,  50,  50,  50,   8,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 7
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,   9,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 8
-         50,  50,  50,  50,  50,  50,  50,  50,  15,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 9
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  11,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 10
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  26,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 11
-         28,  50,  50,  50,  29,  28,  28,  28,  28,  28,  28,  31,  30,  28,  50,  28,  28,  50,  50,  28,  50,  28,  28, // state 12
-         48,  50,  50,  50,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  50,  48,  48,  50,  50,  48,  50,  48,  48, // state 13
-         49,  50,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49,  49, // state 14
-         10,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 15
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 16 <skip>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 17 <skip>
-         50,  50,  27,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 18 <skip>
-         50,  50,  50,  23,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 19 <skip>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,   6,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 20 <skip>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,   1,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 21 <skip>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,   7,  50,  50,  50,  50,  50,  50,  50, // state 22 <skip>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  23,  50,  50,  50,  50,  50,  50,  50,  50, // state 23 <skip,mode(1,state 12)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  24,  50,  50,  50,  50,  50,  50,  50,  50, // state 24 <end:0,mode(2,state 13)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  25,  50,  50,  50,  50,  50,  50,  50,  50, // state 25 <end:1,mode(2,state 13)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 26 <end:2>
-         50,  50,  27,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 27 <skip>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 28 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  43,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 29 <end:6,mode(3,state 14)>
-         32,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 30 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  36,  50,  28,  28, // state 31 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  33,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 32 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  34,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 33 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  35,  28,  50,  28,  28, // state 34 <end:6,mode(3,state 14)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  35,  50,  50,  50,  50,  50,  50,  50,  50, // state 35 <end:3,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  37,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 36 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  38,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 37 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  39,  28, // state 38 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  40,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 39 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  41, // state 40 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  42,  28,  50,  28,  28, // state 41 <end:6,mode(3,state 14)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  42,  50,  50,  50,  50,  50,  50,  50,  50, // state 42 <end:4,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  44,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 43 <end:6,mode(3,state 14)>
-         45,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 44 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  46,  50,  28,  28,  28,  50,  28,  50,  28,  28, // state 45 <end:6,mode(3,state 14)>
-         28,  50,  50,  50,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  50,  28,  28,  28,  47,  28,  50,  28,  28, // state 46 <end:6,mode(3,state 14)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  47,  50,  50,  50,  50,  50,  50,  50,  50, // state 47 <end:5,mode(3,state 14)>
-         48,  50,  50,  50,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  50,  48,  48,  48,  50,  48,  50,  48,  48, // state 48 <end:8,mode(0,state 0)>
-         50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50,  50, // state 49 <end:7,mode(0,state 0)>
-         50 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 1105] = [
+         20,  21,   1,   2,   3,   4,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 0
+         48,  48,  22,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 1
+         48,  48,  48,  48,  48,  48,  10,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 2
+         48,  48,  48,  48,  48,  48,  48,   5,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 3
+         48,  48,  48,  48,  48,  48,  48,  48,  11,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 4
+         48,  48,  48,  48,  48,  48,  48,  48,  48,   6,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 5
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,   7,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 6
+         48,  48,  48,   8,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 7
+         48,  48,  48,  48,  48,   9,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 8
+         48,  48,  48,  48,  48,  23,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 9
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  24,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 10
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  12,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 11
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 12
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  19,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 13
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  15,  48,  48,  48,  48,  48,  48,  48,  48, // state 14
+         48,  48,  48,  48,  48,  48,  25,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 15
+         48,  48,  48,  27,  26,  26,  28,  26,  26,  26,  26,  26,  26,  26,  29,  26,  48,  48,  48,  26,  48,  26,  26, // state 16
+         48,  48,  48,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  48,  48,  48,  46,  48,  46,  46, // state 17
+         48,  48,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47, // state 18
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  14,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 19
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 20 <skip>
+         48,  21,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 21 <skip>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  22,  48,  48,  48,  48,  48,  48, // state 22 <skip,mode(1,state 16)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  23,  48,  48,  48,  48,  48,  48, // state 23 <end:0,mode(2,state 17)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  24,  48,  48,  48,  48,  48,  48, // state 24 <end:1,mode(2,state 17)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 25 <end:2>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 26 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  41,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 27 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  30,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 28 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  34,  48,  26,  26, // state 29 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  31,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 30 <end:6,mode(3,state 18)>
+         48,  48,  48,  32,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 31 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  33,  26,  48,  26,  26, // state 32 <end:6,mode(3,state 18)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  33,  48,  48,  48,  48,  48,  48, // state 33 <end:3,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  35,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 34 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  36,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 35 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  37,  26, // state 36 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  38,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 37 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  39, // state 38 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  40,  26,  48,  26,  26, // state 39 <end:6,mode(3,state 18)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  40,  48,  48,  48,  48,  48,  48, // state 40 <end:4,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  42,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 41 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  43,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 42 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  44,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  48,  26,  48,  26,  26, // state 43 <end:6,mode(3,state 18)>
+         48,  48,  48,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  48,  26,  45,  26,  48,  26,  26, // state 44 <end:6,mode(3,state 18)>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  45,  48,  48,  48,  48,  48,  48, // state 45 <end:5,mode(3,state 18)>
+         48,  48,  48,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  46,  48,  46,  48,  46,  48,  46,  46, // state 46 <end:8,mode(0,state 0)>
+         48,  48,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47,  47, // state 47 <end:7,mode(0,state 0)>
+         48 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -320,11 +437,12 @@ pub mod terminate_lexer {
 }
 
 pub mod terminate_parser {
+    #![allow(unused)]
     // Generated code, don't modify manually anything between the tags below
 
     // [terminate_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_terminate_types::*;
 
     const PARSER_NUM_T: usize = 9;
@@ -419,12 +537,14 @@ pub mod terminate_parser {
     pub trait TerminateListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, log: SynLog, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
         fn init_log(&mut self) {}
         fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog;
         fn init_log_i(&mut self) -> SynLogI;
@@ -484,8 +604,15 @@ pub mod terminate_parser {
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
-                Call::End => {
-                    self.exit();
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_log();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -495,8 +622,14 @@ pub mod terminate_parser {
             }
         }
 
-        fn check_abort_request(&self) -> bool {
+        fn check_abort_request(&self) -> Terminate {
             self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -543,12 +676,6 @@ pub mod terminate_parser {
 
         pub fn set_verbose(&mut self, verbose: bool) {
             self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let log = self.stack.pop().unwrap().get_log();
-            let span = self.stack_span.pop().unwrap();
-            self.listener.exit(log, span);
         }
 
         fn exit_log(&mut self) {

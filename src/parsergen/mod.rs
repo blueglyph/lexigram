@@ -1571,9 +1571,10 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
-        static PARSER_LIBS: [&str; 7] = [
+        static PARSER_LIBS: [&str; 8] = [
             "::VarId", "::parser::Call", "::parser::ListenerWrapper",
-            "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan"
+            "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan",
+            "::parser::Terminate"
         ];
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
@@ -2217,7 +2218,7 @@ impl ParserGen {
         src.push(format!("pub trait {}Listener {{", self.name));
         src.push(format!("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from"));
         src.push(format!("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`."));
-        src.push(format!("    fn check_abort_request(&self) -> bool {{ false }}"));
+        src.push(format!("    fn check_abort_request(&self) -> Terminate {{ Terminate::None }}"));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
         let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
@@ -2235,6 +2236,8 @@ impl ParserGen {
         } else {
             src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
         }
+        src.push(format!("    #[allow(unused_variables)]"));
+        src.push(format!("    fn abort(&mut self, terminate: Terminate) {{}}"));
         /*
                               fn init_a(&mut self) {}
                               fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
@@ -2311,17 +2314,23 @@ impl ParserGen {
         src.push(format!("                    _ => panic!(\"unexpected exit alternative id: {{alt_id}}\")"));
         src.push(format!("                }}"));
         src.push(format!("            }}"));
-        src.push(format!("            Call::End => {{"));
+        src.push(format!("            Call::End(terminate) => {{"));
+        src.push(format!("                match terminate {{"));
+        src.push(format!("                    Terminate::None => {{"));
+        let mut args = vec![];
+        let (_nu, _nl, npl) = &nt_name[self.start as usize];
         if self.nt_value[self.start as usize] {
-            src.push(format!("                self.exit();"));
-        } else {
-            if self.gen_span_params {
-                src.push(format!("                let span = self.stack_span.pop().unwrap();"));
-                src.push(format!("                self.listener.exit(span);"));
-            } else {
-                src.push(format!("                self.listener.exit();"));
-            }
+            src.push(format!("                        let val = self.stack.pop().unwrap().get_{npl}();"));
+            args.push("val");
         }
+        if self.gen_span_params {
+            src.push(format!("                        let span = self.stack_span.pop().unwrap();"));
+            args.push("span");
+        }
+        src.push(format!("                        self.listener.exit({});", args.join(", ")));
+        src.push(format!("                    }}"));
+        src.push(format!("                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),"));
+        src.push(format!("                }}"));
         src.push(format!("            }}"));
         src.push(format!("        }}"));
         src.push(format!("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());"));
@@ -2331,8 +2340,16 @@ impl ParserGen {
         src.push(format!("        }}"));
         src.push(format!("    }}"));
         src.push(format!(""));
-        src.push(format!("    fn check_abort_request(&self) -> bool {{"));
+        src.push(format!("    fn check_abort_request(&self) -> Terminate {{"));
         src.push(format!("        self.listener.check_abort_request()"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    fn abort(&mut self) {{"));
+        src.push(format!("        self.stack.clear();"));
+        if self.gen_span_params {
+            src.push(format!("        self.stack_span.clear();"));
+        }
+        src.push(format!("        self.stack_t.clear();"));
         src.push(format!("    }}"));
         src.push(format!(""));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger {{"));
@@ -2396,17 +2413,6 @@ impl ParserGen {
         src.push(format!("    pub fn set_verbose(&mut self, verbose: bool) {{"));
         src.push(format!("        self.verbose = verbose;"));
         src.push(format!("    }}"));
-        if self.nt_value[self.start as usize] {
-            src.push(format!(""));
-            src.push(format!("    fn exit(&mut self) {{"));
-            let (_nu, nl, npl) = &nt_name[self.start as usize];
-            src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{npl}();"));
-            if self.gen_span_params {
-                src.push(format!("        let span = self.stack_span.pop().unwrap();"));
-            }
-            src.push(format!("        self.listener.exit({nl}{});", if self.gen_span_params { ", span" } else { "" }));
-            src.push(format!("    }}"));
-        }
 /*
                               impl<T: TestListener> ListenerWrapper<T> {
                                   fn exit(&mut self) {
