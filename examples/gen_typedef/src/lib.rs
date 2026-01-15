@@ -3,7 +3,7 @@
 // =============================================================================================
 // Generates the source of the typedef parser
 
-#![allow(unused)]
+#![cfg(test)]
 
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;

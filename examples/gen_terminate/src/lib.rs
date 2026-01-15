@@ -1,15 +1,14 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 // =============================================================================================
-// Generates the source of the typedef parser
+// Generates the source of the terminate parser
 
-#![allow(unused)]
+#![cfg(test)]
 
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexi_gram::options::{Action, OptionsBuilder};
 use lexigram_lib::log::LogStatus;
-use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_FILENAME: &str = "src/terminate.lg";
 static LEXICON_TAG: &str = "terminate_lexicon";
@@ -32,11 +31,6 @@ fn gen_terminate_source(action: Action) {
         .indent(PARSER_INDENT)
         .extra_libs([LIBS])
         .span_params(true)
-        // .set_nt_value(NTValue::SetNames(vec![
-        //     NTValue::PARENTS.to_string(),
-        //     "id_i".to_string()
-        // ]))
-        // .token_enums(true)
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {
@@ -49,7 +43,7 @@ fn gen_terminate_source(action: Action) {
     }
 }
 
-#[cfg(test)]
+
 mod tests {
     use super::*;
 
