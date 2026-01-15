@@ -9,7 +9,7 @@ use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::Parser;
+use lexigram_core::parser::{Parser, Terminate};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
@@ -205,7 +205,7 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
 
 struct PanDemoListener<'ls> {
     log: BufLog,
-    abort: bool,
+    abort: Terminate,
     spans: Vec<String>,
     lines: Option<Vec<&'ls str>>,
 }
@@ -214,7 +214,7 @@ impl<'ls> PanDemoListener<'ls> {
     fn new() -> Self {
         PanDemoListener {
             log: BufLog::new(),
-            abort: false,
+            abort: Terminate::None,
             spans: vec![],
             lines: None,
         }
@@ -233,7 +233,7 @@ impl GetLine for PanDemoListener<'_> {
 
 #[allow(unused)]
 impl PandemoniumListener for PanDemoListener<'_> {
-    fn check_abort_request(&self) -> bool {
+    fn check_abort_request(&self) -> Terminate {
         self.abort
     }
 
@@ -684,7 +684,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 27;
@@ -1018,12 +1018,14 @@ pub mod pandemonium_parser {
     pub trait PandemoniumListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, text: SynText, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
         fn init_text(&mut self) {}
         fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText;
         fn init_i(&mut self) {}
@@ -1225,8 +1227,15 @@ pub mod pandemonium_parser {
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
-                Call::End => {
-                    self.exit();
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_text();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -1236,8 +1245,14 @@ pub mod pandemonium_parser {
             }
         }
 
-        fn check_abort_request(&self) -> bool {
+        fn check_abort_request(&self) -> Terminate {
             self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1284,12 +1299,6 @@ pub mod pandemonium_parser {
 
         pub fn set_verbose(&mut self, verbose: bool) {
             self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let text = self.stack.pop().unwrap().get_text();
-            let span = self.stack_span.pop().unwrap();
-            self.listener.exit(text, span);
         }
 
         fn exit_text(&mut self) {

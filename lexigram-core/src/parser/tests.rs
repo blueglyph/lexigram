@@ -184,7 +184,7 @@ const VERBOSE: bool = false;
 mod wrapper {
     use std::collections::HashMap;
     use std::str::FromStr;
-    use crate::parser::{Call, ListenerWrapper};
+    use crate::parser::{Call, ListenerWrapper, Terminate};
     use crate::{AltId, CollectJoin, VarId};
     use crate::fixed_sym_table::FixedSymTable;
     use crate::lexer::PosSpan;
@@ -353,8 +353,8 @@ mod wrapper {
             }
         }
 
-        fn check_abort_request(&self) -> bool {
-            false
+        fn check_abort_request(&self) -> Terminate {
+            Terminate::None
         }
 
         fn abort(&mut self) {

@@ -404,7 +404,7 @@ pub mod typedef_match_parser {
 
     // [typedef_match_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_match_types::*;
 
     const PARSER_NUM_T: usize = 10;
@@ -560,12 +560,14 @@ pub mod typedef_match_parser {
     pub trait TypedefListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
         fn init_program(&mut self) {}
         fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
         fn init_stmt_i(&mut self) {}
@@ -643,8 +645,15 @@ pub mod typedef_match_parser {
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
-                Call::End => {
-                    self.exit();
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_program();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -654,8 +663,14 @@ pub mod typedef_match_parser {
             }
         }
 
-        fn check_abort_request(&self) -> bool {
+        fn check_abort_request(&self) -> Terminate {
             self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -702,12 +717,6 @@ pub mod typedef_match_parser {
 
         pub fn set_verbose(&mut self, verbose: bool) {
             self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let program = self.stack.pop().unwrap().get_program();
-            let span = self.stack_span.pop().unwrap();
-            self.listener.exit(program, span);
         }
 
         fn exit_program(&mut self) {
