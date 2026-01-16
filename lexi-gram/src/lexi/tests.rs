@@ -98,6 +98,10 @@ const TXT5: &str = r#"
     fragment Y1: 'jkl';
     B: 'q' -> mode(DEFAULT_MODE);
     A: 'r' -> skip;
+
+    grammar E;
+
+    other things that shouldn't be scanned or parsed <>
 "#;
 
 const TXT6: &str = r#"
@@ -111,6 +115,9 @@ const TXT6: &str = r#"
     (Return);
     Return2: '=' -> type(Return);
     Id: [a-zA-Z][a-zA-Z_0-9]* -> hook;
+
+    grammar F;
+    top: Test1 | End | If Id;
 "#;
 
 /// Returns the set of characters that are valid at the given lexer state.
@@ -185,7 +192,7 @@ mod simple {
     use lexigram_lib::build::{BuildFrom, BuildInto};
     use lexigram_lib::dfa::{tree_to_string, ReType};
     use lexigram_lib::char_reader::CharReader;
-    use lexigram_lib::lexer::{ActionOption, LexerError};
+    use lexigram_lib::lexer::{ActionOption, LexerError, Pos};
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
     use lexigram_lib::log::{LogReader, LogStatus};
@@ -279,7 +286,8 @@ mod simple {
                         (0, 11, "l:l123."), (0, 11, "l:l1200"), (0, 11, "l:l120."), (0, 12, "m:m1")
                     ]
                 )
-            ]
+            ],
+                None,
             ),
             (
                 TXT2, vec![],
@@ -326,7 +334,8 @@ mod simple {
                     "<a@1,b@my_b_1>",
                     vec![(0, 0, "a"), (1, 1, "@1"), (0, 0, "b"), (1, 1, "@my_b_1")]
                 )
-                ]
+                ],
+                None,
             ),
             (
                 TXT3, vec![],
@@ -342,7 +351,8 @@ mod simple {
                     4 => branch!('a'-'z' => 4), // <end:1>
                 ], btreemap![
                     1 => term!(=1), 2 => term!(=0), 3 => term!(=2), 4 => term!(=1)
-                ], vec![]
+                ], vec![],
+                None,
             ),
             (
                 TXT4, vec![],
@@ -361,7 +371,8 @@ mod simple {
                     6 => branch!(), // <end:3>
                 ], btreemap![
                     1 => term!(=1), 2 => term!(=0), 3 => term!(skip), 4 => term!(=1), 5 => term!(=2), 6 => term!(=3)
-                ], vec![]
+                ], vec![],
+                None,
             ),
             (
                 TXT5, vec![],
@@ -404,7 +415,8 @@ mod simple {
                     8 => term!(=3), 9 => term!(=4), 10 => term!(skip) + term!(mode 1) + term!(pushst 1), 11 => term!(=8),
                     12 => term!(=6), 13 => term!(=7), 14 => term!(=5), 15 => term!(=6), 16 => term!(=9), 17 => term!(=11),
                     18 => term!(=10) + term!(mode 0) + term!(pushst 0), 19 => term!(skip)
-                ], vec![]
+                ], vec![],
+                Some(Pos(28, 5)),
             ),
             (
                 TXT6, vec![0, 1, 3, 4, 6],
@@ -427,7 +439,8 @@ mod simple {
                 ], btreemap![
                     1 => term!(=5), 2 => term!(=4), 3 => term!(=6), 4 => term!(=6),
                     5 => term!(=6), 6 => term!(=2)
-                ], vec![]
+                ], vec![],
+                Some(Pos(13, 5))
             ),
             (
                 r#"lexicon test14;
@@ -456,16 +469,20 @@ mod simple {
                     5 => term!(=3) + term!(mode 0) + term!(pushst 0), 6 => term!(=2) + term!(mode 0) + term!(pushst 0)
                 ],
                 vec![("a\nb\n", vec![(0, 0, "a"), (0, 3, "\n"), (0, 1, "b"), (0, 2, "\n")])],
+                None,
             ),
         ];
         const VERBOSE: bool = false;
 
-        for (test_id, (input, expected_hooks, expected_terminals, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
+        for (test_id, (input, expected_hooks, expected_terminals, expected_graph, expected_end_states, test_strs, expected_pos_grammar))
+        in tests.into_iter().enumerate()
+        {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(input.as_bytes());
             let mut lexi = Lexi::new(stream);
             lexi.make();
             let listener = lexi.get_listener();
+            let result_pos_grammar = listener.get_pos_grammar();
             let result_is_ok = listener.get_log().has_no_errors();
             if VERBOSE {
                 if !listener.get_log().is_empty() {
@@ -473,7 +490,7 @@ mod simple {
                 }
             }
             let text = format!("test {test_id} failed");
-            assert!(result_is_ok, "{text}");
+            assert!(result_is_ok, "{text}\n{}", listener.get_log());
             if VERBOSE {
                 println!("Rules:");
                 let mut rules = listener.rules.iter().to_vec();
@@ -510,8 +527,9 @@ mod simple {
                 println!("Final optimized Dfa:");
                 dfa.print(20);
             }
-            assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
-            assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
+            assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}: mismatch DFA state graph");
+            assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}: mismatch DFA end states");
+            assert_eq!(result_pos_grammar, expected_pos_grammar, "{text}: mismatch grammar start position");
 
             let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
             let mut lexer = lexer_tables.make_lexer();

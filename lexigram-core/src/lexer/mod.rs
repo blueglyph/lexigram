@@ -192,6 +192,32 @@ impl Pos {
     pub fn col(&self) -> CaretCol {
         self.1
     }
+
+    pub fn update_pos(&mut self, c: char, tab_width: CaretCol) {
+        match c {
+            '\t' => {
+                //            ↓       ↓    (if self.tab_width = 8)
+                //    1234567890123456789
+                // 1) ..↑                  col = 3
+                //    ..→→→→→→↑            col = 3 - 2%8 + 8 = 3 - 2 + 8 = 9
+                // 2) .............↑       col = 14
+                //    .............→→→↑    col = 14 - 13%8 + 8 = 14 - 5 + 8 = 17
+                self.1 = self.1 - (self.1 - 1) % tab_width + tab_width;
+            }
+            '\n' => {
+                self.0 += 1;
+                self.1 = 1;
+            }
+            '\r' => {}
+            _ => self.1 += 1,
+        }
+    }
+}
+
+impl Display for Pos {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.0, self.1)
+    }
 }
 
 /// `PosSpan` defines a text selection where `first` and `last` are the [position](Pos) of the first and last character.
@@ -294,11 +320,11 @@ impl Display for PosSpan {
         if self.is_not_empty() {
             let (first, last) = (&self.first, &self.last);
             if first == last {
-                write!(f, "{}:{}", first.0, first.1)
+                write!(f, "{first}")
             } else if first.0 == last.0 {
-                write!(f, "{}:{}-{}", first.0, first.1, last.1)
+                write!(f, "{first}-{}", last.1)
             } else {
-                write!(f, "{}:{}-{}:{}", first.0, first.1, last.0, last.1)
+                write!(f, "{first}-{last}")
             }
         } else {
             write!(f, "<empty>")
@@ -386,9 +412,8 @@ pub struct Lexer<'a, R> {
     pub(crate) error: LexerError,
     pub(crate) is_eos: bool,
     pub(crate) pos: u64,
-    pub(crate) line: CaretLine,
-    pub(crate) col: CaretCol,
-    pub(crate) tab_width: u8,
+    pub(crate) cursor: Pos,
+    pub(crate) tab_width: CaretCol,
     pub(crate) state_stack: Vec<StateId>,
     pub(crate) start_state: StateId,
     // parameters
@@ -423,8 +448,7 @@ impl<'a, R: Read> Lexer<'a, R> {
             error: LexerError::None,
             is_eos: false,
             pos: 0,
-            line: 1,
-            col: 1,
+            cursor: Pos(1, 1),
             tab_width: 4,
             state_stack: Vec::new(),
             start_state: 0,
@@ -444,8 +468,7 @@ impl<'a, R: Read> Lexer<'a, R> {
         self.input = Some(input);
         self.is_eos = false;
         self.pos = 0;
-        self.line = 1;
-        self.col = 1;
+        self.cursor = Pos(1, 1);
         self.state_stack.clear();
         self.start_state = self.initial_state;
     }
@@ -455,11 +478,11 @@ impl<'a, R: Read> Lexer<'a, R> {
         self.input.take()
     }
 
-    pub fn set_tab_width(&mut self, width: u8) {
+    pub fn set_tab_width(&mut self, width: CaretCol) {
         self.tab_width = width;
     }
 
-    pub fn get_tab_width(&self) -> u8 {
+    pub fn get_tab_width(&self) -> CaretCol {
         self.tab_width
     }
 
@@ -519,7 +542,7 @@ impl<'a, R: Read> Lexer<'a, R> {
         // if let Some(input) = self.input.as_mut() {
         if self.input.is_some() {
             let mut state = self.start_state;
-            let mut first_pos = Pos(self.line, self.col);
+            let mut first_pos = self.cursor;
             let mut last_pos = first_pos;
             #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
             #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
@@ -562,8 +585,8 @@ impl<'a, R: Read> Lexer<'a, R> {
                                 self.error = LexerError::EmptyStateStack {
                                     info: LexerErrorInfo {
                                         pos: self.pos,
-                                        line: self.line,
-                                        col: self.col,
+                                        line: self.cursor.line(),
+                                        col: self.cursor.col(),
                                         curr_char: c_opt,
                                         group,
                                         state,
@@ -588,7 +611,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                             return Ok(Some((token.clone(), terminal.channel, more_text + &text, PosSpan::new(first_pos, last_pos))));
                         }
                         if !terminal.action.is_more() {
-                            first_pos = Pos(self.line, self.col);
+                            first_pos = self.cursor;
                         }
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => {}, state {}", terminal.action, self.start_state); }
@@ -606,8 +629,8 @@ impl<'a, R: Read> Lexer<'a, R> {
                     }
                     let info = LexerErrorInfo {
                         pos: self.pos,
-                        line: self.line,
-                        col: self.col,
+                        line: self.cursor.line(),
+                        col: self.cursor.col(),
                         curr_char: c_opt,
                         group,
                         state,
@@ -627,7 +650,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                     if VERBOSE { println!(" => Err({})", self.error); }
                     return Err(self.error.clone());
                 } else {
-                    last_pos = Pos(self.line, self.col);
+                    last_pos = self.cursor;
                     if let Some(c) = c_opt {
                         text.push(c);
                         self.update_pos(c);
@@ -643,23 +666,7 @@ impl<'a, R: Read> Lexer<'a, R> {
     }
 
     pub fn update_pos(&mut self, c: char) {
-        match c {
-            '\t' => {
-                //            ↓       ↓    (if self.tab_width = 8)
-                //    1234567890123456789
-                // 1) ..↑                  col = 3
-                //    ..→→→→→→↑            col = 3 - 2%8 + 8 = 3 - 2 + 8 = 9
-                // 2) .............↑       col = 14
-                //    .............→→→↑    col = 14 - 13%8 + 8 = 14 - 5 + 8 = 17
-                self.col = self.col - (self.col - 1) % self.tab_width as CaretCol + self.tab_width as CaretCol;
-            }
-            '\n' => {
-                self.line += 1;
-                self.col = 1;
-            }
-            '\r' => {}
-            _ => self.col += 1,
-        }
+        self.cursor.update_pos(c, self.tab_width);
         self.pos += 1;
     }
 

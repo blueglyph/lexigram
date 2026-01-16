@@ -23,6 +23,8 @@ rule:
 |   rule_terminal_name Colon match (Arrow actions)? Semicolon
     // only reserve the token, but doesn't add a rule to scan it:
 |   Lparen rule_terminal_name Rparen opt_str_lit (Arrow Hook)? Semicolon
+    // "grammar" Id ";" => start of grammar section
+|   rule_terminal_name Id Semicolon
 ;
 
 opt_str_lit:

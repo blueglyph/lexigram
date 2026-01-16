@@ -3,7 +3,7 @@
 use std::io::Read;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::char_reader::CharReader;
-use lexigram_lib::lexer::{Lexer, TokenSpliterator};
+use lexigram_lib::lexer::{CaretCol, Lexer, Pos, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto, TryBuildFrom};
 use lexigram_lib::parser::Parser;
@@ -23,6 +23,7 @@ pub struct SymbolicDfa {
     pub dfa: Dfa<Normalized>,
     pub symbol_table: SymbolTable,
     pub terminal_hooks: Vec<TokenId>,
+    pub pos_grammar_opt: Option<Pos>,
 }
 
 pub struct Lexi<'a, 'b, R: Read> {
@@ -36,13 +37,14 @@ impl<R: Read> Lexi<'_, '_, R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
+    pub const TAB_WIDTH: CaretCol = 4;
 
     pub fn new(lexicon: CharReader<R>) -> Self {
         let listener = LexiListener::new();
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
-        lexilexer.set_tab_width(4);
+        lexilexer.set_tab_width(Self::TAB_WIDTH);
         lexilexer.attach_stream(lexicon);
         Lexi {
             lexilexer,
@@ -58,6 +60,10 @@ impl<R: Read> Lexi<'_, '_, R> {
 
     pub fn get_listener(&self) -> &LexiListener {
         self.wrapper.get_listener()
+    }
+
+    pub fn get_tab_width(&self) -> CaretCol {
+        Self::TAB_WIDTH
     }
 
     fn make(&mut self) {
@@ -103,10 +109,12 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
         let listener = lexi.wrapper.give_listener();
         let symbol_table = listener.make_symbol_table();
         let terminal_hooks = listener.terminal_hooks.clone();
+        let pos_grammar_opt = listener.get_pos_grammar();
         SymbolicDfa {
             dfa: listener.build_into(),
             symbol_table,
-            terminal_hooks
+            terminal_hooks,
+            pos_grammar_opt,
         }
     }
 }

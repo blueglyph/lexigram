@@ -19,7 +19,8 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
-    let SymbolicDfa { dfa, symbol_table, terminal_hooks } = lexi.build_into();
+    let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.build_into();
+    assert_eq!(pos_grammar_opt, None, "grammar detected in Gram's lexicon at {}", pos_grammar_opt.unwrap());
     if !dfa.get_log().has_no_errors() {
         return Err(dfa.give_log());
     }

@@ -16,6 +16,7 @@ pub enum BuildErrorSource {
     ProdRuleSet,
     ParserGen,
     Gram,
+    Lexigram,
 }
 
 #[derive(Debug)]

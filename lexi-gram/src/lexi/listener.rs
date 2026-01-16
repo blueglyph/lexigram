@@ -11,7 +11,7 @@ use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundl
 use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
-use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, PosSpan, Terminal};
+use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Pos, PosSpan, Terminal};
 use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
 use crate::action;
@@ -162,6 +162,8 @@ pub struct LexiListener {
     mode_terminals: Vec<Option<Range<TokenId>>>,
     log: BufLog,
     abort: Terminate,
+    /// Starting position of `"grammar" Id ";"`, if detected
+    pos_grammar_opt: Option<Pos>,
 }
 
 impl LexiListener {
@@ -209,6 +211,7 @@ impl LexiListener {
             mode_terminals: vec![Some(0..0)],
             log: BufLog::new(),
             abort: Terminate::None,
+            pos_grammar_opt: None,
         }
     }
 
@@ -218,6 +221,10 @@ impl LexiListener {
 
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn get_pos_grammar(&self) -> Option<Pos> {
+        self.pos_grammar_opt.clone()
     }
 
     fn get_sorted_modes(&self) -> Vec<(ModeId, &str)> {
@@ -379,99 +386,10 @@ impl LexiListener {
             }
         }
     }
-}
 
-impl LogReader for LexiListener {
-    type Item = BufLog;
-
-    fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    fn give_log(self) -> BufLog {
-        self.log
-    }
-}
-
-impl BuildFrom<LexiListener> for Dfa<Normalized> {
-    /// Makes and optimizes the DFA
-    fn build_from(source: LexiListener) -> Self {
-        const VERBOSE: bool = false;
-        if !source.log.has_no_errors() {
-            // if there are errors, we bypass any processing and return a shell containing the log
-            return Dfa::<Normalized>::with_log(source.log);
-        }
-        let num_t = source.terminals.len();
-        let mut names = vec![String::new(); num_t];
-        for (s, r) in &source.rules {
-            if let RuleType::Terminal(token) = r {
-                names[*token as usize] = s.clone();
-            }
-        }
-        let mut dfas = vec![];
-        let sorted_modes = source.get_sorted_modes();
-        for (mode_id, mode_name) in sorted_modes {
-            if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
-            let range = source.mode_terminals[mode_id as usize].as_ref().unwrap();
-            if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
-            let range = range.start as usize..range.end as usize;
-            let mut tree = VecTree::<ReNode>::new();
-            let top = tree.add_root(node!(|));
-            for (i, t) in source.terminals[range].iter().enumerate() {
-                if VERBOSE { println!("- adding tree for terminal {i}: {t:?}"); }
-                if !t.is_empty() {
-                    let cc = tree.add(Some(top), node!(&));
-                    tree.add_from_tree(Some(cc), t, None);
-                }
-            }
-            if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
-            let dfa_builder = DfaBuilder::build_from(tree);
-            assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
-            dfas.push((mode_id, Dfa::<General>::build_from(dfa_builder)));
-            if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
-        }
-        if VERBOSE { println!("merging dfa modes"); }
-        let log = source.log;
-        let dfa = Dfa::<General>::build_from(DfaBundle::with_log(log, dfas));
-        dfa.optimize()
-    }
-}
-
-impl Debug for LexiListener {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "LexiListener {{")?;
-        writeln!(f, "  name = {}", self.name)?;
-        writeln!(f, "  curr = {}", self.curr.as_ref().map(|t| tree_to_string(t, None, true)).unwrap_or(String::new()))?;
-        writeln!(f, "  curr_mode = {}", self.curr_mode)?;
-        writeln!(f, "  rules: {}\n{}", self.rules.len(), self.rules_to_string(4))?;
-        writeln!(f, "  fragments: {}", self.fragments.len())?;
-        writeln!(f, "  fragment_literals: {}", self.fragment_literals.len())?;
-        writeln!(f, "  terminals: {}", self.terminals.len())?;
-        writeln!(f, "  terminal_literals: {}", self.terminal_literals.len())?;
-        writeln!(f, "  terminal_ret: {}", self.terminal_ret.len())?;
-        writeln!(f, "  terminal_reserved: {}", self.terminal_reserved.iter().map(|s| s.to_string()).join(", "))?;
-        let mut bremap = BTreeMap::<TokenId, TokenId>::new();
-        bremap.extend(self.terminal_remap.iter().map(|(a, b)| (*a, *b)));
-        let s = bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", ");
-        writeln!(f, "  terminal_remap: {s}")?;
-        writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
-        writeln!(f, "}}")
-    }
-}
-
-impl LexiParserListener for LexiListener {
-    fn check_abort_request(&self) -> Terminate {
-        self.abort
-    }
-
-    fn get_mut_log(&mut self) -> &mut impl Logger {
-        &mut self.log
-    }
-
-    fn exit_file(&mut self, _ctx: CtxFile, _spans: Vec<PosSpan>) -> SynFile {
+    fn post_process(&mut self) {
         if self.verbose {
-            println!("- exit_file({_ctx:?})");
-            println!("terminal_reserved: {:?}", self.terminal_reserved);
+            println!("post_process: terminal_reserved = {:?}", self.terminal_reserved);
         }
         for id in &self.terminal_reserved {
             let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(id) else { panic!("cannot find reserved {id}") };
@@ -550,6 +468,109 @@ impl LexiParserListener for LexiListener {
         for warn in mode_warnings {
             self.log.add_warning(warn);
         }
+    }
+}
+
+impl LogReader for LexiListener {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    fn give_log(self) -> BufLog {
+        self.log
+    }
+}
+
+impl BuildFrom<LexiListener> for Dfa<Normalized> {
+    /// Makes and optimizes the DFA
+    fn build_from(source: LexiListener) -> Self {
+        const VERBOSE: bool = false;
+        if !source.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(source.log);
+        }
+        let num_t = source.terminals.len();
+        let mut names = vec![String::new(); num_t];
+        for (s, r) in &source.rules {
+            if let RuleType::Terminal(token) = r {
+                names[*token as usize] = s.clone();
+            }
+        }
+        let mut dfas = vec![];
+        let sorted_modes = source.get_sorted_modes();
+        for (mode_id, mode_name) in sorted_modes {
+            if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
+            let range = source.mode_terminals[mode_id as usize].as_ref().unwrap();
+            if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
+            let range = range.start as usize..range.end as usize;
+            let mut tree = VecTree::<ReNode>::new();
+            let top = tree.add_root(node!(|));
+            for (i, t) in source.terminals[range].iter().enumerate() {
+                if VERBOSE { println!("- adding tree for terminal {i}: {t:?}"); }
+                if !t.is_empty() {
+                    let cc = tree.add(Some(top), node!(&));
+                    tree.add_from_tree(Some(cc), t, None);
+                }
+            }
+            if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
+            let dfa_builder = DfaBuilder::build_from(tree);
+            assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
+            dfas.push((mode_id, Dfa::<General>::build_from(dfa_builder)));
+            if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
+        }
+        if VERBOSE { println!("merging dfa modes"); }
+        let log = source.log;
+        let dfa = Dfa::<General>::build_from(DfaBundle::with_log(log, dfas));
+        dfa.optimize()
+    }
+}
+
+impl Debug for LexiListener {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "LexiListener {{")?;
+        writeln!(f, "  name = {}", self.name)?;
+        writeln!(f, "  curr = {}", self.curr.as_ref().map(|t| tree_to_string(t, None, true)).unwrap_or(String::new()))?;
+        writeln!(f, "  curr_mode = {}", self.curr_mode)?;
+        writeln!(f, "  rules: {}\n{}", self.rules.len(), self.rules_to_string(4))?;
+        writeln!(f, "  fragments: {}", self.fragments.len())?;
+        writeln!(f, "  fragment_literals: {}", self.fragment_literals.len())?;
+        writeln!(f, "  terminals: {}", self.terminals.len())?;
+        writeln!(f, "  terminal_literals: {}", self.terminal_literals.len())?;
+        writeln!(f, "  terminal_ret: {}", self.terminal_ret.len())?;
+        writeln!(f, "  terminal_reserved: {}", self.terminal_reserved.iter().map(|s| s.to_string()).join(", "))?;
+        let mut bremap = BTreeMap::<TokenId, TokenId>::new();
+        bremap.extend(self.terminal_remap.iter().map(|(a, b)| (*a, *b)));
+        let s = bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", ");
+        writeln!(f, "  terminal_remap: {s}")?;
+        writeln!(f, "  log:\n{}", self.log)?;
+        writeln!(f, "  abort: {:?}", self.abort)?;
+        writeln!(f, "  pos_grammar_opt: {:?}", self.pos_grammar_opt)?;
+        writeln!(f, "}}")
+    }
+}
+
+impl LexiParserListener for LexiListener {
+    fn check_abort_request(&self) -> Terminate {
+        self.abort
+    }
+
+    fn get_mut_log(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit(&mut self, _file: SynFile, _span: PosSpan) {
+        self.post_process();
+    }
+
+    fn abort(&mut self, terminate: Terminate) {
+        if terminate == Terminate::Conclude {
+            self.post_process();
+        }
+    }
+
+    fn exit_file(&mut self, _ctx: CtxFile, _spans: Vec<PosSpan>) -> SynFile {
         SynFile()
     }
 
@@ -593,7 +614,7 @@ impl LexiParserListener for LexiListener {
         SynOption()
     }
 
-    fn exit_rule(&mut self, ctx: CtxRule, _spans: Vec<PosSpan>) -> SynRule {
+    fn exit_rule(&mut self, ctx: CtxRule, spans: Vec<PosSpan>) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
         let (id, rule_type, action_maybe, const_literal, reserve_only) = match ctx {
             // `rule -> rule_fragment_name ":" match ";"`
@@ -620,6 +641,18 @@ impl LexiParserListener for LexiListener {
             CtxRule::V5 { rule_terminal_name: SynRuleTerminalName(id), opt_str_lit: SynOptStrLit(opt_str) } => {
                 let rule_id = self.add_terminal_or_abort();
                 (id, RuleType::Terminal(rule_id), None, opt_str, true)
+            }
+            CtxRule::V6 { rule_terminal_name: SynRuleTerminalName(token), id } => {
+                if token != "grammar" {
+                    let PosSpan { first: Pos(line, col), .. } = &spans[1];
+                    self.log.add_error(format!("syntax error: found input '{id}' instead of ':', line {line}, col {col}", ))
+                } else {
+                    let PosSpan { first, .. } = &spans[0];
+                    self.log.add_note(format!("detected grammar beginning at line {}, col {}", first.0, first.1));
+                    self.pos_grammar_opt = Some(*first);
+                    self.abort = Terminate::Conclude;
+                }
+                return SynRule();
             }
         };
         if self.abort != Terminate::None { return SynRule() }

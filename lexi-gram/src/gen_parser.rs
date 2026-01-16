@@ -6,14 +6,15 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Cursor;
-use lexigram_lib::build::{BuildError, TryBuildFrom, TryBuildInto};
+use lexigram_lib::build::{BuildError, BuildErrorSource, TryBuildFrom, TryBuildInto};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::{file_utils, LL1};
-use lexigram_lib::log::BufLog;
+use lexigram_lib::log::{BufLog, LogReader, Logger};
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::file_utils::{DiffResult, SrcTagError};
+use lexigram_lib::lexer::Pos;
 use crate::{Gram, Lexi};
 use crate::lexi::SymbolicDfa;
 use crate::options::{Action, Options};
@@ -30,11 +31,12 @@ use crate::options::{Action, Options};
 pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
     // 1. Lexer
 
-    let lexicon_stream = CharReader::new(Cursor::new(lexicon));
+    let lexicon_stream = CharReader::new(Cursor::new(&lexicon));
     let lexi = Lexi::new(lexicon_stream);
+    let lexi_tab_width = lexi.get_tab_width();
 
     // - reads the lexicon and builds the DFA
-    let SymbolicDfa { dfa, symbol_table, terminal_hooks } = lexi.try_build_into()?;
+    let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.try_build_into()?;
 
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
@@ -42,16 +44,38 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     lexgen.extend_headers(&options.lexer_headers);
     lexgen.set_crate(options.lib_crate.clone());
 
+    if pos_grammar_opt.is_some() && grammar_opt.is_some() {
+        // conflict of two grammar locations
+        let mut log = lexgen.give_log();
+        log.add_error("conflict: grammar detected in lexicon and another grammar given explicitly".to_string());
+        return Err(BuildError::new(log, BuildErrorSource::Lexigram));
+    }
+
     // - writes the source code between existing tags:
     let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
     // 2. Parser
 
-    let parser_source = if let Some(grammar) = grammar_opt {
-        // let file = File::open(GRAMMAR_FILENAME)
-        //     .expect(&format!("couldn't open lexicon file {GRAMMAR_FILENAME}"));
-        // let grammar_stream = CharReader::new(BufReader::new(file));
-        let grammar_stream = CharReader::new(Cursor::new(grammar));
+    let parser_source = if grammar_opt.is_some() || pos_grammar_opt.is_some() {
+        let grammar_stream = if let Some(grammar) = grammar_opt {
+            CharReader::new(Cursor::new(grammar))
+        } else if let Some(pos_grammar) = pos_grammar_opt {
+            // if we carried the absolute position to the listener, we could avoid
+            // seeking the cursor position again, but we have the line/col only:
+            let mut cr = CharReader::new(Cursor::new(lexicon));
+            let mut pos = Pos(1, 1);
+            let mut char_opt = None;
+            while pos != pos_grammar {
+                char_opt = Some(cr.get_char().expect("cannot find the position of the grammar in the lexicon"));
+                pos.update_pos(char_opt.unwrap(), lexi_tab_width);
+            }
+            if let Some(ch) = char_opt {
+                cr.rewind(ch).expect("couldn't rewind the first character of the grammar");
+            }
+            cr
+        } else {
+            panic!("shouldn't happen");
+        };
 
         // - parses the grammar
         let gram = Gram::new(symbol_table, grammar_stream);
