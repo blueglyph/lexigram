@@ -138,7 +138,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     }
 }
 
-pub fn write_lexiparser() {
+pub fn write_lexiparser_source() {
     let (log, result_src) = lexiparser_source(0, true)
         .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
         .unwrap();
@@ -153,7 +153,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
         let (log, result_src) = lexiparser_source(0, VERBOSE)
             .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
@@ -168,6 +168,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_lexiparser();
+        write_lexiparser_source();
     }
 }

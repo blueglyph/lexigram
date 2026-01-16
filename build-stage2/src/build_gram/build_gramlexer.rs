@@ -119,7 +119,7 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     }
 }
 
-pub fn write_gramlexer() {
+pub fn write_gramlexer_source() {
     let (log, result_src) = gramlexer_source(0, true)
         .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
         .unwrap();
@@ -134,7 +134,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
 
         let (log, result_src) = gramlexer_source(0, VERBOSE)
@@ -150,6 +150,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_gramlexer();
+        write_gramlexer_source();
     }
 }

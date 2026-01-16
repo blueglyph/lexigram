@@ -22,7 +22,7 @@ fn read_lexicon_grammar() -> (String, String) {
 /// (Re)generates the initial content
 #[ignore]
 #[test]
-fn gen_init_content() {
+fn write_init_content() {
     test1::gen_init_file_to_file();
     test2::gen_init_string_to_tag();
     test3::gen_init_tag_to_tag();
@@ -703,7 +703,7 @@ mod gen_test_lexer {
 
     #[ignore]
     #[test]
-    fn gen_lexer1() {
+    fn write_lexer1() {
         match action(Action::Generate) {
             Ok(log) => {
                 println!("Successful:\n{log}");
@@ -774,7 +774,7 @@ mod gen_test_parser {
 
     #[ignore]
     #[test]
-    fn gen_parser() {
+    fn write_parser() {
         match action(Action::Generate) {
             Ok(log) => {
                 println!("Successful:\n{log}");

@@ -67,7 +67,7 @@ fn get_versions() -> String {
             crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
 }
 
-pub fn write_gramparser() {
+pub fn write_gramparser_source() {
     let (log, result_src) = gramparser_source(GRAMPARSER_GRAMMAR, true)
         .inspect_err(|e| panic!("Failed to parse grammar:\n{e}"))
         .unwrap();
@@ -85,7 +85,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
         let (log, result_src) = gramparser_source(GRAMPARSER_GRAMMAR, VERBOSE)
             .inspect_err(|e| panic!("Failed to parse grammar:\n{e}"))
@@ -103,6 +103,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_gramparser();
+        write_gramparser_source();
     }
 }

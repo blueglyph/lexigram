@@ -46,7 +46,7 @@ fn get_versions() -> String {
             crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
 }
 
-pub fn write_lexilexer() {
+pub fn write_lexilexer_source() {
     let (log, result_sym, result_src, result_hooks) = lexilexer_source(LEXILEXER_LEXICON, true)
         .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
         .unwrap();
@@ -70,7 +70,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
 
         let (log, result_sym, result_src, result_hooks) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
@@ -95,6 +95,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_lexilexer();
+        write_lexilexer_source();
     }
 }

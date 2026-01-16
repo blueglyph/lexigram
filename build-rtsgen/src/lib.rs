@@ -18,7 +18,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn gen_source(action: Action) {
+fn write_rtsgen_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -42,14 +42,14 @@ fn gen_source(action: Action) {
 mod tests {
     use super::*;
 
-    #[ignore]
     #[test]
-    fn test_gen_source() {
-        gen_source(Action::Generate);
+    fn check_source() {
+        write_rtsgen_source(Action::Verify);
     }
 
+    #[ignore]
     #[test]
-    fn test_check_source() {
-        gen_source(Action::Verify);
+    fn write_source() {
+        write_rtsgen_source(Action::Generate);
     }
 }

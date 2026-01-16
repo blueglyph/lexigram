@@ -41,11 +41,9 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     lexgen.symbol_table = Some(symbol_table.clone());
     lexgen.extend_headers(&options.lexer_headers);
     lexgen.set_crate(options.lib_crate.clone());
-    let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
-    // // - writes the source code between existing tags:
-    // replace_tagged_source(SOURCE_FILENAME, LEXER_TAG, &lexer_source)
-    //     .expect(&format!("lexer source replacement failed; check that file {SOURCE_FILENAME} exists and has the tags {LEXER_TAG}"));
+    // - writes the source code between existing tags:
+    let (mut log, lexer_source) = lexgen.try_gen_source_code(options.lexer_indent)?;
 
     // 2. Parser
 

@@ -27,7 +27,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn gen_typedef_source(action: Action) {
+fn write_typedef_source(action: Action) {
     for i in 0..LEXICON_TAGS.len() {
         let (lexicon_tag, grammar_tag) = (LEXICON_TAGS[i], GRAMMAR_TAGS[i]);
         let (lexer_tag, parser_tag, source_filename) = (LEXER_TAGS[i], PARSER_TAGS[i], SOURCE_FILENAMES[i]);
@@ -56,18 +56,17 @@ fn gen_typedef_source(action: Action) {
     }
 }
 
-#[cfg(test)]
 mod tests {
     use super::*;
 
-    #[ignore]
-    #[test]
-    fn gen_source() {
-        gen_typedef_source(Action::Generate);
-    }
-
     #[test]
     fn check_source() {
-        gen_typedef_source(Action::Verify);
+        write_typedef_source(Action::Verify);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        write_typedef_source(Action::Generate);
     }
 }

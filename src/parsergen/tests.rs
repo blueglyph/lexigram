@@ -497,10 +497,11 @@ mod wrapper_source {
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
     use lexigram_core::CollectJoin;
 
-    #[test]
     #[allow(unused_doc_comments)]
+    #[allow(unused_variables)]
+    #[allow(unused_mut)]
     /// Tests [ParserGen::source_build_parser], [ParserGen::source_wrapper], [ParserGen::source_use], and [ParserGen::make_item_ops].
-    fn build_items() {
+    fn build_items(mut enable_test_source: bool, mut tests_all: bool, mut replace_source: bool) {
         let tests: Vec<(
             u32,                                    // TestRules #
             bool,                                   // test sources?
@@ -512,6 +513,8 @@ mod wrapper_source {
             NTValue,                                // which symbols have a value
             BTreeMap<VarId, Vec<AltId>>,            // expected alt groups
         )> = vec![
+
+            // CAUTION! Empty the first btreemap if the NTs have changed
             // ---------------------------------------------------------------------------
             // a -> A B
             (1, false, false, 0, btreemap![
@@ -2164,14 +2167,13 @@ mod wrapper_source {
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
-        // test options
-        const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
+        // override options
+        // enable_test_source = true;
+        // tests_all = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        // replace_source = false;
 
-        // CAUTION! Empty the first btreemap if the NTs have changed
 
         let mut num_errors = 0;
         let mut num_src_errors = 0;
@@ -2312,7 +2314,7 @@ mod wrapper_source {
             }
             let expected_src = if test_source && !cfg!(miri) {
                 let src = get_tagged_source(WRAPPER_FILENAME, &test_name);
-                if (TEST_SOURCE || REPLACE_SOURCE) && src.is_err() {
+                if (enable_test_source || replace_source) && src.is_err() {
                     println!("## couldn't find the source code: {}", src.as_ref().err().unwrap());
                 }
                 src.ok()
@@ -2320,7 +2322,7 @@ mod wrapper_source {
                 None
             };
             let err_msg = format!("test {test_id} TestRules({tr_id}) #{rule_iter} failed");
-            if TESTS_ALL {
+            if tests_all {
                 if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}{}{}{}",
@@ -2328,11 +2330,11 @@ mod wrapper_source {
                              if result_alts != expected_alts { ", alts mismatch" } else { "" },
                              if result_nt_type != nt_type { ", result type mismatch" } else { "" });
                 }
-                if (test_source && !cfg!(miri) && TEST_SOURCE && Some(&result_src) != expected_src.as_ref()) || builder_has_errors {
+                if (test_source && !cfg!(miri) && enable_test_source && Some(&result_src) != expected_src.as_ref()) || builder_has_errors {
                     if builder_has_errors {
                         println!("## ERRORS WHILE GENERATING SOURCE: {err_msg}");
                     } else {
-                        if REPLACE_SOURCE {
+                        if replace_source {
                             if replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).is_err() {
                                 num_errors += 1;
                                 println!("## ERROR: {err_msg}, couldn't replace source");
@@ -2350,9 +2352,9 @@ mod wrapper_source {
                 assert_eq!(result_items, expected_items, "{err_msg}, different items");
                 assert_eq!(result_alts, expected_alts, "{err_msg}, different alts");
                 assert_eq!(result_nt_type, nt_type, "{err_msg}, different NT types");
-                if !cfg!(miri) && TEST_SOURCE {
+                if !cfg!(miri) && enable_test_source {
                     assert!(!builder_has_errors, "{} errors reported by source builder", builder.log.num_errors());
-                    if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() && !builder_has_errors {
+                    if replace_source && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() && !builder_has_errors {
                         replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
@@ -2360,9 +2362,32 @@ mod wrapper_source {
                 assert!(!result_is_ambiguous, "{err_msg}, parsing table had ambiguities:\n{ambig_warnings}");
             }
         }
-        if TESTS_ALL {
+        if tests_all {
             assert_eq!(num_errors, 0, "{num_errors} test(s) have failed, including {num_src_errors} source error(s)");
         }
+    }
+
+    #[test]
+    fn check_build_items() {
+        // tests the generated sources
+        const TEST_SOURCE: bool = true;
+
+        // does all tests before giving an error summary
+        const TESTS_ALL: bool = true;
+
+        // CAUTION! Setting this to 'true' modifies the validation file with the current result
+        const REPLACE_SOURCE: bool = false;
+
+        build_items(TEST_SOURCE, TESTS_ALL, REPLACE_SOURCE);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_build_items() {
+        const TEST_SOURCE: bool = true;
+        const TESTS_ALL: bool = true;
+
+        build_items(TEST_SOURCE, TESTS_ALL, true);
     }
 
     #[test]

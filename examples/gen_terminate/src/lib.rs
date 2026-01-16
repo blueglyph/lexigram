@@ -23,7 +23,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn gen_terminate_source(action: Action) {
+fn write_terminate_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME, tag: LEXICON_TAG), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -47,14 +47,14 @@ fn gen_terminate_source(action: Action) {
 mod tests {
     use super::*;
 
-    #[ignore]
-    #[test]
-    fn gen_source() {
-        gen_terminate_source(Action::Generate);
-    }
-
     #[test]
     fn check_source() {
-        gen_terminate_source(Action::Verify);
+        write_terminate_source(Action::Verify);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        write_terminate_source(Action::Generate);
     }
 }

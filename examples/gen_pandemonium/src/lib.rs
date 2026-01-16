@@ -21,7 +21,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn gen_pandemonium_source(action: Action) {
+fn write_pandemonium_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -42,18 +42,17 @@ fn gen_pandemonium_source(action: Action) {
     }
 }
 
-#[cfg(test)]
 mod tests {
     use super::*;
 
-    #[ignore]
-    #[test]
-    fn gen_source() {
-        gen_pandemonium_source(Action::Generate);
-    }
-
     #[test]
     fn check_source() {
-        gen_pandemonium_source(Action::Verify);
+        write_pandemonium_source(Action::Verify);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        write_pandemonium_source(Action::Generate);
     }
 }

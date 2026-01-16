@@ -68,14 +68,10 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
     }
 }
 
-#[test]
-#[cfg(not(miri))]
-fn lexilexer_source() {
-    // CAUTION! Setting this to 'true' modifies the validation file with the current result
-    const REPLACE_SOURCE: bool = false;
-
+fn write_lexilexer_source(replace_source: bool) {
     const FILENAME: &str = "tests/out/lexilexer.rs";
     const TAG: &str = "lexilexer";
+
     let dfa = make_dfa();
     let dfa = dfa.optimize();
     let mut lexgen = LexerGen::build_from(dfa);
@@ -83,13 +79,28 @@ fn lexilexer_source() {
     let result_src = lexgen.gen_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
-        if REPLACE_SOURCE {
+        if replace_source {
             replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
         }
         assert_eq!(result_src, expected_src, "failed");
     }
 }
 
+mod lexilexer_source {
+    use super::write_lexilexer_source;
+
+    #[test]
+    #[cfg(not(miri))]
+    fn check_source() {
+        write_lexilexer_source(false);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        write_lexilexer_source(true);
+    }
+}
 #[test]
 fn lexilexer_tokens() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
@@ -238,14 +249,11 @@ fn type_size() {
 // ---------------------------------------------------------------------------------------------
 // Parser
 
-#[test]
-fn lexiparser_source() {
-    // CAUTION! Setting this to 'true' modifies the validation file with the current result
-    const REPLACE_SOURCE: bool = false;
-
+fn write_lexiparser_source(replace_source: bool) {
     const VERBOSE: bool = false;
     const FILENAME: &str = "tests/out/lexiparser.rs";
     const TAG: &str = "lexiparser";
+
     let mut rts = build_rts();
     rts.set_start(0);
     if VERBOSE {
@@ -304,11 +312,26 @@ fn lexiparser_source() {
     if !cfg!(miri) {
         let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
         if result_src != expected_src {
-            if REPLACE_SOURCE {
+            if replace_source {
                 replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
             }
             assert_eq!(result_src, expected_src, "failed");
         }
+    }
+}
+
+mod lexiparser_source {
+    use super::write_lexiparser_source;
+
+    #[test]
+    fn check_source() {
+        write_lexiparser_source(false);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        write_lexiparser_source(true);
     }
 }
 

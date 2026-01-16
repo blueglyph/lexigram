@@ -206,7 +206,7 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     }
 }
 
-pub fn write_lexilexer() {
+pub fn write_lexilexer_source() {
     let (log, result_src) = lexilexer_source(0, true)
         .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
         .unwrap();
@@ -221,7 +221,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
 
         let (log, result_src) = lexilexer_source(0, VERBOSE)
@@ -237,6 +237,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_lexilexer();
+        write_lexilexer_source();
     }
 }

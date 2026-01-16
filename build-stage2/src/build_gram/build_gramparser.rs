@@ -109,7 +109,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     }
 }
 
-pub fn write_gramparser() {
+pub fn write_gramparser_source() {
     let (log, result_src) = gramparser_source(0, true)
         .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
         .unwrap();
@@ -124,7 +124,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_source() {
+    fn check_source() {
         const VERBOSE: bool = false;
         let (log, result_src) = gramparser_source(0, VERBOSE)
             .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
@@ -139,6 +139,6 @@ mod tests {
     #[ignore]
     #[test]
     fn write_source() {
-        write_gramparser();
+        write_gramparser_source();
     }
 }
