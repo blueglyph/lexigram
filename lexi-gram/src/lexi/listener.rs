@@ -11,7 +11,7 @@ use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundl
 use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
-use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Terminal};
+use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, PosSpan, Terminal};
 use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
 use crate::action;
@@ -468,7 +468,7 @@ impl LexiParserListener for LexiListener {
         &mut self.log
     }
 
-    fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+    fn exit_file(&mut self, _ctx: CtxFile, _spans: Vec<PosSpan>) -> SynFile {
         if self.verbose {
             println!("- exit_file({_ctx:?})");
             println!("terminal_reserved: {:?}", self.terminal_reserved);
@@ -553,17 +553,17 @@ impl LexiParserListener for LexiListener {
         SynFile()
     }
 
-    fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem {
+    fn exit_file_item(&mut self, _ctx: CtxFileItem, _spans: Vec<PosSpan>) -> SynFileItem {
         SynFileItem()
     }
 
-    fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
+    fn exit_header(&mut self, ctx: CtxHeader, _spans: Vec<PosSpan>) -> SynHeader {
         let CtxHeader::V1 { id } = ctx;
         self.name = id;
         SynHeader()
     }
 
-    fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
+    fn exit_declaration(&mut self, ctx: CtxDeclaration, _spans: Vec<PosSpan>) -> SynDeclaration {
         if self.verbose { print!("- exit_declaration({ctx:?}), modes: {:?}", self.modes); }
         let CtxDeclaration::V1 { id: mode_name } = ctx;    // declaration -> mode Id ;
         let mode_id = self.get_add_mode_or_abort(mode_name);
@@ -579,7 +579,7 @@ impl LexiParserListener for LexiListener {
         SynDeclaration()
     }
 
-    fn exit_option(&mut self, ctx: CtxOption) -> SynOption {
+    fn exit_option(&mut self, ctx: CtxOption, _spans: Vec<PosSpan>) -> SynOption {
         if self.verbose { println!("- exit_option({ctx:?})"); }
         let CtxOption::V1 { id, mut star } = ctx;       // option -> channels { Id [, Id]* }
         star.0.insert(0, id);
@@ -593,7 +593,7 @@ impl LexiParserListener for LexiListener {
         SynOption()
     }
 
-    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+    fn exit_rule(&mut self, ctx: CtxRule, _spans: Vec<PosSpan>) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
         let (id, rule_type, action_maybe, const_literal, reserve_only) = match ctx {
             // `rule -> rule_fragment_name ":" match ";"`
@@ -684,7 +684,7 @@ impl LexiParserListener for LexiListener {
         SynRule()
     }
 
-    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit) -> SynOptStrLit {
+    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit, _spans: Vec<PosSpan>) -> SynOptStrLit {
         SynOptStrLit(match ctx {
             CtxOptStrLit::V1 { strlit } => {
                 let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
@@ -697,19 +697,19 @@ impl LexiParserListener for LexiListener {
         })
     }
 
-    fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName) -> SynRuleFragmentName {
+    fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName, _spans: Vec<PosSpan>) -> SynRuleFragmentName {
         let CtxRuleFragmentName::V1 { id } = ctx;
         self.curr_name = Some(id.clone());
         SynRuleFragmentName(id)
     }
 
-    fn exit_rule_terminal_name(&mut self, ctx: CtxRuleTerminalName) -> SynRuleTerminalName {
+    fn exit_rule_terminal_name(&mut self, ctx: CtxRuleTerminalName, _spans: Vec<PosSpan>) -> SynRuleTerminalName {
         let CtxRuleTerminalName::V1 { id } = ctx;
         self.curr_name = Some(id.clone());
         SynRuleTerminalName(id)
     }
 
-    fn exit_actions(&mut self, ctx: CtxActions) -> SynActions {
+    fn exit_actions(&mut self, ctx: CtxActions, _spans: Vec<PosSpan>) -> SynActions {
         let CtxActions::V1 { action, star } = ctx;
         let mut action = action.0;
         for a in star.0 {
@@ -723,7 +723,7 @@ impl LexiParserListener for LexiListener {
         SynActions(action)
     }
 
-    fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
+    fn exit_action(&mut self, ctx: CtxAction, _spans: Vec<PosSpan>) -> SynAction {
         let action = match ctx {
             CtxAction::V1 { id } => {               // action -> "mode" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
@@ -784,7 +784,7 @@ impl LexiParserListener for LexiListener {
         self.curr = Some(VecTree::new());
     }
 
-    fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
+    fn exit_match(&mut self, ctx: CtxMatch, _spans: Vec<PosSpan>) -> SynMatch {
         // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
         if self.verbose { println!("- exit_match({ctx:?})"); }
         let CtxMatch::V1 { alt_items: SynAltItems((id, const_literal)) } = ctx;
@@ -792,7 +792,7 @@ impl LexiParserListener for LexiListener {
         SynMatch(const_literal)
     }
 
-    fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
+    fn exit_alt_items(&mut self, ctx: CtxAltItems, _spans: Vec<PosSpan>) -> SynAltItems {
         if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let CtxAltItems::V1 { alt_item, star: SynAltItems1(alt_items) } = ctx;
@@ -809,7 +809,7 @@ impl LexiParserListener for LexiListener {
         SynAltItems((id, const_literal))
     }
 
-    fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
+    fn exit_alt_item(&mut self, ctx: CtxAltItem, _spans: Vec<PosSpan>) -> SynAltItem {
         if self.verbose { print!("- exit_alt_item({ctx:?})"); }
         let CtxAltItem::V1 { plus: SynAltItem1(mut items) } = ctx;
         let tree = self.curr.as_mut().unwrap();
@@ -823,7 +823,7 @@ impl LexiParserListener for LexiListener {
         SynAltItem((id, const_literal))
     }
 
-    fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
+    fn exit_repeat_item(&mut self, ctx: CtxRepeatItem, _spans: Vec<PosSpan>) -> SynRepeatItem {
         if self.verbose { print!("- exit_repeat_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
@@ -853,7 +853,7 @@ impl LexiParserListener for LexiListener {
         SynRepeatItem((id, const_literal))
     }
 
-    fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
+    fn exit_item(&mut self, ctx: CtxItem, _spans: Vec<PosSpan>) -> SynItem {
         if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
@@ -913,7 +913,7 @@ impl LexiParserListener for LexiListener {
         SynItem((id, const_literal))
     }
 
-    fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet {
+    fn exit_char_set(&mut self, ctx: CtxCharSet, _spans: Vec<PosSpan>) -> SynCharSet {
         // char_set:
         //     LSBRACKET (char_set_one)+ RSBRACKET
         // |   DOT
@@ -937,7 +937,7 @@ impl LexiParserListener for LexiListener {
         SynCharSet(seg)
     }
 
-    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne {
+    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne, _spans: Vec<PosSpan>) -> SynCharSetOne {
         // char_set_one:
         //     SET_CHAR MINUS SET_CHAR
         // |   SET_CHAR

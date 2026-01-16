@@ -13,6 +13,7 @@ use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
+use lexigram_lib::lexer::PosSpan;
 
 enum PostCheck {
     RepeatChildLform { node: usize, var: VarId }
@@ -219,7 +220,7 @@ impl GramParserListener for GramListener {
     // file:
     //     header rules SymEOF?
     // ;
-    fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+    fn exit_file(&mut self, _ctx: CtxFile, _spans: Vec<PosSpan>) -> SynFile {
         if self.verbose { println!("- exit_file({_ctx:?})"); }
         let mut old_new = HashMap::new();
         for (name, old_nt) in &self.nt_reserved {
@@ -245,7 +246,7 @@ impl GramParserListener for GramListener {
     // header:
     //     Grammar Id Semicolon
     // ;
-    fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
+    fn exit_header(&mut self, ctx: CtxHeader, _spans: Vec<PosSpan>) -> SynHeader {
         if self.verbose { println!("- exit_header({ctx:?}"); }
         let CtxHeader::V1 { id } = ctx;
         self.name = id;
@@ -256,7 +257,7 @@ impl GramParserListener for GramListener {
     //     rule
     // |   rules rule
     // ;
-    fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules {
+    fn exit_rules(&mut self, _ctx: CtxRules, _spans: Vec<PosSpan>) -> SynRules {
         if self.verbose { println!("exit_rules({_ctx:?})"); }
         SynRules()
     }
@@ -270,7 +271,7 @@ impl GramParserListener for GramListener {
     // rule:
     //     Id Colon prod Semicolon
     // ;
-    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+    fn exit_rule(&mut self, ctx: CtxRule, _spans: Vec<PosSpan>) -> SynRule {
         if self.verbose { println!("exit_rule({ctx:?})"); }
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         let curr_nt = self.curr_nt.take().unwrap();
@@ -293,7 +294,7 @@ impl GramParserListener for GramListener {
         SynRule()
     }
 
-    fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
+    fn exit_rule_name(&mut self, ctx: CtxRuleName, _spans: Vec<PosSpan>) -> SynRuleName {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
         let CtxRuleName::V1 { id: name } = ctx;
         self.curr_name = Some(name.clone());
@@ -313,7 +314,7 @@ impl GramParserListener for GramListener {
     //     prodTerm
     // |   prod Or prodTerm
     // ;
-    fn exit_prod(&mut self, ctx: CtxProd) -> SynProd {
+    fn exit_prod(&mut self, ctx: CtxProd, _spans: Vec<PosSpan>) -> SynProd {
         if self.verbose { println!("exit_prod({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
@@ -335,7 +336,7 @@ impl GramParserListener for GramListener {
     // prodTerm:
     //     prodFactor*
     // ;
-    fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
+    fn exit_prod_term(&mut self, ctx: CtxProdTerm, _spans: Vec<PosSpan>) -> SynProdTerm {
         if self.verbose { println!("exit_prod_term({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let CtxProdTerm::V1 { star: SynProdTerm1(factors) } = ctx;
@@ -351,7 +352,7 @@ impl GramParserListener for GramListener {
     // prodFactor:
     //     prodAtom (Plus | Star | Question)?
     // ;
-    fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor {
+    fn exit_prod_factor(&mut self, ctx: CtxProdFactor, _spans: Vec<PosSpan>) -> SynProdFactor {
         if self.verbose { println!("exit_prod_factor_rep({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let (id, l_check) = match ctx {
@@ -373,7 +374,7 @@ impl GramParserListener for GramListener {
     // |   Pform
     // |   Lparen prod Rparen
     // ;
-    fn exit_prod_atom(&mut self, ctx: CtxProdAtom) -> SynProdAtom {
+    fn exit_prod_atom(&mut self, ctx: CtxProdAtom, _spans: Vec<PosSpan>) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
         let id = match ctx {
             CtxProdAtom::V1 { id } => {                  // prod_atom -> Id
