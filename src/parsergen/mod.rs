@@ -168,11 +168,9 @@ impl NTValue {
 
 pub static DEFAULT_LISTENER_NAME: &str = "Parser";
 
-static FOLD_SPAN_CODE: [&str; 4] = [
+static FOLD_SPAN_CODE: [&str; 2] = [
     "        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();",
-    "        let mut new_span = PosSpan::empty();",
-    "        spans.iter().for_each(|span| new_span += span);",
-    "        self.stack_span.push(new_span);",
+    "        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));",
 ];
 
 pub type SpanNbr = u16;

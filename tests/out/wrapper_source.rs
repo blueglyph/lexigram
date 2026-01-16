@@ -196,9 +196,7 @@ pub(crate) mod rules_13_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_s")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_s(ctx, spans);
             self.stack.push(SynValue::S(val));
         }
@@ -216,9 +214,7 @@ pub(crate) mod rules_13_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_val")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_val(ctx, spans);
             self.stack.push(SynValue::Val(val));
         }
@@ -422,9 +418,7 @@ pub(crate) mod rules_14_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -435,9 +429,7 @@ pub(crate) mod rules_14_1 {
             let ctx = CtxB::V1 { op, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -447,9 +439,7 @@ pub(crate) mod rules_14_1 {
             let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_c(ctx, spans);
             self.stack.push(SynValue::C(val));
         }
@@ -645,9 +635,7 @@ pub(crate) mod rules_14_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -657,9 +645,7 @@ pub(crate) mod rules_14_2 {
             let ctx = CtxB::V1 { op };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -669,9 +655,7 @@ pub(crate) mod rules_14_2 {
             let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_c(ctx, spans);
         }
     }
@@ -867,9 +851,7 @@ pub(crate) mod rules_14_3 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -880,9 +862,7 @@ pub(crate) mod rules_14_3 {
             let ctx = CtxB::V1 { op, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
 
@@ -891,9 +871,7 @@ pub(crate) mod rules_14_3 {
             let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_c(ctx, spans);
             self.stack.push(SynValue::C(val));
         }
@@ -1085,9 +1063,7 @@ pub(crate) mod rules_14_4 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -1097,9 +1073,7 @@ pub(crate) mod rules_14_4 {
             let ctx = CtxB::V1 { op };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
 
@@ -1108,9 +1082,7 @@ pub(crate) mod rules_14_4 {
             let ctx = CtxC::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_c(ctx, spans);
         }
     }
@@ -1287,9 +1259,7 @@ pub(crate) mod rules_102_1 {
             let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -1307,9 +1277,7 @@ pub(crate) mod rules_102_1 {
             };
             star_acc.push(b);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -1487,9 +1455,7 @@ pub(crate) mod rules_103_1 {
             let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -1507,9 +1473,7 @@ pub(crate) mod rules_103_1 {
             };
             plus_acc.push(b);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -1700,9 +1664,7 @@ pub(crate) mod rules_104_1 {
             let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -1725,9 +1687,7 @@ pub(crate) mod rules_104_1 {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -1735,9 +1695,7 @@ pub(crate) mod rules_104_1 {
             let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -1932,9 +1890,7 @@ pub(crate) mod rules_105_1 {
             let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -1957,9 +1913,7 @@ pub(crate) mod rules_105_1 {
             };
             plus_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -1967,9 +1921,7 @@ pub(crate) mod rules_105_1 {
             let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -2172,9 +2124,7 @@ pub(crate) mod rules_106_1 {
             let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -2192,9 +2142,7 @@ pub(crate) mod rules_106_1 {
             };
             star_acc.push(b);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn init_a2(&mut self) {
@@ -2212,9 +2160,7 @@ pub(crate) mod rules_106_1 {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2222,9 +2168,7 @@ pub(crate) mod rules_106_1 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -2414,9 +2358,7 @@ pub(crate) mod rules_106_2 {
             let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -2434,9 +2376,7 @@ pub(crate) mod rules_106_2 {
             };
             star_acc.push(a);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2444,9 +2384,7 @@ pub(crate) mod rules_106_2 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
     }
@@ -2617,9 +2555,7 @@ pub(crate) mod rules_108_1 {
             let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -2804,9 +2740,7 @@ pub(crate) mod rules_150_1 {
             let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -2833,9 +2767,7 @@ pub(crate) mod rules_150_1 {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -3037,9 +2969,7 @@ pub(crate) mod rules_152_1 {
             let ctx = CtxA::V1 { a, star, f };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -3074,9 +3004,7 @@ pub(crate) mod rules_152_1 {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -3084,9 +3012,7 @@ pub(crate) mod rules_152_1 {
             let ctx = CtxB::V1 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -3328,9 +3254,7 @@ pub(crate) mod rules_153_1 {
             let ctx = CtxA::V1 { a, plus, f };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -3365,9 +3289,7 @@ pub(crate) mod rules_153_1 {
             };
             plus_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -3375,9 +3297,7 @@ pub(crate) mod rules_153_1 {
             let ctx = CtxB::V1 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -3563,9 +3483,7 @@ pub(crate) mod rules_200_1 {
             let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -3581,9 +3499,7 @@ pub(crate) mod rules_200_1 {
             let ctx = CtxI::V1 { star_acc, b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -3768,9 +3684,7 @@ pub(crate) mod rules_200_2 {
             let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -3780,9 +3694,7 @@ pub(crate) mod rules_200_2 {
             let ctx = CtxI::V1 { b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
     }
@@ -3967,9 +3879,7 @@ pub(crate) mod rules_201_1 {
             let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -3986,9 +3896,7 @@ pub(crate) mod rules_201_1 {
             let ctx = CtxI::V1 { plus_acc, b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -4170,9 +4078,7 @@ pub(crate) mod rules_201_2 {
             let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -4183,9 +4089,7 @@ pub(crate) mod rules_201_2 {
             let ctx = CtxI::V1 { b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
     }
@@ -4369,9 +4273,7 @@ pub(crate) mod rules_201_3 {
             let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_a(ctx, spans);
         }
 
@@ -4387,9 +4289,7 @@ pub(crate) mod rules_201_3 {
             let ctx = CtxI::V1 { plus_acc, b, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -4587,9 +4487,7 @@ pub(crate) mod rules_202_1 {
             let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -4609,9 +4507,7 @@ pub(crate) mod rules_202_1 {
             let ctx = CtxI::V1 { star_acc, b: [b_1, b_2], a: [a_1, a_2], b1 };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -4626,9 +4522,7 @@ pub(crate) mod rules_202_1 {
             let ctx = CtxB::V1 { c };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -4825,9 +4719,7 @@ pub(crate) mod rules_206_1 {
             let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -4843,9 +4735,7 @@ pub(crate) mod rules_206_1 {
             let ctx = CtxJ::V1 { star_acc, b };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -4870,9 +4760,7 @@ pub(crate) mod rules_206_1 {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -5086,9 +4974,7 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -5105,9 +4991,7 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxI::V1 { star_acc, a, star };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -5128,9 +5012,7 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxJ::V1 { star_acc, b };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -5145,9 +5027,7 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -5353,9 +5233,7 @@ pub(crate) mod rules_208_2 {
             let ctx = CtxA::V1 { star, c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -5371,9 +5249,7 @@ pub(crate) mod rules_208_2 {
             let ctx = CtxI::V1 { star_acc, a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -5387,9 +5263,7 @@ pub(crate) mod rules_208_2 {
             let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_j(ctx, spans);
         }
 
@@ -5398,9 +5272,7 @@ pub(crate) mod rules_208_2 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
     }
@@ -5599,9 +5471,7 @@ pub(crate) mod rules_208_3 {
             let ctx = CtxA::V1 { c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -5611,9 +5481,7 @@ pub(crate) mod rules_208_3 {
             let ctx = CtxI::V1 { a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
 
@@ -5621,9 +5489,7 @@ pub(crate) mod rules_208_3 {
             let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_j(ctx, spans);
         }
 
@@ -5632,9 +5498,7 @@ pub(crate) mod rules_208_3 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
     }
@@ -5828,9 +5692,7 @@ pub(crate) mod rules_208_4 {
             let ctx = CtxA::V1 { c };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_a(ctx, spans);
         }
 
@@ -5839,9 +5701,7 @@ pub(crate) mod rules_208_4 {
             let ctx = CtxI::V1 { a };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
 
@@ -5849,9 +5709,7 @@ pub(crate) mod rules_208_4 {
             let ctx = CtxJ::V1;
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_j(ctx, spans);
         }
 
@@ -5860,9 +5718,7 @@ pub(crate) mod rules_208_4 {
             let ctx = CtxB::V1 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_b(ctx, spans);
         }
     }
@@ -6041,9 +5897,7 @@ pub(crate) mod rules_210_1 {
             let ctx = CtxA::V1 { a, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -6052,9 +5906,7 @@ pub(crate) mod rules_210_1 {
             let ctx = CtxI::V1;
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
     }
@@ -6256,9 +6108,7 @@ pub(crate) mod rules_211_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -6274,9 +6124,7 @@ pub(crate) mod rules_211_1 {
             let ctx = CtxI::V1 { star_acc, b };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -6469,9 +6317,7 @@ pub(crate) mod rules_250_1 {
             let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -6496,9 +6342,7 @@ pub(crate) mod rules_250_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -6692,9 +6536,7 @@ pub(crate) mod rules_251_1 {
             let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -6721,9 +6563,7 @@ pub(crate) mod rules_251_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -6948,9 +6788,7 @@ pub(crate) mod rules_252_1 {
             let ctx = CtxA::V1 { a, plus, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -6981,9 +6819,7 @@ pub(crate) mod rules_252_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -7011,9 +6847,7 @@ pub(crate) mod rules_252_1 {
             };
             plus_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -7021,9 +6855,7 @@ pub(crate) mod rules_252_1 {
             let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -7248,9 +7080,7 @@ pub(crate) mod rules_253_1 {
             let ctx = CtxA::V1 { a, plus, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -7278,9 +7108,7 @@ pub(crate) mod rules_253_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -7311,9 +7139,7 @@ pub(crate) mod rules_253_1 {
             };
             plus_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -7321,9 +7147,7 @@ pub(crate) mod rules_253_1 {
             let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -7546,9 +7370,7 @@ pub(crate) mod rules_254_1 {
             let ctx = CtxA::V1 { a, star, g };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -7574,9 +7396,7 @@ pub(crate) mod rules_254_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -7610,9 +7430,7 @@ pub(crate) mod rules_254_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -7627,9 +7445,7 @@ pub(crate) mod rules_254_1 {
             let ctx = CtxB::V1 { h };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -7839,9 +7655,7 @@ pub(crate) mod rules_256_1 {
             let ctx = CtxA::V1 { a, plus, e };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -7878,9 +7692,7 @@ pub(crate) mod rules_256_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -7890,9 +7702,7 @@ pub(crate) mod rules_256_1 {
             let ctx = CtxB::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
             self.stack.push(SynValue::B(val));
         }
@@ -8111,9 +7921,7 @@ pub(crate) mod rules_258_1 {
             let ctx = CtxA::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -8150,9 +7958,7 @@ pub(crate) mod rules_258_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -8188,9 +7994,7 @@ pub(crate) mod rules_258_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -8420,9 +8224,7 @@ pub(crate) mod rules_259_1 {
             let ctx = CtxA::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -8463,9 +8265,7 @@ pub(crate) mod rules_259_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_i(ctx, spans);
             self.stack.push(SynValue::I(val));
         }
@@ -8499,9 +8299,7 @@ pub(crate) mod rules_259_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_j(ctx, spans);
             self.stack.push(SynValue::J(val));
         }
@@ -8678,9 +8476,7 @@ pub(crate) mod rules_301_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
@@ -8851,9 +8647,7 @@ pub(crate) mod rules_301_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_expr(ctx, spans);
         }
     }
@@ -9038,9 +8832,7 @@ pub(crate) mod rules_401_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
@@ -9210,9 +9002,7 @@ pub(crate) mod rules_401_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_expr(ctx, spans);
         }
     }
@@ -9395,9 +9185,7 @@ pub(crate) mod rules_502_1 {
             let ctx = CtxE::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -9408,9 +9196,7 @@ pub(crate) mod rules_502_1 {
             let ctx = CtxE::V2 { e, id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -9425,9 +9211,7 @@ pub(crate) mod rules_502_1 {
             let ctx = CtxF::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_f(ctx, spans);
             self.stack.push(SynValue::F(val));
         }
@@ -9609,9 +9393,7 @@ pub(crate) mod rules_502_2 {
             let ctx = CtxE::V1 { f };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_e(ctx, spans);
         }
 
@@ -9620,9 +9402,7 @@ pub(crate) mod rules_502_2 {
             let ctx = CtxE::V2 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_e(ctx, spans);
         }
 
@@ -9631,9 +9411,7 @@ pub(crate) mod rules_502_2 {
             let ctx = CtxF::V1 { id };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_f(ctx, spans);
             self.stack.push(SynValue::F(val));
         }
@@ -9817,9 +9595,7 @@ pub(crate) mod rules_580_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -9829,9 +9605,7 @@ pub(crate) mod rules_580_1 {
             let ctx = CtxE::V1 { e };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10009,9 +9783,7 @@ pub(crate) mod rules_600_1 {
             let ctx = CtxE::V1 { e: [e_1, e_2] };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10021,9 +9793,7 @@ pub(crate) mod rules_600_1 {
             let ctx = CtxE::V2 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10244,9 +10014,7 @@ pub(crate) mod rules_603_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10264,9 +10032,7 @@ pub(crate) mod rules_603_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10545,9 +10311,7 @@ pub(crate) mod rules_604_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10565,9 +10329,7 @@ pub(crate) mod rules_604_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10845,9 +10607,7 @@ pub(crate) mod rules_605_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -10865,9 +10625,7 @@ pub(crate) mod rules_605_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11150,9 +10908,7 @@ pub(crate) mod rules_606_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11162,9 +10918,7 @@ pub(crate) mod rules_606_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11448,9 +11202,7 @@ pub(crate) mod rules_607_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11460,9 +11212,7 @@ pub(crate) mod rules_607_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11749,9 +11499,7 @@ pub(crate) mod rules_608_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -11761,9 +11509,7 @@ pub(crate) mod rules_608_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12045,9 +11791,7 @@ pub(crate) mod rules_609_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12057,9 +11801,7 @@ pub(crate) mod rules_609_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12342,9 +12084,7 @@ pub(crate) mod rules_610_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12354,9 +12094,7 @@ pub(crate) mod rules_610_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12642,9 +12380,7 @@ pub(crate) mod rules_611_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12654,9 +12390,7 @@ pub(crate) mod rules_611_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12943,9 +12677,7 @@ pub(crate) mod rules_612_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -12955,9 +12687,7 @@ pub(crate) mod rules_612_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13240,9 +12970,7 @@ pub(crate) mod rules_613_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13252,9 +12980,7 @@ pub(crate) mod rules_613_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13538,9 +13264,7 @@ pub(crate) mod rules_614_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13550,9 +13274,7 @@ pub(crate) mod rules_614_1 {
             let ctx = CtxE::V4 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13826,9 +13548,7 @@ pub(crate) mod rules_630_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -13846,9 +13566,7 @@ pub(crate) mod rules_630_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14122,9 +13840,7 @@ pub(crate) mod rules_631_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14142,9 +13858,7 @@ pub(crate) mod rules_631_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14418,9 +14132,7 @@ pub(crate) mod rules_632_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14438,9 +14150,7 @@ pub(crate) mod rules_632_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14718,9 +14428,7 @@ pub(crate) mod rules_640_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14738,9 +14446,7 @@ pub(crate) mod rules_640_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14953,9 +14659,7 @@ pub(crate) mod rules_641_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -14973,9 +14677,7 @@ pub(crate) mod rules_641_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -15188,9 +14890,7 @@ pub(crate) mod rules_642_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -15208,9 +14908,7 @@ pub(crate) mod rules_642_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
             self.stack.push(SynValue::E(val));
         }
@@ -15384,9 +15082,7 @@ pub(crate) mod rules_650_1 {
             let ctx = CtxA::V1 { a: [a_1, a_2, a_3], a1 };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -15396,9 +15092,7 @@ pub(crate) mod rules_650_1 {
             let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -15603,9 +15297,7 @@ pub(crate) mod rules_705_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -15794,9 +15486,7 @@ pub(crate) mod rules_810_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -15814,9 +15504,7 @@ pub(crate) mod rules_810_1 {
             };
             star_acc.push(a);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -16005,9 +15693,7 @@ pub(crate) mod rules_811_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16025,9 +15711,7 @@ pub(crate) mod rules_811_1 {
             };
             plus_acc.push(a);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -16208,9 +15892,7 @@ pub(crate) mod rules_820_1 {
             let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16228,9 +15910,7 @@ pub(crate) mod rules_820_1 {
             };
             star_acc.push(a);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_a2(&mut self) {
@@ -16240,9 +15920,7 @@ pub(crate) mod rules_820_1 {
             let ctx = CtxA::V1 { a, star, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16431,9 +16109,7 @@ pub(crate) mod rules_821_1 {
             let ctx = CtxA::V2 { b };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16451,9 +16127,7 @@ pub(crate) mod rules_821_1 {
             };
             plus_acc.push(a);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_a2(&mut self) {
@@ -16463,9 +16137,7 @@ pub(crate) mod rules_821_1 {
             let ctx = CtxA::V1 { a, plus, c };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16668,9 +16340,7 @@ pub(crate) mod rules_835_1 {
             };
             plus_acc.push(num);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_a2(&mut self, alt_id: AltId) {
@@ -16688,9 +16358,7 @@ pub(crate) mod rules_835_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16708,9 +16376,7 @@ pub(crate) mod rules_835_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a3")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -16898,9 +16564,7 @@ pub(crate) mod rules_862_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
@@ -17086,9 +16750,7 @@ pub(crate) mod rules_870_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -17099,9 +16761,7 @@ pub(crate) mod rules_870_1 {
             let ctx = CtxA::V1 { a, a1 };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -17282,9 +16942,7 @@ pub(crate) mod rules_871_1 {
             let ctx = CtxA::V3 { d };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -17306,9 +16964,7 @@ pub(crate) mod rules_871_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(SynValue::A(val));
         }
@@ -17833,9 +17489,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_file(ctx, spans);
             self.stack.push(SynValue::File(val));
         }
@@ -17853,9 +17507,7 @@ pub(crate) mod rules_901_1 {
             };
             star_acc.push(file_item);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_file_item(&mut self, alt_id: AltId) {
@@ -17875,9 +17527,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_file_item(ctx, spans);
             self.stack.push(SynValue::FileItem(val));
         }
@@ -17887,9 +17537,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxHeader::V1 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_header(ctx, spans);
             self.stack.push(SynValue::Header(val));
         }
@@ -17899,9 +17547,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxDeclaration::V1 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_declaration(ctx, spans);
             self.stack.push(SynValue::Declaration(val));
         }
@@ -17912,9 +17558,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxOption::V1 { id, star };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_option(ctx, spans);
             self.stack.push(SynValue::Option(val));
         }
@@ -17932,9 +17576,7 @@ pub(crate) mod rules_901_1 {
             };
             star_acc.push(id);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
@@ -17958,9 +17600,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rule(ctx, spans);
             self.stack.push(SynValue::Rule(val));
         }
@@ -17971,9 +17611,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxActions::V1 { action, star };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_actions(ctx, spans);
             self.stack.push(SynValue::Actions(val));
         }
@@ -17991,9 +17629,7 @@ pub(crate) mod rules_901_1 {
             };
             star_acc.push(action);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_action(&mut self, alt_id: AltId) {
@@ -18026,9 +17662,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_action(ctx, spans);
             self.stack.push(SynValue::Action(val));
         }
@@ -18038,9 +17672,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxMatch::V1 { alt_items };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_match(ctx, spans);
             self.stack.push(SynValue::Match(val));
         }
@@ -18051,9 +17683,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxAltItems::V1 { alt_item, star };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_alt_items(ctx, spans);
             self.stack.push(SynValue::AltItems(val));
         }
@@ -18071,9 +17701,7 @@ pub(crate) mod rules_901_1 {
             };
             star_acc.push(alt_item);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_alt_item(&mut self) {
@@ -18081,9 +17709,7 @@ pub(crate) mod rules_901_1 {
             let ctx = CtxAltItem::V1 { plus };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_alt_item(ctx, spans);
             self.stack.push(SynValue::AltItem(val));
         }
@@ -18101,9 +17727,7 @@ pub(crate) mod rules_901_1 {
             };
             plus_acc.push(repeat_item);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_repeat_item(&mut self, alt_id: AltId) {
@@ -18135,9 +17759,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_repeat_item(ctx, spans);
             self.stack.push(SynValue::RepeatItem(val));
         }
@@ -18176,9 +17798,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_item(ctx, spans);
             self.stack.push(SynValue::Item(val));
         }
@@ -18199,9 +17819,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_char_set(ctx, spans);
             self.stack.push(SynValue::CharSet(val));
         }
@@ -18219,9 +17837,7 @@ pub(crate) mod rules_901_1 {
             };
             plus_acc.push(char_set_one);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_char_set_one(&mut self, alt_id: AltId) {
@@ -18242,9 +17858,7 @@ pub(crate) mod rules_901_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_char_set_one(ctx, spans);
             self.stack.push(SynValue::CharSetOne(val));
         }
@@ -18524,9 +18138,7 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxProgram::V1 { star, plus };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_program(ctx, spans);
             self.stack.push(SynValue::Program(val));
         }
@@ -18542,9 +18154,7 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxDeclI::V1 { star_acc, decl };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_decl_i(ctx, spans);
             self.stack.push(SynValue::DeclI(val));
         }
@@ -18566,9 +18176,7 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxInstI::V1 { plus_acc, inst, last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_inst_i(ctx, spans);
             self.stack.push(SynValue::InstI(val));
         }
@@ -18589,9 +18197,7 @@ pub(crate) mod rules_902_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_decl")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_decl(ctx, spans);
             self.stack.push(SynValue::Decl(val));
         }
@@ -18607,9 +18213,7 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxIdI::V1 { star_acc, id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_id_i(ctx, spans);
             self.stack.push(SynValue::IdI(val));
         }
@@ -18633,9 +18237,7 @@ pub(crate) mod rules_902_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_inst")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_inst(ctx, spans);
             self.stack.push(SynValue::Inst(val));
         }
@@ -18655,9 +18257,7 @@ pub(crate) mod rules_902_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
@@ -18679,9 +18279,7 @@ pub(crate) mod rules_902_1 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
             self.stack.push(SynValue::Expr(val));
         }
@@ -18927,9 +18525,7 @@ pub(crate) mod rules_902_2 {
             let ctx = CtxProgram::V1;
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_program(ctx, spans);
         }
 
@@ -18937,9 +18533,7 @@ pub(crate) mod rules_902_2 {
             let ctx = CtxDeclI::V1;
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_decl_i(ctx, spans);
         }
 
@@ -18948,9 +18542,7 @@ pub(crate) mod rules_902_2 {
             let ctx = CtxInstI::V1 { last_iteration };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_inst_i(ctx, spans);
         }
 
@@ -18969,9 +18561,7 @@ pub(crate) mod rules_902_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_decl")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_decl(ctx, spans);
         }
 
@@ -18980,9 +18570,7 @@ pub(crate) mod rules_902_2 {
             let ctx = CtxIdI::V1 { id };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_id_i(ctx, spans);
         }
 
@@ -18998,9 +18586,7 @@ pub(crate) mod rules_902_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_inst")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_inst(ctx, spans);
         }
 
@@ -19015,9 +18601,7 @@ pub(crate) mod rules_902_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_expr(ctx, spans);
         }
 
@@ -19037,9 +18621,7 @@ pub(crate) mod rules_902_2 {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_expr(ctx, spans);
         }
     }

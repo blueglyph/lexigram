@@ -1305,9 +1305,7 @@ pub mod pandemonium_parser {
             let ctx = CtxText::V1;
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_text(ctx, spans);
             self.stack.push(SynValue::Text(val));
         }
@@ -1317,9 +1315,7 @@ pub mod pandemonium_parser {
             let ctx = CtxI::V1 { example };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
         }
 
@@ -1376,9 +1372,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_example")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_example(ctx, spans);
             self.stack.push(SynValue::Example(val));
         }
@@ -1390,9 +1384,7 @@ pub mod pandemonium_parser {
             let ctx = CtxStar::V1 { id, num, star };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_star(ctx, spans);
             self.stack.push(SynValue::Star(val));
         }
@@ -1410,9 +1402,7 @@ pub mod pandemonium_parser {
             };
             star_acc.push(num);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_plus(&mut self) {
@@ -1422,9 +1412,7 @@ pub mod pandemonium_parser {
             let ctx = CtxPlus::V1 { id, num, plus };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_plus(ctx, spans);
             self.stack.push(SynValue::Plus(val));
         }
@@ -1442,9 +1430,7 @@ pub mod pandemonium_parser {
             };
             plus_acc.push(num);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_l_star(&mut self) {
@@ -1453,9 +1439,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLStar::V1 { id, num };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_star(ctx, spans);
             self.stack.push(SynValue::LStar(val));
         }
@@ -1465,9 +1449,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLStarI::V1 { num };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_l_star_i(ctx, spans);
         }
 
@@ -1477,9 +1459,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLPlus::V1 { id, num };
             let n = 5;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_plus(ctx, spans);
             self.stack.push(SynValue::LPlus(val));
         }
@@ -1490,9 +1470,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLPlusI::V1 { num, last_iteration };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_l_plus_i(ctx, spans);
         }
 
@@ -1503,9 +1481,7 @@ pub mod pandemonium_parser {
             let ctx = CtxRrec::V1 { id, num, rrec_i };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rrec(ctx, spans);
             self.stack.push(SynValue::Rrec(val));
         }
@@ -1517,9 +1493,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLRrec::V1 { id, num, l_rrec_i };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_rrec(ctx, spans);
             self.stack.push(SynValue::LRrec(val));
         }
@@ -1530,9 +1504,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLrec::V1 { id, lrec_i };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec(ctx, spans);
             self.stack.push(SynValue::Lrec(val));
         }
@@ -1543,9 +1515,7 @@ pub mod pandemonium_parser {
             let ctx = CtxAmb::V1 { id, amb_i };
             let n = 4;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb(ctx, spans);
             self.stack.push(SynValue::Amb(val));
         }
@@ -1556,9 +1526,7 @@ pub mod pandemonium_parser {
             let ctx = CtxStarA::V1 { id, star };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_star_a(ctx, spans);
             self.stack.push(SynValue::StarA(val));
         }
@@ -1586,9 +1554,7 @@ pub mod pandemonium_parser {
             };
             star_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_plus_a(&mut self) {
@@ -1597,9 +1563,7 @@ pub mod pandemonium_parser {
             let ctx = CtxPlusA::V1 { id, plus };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_plus_a(ctx, spans);
             self.stack.push(SynValue::PlusA(val));
         }
@@ -1627,9 +1591,7 @@ pub mod pandemonium_parser {
             };
             plus_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_l_star_a(&mut self) {
@@ -1637,9 +1599,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLStarA::V1 { id };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_star_a(ctx, spans);
             self.stack.push(SynValue::LStarA(val));
         }
@@ -1658,9 +1618,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_star_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_l_star_a_i(ctx, spans);
         }
 
@@ -1669,9 +1627,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLPlusA::V1 { id };
             let n = 6;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_plus_a(ctx, spans);
             self.stack.push(SynValue::LPlusA(val));
         }
@@ -1692,9 +1648,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_plus_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_l_plus_a_i(ctx, spans);
         }
 
@@ -1711,9 +1665,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rrec_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rrec_i(ctx, spans);
             self.stack.push(SynValue::RrecI(val));
         }
@@ -1737,9 +1689,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_rrec_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_rrec_i(ctx, spans);
             self.stack.push(SynValue::LRrecI(val));
         }
@@ -1749,9 +1699,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLrecI::V2 { num };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec_i(ctx, spans);
             self.stack.push(SynValue::LrecI(val));
         }
@@ -1762,9 +1710,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLrecI::V1 { lrec_i, num };
             let n = 3;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec_i(ctx, spans);
             self.stack.push(SynValue::LrecI(val));
         }
@@ -1804,9 +1750,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_amb_i1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb_i(ctx, spans);
             self.stack.push(SynValue::AmbI(val));
         }
@@ -1832,9 +1776,7 @@ pub mod pandemonium_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_amb_i6")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb_i(ctx, spans);
             self.stack.push(SynValue::AmbI(val));
         }

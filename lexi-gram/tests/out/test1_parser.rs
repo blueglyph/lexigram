@@ -259,9 +259,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let ctx = CtxProgram::V1;
         let n = 1;
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        let mut new_span = PosSpan::empty();
-        spans.iter().for_each(|span| new_span += span);
-        self.stack_span.push(new_span);
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_program(ctx, spans);
         self.stack.push(SynValue::Program(val));
     }
@@ -271,9 +269,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let ctx = CtxInst::V1 { instruction };
         let n = 2;
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        let mut new_span = PosSpan::empty();
-        spans.iter().for_each(|span| new_span += span);
-        self.stack_span.push(new_span);
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         self.listener.exit_inst(ctx, spans);
     }
 
@@ -291,9 +287,7 @@ impl<T: Test1Listener> Wrapper<T> {
             _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        let mut new_span = PosSpan::empty();
-        spans.iter().for_each(|span| new_span += span);
-        self.stack_span.push(new_span);
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_instruction(ctx, spans);
         self.stack.push(SynValue::Instruction(val));
     }
@@ -333,9 +327,7 @@ impl<T: Test1Listener> Wrapper<T> {
             _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        let mut new_span = PosSpan::empty();
-        spans.iter().for_each(|span| new_span += span);
-        self.stack_span.push(new_span);
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_expr(ctx, spans);
         self.stack.push(SynValue::Expr(val));
     }
@@ -361,9 +353,7 @@ impl<T: Test1Listener> Wrapper<T> {
             _ => panic!("unexpected alt id {alt_id} in fn exit_expr6")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        let mut new_span = PosSpan::empty();
-        spans.iter().for_each(|span| new_span += span);
-        self.stack_span.push(new_span);
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_expr(ctx, spans);
         self.stack.push(SynValue::Expr(val));
     }

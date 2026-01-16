@@ -683,9 +683,7 @@ pub mod terminate_parser {
             let ctx = CtxLog::V1 { star };
             let n = 1;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_log(ctx, spans);
             self.stack.push(SynValue::Log(val));
         }
@@ -701,9 +699,7 @@ pub mod terminate_parser {
             let ctx = CtxLogI::V1 { star_acc, line };
             let n = 2;
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_log_i(ctx, spans);
             self.stack.push(SynValue::LogI(val));
         }
@@ -735,9 +731,7 @@ pub mod terminate_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_line")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_line(ctx, spans);
             self.stack.push(SynValue::Line(val));
         }
@@ -767,9 +761,7 @@ pub mod terminate_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_message")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            let mut new_span = PosSpan::empty();
-            spans.iter().for_each(|span| new_span += span);
-            self.stack_span.push(new_span);
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_message(ctx, spans);
             self.stack.push(SynValue::Message(val));
         }
