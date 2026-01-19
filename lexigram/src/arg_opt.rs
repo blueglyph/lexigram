@@ -47,8 +47,19 @@ Main options. Please note that
                             --lexer, except "-" isn't valid. This option is mandatory if
                             --parser is set.
 
-Secondary lexer / parser options. Those options can be set before --lexer and --parser if they
-apply to both, or after either of them if they only apply to the lexer or the parser:
+  -c|--combined <location>  Location of the combined lexicon and grammar. Both must be
+                            included in the same location, starting with the lexicon:
+
+                                lexicon <lexer name>;
+                                ...
+                                grammar <parser name>;
+                                ...
+
+                            The location of the code generated for the lexer (-l) and the
+                            parser (-p) must be specified after, and in that order.
+
+Secondary lexer / parser options. Those options can be set before -l/--lexer and -p/--parser
+if they apply to both, or after either of them if they only apply to the lexer or the parser:
 
   --header <string>         Adds a header in front of the generated code.
 
@@ -209,6 +220,9 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "-g" | "--grammar" => {
                 builder.parser_spec(get_spec("parser", "grammar", &mut args)?);
+            }
+            "-c" | "--combined" => {
+                builder.combined_spec(get_spec("combined", "lexicon and grammar", &mut args)?);
             }
             "--header" => {
                 let header = take_argument(&mut args, "missing argument after --header")?;

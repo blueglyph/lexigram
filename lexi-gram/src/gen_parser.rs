@@ -28,6 +28,7 @@ use crate::options::{Action, Options};
 /// by this function since they're given explicitly as string arguments.
 /// * `options.lexer_code` and `options.parser_code`, which specify where to store the generated code, aren't used either,
 /// since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
+/// * if the lexicon and the grammar are combined in [`lexicon`], the [`grammar_opt`] parameter must be `None`.
 pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
     // 1. Lexer
 
@@ -44,6 +45,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     lexgen.extend_headers(&options.lexer_headers);
     lexgen.set_crate(options.lib_crate.clone());
 
+    let is_combined = pos_grammar_opt.is_some();
     if pos_grammar_opt.is_some() && grammar_opt.is_some() {
         // conflict of two grammar locations
         let mut log = lexgen.give_log();
@@ -56,7 +58,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
     // 2. Parser
 
-    let parser_source = if grammar_opt.is_some() || pos_grammar_opt.is_some() {
+    let parser_source = if grammar_opt.is_some() || is_combined {
         let grammar_stream = if let Some(grammar) = grammar_opt {
             CharReader::new(Cursor::new(grammar))
         } else if let Some(pos_grammar) = pos_grammar_opt {
@@ -148,6 +150,7 @@ impl Error for GenParserError {
 /// code should be written. See [Options](crate::options::Options) and
 /// [OptionsBuilder](crate::options::OptionsBuilder) for further details.
 pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenParserError> {
+    let is_combined = options.lexer_spec == options.parser_spec;
     let lexer_spec_type = options.lexer_spec.get_type();
     let lexicon_opt = options.lexer_spec.clone().get()
         .map_err(|e| GenParserError::Source(e, format!("error while reading the lexicon ({lexer_spec_type})")))?;
@@ -155,8 +158,12 @@ pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenPar
         return Err(GenParserError::InvalidParameter("cannot verify sources without any lexicon".to_string()))
     };
     let parser_spec_type = options.parser_spec.get_type();
-    let grammar_opt = options.parser_spec.clone().get()
-        .map_err(|e| GenParserError::Source(e, format!("error while reading the grammar ({parser_spec_type})")))?;
+    let grammar_opt = if !is_combined {
+        options.parser_spec.clone().get()
+            .map_err(|e| GenParserError::Source(e, format!("error while reading the grammar ({parser_spec_type})")))?
+    } else {
+        None
+    };
     let (lexer_source, parser_source_opt, log) = try_gen_source_code(lexicon, grammar_opt, &options)
         .map_err(|e| GenParserError::Build(e, "error while building the parser".to_string()))?;
     match action {

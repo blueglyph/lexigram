@@ -23,9 +23,9 @@ fn read_lexicon_grammar() -> (String, String) {
 #[ignore]
 #[test]
 fn write_init_content() {
-    test1::gen_init_file_to_file();
-    test2::gen_init_string_to_tag();
-    test3::gen_init_tag_to_tag();
+    test1::write_init_file_to_file();
+    test2::write_init_string_to_tag();
+    test3::write_init_tag_to_tag();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ mod test1 {
 
     /// Generates the lexer/parser files in [TEST1_LEXER_FILENAME] and [TEST1_PARSER_FILENAME] the first time when
     /// those files don't exist yet (visual check required).
-    pub(super) fn gen_init_file_to_file() {
+    pub(super) fn write_init_file_to_file() {
         match action_file_to_file(Action::Generate) {
             Ok(log) => println!("{log}"),
             Err(e) => {
@@ -65,7 +65,7 @@ mod test1 {
     /// Verifies that the destination files are created again and identical to their previous version
     /// (which was the reference).
     #[test]
-    fn test_file_to_file() {
+    fn check_file_to_file() {
         const VERBOSE: bool = false;
 
         // checks that the reference files exist
@@ -121,9 +121,25 @@ mod test2 {
         try_gen_parser(action, options)
     }
 
+    fn check_combined_strings_to_tag() -> Result<BufLog, GenParserError> {
+        let (lexicon, grammar) = read_lexicon_grammar();
+        let combined = lexicon + &grammar;
+        let options = OptionsBuilder::new()
+            .combined_spec(genspec!(string: combined))
+            .lexer_code(gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_LEXER_TAG))
+            .parser_code(gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_PARSER_TAG))
+            .extra_libs(["super::listener_types::test1::*"])
+            .span_params(true)
+            .set_crate(LexigramCrate::Custom("core".to_string()))
+            .set_nt_value(NTValue::Parents)
+            .build()
+            .expect("should have no error");
+        try_gen_parser(Action::Verify, options)
+    }
+
     /// Generates the lexer/parser files in [TEST1_LEXER_FILENAME] and [TEST1_PARSER_FILENAME] the first time when
     /// those files don't exist yet (visual check required).
-    pub(super) fn gen_init_string_to_tag() {
+    pub(super) fn write_init_string_to_tag() {
         match action_string_to_tag(Action::Generate) {
             Ok(log) => println!("{log}"),
             Err(e) => {
@@ -135,7 +151,7 @@ mod test2 {
     /// Verifies that the destination tag contents are created again and identical to their previous version
     /// (which was the reference).
     #[test]
-    fn test_string_to_tag() {
+    fn check_string_to_tag() {
         const VERBOSE: bool = false;
 
         // checks that the reference texts exist
@@ -167,6 +183,13 @@ mod test2 {
         // compares the new files to their reference
         assert_eq!(result_lexer, expected_lexer);
         assert_eq!(result_parser, expected_parser);
+
+        match check_combined_strings_to_tag() {
+            Ok(log) => {
+                if VERBOSE { println!("Parser generated successfully from combined specs\n{log}"); }
+            }
+            Err(err) => panic!("Error when checking code from combined specs: {err}"),
+        }
     }
 }
 
@@ -202,7 +225,7 @@ mod test3 {
     /// Generates the lexicon/grammar in [TEST3_TAGS_FILENAME], tags [TEST3_LEXICON_TAG] and [TEST3_GRAMMAR_TAG]
     /// the first time when those contents don't exist yet.
     /// The reference lexer and parser in the same file can be (re)generated with [gen_init_string_to_tag].
-    pub(super) fn gen_init_tag_to_tag() {
+    pub(super) fn write_init_tag_to_tag() {
         let (lexicon, grammar) = read_lexicon_grammar();
         replace_tagged_source(TEST3_TAGS_FILENAME, TEST3_LEXICON_TAG, &lexicon)
             .expect(&format!("couldn't copy lexicon into {TEST3_TAGS_FILENAME} [{TEST3_LEXICON_TAG}]"));
@@ -213,7 +236,7 @@ mod test3 {
     /// Verifies that the destination tag contents are created again and identical to their previous version
     /// (which was the reference).
     #[test]
-    fn test_tag_to_tag() {
+    fn check_tag_to_tag() {
         const VERBOSE: bool = false;
 
         // checks that the reference texts exist
@@ -368,6 +391,7 @@ mod test4 {
 
 mod failing_tests {
     use lexigram_lib::parsergen::NTValue;
+    use crate::options::{ERR_COMBINED_SPEC_ALREADY_SET, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -482,7 +506,7 @@ mod failing_tests {
     #[test]
     fn options_builder_errors() {
         let tests = vec![
-            (
+            (   // 0
                 OptionsBuilder::new()
                     .lexer_spec(genspec!(string: "lexicon"))
                     .lexer_code(gencode!(stdout))
@@ -490,14 +514,14 @@ mod failing_tests {
                     .build(),
                 ERR_LEXER_SPEC_ALREADY_SET
             ),
-            (
+            (   // 1
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .lexer_spec(genspec!(string: "lexicon"))
                     .build(),
                 ERR_LEXER_SPEC_ALREADY_SET
             ),
-            (
+            (   // 2
                 OptionsBuilder::new()
                     .lexer_code(gencode!(filename: "lexer.rs"))
                     .lexer_spec(genspec!(string: "lexicon"))
@@ -505,14 +529,14 @@ mod failing_tests {
                     .build(),
                 ERR_LEXER_CODE_ALREADY_SET
             ),
-            (
+            (   // 3
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .lexer_code(gencode!(stdout))
                     .build(),
                 ERR_LEXER_CODE_ALREADY_SET
             ),
-            (
+            (   // 4
                 OptionsBuilder::new()
                     .lexer_code(gencode!(stdout))
                     .parser_spec(genspec!(string: "grammar"))
@@ -520,7 +544,7 @@ mod failing_tests {
                     .build(),
                 ERR_LEXER_AFTER_PARSER
             ),
-            (
+            (   // 5
                 OptionsBuilder::new()
                     .lexer_spec(genspec!(string: "lexicon"))
                     .parser_code(gencode!(filename: "grammar.g"))
@@ -528,7 +552,7 @@ mod failing_tests {
                     .build(),
                 ERR_LEXER_AFTER_PARSER
             ),
-            (
+            (   // 6
                 OptionsBuilder::new()
                     .lexer_spec(genspec!(string: "lexicon"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
@@ -536,60 +560,60 @@ mod failing_tests {
                     .build(),
                 ERR_LEXER_AFTER_PARSER
             ),
-            (
+            (   // 7
                 OptionsBuilder::new()
                     .lexer_spec(genspec!(string: "lexicon"))
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .build(),
                 ERR_LEXER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 8
                 OptionsBuilder::new()
                     .lexer_code(gencode!(filename: "lexer.rs"))
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .build(),
                 ERR_LEXER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 9
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(stdout))
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .build(),
                 ERR_LEXER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 10
                 OptionsBuilder::new()
                     .lexer_spec(genspec!(string: "lexicon"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_MISSING_LEXER_OPTION
             ),
-            (
+            (   // 11
                 OptionsBuilder::new()
                     .lexer_code(gencode!(filename: "lexer.rs"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_MISSING_LEXER_OPTION
             ),
-            (
+            (   // 12
                 OptionsBuilder::new()
                     .parser_spec(genspec!(string: "grammar"))
                     .build(),
                 ERR_PARSER_SET_BEFORE_LEXER_NOT_SET
             ),
-            (
+            (   // 13
                 OptionsBuilder::new()
                     .parser_code(gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_PARSER_SET_BEFORE_LEXER_NOT_SET
             ),
-            (
+            (   // 14
                 OptionsBuilder::new()
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_PARSER_SET_BEFORE_LEXER_NOT_SET
             ),
-            (
+            (   // 15
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_spec(genspec!(string: "grammar"))
@@ -597,7 +621,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_SPEC_ALREADY_SET
             ),
-            (
+            (   // 16
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
@@ -605,7 +629,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_SPEC_ALREADY_SET
             ),
-            (
+            (   // 17
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_code(gencode!(filename: "parser.rs"))
@@ -613,7 +637,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_CODE_ALREADY_SET
             ),
-            (
+            (   // 18
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
@@ -621,7 +645,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_CODE_ALREADY_SET
             ),
-            (
+            (   // 19
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_spec(genspec!(string: "grammar"))
@@ -629,7 +653,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 20
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_code(gencode!(filename: "parser.rs"))
@@ -637,7 +661,7 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 21
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
@@ -645,26 +669,86 @@ mod failing_tests {
                     .build(),
                 ERR_PARSER_SPEC_OR_CODE_ALREADY_SET
             ),
-            (
+            (   // 22
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_spec(genspec!(string: "grammar"))
                     .build(),
                 ERR_MISSING_PARSER_OPTION
             ),
-            (
+            (   // 23
                 OptionsBuilder::new()
                     .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
                     .parser_code(gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_MISSING_PARSER_OPTION
+            ),
+            (   // 24
+                OptionsBuilder::new()
+                    .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_COMBINED_SPEC_GIVEN_TOO_LATE
+            ),
+            (   // 25
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_COMBINED_SPEC_ALREADY_SET
+            ),
+            (   // 26
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_COMBINED_SPEC_GIVEN_TOO_LATE
+            ),
+            (   // 27
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_spec(genspec!(string: "lexicon"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_LEXER_SPEC_ALREADY_SET
+            ),
+            (   // 28
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer(genspec!(string: "lexicon"), gencode!(filename: "lexer.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_LEXER_SPEC_OR_CODE_ALREADY_SET
+            ),
+            (   // 29
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser_spec(genspec!(string: "grammar"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_PARSER_SPEC_ALREADY_SET
+            ),
+            (   // 30
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_PARSER_SPEC_OR_CODE_ALREADY_SET
             ),
         ];
         for (id, (result, expected_message)) in tests.into_iter().enumerate() {
             let msg = format!("## ERROR: test {id}: expected Err({expected_message:?}) instead of {result:?}");
             match result {
                 Ok(_) => panic!("{msg}"),
-                Err(s) => if s != expected_message {
+                Err(s) => if !s.contains(expected_message) {
                     panic!("{msg}")
                 }
             }

@@ -12,6 +12,7 @@ use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/microcalc.l";
 static GRAMMAR_FILENAME: &str = "src/microcalc.g";
+static LEXICON_GRAMMAR_FILENAME: &str = "src/microcalc.lg";
 static SOURCE_FILENAME: &str = "../microcalc/src/main.rs";
 static LEXER_TAG: &str = "microcalc_lexer";
 static PARSER_TAG: &str = "microcalc_parser";
@@ -20,7 +21,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn write_microcalc_source(action: Action) {
+fn write_microcalc_l_g_source(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -39,17 +40,47 @@ fn write_microcalc_source(action: Action) {
     }
 }
 
-mod tests {
+fn write_microcalc_lg_source(action: Action) {
+    let options = OptionsBuilder::new()
+        .combined_spec(genspec!(filename: LEXICON_GRAMMAR_FILENAME))
+        .lexer_code(gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
+        .indent(LEXER_INDENT)
+        .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
+        .indent(PARSER_INDENT)
+        .extra_libs(["super::listener_types::*"])
+        .build()
+        .expect("should have no error");
+    match try_gen_parser(action, options) {
+        Ok(log) => {
+            println!("Code generated in {SOURCE_FILENAME}\n{log}");
+            println!("{} note(s)\n{} warning(s)\n", log.num_notes(), log.num_warnings());
+            assert!(log.has_no_warnings(), "no warning expected");
+        }
+        Err(build_error) => panic!("{build_error}"),
+    }
+}
+
+mod tests_l_g {
     use super::*;
 
     #[test]
     fn check_source() {
-        write_microcalc_source(Action::Verify);
+        write_microcalc_l_g_source(Action::Verify);
     }
 
     #[ignore]
     #[test]
     fn write_source() {
-        write_microcalc_source(Action::Generate);
+        write_microcalc_l_g_source(Action::Generate);
     }
+}
+
+mod test_lg {
+    use super::*;
+
+    #[test]
+    fn check_source() {
+        write_microcalc_lg_source(Action::Verify);
+    }
+
 }

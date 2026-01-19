@@ -155,6 +155,22 @@ impl Options {
     pub fn new() -> Self {
         Self::default()
     }
+
+    fn has_lexer_spec(&self) -> bool {
+        self.lexer_spec != Specification::None
+    }
+
+    fn has_lexer_code(&self) -> bool {
+        self.lexer_code != CodeLocation::None
+    }
+
+    fn has_parser_spec(&self) -> bool {
+        self.parser_spec != Specification::None
+    }
+
+    fn has_parser_code(&self) -> bool {
+        self.parser_code != CodeLocation::None
+    }
 }
 
 impl Default for Options {
@@ -212,12 +228,12 @@ pub struct OptionsBuilder {
     options: Options,
     state: BuilderState,
     message: Option<String>,
-    has_spec: bool,
-    has_code: bool,
 }
 
 pub(crate) static ERR_LEXER_SPEC_ALREADY_SET: &str = "lexer lexicon specification already set";
 pub(crate) static ERR_LEXER_CODE_ALREADY_SET: &str = "lexer code location already set";
+pub(crate) static ERR_COMBINED_SPEC_GIVEN_TOO_LATE: &str = "combined lexicon/grammar specification set after other lexer/parser options";
+pub(crate) static ERR_COMBINED_SPEC_ALREADY_SET: &str = "combined lexicon/grammar specification already set";
 pub(crate) static ERR_LEXER_AFTER_PARSER: &str = "lexer option set after parser options";
 pub(crate) static ERR_LEXER_SPEC_OR_CODE_ALREADY_SET: &str = "lexer code location and/or specification already set";
 pub(crate) static ERR_PARSER_SET_BEFORE_LEXER_NOT_SET: &str = "parser option set before any lexer options has been set";
@@ -230,7 +246,7 @@ pub(crate) static ERR_MISSING_PARSER_OPTION: &str = "parser is missing option(s)
 impl OptionsBuilder {
     /// Creates a builder for [Options]
     pub fn new() -> Self {
-        OptionsBuilder { state: BuilderState::Start, options: Options::new(), message: None, has_spec: false, has_code: false }
+        OptionsBuilder { state: BuilderState::Start, options: Options::new(), message: None }
     }
 
     /// Checks if the builder has encountered an error
@@ -246,31 +262,48 @@ impl OptionsBuilder {
     pub fn reset(&mut self) {
         self.state = BuilderState::Start;
         self.message = None;
-        self.has_code = false;
-        self.has_spec = false;
+        self.options = Options::new();
     }
 
-    fn set_error<T: Into<String>>(&mut self, message: T) {
+    fn set_error(&mut self, method: &str, message: &str) {
         if self.state != BuilderState::Error {
             self.state = BuilderState::Error;
-            self.message = Some(message.into());
+            self.message = Some(format!("{}{}", method, message));
         }
+    }
+
+    /// Sets the location of the combined lexicon and grammar specification (default is none)
+    pub fn combined_spec(&mut self, combined_spec: Specification) -> &mut Self {
+        match self.state {
+            BuilderState::Start => {
+                if !self.options.has_lexer_spec() {
+                    self.options.lexer_spec = combined_spec.clone();
+                    self.options.parser_spec = combined_spec;
+                } else {
+                    self.set_error("combined spec: ", ERR_COMBINED_SPEC_ALREADY_SET);
+                }
+            }
+            BuilderState::Lexer | BuilderState::Parser => {
+                self.set_error("combined spec: ", ERR_COMBINED_SPEC_GIVEN_TOO_LATE);
+            }
+            BuilderState::Error => {}
+        }
+        self
     }
 
     /// Sets the location of the lexer's lexicon specification (default is none)
     pub fn lexer_spec(&mut self, lexer_spec: Specification) -> &mut Self {
         match self.state {
             BuilderState::Start | BuilderState::Lexer => {
-                if !self.has_spec {
+                if !self.options.has_lexer_spec() {
                     self.state = BuilderState::Lexer;
                     self.options.lexer_spec = lexer_spec;
-                    self.has_spec = true;
                 } else {
-                    self.set_error(ERR_LEXER_SPEC_ALREADY_SET);
+                    self.set_error("lexer spec: ", ERR_LEXER_SPEC_ALREADY_SET);
                 }
             }
             BuilderState::Parser => {
-                self.set_error(ERR_LEXER_AFTER_PARSER);
+                self.set_error("lexer spec: ", ERR_LEXER_AFTER_PARSER);
             }
             BuilderState::Error => {}
         }
@@ -281,16 +314,15 @@ impl OptionsBuilder {
     pub fn lexer_code(&mut self, lexer_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start | BuilderState::Lexer => {
-                if !self.has_code {
+                if !self.options.has_lexer_code() {
                     self.state = BuilderState::Lexer;
                     self.options.lexer_code = lexer_code;
-                    self.has_code = true;
                 } else {
-                    self.set_error(ERR_LEXER_CODE_ALREADY_SET);
+                    self.set_error("lexer code: ", ERR_LEXER_CODE_ALREADY_SET);
                 }
             }
             BuilderState::Parser => {
-                self.set_error(ERR_LEXER_AFTER_PARSER);
+                self.set_error("lexer code: ", ERR_LEXER_AFTER_PARSER);
             }
             BuilderState::Error => {}
         }
@@ -300,18 +332,16 @@ impl OptionsBuilder {
     /// Sets the location of the lexer's lexicon specification and generated code (default is none for both)
     pub fn lexer(&mut self, lexer_spec: Specification, lexer_code: CodeLocation) -> &mut Self {
         match self.state {
-            BuilderState::Start => {
+            BuilderState::Start if !self.options.has_lexer_spec() && !self.options.has_lexer_code() => {
                 self.state = BuilderState::Lexer;
                 self.options.lexer_spec = lexer_spec;
                 self.options.lexer_code = lexer_code;
-                self.has_spec = true;
-                self.has_code = true;
             }
-            BuilderState::Lexer => {
-                self.set_error(ERR_LEXER_SPEC_OR_CODE_ALREADY_SET);
+            BuilderState::Start | BuilderState::Lexer => {
+                self.set_error("lexer: ", ERR_LEXER_SPEC_OR_CODE_ALREADY_SET);
             }
             BuilderState::Parser => {
-                self.set_error(ERR_LEXER_AFTER_PARSER);
+                self.set_error("lexer: ", ERR_LEXER_AFTER_PARSER);
             }
             BuilderState::Error => {}
         }
@@ -322,19 +352,14 @@ impl OptionsBuilder {
     pub fn parser_spec(&mut self, parser_spec: Specification) -> &mut Self {
         match self.state {
             BuilderState::Start => {
-                self.set_error(ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
+                self.set_error("parser spec: ", ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
             }
             BuilderState::Lexer | BuilderState::Parser => {
-                if self.state != BuilderState::Parser {
-                    self.has_spec = false;
-                    self.has_code = false;
-                }
-                if !self.has_spec {
+                if !self.options.has_parser_spec() {
                     self.state = BuilderState::Parser;
                     self.options.parser_spec = parser_spec;
-                    self.has_spec = true;
                 } else {
-                    self.set_error(ERR_PARSER_SPEC_ALREADY_SET);
+                    self.set_error("parser spec: ", ERR_PARSER_SPEC_ALREADY_SET);
                 }
             }
             BuilderState::Error => {}
@@ -346,19 +371,14 @@ impl OptionsBuilder {
     pub fn parser_code(&mut self, parser_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start => {
-                self.set_error(ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
+                self.set_error("parser code: ", ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
             }
             BuilderState::Lexer | BuilderState::Parser => {
-                if self.state != BuilderState::Parser {
-                    self.has_spec = false;
-                    self.has_code = false;
-                }
-                if !self.has_code {
+                if !self.options.has_parser_code() {
                     self.state = BuilderState::Parser;
                     self.options.parser_code = parser_code;
-                    self.has_code = true;
                 } else {
-                    self.set_error(ERR_PARSER_CODE_ALREADY_SET);
+                    self.set_error("parser code: ", ERR_PARSER_CODE_ALREADY_SET);
                 }
             }
             BuilderState::Error => {}
@@ -370,17 +390,15 @@ impl OptionsBuilder {
     pub fn parser(&mut self, parser_spec: Specification, parser_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start => {
-                self.set_error(ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
+                self.set_error("parser: ", ERR_PARSER_SET_BEFORE_LEXER_NOT_SET);
             }
-            BuilderState::Lexer => {
+            BuilderState::Lexer if !self.options.has_parser_spec() && !self.options.has_parser_code() => {
                 self.state = BuilderState::Parser;
                 self.options.parser_spec = parser_spec;
                 self.options.parser_code = parser_code;
-                self.has_spec = true;
-                self.has_code = true;
             }
-            BuilderState::Parser => {
-                self.set_error(ERR_PARSER_SPEC_OR_CODE_ALREADY_SET);
+            BuilderState::Lexer | BuilderState::Parser => {
+                self.set_error("parser: ", ERR_PARSER_SPEC_OR_CODE_ALREADY_SET);
             }
             BuilderState::Error => {}
         }
@@ -536,10 +554,10 @@ impl OptionsBuilder {
 
     fn check_sanity(&mut self) {
         if !self.has_error() {
-            if self.options.lexer_spec.is_none() || self.options.lexer_code.is_none() {
-                self.set_error(ERR_MISSING_LEXER_OPTION)
-            } else if self.options.parser_spec.is_none() ^ self.options.parser_code.is_none() == true {
-                self.set_error(ERR_MISSING_PARSER_OPTION)
+            if !self.options.has_lexer_spec() || !self.options.has_lexer_code() {
+                self.set_error("", ERR_MISSING_LEXER_OPTION)
+            } else if !self.options.has_parser_spec() ^ !self.options.has_parser_code() == true {
+                self.set_error("", ERR_MISSING_PARSER_OPTION)
             }
         }
     }
