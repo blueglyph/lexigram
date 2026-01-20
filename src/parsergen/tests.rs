@@ -2222,8 +2222,8 @@ mod wrapper_source {
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
-            let result_items = builder.item_ops.iter()
-                .map(|(&a_id, v)| (a_id, (builder.span_nbrs[a_id as usize], v.clone())))
+            let result_items = builder.item_ops.iter().enumerate()
+                .map(|(a_id, v)| (a_id as AltId, (builder.span_nbrs[a_id], v.clone())))
                 .collect::<BTreeMap<AltId, (SpanNbr, Vec<Symbol>)>>();
             let result_alts = (0..builder.parsing_table.num_nt).filter_map(|v|
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }

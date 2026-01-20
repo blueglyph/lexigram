@@ -191,7 +191,7 @@ pub struct ParserGen {
     nt_parent: Vec<Vec<VarId>>,
     var_alts: Vec<Vec<AltId>>,
     origin: Origin<VarId, FromPRS>,
-    item_ops: HashMap<AltId, Vec<Symbol>>,
+    item_ops: Vec<Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     init_opcodes: Vec<OpCode>,
     /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
@@ -252,7 +252,7 @@ impl ParserGen {
             var_alts,
             origin,
             terminal_hooks: Vec::new(),
-            item_ops: HashMap::new(),
+            item_ops: Vec::new(),
             opcodes: Vec::new(),
             init_opcodes: Vec::new(),
             span_nbrs: Vec::new(),
@@ -841,7 +841,7 @@ impl ParserGen {
     pub(crate) fn make_item_ops(&mut self) {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
-        let mut items = HashMap::<AltId, Vec<Symbol>>::new();
+        let mut items = vec![Vec::<Symbol>::new(); self.parsing_table.alts.len()];
         if VERBOSE {
             println!("Groups:");
             for g in self.nt_parent.iter().filter(|va| !va.is_empty()) {
@@ -875,7 +875,7 @@ impl ParserGen {
                 let g_top_has_value = self.nt_value[g_top as usize];
                 for (nt, alt_id) in &group {
                     let ambig_loop_value = g_top_has_value && is_ambig && self.nt_has_all_flags(*nt, ruleflag::CHILD_L_RECURSION);
-                    items.insert(*alt_id, if ambig_loop_value { vec![Symbol::NT(g_top)] } else { vec![] });
+                    items[*alt_id as usize] = if ambig_loop_value { vec![Symbol::NT(g_top)] } else { vec![] };
                 }
                 for (var_id, alt_id) in &group {
                     let opcode = &self.opcodes[*alt_id as usize];
@@ -943,7 +943,7 @@ impl ParserGen {
                         if flags & ruleflag::CHILD_L_FACT != 0 && self.nt_has_all_flags(g[0], ruleflag::L_FORM) {
                             assert!(!self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_FACT | ruleflag::L_FORM), "this was useful after all");
                             if VERBOSE { print!(" child_rrec_lform_lfact"); }
-                            items.get_mut(&alt_id).unwrap().insert(0, Symbol::NT(g[0]));
+                            items[*alt_id as usize].insert(0, Symbol::NT(g[0]));
                         }
                     } else {
                         let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_value[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
@@ -965,7 +965,7 @@ impl ParserGen {
                     }
                     if VERBOSE {
                         println!(" ==> [{}] + [{}]",
-                                 items.get(&alt_id).map(|v| v.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).unwrap_or(String::new()),
+                                 items[*alt_id as usize].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                                  values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
                     }
                     if let Some(OpCode::NT(nt)) = opcode.get(0) {
@@ -978,7 +978,7 @@ impl ParserGen {
                         if nt != var_id && self.nt_has_all_flags(*nt, ruleflag::CHILD_L_RECURSION) {
                             if VERBOSE { println!("  CHILD_L_RECURSION"); }
                             // exit_<var_id>(context = values) before entering child loop
-                            items.get_mut(&alt_id).unwrap().extend(values);
+                            items[*alt_id as usize].extend(values);
                             continue;
                         }
                         if flags & ruleflag::PARENT_L_FACTOR != 0 {
@@ -988,12 +988,13 @@ impl ParserGen {
                                          Symbol::NT(*nt).to_str(self.get_symbol_table()));
                             }
                             // factorization reports all the values to the children
-                            if let Some(pre) = items.get_mut(&alt_id) {
+                            let pre = &mut items[*alt_id as usize];
+                            if !pre.is_empty() {
                                 // pre-pends values that already exist for alt_id (and empties alt_id)
                                 values.splice(0..0, std::mem::take(pre));
                             }
                             for a_id in self.var_alts[*nt as usize].iter() {
-                                items.get_mut(a_id).unwrap().extend(values.clone());
+                                items[*a_id as usize].extend(values.clone());
                             }
                             continue;
                         }
@@ -1001,7 +1002,7 @@ impl ParserGen {
                             values.push(sym);
                         }
                     }
-                    items.get_mut(&alt_id).unwrap().extend(values);
+                    items[*alt_id as usize].extend(values);
                 }
             }
         }
@@ -1159,141 +1160,138 @@ impl ParserGen {
                     if is_ambig_1st_child && pinfo.alts[i].1.is_sym_empty() {
                         continue;
                     }
-                    item_info[i] = if let Some(item_ops) = self.item_ops.get(&alt_id) {
-                        // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
-                        // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
-                        // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
-                        //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
-                        let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
-                        let mut fixer = NameFixer::new();
-                        let mut owner = pinfo.alts[i].0;
-                        while let Some(parent) = pinfo.parent[owner as usize] {
-                            if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
-                                // a child + * is owner
-                                // - if <L>, it has its own public context and a user-defined return type
-                                // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
-                                // (we keep the loop for +, which has a left factorization, too)
-                                break;
-                            }
-                            owner = parent;
+                    let item_ops = &self.item_ops[alt_id as usize];
+                    // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
+                    // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
+                    // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
+                    //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
+                    let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
+                    let mut fixer = NameFixer::new();
+                    let mut owner = pinfo.alts[i].0;
+                    while let Some(parent) = pinfo.parent[owner as usize] {
+                        if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                            // a child + * is owner
+                            // - if <L>, it has its own public context and a user-defined return type
+                            // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
+                            // (we keep the loop for +, which has a left factorization, too)
+                            break;
                         }
-                        let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
-                        for s in item_ops {
-                            if let Some((_, c)) = indices.get_mut(s) {
-                                *c = Some(0);
-                            } else {
-                                let name = if let Symbol::NT(vs) = s {
-                                    let flag = pinfo.flags[*vs as usize];
-                                    if flag & ruleflag::CHILD_REPEAT != 0 {
-                                        let inside_alt_id = self.var_alts[*vs as usize][0];
-                                        let inside_alt = &pinfo.alts[inside_alt_id as usize].1;
-                                        if false {
-                                            // we don't use this any more
-                                            let mut plus_name = inside_alt.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
-                                            plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
-                                            plus_name
-                                        } else {
-                                            if is_nt_repeat && indices.is_empty() {
-                                                // iterator variable in a + * loop (visible with <L>, for ex)
-                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
-                                            } else {
-                                                // reference to a + * result
-                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
-                                            }
-                                        }
+                        owner = parent;
+                    }
+                    let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
+                    for s in item_ops {
+                        if let Some((_, c)) = indices.get_mut(s) {
+                            *c = Some(0);
+                        } else {
+                            let name = if let Symbol::NT(vs) = s {
+                                let flag = pinfo.flags[*vs as usize];
+                                if flag & ruleflag::CHILD_REPEAT != 0 {
+                                    let inside_alt_id = self.var_alts[*vs as usize][0];
+                                    let inside_alt = &pinfo.alts[inside_alt_id as usize].1;
+                                    if false {
+                                        // we don't use this any more
+                                        let mut plus_name = inside_alt.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
+                                        plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                        plus_name
                                     } else {
-                                        nt_name[*vs as usize].clone().1
+                                        if is_nt_repeat && indices.is_empty() {
+                                            // iterator variable in a + * loop (visible with <L>, for ex)
+                                            if flag & ruleflag::REPEAT_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
+                                        } else {
+                                            // reference to a + * result
+                                            if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                        }
                                     }
                                 } else {
-                                    s.to_str(self.get_symbol_table()).to_lowercase()
-                                };
-                                indices.insert(*s, (fixer.get_unique_name(name), None));
-                            }
-                        }
-
-                        // A parent of left factorization has no context, but we must check the alternatives that are the actual parents.
-                        // The flag test is optional, but it serves to gate the more complex parental test.
-                        let has_lfact_child = nt_flags & ruleflag::PARENT_L_FACTOR != 0 &&
-                            pinfo.alts[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACT != 0));
-
-                        // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
-                        // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
-                        let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
-
-                        // <alt> -> ε
-                        let is_alt_sym_empty = self.is_alt_sym_empty(alt_id);
-
-                        // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
-                        // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
-                        let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
-                            is_alt_sym_empty;
-                        // let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
-                        //     alt_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
-
-                        let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
-                            || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
-
-                        let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
-
-                        let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
-                        if VERBOSE {
-                            println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
-                                is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_last_empty_iteration} => has_context = {has_context}");
-                        }
-                        if has_context {
-                            alt_info_to_sort.entry(owner)
-                                .and_modify(|v| v.push(alt_id))
-                                .or_insert_with(|| vec![alt_id]);
-                        }
-                        if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
-                            // we put here the return context for the final exit of left recursive rule
-                            if self.nt_value[owner as usize] {
-                                vec![ItemInfo {
-                                    name: nt_name[owner as usize].1.clone(),
-                                    sym: Symbol::NT(owner),
-                                    owner,
-                                    index: None,
-                                }]
+                                    nt_name[*vs as usize].clone().1
+                                }
                             } else {
-                                vec![]
-                            }
-                        } else {
-                            let skip = if is_rep_child_no_lform { 1 } else { 0 };
-                            let mut infos = item_ops.into_iter()
-                                .skip(skip)
-                                .map(|s| {
-                                    let index = if let Some((_, Some(index))) = indices.get_mut(s) {
-                                        let idx = *index;
-                                        *index += 1;
-                                        Some(idx)
-                                    } else {
-                                        None
-                                    };
-                                    ItemInfo {
-                                        name: indices[&s].0.clone(),
-                                        sym: s.clone(),
-                                        owner,
-                                        index,
-                                    }
-                                }).to_vec();
-                            if self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) {
-                                // we add the flag telling the listener whether it's the last iteration or not
-                                let last_name = fixer.get_unique_name("last_iteration".to_string());
-                                infos.push(ItemInfo {
-                                    name: last_name,
-                                    sym: Symbol::Empty, // this marks the special flag variable
-                                    owner,
-                                    index: None,
-                                });
+                                s.to_str(self.get_symbol_table()).to_lowercase()
                             };
-                            if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
-                                nt_repeat.insert(owner, infos.clone());
-                            }
-                            infos
+                            indices.insert(*s, (fixer.get_unique_name(name), None));
+                        }
+                    }
+
+                    // A parent of left factorization has no context, but we must check the alternatives that are the actual parents.
+                    // The flag test is optional, but it serves to gate the more complex parental test.
+                    let has_lfact_child = nt_flags & ruleflag::PARENT_L_FACTOR != 0 &&
+                        pinfo.alts[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACT != 0));
+
+                    // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
+                    // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
+                    let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
+
+                    // <alt> -> ε
+                    let is_alt_sym_empty = self.is_alt_sym_empty(alt_id);
+
+                    // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
+                    // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
+                    let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
+                        is_alt_sym_empty;
+                    // let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
+                    //     alt_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
+
+                    let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
+                        || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
+
+                    let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
+
+                    let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
+                    if VERBOSE {
+                        println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
+                            is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_last_empty_iteration} => has_context = {has_context}");
+                    }
+                    if has_context {
+                        alt_info_to_sort.entry(owner)
+                            .and_modify(|v| v.push(alt_id))
+                            .or_insert_with(|| vec![alt_id]);
+                    }
+                    item_info[i] = if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
+                        // we put here the return context for the final exit of left recursive rule
+                        if self.nt_value[owner as usize] {
+                            vec![ItemInfo {
+                                name: nt_name[owner as usize].1.clone(),
+                                sym: Symbol::NT(owner),
+                                owner,
+                                index: None,
+                            }]
+                        } else {
+                            vec![]
                         }
                     } else {
-                        vec![]
-                    };
+                        let skip = if is_rep_child_no_lform { 1 } else { 0 };
+                        let mut infos = item_ops.into_iter()
+                            .skip(skip)
+                            .map(|s| {
+                                let index = if let Some((_, Some(index))) = indices.get_mut(s) {
+                                    let idx = *index;
+                                    *index += 1;
+                                    Some(idx)
+                                } else {
+                                    None
+                                };
+                                ItemInfo {
+                                    name: indices[&s].0.clone(),
+                                    sym: s.clone(),
+                                    owner,
+                                    index,
+                                }
+                            }).to_vec();
+                        if self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) {
+                            // we add the flag telling the listener whether it's the last iteration or not
+                            let last_name = fixer.get_unique_name("last_iteration".to_string());
+                            infos.push(ItemInfo {
+                                name: last_name,
+                                sym: Symbol::Empty, // this marks the special flag variable
+                                owner,
+                                index: None,
+                            });
+                        };
+                        if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
+                            nt_repeat.insert(owner, infos.clone());
+                        }
+                        infos
+                    }
                 } // alt_id in var
                 if is_ambig && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                     is_ambig_1st_child = false;
@@ -2473,32 +2471,29 @@ impl ParserGen {
     pub fn print_items(&self, indent: usize, show_symbols: bool, show_span: bool) {
         let tbl = self.get_symbol_table();
         let fields = (0..self.parsing_table.alts.len())
-            .filter_map(|a| {
+            .map(|a| {
                 let a_id = a as AltId;
                 let (v, alt) = &self.parsing_table.alts[a];
                 let ops = &self.opcodes[a];
-                if let Some(it) = self.item_ops.get(&a_id) {
-                    let mut cols = vec![];
-                    if show_symbols {
-                        let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
-                        let value = if show_span {
-                            assert!(self.gen_span_params, "ParserGen is not configured for spans");
-                            format!("({}, {symbols})", self.span_nbrs[a_id as usize])
-                        } else {
-                            symbols
-                        };
-                        cols.push(format!("{a_id} => {value},"));
-                    }
-                    cols.extend([
-                        format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
-                        format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
-                        format!("| {}", &self.span_nbrs[a_id as usize]),
-                        format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
-                    ]);
-                    Some(cols)
-                } else {
-                    None
+                let it = &self.item_ops[a_id as usize];
+                let mut cols = vec![];
+                if show_symbols {
+                    let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
+                    let value = if show_span {
+                        assert!(self.gen_span_params, "ParserGen is not configured for spans");
+                        format!("({}, {symbols})", self.span_nbrs[a_id as usize])
+                    } else {
+                        symbols
+                    };
+                    cols.push(format!("{a_id} => {value},"));
                 }
+                cols.extend([
+                    format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
+                    format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
+                    format!("| {}", &self.span_nbrs[a_id as usize]),
+                    format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
+                ]);
+                cols
             }).to_vec();
         let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0] };
         for l in columns_to_str(fields, Some(widths)) {
