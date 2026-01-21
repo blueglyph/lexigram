@@ -2567,6 +2567,462 @@ pub(crate) mod rules_108_1 {
 
 // ================================================================================
 
+pub(crate) mod rules_109_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 109 #1, start a]
+
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use super::super::wrapper_code::code_109_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> Id "(" Id ":" type ("," Id ":" type)* ")"`
+        V1 { id: String, star: SynA1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxType {
+        /// `type -> Id`
+        V1 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    // /// User-defined type for `type`
+    // #[derive(Debug, PartialEq)] pub struct SynType();
+    /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<SynA1Item>);
+    /// `"," Id ":" type` item in `a -> Id "(" Id ":" type ( ►► "," Id ":" type ◄◄ )* ")"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1Item { pub id: String, pub type1: SynType }
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), Type(SynType), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_type(self) -> SynType {
+            if let SynValue::Type(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_type(&mut self) {}
+        fn exit_type(&mut self, ctx: CtxType, spans: Vec<PosSpan>) -> SynType;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        2 => self.init_a1(),                        // a_1
+                        1 => self.listener.init_type(),             // type
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_a(),                         // a -> Id "(" Id ":" type a_1 ")"
+                        2 => self.exit_a1(),                        // a_1 -> "," Id ":" type a_1
+                        3 => {}                                     // a_1 -> ε
+                        1 => self.exit_type(),                      // type -> Id
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_a();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_a(&mut self) {
+            let star = self.stack.pop().unwrap().get_a1();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { id, star };
+            let n = 7;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_a(ctx, spans);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let type1 = self.stack.pop().unwrap().get_type();
+            let id = self.stack_t.pop().unwrap();
+            let n = 5;
+            let val = SynA1Item { id, type1 };
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+                panic!("unexpected SynA1 item on wrapper stack");
+            };
+            star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_type(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxType::V1 { id };
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_type(ctx, spans);
+            self.stack.push(SynValue::Type(val));
+        }
+    }
+
+    // [wrapper source for rule 109 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+pub(crate) mod rules_110_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 110 #1, start a]
+
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use super::super::wrapper_code::code_110_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> Id "(" Id ":" type ("," Id ":" type)* ")"`
+        V1 { id: String, star: SynA1 },
+        /// `a -> Id "(" ")"`
+        V2 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxType {
+        /// `type -> Id`
+        V1 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    // /// User-defined type for `type`
+    // #[derive(Debug, PartialEq)] pub struct SynType();
+    /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")" | Id "(" ")"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<SynA1Item>);
+    /// `"," Id ":" type` item in `a -> Id "(" Id ":" type ( ►► "," Id ":" type ◄◄ )* ")" | Id "(" ")"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1Item { pub id: String, pub type1: SynType }
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), Type(SynType), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_type(self) -> SynType {
+            if let SynValue::Type(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_type(&mut self) {}
+        fn exit_type(&mut self, ctx: CtxType, spans: Vec<PosSpan>) -> SynType;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    if matches!(nt, 2) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        2 => self.init_a1(),                        // a_1
+                        3 => {}                                     // a_2
+                        1 => self.listener.init_type(),             // type
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        4 |                                         // a_2 -> Id ":" type a_1 ")"
+                        5 => self.exit_a(alt_id),                   // a_2 -> ")"
+                        2 => self.exit_a1(),                        // a_1 -> "," Id ":" type a_1
+                        3 => {}                                     // a_1 -> ε
+                     /* 0 */                                        // a -> Id "(" a_2 (never called)
+                        1 => self.exit_type(),                      // type -> Id
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_a();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_a(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                4 => {
+                    let star = self.stack.pop().unwrap().get_a1();
+                    let id = self.stack_t.pop().unwrap();
+                    (7, CtxA::V1 { id, star })
+                }
+                5 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (3, CtxA::V2 { id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_a(ctx, spans);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let type1 = self.stack.pop().unwrap().get_type();
+            let id = self.stack_t.pop().unwrap();
+            let n = 5;
+            let val = SynA1Item { id, type1 };
+            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+                panic!("unexpected SynA1 item on wrapper stack");
+            };
+            star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_type(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxType::V1 { id };
+            let n = 1;
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_type(ctx, spans);
+            self.stack.push(SynValue::Type(val));
+        }
+    }
+
+    // [wrapper source for rule 110 #1, start a]
+}
+
+// ================================================================================
+
 pub(crate) mod rules_150_1 {
 
     // ------------------------------------------------------------

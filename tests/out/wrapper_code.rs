@@ -80,6 +80,20 @@ pub(crate) mod code_108_1 {
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
+pub(crate) mod code_109_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `type`
+    #[derive(Debug, PartialEq)] pub struct SynType();
+}
+
+pub(crate) mod code_110_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `type`
+    #[derive(Debug, PartialEq)] pub struct SynType();
+}
+
 pub(crate) mod code_150_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();

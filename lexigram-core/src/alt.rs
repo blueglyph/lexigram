@@ -52,6 +52,8 @@ pub mod ruleflag {
     pub const GREEDY: u32 = 8192;
     /// Precedence identical to previous alternative (only valid for binary left-/right-associative)
     pub const PREC_EQ: u32 = 16384;
+    /// List of token-separated items: α (β α)*, where β only contains fixed terminals and α contains at least one value
+    pub const SEP_LIST: u32 = 32768;
 
     pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACT;
@@ -60,7 +62,7 @@ pub mod ruleflag {
     pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
 
     pub fn to_string(flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 15] = [
+        static NAMES: [(u32, &str); 16] = [
             (CHILD_REPEAT               , "child_+_or_*"),
             (R_RECURSION                , "right_rec"),
             (CHILD_L_RECURSION          , "child_left_rec"),
@@ -76,6 +78,7 @@ pub mod ruleflag {
             (REPEAT_PLUS                , "plus"),
             (GREEDY                     , "greedy"),
             (PREC_EQ                    , "prec_eq"),
+            (SEP_LIST                   , "sep_list"),
         ];
         NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
     }

@@ -75,6 +75,13 @@ impl TestRules {
             106 => vec![r#"a -> (A (b ",")* ";")* C; b -> B;"#],
             107 => vec![r#"a -> (A (b ",")+ ";")+ C; b -> B;"#],
             108 => vec![r#"a -> A "B"* C;"#],
+            // capture of first item in list of token-separated items
+            109 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)* ")"; type -> Id;"#],
+            110 => vec![r#"a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")"; type -> Id;"#],
+            111 => vec![r#"a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")";"#],
+            // no capture for +
+            112 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#],
+
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
@@ -99,6 +106,12 @@ impl TestRules {
             209 => vec![r#"a -> (<L=i> A (<L=j> b ",")+ ";")+ C; b -> B;"#],
             210 => vec![r#"a -> A (<L=i> "B")* C;"#],
             211 => vec![r#"a -> A (A | C) (B <L=i>)* C;"#],
+            // capture of first item in list of token-separated items
+            212 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)* ")"; type -> Id;"#],
+            213 => vec![r#"a -> Id "(" (Id ":" type (<L=i> "," Id ":" type)*)? ")"; type -> Id;"#],
+            214 => vec![r#"a -> Id "(" Id (<L=i> "," Id)* "/" Id (<L=j> "," Id)* ")";"#],
+            // no capture for +
+            215 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"; type -> Id;"#],
 
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
