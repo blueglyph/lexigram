@@ -168,11 +168,6 @@ impl NTValue {
 
 pub static DEFAULT_LISTENER_NAME: &str = "Parser";
 
-static FOLD_SPAN_CODE: [&str; 2] = [
-    "        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();",
-    "        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));",
-];
-
 pub type SpanNbr = u16;
 
 fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
@@ -198,6 +193,8 @@ pub struct ParserGen {
     gen_span_params: bool,
     gen_token_enums: bool,
     span_nbrs: Vec<SpanNbr>,
+    /// Number of span values take from a PARENT_REPEAT in init() to extract the first item of a SEP_LIST
+    span_nbrs_sep_list: HashMap<AltId, SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
     headers: Vec<String>,
@@ -256,6 +253,7 @@ impl ParserGen {
             opcodes: Vec::new(),
             init_opcodes: Vec::new(),
             span_nbrs: Vec::new(),
+            span_nbrs_sep_list: HashMap::new(),
             start,
             nt_conversion,
             headers: Vec::new(),
@@ -1045,7 +1043,7 @@ impl ParserGen {
         //             we decrease the indices in both alts
         //      if the pattern is empty after the loop, we have a candidate:
         //      - remove the pattern without the last NT from the parent's item_ops -> [Id a_1]
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         // let mut sep_list = vec![];
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
@@ -1083,6 +1081,7 @@ impl ParserGen {
                         }
                         'parent: for a in p_alts {
                             // finds matching item patterns in parent
+                            let mut span_nbr = 0;
                             for (pos, sub) in items[a as usize].windows(pattern_len).enumerate() {
                                 if VERBOSE { println!("  - inspecting {}", sub.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
                                 if sub == pattern {
@@ -1092,6 +1091,7 @@ impl ParserGen {
                                     let mut p_pos = p_alt.iter().position(|&s| s == Symbol::NT(var_id)).unwrap();
                                     while !pattern.is_empty() {
                                         if p_alt[p_pos] == c_alt[c_pos] {
+                                            span_nbr += 1;
                                             if self.sym_has_value(&c_alt[c_pos]) {
                                                 pattern.pop().unwrap();
                                             }
@@ -1105,7 +1105,10 @@ impl ParserGen {
                                         }
                                     }
                                     if pattern.is_empty() {
-                                        if VERBOSE { println!("- found match: parent alt {a}, child alt {alt_id}, pos in parent items: {pos}"); }
+                                        span_nbr -= 1;
+                                        if VERBOSE { println!("- match: parent alt {a}, child alt {alt_id}, pos in parent: {pos}, span_nbr = {span_nbr}"); }
+                                        self.span_nbrs[a as usize] -= span_nbr;
+                                        self.span_nbrs_sep_list.insert(alt_id, span_nbr);
                                         // #[cfg(any())]
                                         items[a as usize].drain(pos..pos + pattern_len - 1);
                                         self.parsing_table.flags[var_id as usize] |= ruleflag::SEP_LIST;
@@ -1667,6 +1670,148 @@ impl ParserGen {
         }
     }
 
+    fn get_var_param(item: &ItemInfo, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> Option<String> {
+        if let Some(index) = item.index {
+            if index == 0 {
+                Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
+            } else {
+                None
+            }
+        } else {
+            let name = non_indices.pop().unwrap();
+            if name == item.name {
+                Some(name)
+            } else {
+                Some(format!("{}: {name}", item.name))
+            }
+        }
+    }
+
+    fn get_var_params(item_info: &[ItemInfo], skip: usize, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> String {
+        item_info.iter().skip(skip).filter_map(|item| {
+            Self::get_var_param(item, indices, non_indices)
+        }).join(", ")
+    }
+
+    fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> (Vec<String>, String) {
+        let mut src_let = vec![];
+        let mut var_fixer = NameFixer::new();
+        let mut indices = HashMap::<Symbol, Vec<String>>::new();
+        let mut non_indices = Vec::<String>::new();
+        for item in infos.iter().rev() {
+            let varname = if let Some(index) = item.index {
+                let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
+                indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
+                name
+            } else {
+                let name = item.name.clone();
+                non_indices.push(name.clone());
+                name
+            };
+            if let Symbol::NT(v) = item.sym {
+                src_let.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].2));
+            } else {
+                src_let.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap();"));
+            }
+        }
+
+        let is_simple = infos.len() == 1 && infos[0].sym.is_t(); // Vec<String>
+        let src_struct = if is_simple {
+            non_indices[0].clone()
+        } else {
+            if infos.len() == 1 {
+                Self::get_var_param(&infos[0], &indices, &mut non_indices).unwrap()
+            } else {
+                Self::get_var_params(&infos, 0, &indices, &mut non_indices)
+            }
+        };
+        (src_let, src_struct)
+    }
+
+    fn source_update_span(n: &str) -> Vec<String> {
+        vec![
+            format!("        let spans = self.stack_span.drain(self.stack_span.len() - {n} ..).collect::<Vec<_>>();",),
+            "        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));".to_string(),
+        ]
+    }
+
+    /// Source code of the first part of exit_* method for children of *+,
+    /// which takes the values of the NT and T items from the stack at each iteration.
+    /// The same code is generated for init_* methods in the case of token-separated items,
+    /// when the accumulator is initialized with the first items.
+    fn source_child_repeat_lets(
+        &self,
+        endpoints: &Vec<AltId>,
+        item_info: &Vec<Vec<ItemInfo>>,
+        is_plus: bool,
+        nt_name: &Vec<(String, String, String)>,
+        fn_name: &str,
+        nu: &str,
+        is_init: bool,
+    ) -> (Vec<String>, String)
+    {
+        // ex:
+        //     let type1 = self.stack.pop().unwrap().get_type();
+        //     let id = self.stack_t.pop().unwrap();
+        //     let val = SynA1Item { id, type1 };
+        //     let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+        //     self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        //
+        let mut src_val = vec![];
+        let val_name = if endpoints.len() > 1 {
+            // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
+            src_val.push(format!("        let {} = match alt_id {{", self.gen_match_item("val".to_string(), || "n".to_string())));
+            for (i, &a_id) in endpoints.into_iter().index_start(1) {
+                let infos = &item_info[a_id as usize];
+                src_val.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
+                let (src_let, src_struct) = Self::source_lets(infos, &nt_name, "        ");
+                src_val.extend(src_let);
+                let return_value = self.gen_match_item(
+                    format!("Syn{nu}Item::V{i} {{ {} }}", src_struct),
+                    || self.span_nbrs[a_id as usize].to_string());
+                src_val.push(format!("                {return_value}"));
+                src_val.push(format!("            }}"));
+            }
+            src_val.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
+            src_val.push(format!("        }};"));
+            if self.gen_span_params {
+                src_val.extend(Self::source_update_span("n"));
+            }
+            "val".to_string()
+        } else {
+            // single possibility; for ex. a -> (A B)+  => struct
+            let a_id = endpoints[0];
+            if self.gen_span_params {
+                let span_nbr = if is_init {
+                    *self.span_nbrs_sep_list.get(&a_id).unwrap()
+                } else {
+                    self.span_nbrs[a_id as usize]
+                };
+                src_val.extend(Self::source_update_span(&span_nbr.to_string()));
+            }
+            let infos = &item_info[a_id as usize];
+            let (src_let, src_struct) = Self::source_lets(infos, &nt_name, "");
+            src_val.extend(src_let);
+            // if self.gen_span_params {
+            //     let span_nbr = if is_init {
+            //         *self.span_nbrs_sep_list.get(&a_id).unwrap()
+            //     } else {
+            //         self.span_nbrs[a_id as usize]
+            //     };
+            //     // src_val.push(format!("        let n = {span_nbr};"));
+            // }
+            if infos.len() == 1 {
+                // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                infos[0].name.clone()
+            } else {
+                // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
+                src_val.push(format!("        let val = Syn{nu}Item {{ {} }};", src_struct));
+                "val".to_string()
+            }
+        };
+        (src_val, val_name)
+    }
+
     /// Generates the wrapper source code.
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
@@ -1907,6 +2052,7 @@ impl ParserGen {
                 let sym_nt = Symbol::NT(*var);
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
+                let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
                 // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
                 let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && ambig_children.get(0) == Some(var);
                 // we only process the first variable of the left recursion; below we gather the alts of
@@ -1916,6 +2062,7 @@ impl ParserGen {
                 let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
                 let is_child_repeat_lform = self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM);
+                let (nu, nl, npl) = &nt_name[nt];
                 if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
                                       sym_nt.to_str(self.get_symbol_table()),
                                       if has_value { "" } else { "no " },
@@ -1923,48 +2070,58 @@ impl ParserGen {
 
                 // Call::Enter
 
+                let init_fn_name = format!("init_{npl}");
                 if self.parsing_table.parent[nt].is_none() {
-                    let (nu, nl, npl) = &nt_name[nt];
                     init_nt_done.insert(*var);
                     if has_value && self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
                         span_init.insert(*var);
                         src_wrapper_impl.push(String::new());
-                        src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                        src_wrapper_impl.push(format!("    fn init_{npl}(&mut self) {{"));
+                        src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
                         src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         src_wrapper_impl.push(format!("    }}"));
                     } else {
-                        src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
-                        src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
+                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                        src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
                     }
                 } else {
                     if flags & ruleflag::CHILD_REPEAT != 0 {
-                        span_init.insert(*var);
+                        if flags & ruleflag::SEP_LIST == 0 {
+                            span_init.insert(*var);
+                        }
                         if has_value {
                             init_nt_done.insert(*var);
                             src_wrapper_impl.push(String::new());
-                            let (nu, _nl, npl) = &nt_name[nt];
-                            src_init.push(vec![format!("                    {nt} => self.init_{npl}(),"), nt_comment]);
-                            src_wrapper_impl.push(format!("    fn init_{npl}(&mut self) {{"));
+                            src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
+                            src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
                             if flags & ruleflag::L_FORM != 0 {
-                                src_wrapper_impl.push(format!("        let val = self.listener.init_{npl}();"));
-                                src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                                src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
+                                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                             } else {
                                 if flags & ruleflag::SEP_LIST != 0 {
-                                    // fetch values from stack
+                                    // fetch values from stack to init the list with the first value that was outside the repetition:
+                                    // first α in α (β α)*
+                                    let endpoints = child_repeat_endpoints.get(var).unwrap();
+                                    let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &init_fn_name, nu, true);
+                                    src_wrapper_impl.extend(src_val);
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
+                                    // if self.gen_span_params {
+                                    //     src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
+                                    // }
+                                } else {
+                                    src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                                 }
-                                src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                             }
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                             src_wrapper_impl.push(format!("    }}"));
                         } else {
                             if flags & ruleflag::L_FORM != 0 {
                                 init_nt_done.insert(*var);
-                                let (_nu, _nl, npl) = &nt_name[nt];
-                                src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
-                                src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
+                                src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+                                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
                             } else {
                                 // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                             }
@@ -1978,32 +2135,9 @@ impl ParserGen {
 
                 // Call::Exit
 
-                fn get_var_param(item: &ItemInfo, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> Option<String> {
-                    if let Some(index) = item.index {
-                        if index == 0 {
-                            Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                        } else {
-                            None
-                        }
-                    } else {
-                        let name = non_indices.pop().unwrap();
-                        if name == item.name {
-                            Some(name)
-                        } else {
-                            Some(format!("{}: {name}", item.name))
-                        }
-                    }
-                }
-
-                fn get_var_params(item_info: &[ItemInfo], skip: usize, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> String {
-                    item_info.iter().skip(skip).filter_map(|item| {
-                        get_var_param(item, indices, non_indices)
-                    }).join(", ")
-                }
-
                 // handles most rules except children of left factorization (already taken by self.gather_alts)
                 if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
-                    let (nu, _nl, npl) = &nt_name[nt];
+                    // let (nu, _nl, npl) = &nt_name[nt];
                     let (pnu, _pnl, pnpl) = &nt_name[parent_nt];
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
                     let no_method = !has_value && flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
@@ -2075,96 +2209,22 @@ impl ParserGen {
                     }
                     if flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
 
-                        fn source_lets(infos: &[ItemInfo], nt_name: &[(String, String, String)], indent: &str) -> (Vec<String>, String) {
-                            let mut src_let = vec![];
-                            let mut var_fixer = NameFixer::new();
-                            let mut indices = HashMap::<Symbol, Vec<String>>::new();
-                            let mut non_indices = Vec::<String>::new();
-                            for item in infos.iter().rev() {
-                                let varname = if let Some(index) = item.index {
-                                    let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
-                                    indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
-                                    name
-                                } else {
-                                    let name = item.name.clone();
-                                    non_indices.push(name.clone());
-                                    name
-                                };
-                                if let Symbol::NT(v) = item.sym {
-                                    src_let.push(format!("{indent}        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].2));
-                                } else {
-                                    src_let.push(format!("{indent}        let {varname} = self.stack_t.pop().unwrap();"));
-                                }
-                            }
-
-                            let is_simple = infos.len() == 1 && infos[0].sym.is_t(); // Vec<String>
-                            let src_struct = if is_simple {
-                                non_indices[0].clone()
-                            } else {
-                                if infos.len() == 1 {
-                                    get_var_param(&infos[0], &indices, &mut non_indices).unwrap()
-                                } else {
-                                    get_var_params(&infos, 0, &indices, &mut non_indices)
-                                }
-                            };
-                            (src_let, src_struct)
-                        }
-
                         if has_value {
                             let endpoints = child_repeat_endpoints.get(var).unwrap();
-                            let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+                            let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &fn_name, nu, false);
+                            src_wrapper_impl.extend(src_val);
                             let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
-                            let val_name = if endpoints.len() > 1 {
-                                // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
-                                src_wrapper_impl.push(format!("        let {} = match alt_id {{", self.gen_match_item("val".to_string(), || "n".to_string())));
-                                for (i, &a_id) in endpoints.into_iter().index_start(1) {
-                                    let infos = &item_info[a_id as usize];
-                                    src_wrapper_impl.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
-                                    let (src_let, src_struct) = source_lets(infos, &nt_name, "        ");
-                                    src_wrapper_impl.extend(src_let);
-                                    let return_value = self.gen_match_item(
-                                        format!("Syn{nu}Item::V{i} {{ {} }}", src_struct),
-                                        || self.span_nbrs[a_id as usize].to_string());
-                                    src_wrapper_impl.push(format!("                {return_value}"));
-                                    src_wrapper_impl.push(format!("            }}"));
-                                }
-                                src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
-                                src_wrapper_impl.push(format!("        }};"));
-                                "val".to_string()
-                            } else {
-                                // single possibility; for ex. a -> (A B)+  => struct
-                                let a_id = endpoints[0];
-                                let infos = &item_info[a_id as usize];
-                                let (src_let, src_struct) = source_lets(infos, &nt_name, "");
-                                src_wrapper_impl.extend(src_let);
-                                if self.gen_span_params {
-                                    src_wrapper_impl.push(format!("        let n = {};", self.span_nbrs[a_id as usize]));
-                                }
-                                if infos.len() == 1 {
-                                    // single repeat item; for ex. A -> B+  => type directly as Vec<type>
-                                    let val_name = infos[0].name.clone();
-                                    val_name
-                                } else {
-                                    // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
-                                    src_wrapper_impl.push(format!("        let val = Syn{nu}Item {{ {} }};", src_struct));
-                                    "val".to_string()
-                                }
-                            };
                             src_wrapper_impl.push(format!("        let Some(SynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
                             src_wrapper_impl.push(format!("            panic!(\"unexpected Syn{nu} item on wrapper stack\");"));
                             src_wrapper_impl.push(format!("        }};"));
                             src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
-                            if self.gen_span_params {
-                                // "        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();"
-                                // "        let mut new_span = PosSpan::empty();"
-                                // "        spans.iter().for_each(|span| new_span += span);"
-                                // "        self.stack_span.push(new_span);"
-                                src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
-                            }
+                            // if self.gen_span_params {
+                            //     src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
+                            // }
                         }
                     } else {
                         assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
-                        let has_last_flag = is_child_repeat_lform && flags & ruleflag::REPEAT_PLUS != 0; // special last flag
+                        let has_last_flag = is_child_repeat_lform && is_plus; // special last flag
                         let (mut last_alt_ids, exit_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter().partition(|i| alt_info[*i as usize].is_none());
                         let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other alternatives use the parent
                         let fnpl = if is_child_repeat_lform { npl } else { pnpl }; // +* <L> use the loop variable, the other alternatives use the parent
@@ -2213,7 +2273,7 @@ impl ParserGen {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            let ctx_params = get_var_params(&item_info[a as usize], 0, &indices, &mut non_indices);
+                            let ctx_params = Self::get_var_params(&item_info[a as usize], 0, &indices, &mut non_indices);
                             let ctx = if ctx_params.is_empty() {
                                 format!("Ctx{fnu}::{}", alt_info[a as usize].as_ref().unwrap().1)
                             } else {
@@ -2222,8 +2282,8 @@ impl ParserGen {
                             if is_single {
                                 src_wrapper_impl.push(format!("        let ctx = {ctx};"));
                                 if self.gen_span_params {
-                                    src_wrapper_impl.push(format!("        let n = {};", self.span_nbrs[a as usize]));
-                                    src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
+                                    // src_wrapper_impl.push(format!("        let n = {}; // ici", self.span_nbrs[a as usize]));
+                                    src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
 
                                 }
                                 src_wrapper_impl.push(format!(
@@ -2243,7 +2303,7 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\")"));
                             src_wrapper_impl.push(format!("        }};"));
                             if self.gen_span_params {
-                                src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
+                                src_wrapper_impl.extend(Self::source_update_span("n"));
                             }
                             src_wrapper_impl.push(format!(
                                 "        {}self.listener.exit_{fnpl}(ctx{});",

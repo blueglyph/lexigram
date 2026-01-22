@@ -678,13 +678,8 @@ mod wrapper_source {
                 2 => (1, symbols![]),                   //  2: a_1 -> ε       | ◄2            | 1 |
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
-            // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
-            // type -> Id
-            // NT flags:
-            //  - a: parent_+_or_* (2048)
-            //  - a_1: child_+_or_* (1)
-            // parents:
-            //  - a_1 -> a
+
+/*
             (109, true, false, 0, btreemap![
                 0 => "SynA".to_string(),
             ], btreemap![
@@ -693,16 +688,6 @@ mod wrapper_source {
                 2 => (5, symbols![nt 2, t 0, nt 1]),      //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5 | a_1 Id type
                 3 => (1, symbols![nt 2]),                 //  3: a_1 -> ε                        | ◄3                                | 1 | a_1
             ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
-
-            // a -> Id "(" Id ":" type ("," Id ":" type)* ")" | Id "(" ")"
-            // type -> Id
-            // NT flags:
-            //  - a: parent_left_fact | parent_+_or_* (2080)
-            //  - a_1: child_+_or_* (1)
-            //  - a_2: child_left_fact (64)
-            // parents:
-            //  - a_1 -> a
-            //  - a_2 -> a
             (110, true, false, 0, btreemap![
             ], btreemap![
                 0 => (0, symbols![]),                     //  0: a -> Id "(" a_2            | ►a_2 "(" Id!              | 0 |
@@ -712,22 +697,58 @@ mod wrapper_source {
                 4 => (7, symbols![t 0, t 0, nt 1, nt 2]), //  4: a_2 -> Id ":" type a_1 ")" | ◄4 ")" ►a_1 ►type ":" Id! | 7 | Id Id type a_1
                 5 => (3, symbols![t 0]),                  //  5: a_2 -> ")"                 | ◄5 ")"                    | 3 | Id
             ], NTValue::Default, btreemap![0 => vec![4, 5], 1 => vec![1]]),
+*/
+
+            // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
+            // type -> Id
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* | sep_list (32769)
+            // parents:
+            //  - a_1 -> a
+            (109, true, false, 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => (4, symbols![t 0, nt 2]),          //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 4 | Id a_1
+                1 => (1, symbols![t 0]),                //  1: type -> Id                      | ◄1 Id!                            | 1 | Id
+                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5 | a_1 Id type
+                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                        | ◄3                                | 1 | a_1
+            ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // a -> Id "(" Id ":" type ("," Id ":" type)* ")" | Id "(" ")"
+            // type -> Id
+            // NT flags:
+            //  - a: parent_left_fact | parent_+_or_* (2080)
+            //  - a_1: child_+_or_* | sep_list (32769)
+            //  - a_2: child_left_fact (64)
+            // parents:
+            //  - a_1 -> a
+            //  - a_2 -> a
+            (110, true, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                   //  0: a -> Id "(" a_2            | ►a_2 "(" Id!              | 0 |
+                1 => (1, symbols![t 0]),                //  1: type -> Id                 | ◄1 Id!                    | 1 | Id
+                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1 | ●a_1 ◄2 ►type ":" Id! "," | 5 | a_1 Id type
+                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                   | ◄3                        | 1 | a_1
+                4 => (4, symbols![t 0, nt 2]),          //  4: a_2 -> Id ":" type a_1 ")" | ◄4 ")" ►a_1 ►type ":" Id! | 4 | Id a_1
+                5 => (3, symbols![t 0]),                //  5: a_2 -> ")"                 | ◄5 ")"                    | 3 | Id
+            ], NTValue::Default, btreemap![0 => vec![4, 5], 1 => vec![1]]),
 
             // a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")"
             // NT flags:
             //  - a: parent_+_or_* (2048)
-            //  - a_1: child_+_or_* (1)
-            //  - a_2: child_+_or_* (1)
+            //  - a_1: child_+_or_* | sep_list (32769)
+            //  - a_2: child_+_or_* | sep_list (32769)
             // parents:
             //  - a_1 -> a
             //  - a_2 -> a
             (111, false, false, 0, btreemap![
             ], btreemap![
-                0 => (8, symbols![t 0, t 0, nt 1, t 0, nt 2]), //  0: a -> Id "(" Id a_1 "/" Id a_2 ")" | ◄0 ")" ►a_2 Id! "/" ►a_1 Id! "(" Id! | 8 | Id Id a_1 Id a_2
-                1 => (3, symbols![nt 1, t 0]),                 //  1: a_1 -> "," Id a_1                 | ●a_1 ◄1 Id! ","                      | 3 | a_1 Id
-                2 => (1, symbols![nt 1]),                      //  2: a_1 -> ε                          | ◄2                                   | 1 | a_1
-                3 => (3, symbols![nt 2, t 0]),                 //  3: a_2 -> "," Id a_2                 | ●a_2 ◄3 Id! ","                      | 3 | a_2 Id
-                4 => (1, symbols![nt 2]),                      //  4: a_2 -> ε                          | ◄4                                   | 1 | a_2
+                0 => (6, symbols![t 0, nt 1, nt 2]),    //  0: a -> Id "(" Id a_1 "/" Id a_2 ")" | ◄0 ")" ►a_2 Id! "/" ►a_1 Id! "(" Id! | 6 | Id a_1 a_2
+                1 => (3, symbols![nt 1, t 0]),          //  1: a_1 -> "," Id a_1                 | ●a_1 ◄1 Id! ","                      | 3 | a_1 Id
+                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε                          | ◄2                                   | 1 | a_1
+                3 => (3, symbols![nt 2, t 0]),          //  3: a_2 -> "," Id a_2                 | ●a_2 ◄3 Id! ","                      | 3 | a_2 Id
+                4 => (1, symbols![nt 2]),               //  4: a_2 -> ε                          | ◄4                                   | 1 | a_2
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- norm+/* alternatives
@@ -2231,7 +2252,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            if !matches!(tr_id, 109..=111) { continue }
+            // if !matches!(tr_id, 109..150) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
