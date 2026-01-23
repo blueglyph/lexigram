@@ -115,6 +115,8 @@ impl LexAction {
 impl Add for LexAction {
     type Output = Self;
 
+    /// Adds two [LexAction] items. Note that [LexAction::default()] is neutral
+    /// for the addition, so it can be used as starting element to fold a list.
     fn add(self, rhs: Self) -> Self::Output {
         match self.try_add(rhs) {
             Ok(a) => a,
@@ -602,8 +604,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_option(&mut self, ctx: CtxOption, _spans: Vec<PosSpan>) -> SynOption {
         if self.verbose { println!("- exit_option({ctx:?})"); }
-        let CtxOption::V1 { id, mut star } = ctx;       // option -> channels { Id [, Id]* }
-        star.0.insert(0, id);
+        let CtxOption::V1 { star } = ctx;       // option -> "channels" "{" Id ("," Id)* "}"
         for ch in star.0 {
             if self.channels.contains_key(&ch) {
                 self.log.add_error(format!("channel '{ch}' defined twice"));
@@ -743,16 +744,15 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_actions(&mut self, ctx: CtxActions, _spans: Vec<PosSpan>) -> SynActions {
-        let CtxActions::V1 { action, star } = ctx;
-        let mut action = action.0;
-        for a in star.0 {
-            action = action.try_add(a.0).unwrap_or_else(|(_e, left, right)| {
+        let CtxActions::V1 { star } = ctx;
+        let action = star.0.into_iter().fold(LexAction::default(), |acc, SynAction(a)| {
+            acc.try_add(a).unwrap_or_else(|(_msg, left, right)| {
                 self.log.add_error(format!("can't add actions '{}' and '{}'",
                                            left.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode)),
                                            right.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode))));
                 left
             })
-        }
+        });
         SynActions(action)
     }
 
@@ -828,13 +828,12 @@ impl LexiParserListener for LexiListener {
     fn exit_alt_items(&mut self, ctx: CtxAltItems, _spans: Vec<PosSpan>) -> SynAltItems {
         if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
-        let CtxAltItems::V1 { alt_item, star: SynAltItems1(alt_items) } = ctx;
-        let (id, const_literal) = if !alt_items.is_empty() {
-            let id = tree.addci(None, node!(|), alt_item.0.0);
-            tree.attach_children(id, alt_items.into_iter().map(|SynAltItem((id1, _))| id1));
+        let CtxAltItems::V1 { star: SynAltItems1(mut alt_items) } = ctx;
+        let (id, const_literal) = if alt_items.len() > 1 {
+            let id = tree.addci_iter(None, node!(|), alt_items.into_iter().map(|SynAltItem((id_ch, _))| id_ch));
             (id, None)
         } else {
-            alt_item.0
+            alt_items.pop().unwrap().0
         };
         if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
         // Item types have both an id and a const_literal. The const_literal serves to determine

@@ -437,8 +437,7 @@ impl<T: Test1Listener> Wrapper<T> {
 
     fn exit_program(&mut self) {
         let ctx = CtxProgram::V1;
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_program(ctx, spans);
         self.stack.push(SynValue::Program(val));
@@ -447,8 +446,7 @@ impl<T: Test1Listener> Wrapper<T> {
     fn exit_inst(&mut self) {
         let instruction = self.stack.pop().unwrap().get_instruction();
         let ctx = CtxInst::V1 { instruction };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         self.listener.exit_inst(ctx, spans);
     }

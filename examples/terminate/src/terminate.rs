@@ -681,8 +681,7 @@ pub mod terminate_parser {
         fn exit_log(&mut self) {
             let star = self.stack.pop().unwrap().get_log_i();
             let ctx = CtxLog::V1 { star };
-            let n = 1;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_log(ctx, spans);
             self.stack.push(SynValue::Log(val));
@@ -697,8 +696,7 @@ pub mod terminate_parser {
             let line = self.stack.pop().unwrap().get_line();
             let star_acc = self.stack.pop().unwrap().get_log_i();
             let ctx = CtxLogI::V1 { star_acc, line };
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_log_i(ctx, spans);
             self.stack.push(SynValue::LogI(val));

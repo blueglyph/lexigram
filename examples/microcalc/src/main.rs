@@ -402,7 +402,7 @@ pub mod microcalc_parser {
     #[derive(Debug)]
     pub enum CtxFunParams {
         /// `fun_params -> Id ("," Id)*`
-        V1 { id: String, star: SynFunParams1 },
+        V1 { star: SynFunParams1 },
         /// `fun_params -> ε`
         V2,
     }
@@ -472,7 +472,7 @@ pub mod microcalc_parser {
     #[derive(Debug)]
     pub enum CtxFunArgs {
         /// `fun_args -> expr ("," expr)*`
-        V1 { expr: SynExpr, star: SynFunArgs1 },
+        V1 { star: SynFunArgs1 },
         /// `fun_args -> ε`
         V2,
     }
@@ -774,8 +774,7 @@ pub mod microcalc_parser {
             let ctx = match alt_id {
                 2 => {
                     let star = self.stack.pop().unwrap().get_fun_params1();
-                    let id = self.stack_t.pop().unwrap();
-                    CtxFunParams::V1 { id, star }
+                    CtxFunParams::V1 { star }
                 }
                 3 => {
                     CtxFunParams::V2
@@ -787,8 +786,8 @@ pub mod microcalc_parser {
         }
 
         fn init_fun_params1(&mut self) {
-            let val = SynFunParams1(Vec::new());
-            self.stack.push(SynValue::FunParams1(val));
+            let id = self.stack_t.pop().unwrap();
+            self.stack.push(SynValue::FunParams1(SynFunParams1(vec![id])));
         }
 
         fn exit_fun_params1(&mut self) {
@@ -970,8 +969,7 @@ pub mod microcalc_parser {
             let ctx = match alt_id {
                 13 => {
                     let star = self.stack.pop().unwrap().get_fun_args1();
-                    let expr = self.stack.pop().unwrap().get_expr();
-                    CtxFunArgs::V1 { expr, star }
+                    CtxFunArgs::V1 { star }
                 }
                 14 => {
                     CtxFunArgs::V2
@@ -983,8 +981,8 @@ pub mod microcalc_parser {
         }
 
         fn init_fun_args1(&mut self) {
-            let val = SynFunArgs1(Vec::new());
-            self.stack.push(SynValue::FunArgs1(val));
+            let expr = self.stack.pop().unwrap().get_expr();
+            self.stack.push(SynValue::FunArgs1(SynFunArgs1(vec![expr])));
         }
 
         fn exit_fun_args1(&mut self) {

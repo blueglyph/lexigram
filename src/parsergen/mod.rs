@@ -1043,8 +1043,7 @@ impl ParserGen {
         //             we decrease the indices in both alts
         //      if the pattern is empty after the loop, we have a candidate:
         //      - remove the pattern without the last NT from the parent's item_ops -> [Id a_1]
-        const VERBOSE: bool = true;
-        // let mut sep_list = vec![];
+        const VERBOSE: bool = false;
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
         for g in self.nt_parent.iter().filter(|va| !va.is_empty()) {
@@ -1062,7 +1061,6 @@ impl ParserGen {
                 })
                 .to_vec();  // to avoid borrow checker issue with &mut self later
             for (var_id, alt_id, flags) in group {
-                // let flags = self.parsing_table.flags[var_id as usize];
                 if flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                     // we search for potential token-separated items,
                     // - first testing that the item_ops patterns match (easier without β)
@@ -1109,10 +1107,8 @@ impl ParserGen {
                                         if VERBOSE { println!("- match: parent alt {a}, child alt {alt_id}, pos in parent: {pos}, span_nbr = {span_nbr}"); }
                                         self.span_nbrs[a as usize] -= span_nbr;
                                         self.span_nbrs_sep_list.insert(alt_id, span_nbr);
-                                        // #[cfg(any())]
                                         items[a as usize].drain(pos..pos + pattern_len - 1);
                                         self.parsing_table.flags[var_id as usize] |= ruleflag::SEP_LIST;
-                                        // sep_list.push((a, alt_id, pos, pattern_len - 1));
                                     }
                                     break 'parent;
                                 }
@@ -1730,7 +1726,7 @@ impl ParserGen {
 
     fn source_update_span(n: &str) -> Vec<String> {
         vec![
-            format!("        let spans = self.stack_span.drain(self.stack_span.len() - {n} ..).collect::<Vec<_>>();",),
+            format!("        let spans = self.stack_span.drain(self.stack_span.len() - {n} ..).collect::<Vec<_>>();"),
             "        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));".to_string(),
         ]
     }
@@ -1792,14 +1788,6 @@ impl ParserGen {
             let infos = &item_info[a_id as usize];
             let (src_let, src_struct) = Self::source_lets(infos, &nt_name, "");
             src_val.extend(src_let);
-            // if self.gen_span_params {
-            //     let span_nbr = if is_init {
-            //         *self.span_nbrs_sep_list.get(&a_id).unwrap()
-            //     } else {
-            //         self.span_nbrs[a_id as usize]
-            //     };
-            //     // src_val.push(format!("        let n = {span_nbr};"));
-            // }
             if infos.len() == 1 {
                 // single repeat item; for ex. A -> B+  => type directly as Vec<type>
                 infos[0].name.clone()
@@ -2108,9 +2096,6 @@ impl ParserGen {
                                     let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &init_fn_name, nu, true);
                                     src_wrapper_impl.extend(src_val);
                                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
-                                    // if self.gen_span_params {
-                                    //     src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
-                                    // }
                                 } else {
                                     src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
@@ -2218,9 +2203,6 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("            panic!(\"unexpected Syn{nu} item on wrapper stack\");"));
                             src_wrapper_impl.push(format!("        }};"));
                             src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
-                            // if self.gen_span_params {
-                            //     src_wrapper_impl.extend(FOLD_SPAN_CODE.into_iter().map(|s| s.to_string()).to_vec());
-                            // }
                         }
                     } else {
                         assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
@@ -2282,7 +2264,6 @@ impl ParserGen {
                             if is_single {
                                 src_wrapper_impl.push(format!("        let ctx = {ctx};"));
                                 if self.gen_span_params {
-                                    // src_wrapper_impl.push(format!("        let n = {}; // ici", self.span_nbrs[a as usize]));
                                     src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
 
                                 }

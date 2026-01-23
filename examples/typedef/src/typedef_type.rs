@@ -735,8 +735,7 @@ pub mod typedef_type_parser {
 
         fn exit_program(&mut self) {
             let ctx = CtxProgram::V1;
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_program(ctx, spans);
             self.stack.push(SynValue::Program(val));
@@ -745,8 +744,7 @@ pub mod typedef_type_parser {
         fn exit_decl_i(&mut self) {
             let decl = self.stack.pop().unwrap().get_decl();
             let ctx = CtxDeclI::V1 { decl };
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_decl_i(ctx, spans);
         }
@@ -755,8 +753,7 @@ pub mod typedef_type_parser {
             let last_iteration = alt_id == 18;
             let inst = self.stack.pop().unwrap().get_inst();
             let ctx = CtxInstI::V1 { inst, last_iteration };
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_inst_i(ctx, spans);
         }
@@ -791,8 +788,7 @@ pub mod typedef_type_parser {
             let id = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_id_i();
             let ctx = CtxIdI::V1 { star_acc, id };
-            let n = 3;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_id_i(ctx, spans);
             self.stack.push(SynValue::IdI(val));

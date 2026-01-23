@@ -742,8 +742,7 @@ pub mod typedef_id_type_parser {
 
         fn exit_program(&mut self) {
             let ctx = CtxProgram::V1;
-            let n = 1;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_program(ctx, spans);
             self.stack.push(SynValue::Program(val));
@@ -752,8 +751,7 @@ pub mod typedef_id_type_parser {
         fn exit_stmt_i(&mut self) {
             let stmt = self.stack.pop().unwrap().get_stmt();
             let ctx = CtxStmtI::V1 { stmt };
-            let n = 2;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_stmt_i(ctx, spans);
         }
@@ -806,8 +804,7 @@ pub mod typedef_id_type_parser {
             let id = self.stack_t.pop().unwrap();
             let star_acc = self.stack.pop().unwrap().get_id_i();
             let ctx = CtxIdI::V1 { star_acc, id };
-            let n = 3;
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_id_i(ctx, spans);
             self.stack.push(SynValue::IdI(val));

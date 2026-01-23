@@ -762,7 +762,7 @@ pub mod rtsgen_parser {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> "token" decl_terminal ("," decl_terminal)* ";"`
-        V1 { decl_terminal: SynDeclTerminal, star: SynDecl1 },
+        V1 { star: SynDecl1 },
     }
     #[derive(Debug)]
     pub enum CtxDeclTerminal {
@@ -1159,15 +1159,14 @@ pub mod rtsgen_parser {
 
         fn exit_decl(&mut self) {
             let star = self.stack.pop().unwrap().get_decl1();
-            let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let ctx = CtxDecl::V1 { decl_terminal, star };
+            let ctx = CtxDecl::V1 { star };
             let val = self.listener.exit_decl(ctx);
             self.stack.push(SynValue::Decl(val));
         }
 
         fn init_decl1(&mut self) {
-            let val = SynDecl1(Vec::new());
-            self.stack.push(SynValue::Decl1(val));
+            let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
+            self.stack.push(SynValue::Decl1(SynDecl1(vec![decl_terminal])));
         }
 
         fn exit_decl1(&mut self) {

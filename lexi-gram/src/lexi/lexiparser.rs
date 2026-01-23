@@ -64,7 +64,7 @@ pub enum CtxDeclaration {
 #[derive(Debug)]
 pub enum CtxOption {
     /// `option -> "channels" "{" Id ("," Id)* "}"`
-    V1 { id: String, star: SynOption1 },
+    V1 { star: SynOption1 },
 }
 #[derive(Debug)]
 pub enum CtxRule {
@@ -101,7 +101,7 @@ pub enum CtxRuleTerminalName {
 #[derive(Debug)]
 pub enum CtxActions {
     /// `actions -> action ("," action)*`
-    V1 { action: SynAction, star: SynActions1 },
+    V1 { star: SynActions1 },
 }
 #[derive(Debug)]
 pub enum CtxAction {
@@ -130,7 +130,7 @@ pub enum CtxMatch {
 #[derive(Debug)]
 pub enum CtxAltItems {
     /// `alt_items -> alt_item ("|" alt_item)*`
-    V1 { alt_item: SynAltItem, star: SynAltItems1 },
+    V1 { star: SynAltItems1 },
 }
 #[derive(Debug)]
 pub enum CtxAltItem {
@@ -391,7 +391,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
         }
         match call {
             Call::Enter => {
-                if matches!(nt, 18 ..= 23) {
+                if matches!(nt, 18 | 22 | 23) {
                     self.stack_span.push(PosSpan::empty());
                 }
                 match nt {
@@ -606,14 +606,13 @@ impl<T: LexiParserListener> Wrapper<T> {
     }
 
     fn exit_file1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let file_item = self.stack.pop().unwrap().get_file_item();
-        let n = 2;
         let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynFile1 item on wrapper stack");
         };
         star_acc.push(file_item);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_file_item(&mut self, alt_id: AltId) {
@@ -641,8 +640,7 @@ impl<T: LexiParserListener> Wrapper<T> {
     fn exit_header(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxHeader::V1 { id };
-        let n = 3;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_header(ctx, spans);
         self.stack.push(SynValue::Header(val));
@@ -651,8 +649,7 @@ impl<T: LexiParserListener> Wrapper<T> {
     fn exit_declaration(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxDeclaration::V1 { id };
-        let n = 3;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_declaration(ctx, spans);
         self.stack.push(SynValue::Declaration(val));
@@ -660,29 +657,28 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_option(&mut self) {
         let star = self.stack.pop().unwrap().get_option1();
-        let id = self.stack_t.pop().unwrap();
-        let ctx = CtxOption::V1 { id, star };
-        let n = 5;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let ctx = CtxOption::V1 { star };
+        let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_option(ctx, spans);
         self.stack.push(SynValue::Option(val));
     }
 
     fn init_option1(&mut self) {
-        let val = SynOption1(Vec::new());
-        self.stack.push(SynValue::Option1(val));
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        let id = self.stack_t.pop().unwrap();
+        self.stack.push(SynValue::Option1(SynOption1(vec![id])));
     }
 
     fn exit_option1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let id = self.stack_t.pop().unwrap();
-        let n = 3;
         let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynOption1 item on wrapper stack");
         };
         star_acc.push(id);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_rule(&mut self, alt_id: AltId) {
@@ -746,8 +742,7 @@ impl<T: LexiParserListener> Wrapper<T> {
     fn exit_rule_fragment_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxRuleFragmentName::V1 { id };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rule_fragment_name(ctx, spans);
         self.stack.push(SynValue::RuleFragmentName(val));
@@ -756,8 +751,7 @@ impl<T: LexiParserListener> Wrapper<T> {
     fn exit_rule_terminal_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxRuleTerminalName::V1 { id };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rule_terminal_name(ctx, spans);
         self.stack.push(SynValue::RuleTerminalName(val));
@@ -765,29 +759,28 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_actions(&mut self) {
         let star = self.stack.pop().unwrap().get_actions1();
-        let action = self.stack.pop().unwrap().get_action();
-        let ctx = CtxActions::V1 { action, star };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let ctx = CtxActions::V1 { star };
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_actions(ctx, spans);
         self.stack.push(SynValue::Actions(val));
     }
 
     fn init_actions1(&mut self) {
-        let val = SynActions1(Vec::new());
-        self.stack.push(SynValue::Actions1(val));
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        let action = self.stack.pop().unwrap().get_action();
+        self.stack.push(SynValue::Actions1(SynActions1(vec![action])));
     }
 
     fn exit_actions1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let action = self.stack.pop().unwrap().get_action();
-        let n = 3;
         let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynActions1 item on wrapper stack");
         };
         star_acc.push(action);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_action(&mut self, alt_id: AltId) {
@@ -831,8 +824,7 @@ impl<T: LexiParserListener> Wrapper<T> {
     fn exit_match(&mut self) {
         let alt_items = self.stack.pop().unwrap().get_alt_items();
         let ctx = CtxMatch::V1 { alt_items };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_match(ctx, spans);
         self.stack.push(SynValue::Match(val));
@@ -840,36 +832,34 @@ impl<T: LexiParserListener> Wrapper<T> {
 
     fn exit_alt_items(&mut self) {
         let star = self.stack.pop().unwrap().get_alt_items1();
-        let alt_item = self.stack.pop().unwrap().get_alt_item();
-        let ctx = CtxAltItems::V1 { alt_item, star };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let ctx = CtxAltItems::V1 { star };
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_alt_items(ctx, spans);
         self.stack.push(SynValue::AltItems(val));
     }
 
     fn init_alt_items1(&mut self) {
-        let val = SynAltItems1(Vec::new());
-        self.stack.push(SynValue::AltItems1(val));
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        let alt_item = self.stack.pop().unwrap().get_alt_item();
+        self.stack.push(SynValue::AltItems1(SynAltItems1(vec![alt_item])));
     }
 
     fn exit_alt_items1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let alt_item = self.stack.pop().unwrap().get_alt_item();
-        let n = 3;
         let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynAltItems1 item on wrapper stack");
         };
         star_acc.push(alt_item);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_alt_item(&mut self) {
         let plus = self.stack.pop().unwrap().get_alt_item1();
         let ctx = CtxAltItem::V1 { plus };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_alt_item(ctx, spans);
         self.stack.push(SynValue::AltItem(val));
@@ -881,14 +871,13 @@ impl<T: LexiParserListener> Wrapper<T> {
     }
 
     fn exit_alt_item1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-        let n = 2;
         let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynAltItem1 item on wrapper stack");
         };
         plus_acc.push(repeat_item);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_repeat_item(&mut self, alt_id: AltId) {
@@ -991,14 +980,13 @@ impl<T: LexiParserListener> Wrapper<T> {
     }
 
     fn exit_char_set1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let char_set_one = self.stack.pop().unwrap().get_char_set_one();
-        let n = 2;
         let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynCharSet1 item on wrapper stack");
         };
         plus_acc.push(char_set_one);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_char_set_one(&mut self, alt_id: AltId) {

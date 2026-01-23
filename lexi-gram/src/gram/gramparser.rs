@@ -346,8 +346,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let rules = self.stack.pop().unwrap().get_rules();
         let header = self.stack.pop().unwrap().get_header();
         let ctx = CtxFile::V1 { header, rules };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_file(ctx, spans);
         self.stack.push(SynValue::File(val));
@@ -356,8 +355,7 @@ impl<T: GramParserListener> Wrapper<T> {
     fn exit_header(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxHeader::V1 { id };
-        let n = 3;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_header(ctx, spans);
         self.stack.push(SynValue::Header(val));
@@ -366,8 +364,7 @@ impl<T: GramParserListener> Wrapper<T> {
     fn inter_rules(&mut self) {
         let rule = self.stack.pop().unwrap().get_rule();
         let ctx = CtxRules::V1 { rule };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rules(ctx, spans);
         self.stack.push(SynValue::Rules(val));
@@ -377,8 +374,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let rule = self.stack.pop().unwrap().get_rule();
         let rules = self.stack.pop().unwrap().get_rules();
         let ctx = CtxRules::V2 { rules, rule };
-        let n = 2;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rules(ctx, spans);
         self.stack.push(SynValue::Rules(val));
@@ -412,8 +408,7 @@ impl<T: GramParserListener> Wrapper<T> {
     fn exit_rule_name(&mut self) {
         let id = self.stack_t.pop().unwrap();
         let ctx = CtxRuleName::V1 { id };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rule_name(ctx, spans);
         self.stack.push(SynValue::RuleName(val));
@@ -422,8 +417,7 @@ impl<T: GramParserListener> Wrapper<T> {
     fn inter_prod(&mut self) {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
         let ctx = CtxProd::V1 { prod_term };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
         self.stack.push(SynValue::Prod(val));
@@ -433,8 +427,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let prod_term = self.stack.pop().unwrap().get_prod_term();
         let prod = self.stack.pop().unwrap().get_prod();
         let ctx = CtxProd::V2 { prod, prod_term };
-        let n = 3;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
         self.stack.push(SynValue::Prod(val));
@@ -448,8 +441,7 @@ impl<T: GramParserListener> Wrapper<T> {
     fn exit_prod_term(&mut self) {
         let star = self.stack.pop().unwrap().get_prod_term1();
         let ctx = CtxProdTerm::V1 { star };
-        let n = 1;
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+        let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod_term(ctx, spans);
         self.stack.push(SynValue::ProdTerm(val));
@@ -461,14 +453,13 @@ impl<T: GramParserListener> Wrapper<T> {
     }
 
     fn exit_prod_term1(&mut self) {
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let n = 2;
         let Some(SynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
             panic!("unexpected SynProdTerm1 item on wrapper stack");
         };
         star_acc.push(prod_factor);
-        let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {

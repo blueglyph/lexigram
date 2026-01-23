@@ -2004,9 +2004,9 @@ mod wrapper_source {
             //  - char_set: parent_+_or_* | plus (6144)
             //  - char_set_one: parent_left_fact (32)
             //  - file_1: child_+_or_* (1)
-            //  - option_1: child_+_or_* (1)
-            //  - actions_1: child_+_or_* (1)
-            //  - alt_items_1: child_+_or_* (1)
+            //  - option_1: child_+_or_* | sep_list (32769)
+            //  - actions_1: child_+_or_* | sep_list (32769)
+            //  - alt_items_1: child_+_or_* | sep_list (32769)
             //  - alt_item_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - char_set_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - rule_1: child_left_fact (64)
@@ -2062,10 +2062,10 @@ mod wrapper_source {
                 4 => (1, symbols![nt 5]),               //  4: file_item -> rule                        | ◄4 ►rule                            | 1 | rule
                 5 => (3, symbols![t 27]),               //  5: header -> "lexicon" Id ";"               | ◄5 ";" Id! "lexicon"                | 3 | Id
                 6 => (3, symbols![t 27]),               //  6: declaration -> "mode" Id ";"             | ◄6 ";" Id! "mode"                   | 3 | Id
-                7 => (5, symbols![t 27, nt 16]),        //  7: option -> "channels" "{" Id option_1 "}" | ◄7 "}" ►option_1 Id! "{" "channels" | 5 | Id option_1
+                7 => (4, symbols![nt 16]),              //  7: option -> "channels" "{" Id option_1 "}" | ◄7 "}" ►option_1 Id! "{" "channels" | 4 | option_1
                 8 => (5, symbols![t 27, nt 8]),         //  8: rule -> "fragment" Id ":" match ";"      | ◄8 ";" ►match ":" Id! "fragment"    | 5 | Id match
                 9 => (0, symbols![]),                   //  9: rule -> Id ":" match rule_1              | ►rule_1 ►match ":" Id!              | 0 |
-                10 => (2, symbols![nt 7, nt 17]),       // 10: actions -> action actions_1              | ◄10 ►actions_1 ►action              | 2 | action actions_1
+                10 => (1, symbols![nt 17]),             // 10: actions -> action actions_1              | ◄10 ►actions_1 ►action              | 1 | actions_1
                 11 => (4, symbols![t 27]),              // 11: action -> "mode" "(" Id ")"              | ◄11 ")" Id! "(" "mode"              | 4 | Id
                 12 => (4, symbols![t 27]),              // 12: action -> "push" "(" Id ")"              | ◄12 ")" Id! "(" "push"              | 4 | Id
                 13 => (1, symbols![]),                  // 13: action -> "pop"                          | ◄13 "pop"                           | 1 |
@@ -2074,7 +2074,7 @@ mod wrapper_source {
                 16 => (4, symbols![t 27]),              // 16: action -> "type" "(" Id ")"              | ◄16 ")" Id! "(" "type"              | 4 | Id
                 17 => (4, symbols![t 27]),              // 17: action -> "channel" "(" Id ")"           | ◄17 ")" Id! "(" "channel"           | 4 | Id
                 18 => (1, symbols![nt 9]),              // 18: match -> alt_items                       | ◄18 ►alt_items                      | 1 | alt_items
-                19 => (2, symbols![nt 10, nt 18]),      // 19: alt_items -> alt_item alt_items_1        | ◄19 ►alt_items_1 ►alt_item          | 2 | alt_item alt_items_1
+                19 => (1, symbols![nt 18]),             // 19: alt_items -> alt_item alt_items_1        | ◄19 ►alt_items_1 ►alt_item          | 1 | alt_items_1
                 20 => (1, symbols![nt 19]),             // 20: alt_item -> alt_item_1                   | ◄20 ►alt_item_1                     | 1 | alt_item_1
                 21 => (0, symbols![]),                  // 21: repeat_item -> item repeat_item_1        | ►repeat_item_1 ►item                | 0 |
                 22 => (3, symbols![nt 9]),              // 22: item -> "(" alt_items ")"                | ◄22 ")" ►alt_items "("              | 3 | alt_items
@@ -2116,14 +2116,8 @@ mod wrapper_source {
                 58 => (2, symbols![nt 12]),             // 58: repeat_item_2 -> ε                       | ◄58                                 | 2 | item
                 59 => (3, symbols![nt 12]),             // 59: repeat_item_3 -> "?"                     | ◄59 "?"                             | 3 | item
                 60 => (2, symbols![nt 12]),             // 60: repeat_item_3 -> ε                       | ◄60                                 | 2 | item
-            ], NTValue::Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10],
-                7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60],
-                12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
+            ], NTValue::Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60], 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
 
-            // program -> (<L=decl_i> decl)* (<L=inst_i> inst)+
-            // decl -> Type Id (<L=id_i> "," Id)* ";" | "typedef" Type Id ";"
-            // inst -> "let" Id "=" expr ";" | "print" expr ";"
-            // expr -> "-" expr | expr "+" expr | expr <P> "-" expr | Id | Num
             // NT flags:
             //  - program: parent_+_or_* | plus (6144)
             //  - decl_i: child_+_or_* | L-form (129)
@@ -2186,17 +2180,12 @@ mod wrapper_source {
                 18 => (2, symbols![]),                  // 18: inst_i_1 -> ε                 | ◄18                        | 2 |
             ], NTValue::None, btreemap![0 => vec![0], 3 => vec![4, 5], 5 => vec![8, 9], 6 => vec![10]]),
 
-            // program -> (<L=stmt_i> stmt)*
-            // stmt -> decl | inst
-            // decl -> Type Id ("," Id)* ";" | "typedef" Type Id ";"
-            // inst -> Id "=" expr ";" | "print" expr ";"
-            // expr -> "-" expr | expr "+" expr | expr <P> "-" expr | Id | Num
             // NT flags:
             //  - program: parent_+_or_* (2048)
             //  - stmt_i: child_+_or_* | L-form (129)
             //  - decl: parent_+_or_* (2048)
             //  - expr: parent_left_rec | parent_amb (1536)
-            //  - decl_1: child_+_or_* (1)
+            //  - decl_1: child_+_or_* | sep_list (32769)
             //  - expr_1: child_left_rec (4)
             //  - expr_2: right_rec (2)
             // parents:
@@ -2211,7 +2200,7 @@ mod wrapper_source {
                 2 => (1, symbols![nt 1]),               //  2: stmt_i -> ε                   | ◄2                         | 1 | stmt_i
                 3 => (1, symbols![nt 3]),               //  3: stmt -> decl                  | ◄3 ►decl                   | 1 | decl
                 4 => (1, symbols![nt 4]),               //  4: stmt -> inst                  | ◄4 ►inst                   | 1 | inst
-                5 => (4, symbols![t 2, t 1, nt 6]),     //  5: decl -> Type Id decl_1 ";"    | ◄5 ";" ►decl_1 Id! Type!   | 4 | Type Id decl_1
+                5 => (3, symbols![t 2, nt 6]),          //  5: decl -> Type Id decl_1 ";"    | ◄5 ";" ►decl_1 Id! Type!   | 3 | Type decl_1
                 6 => (4, symbols![t 2, t 1]),           //  6: decl -> "typedef" Type Id ";" | ◄6 ";" Id! Type! "typedef" | 4 | Type Id
                 7 => (4, symbols![t 1, nt 5]),          //  7: inst -> Id "=" expr ";"       | ◄7 ";" ►expr "=" Id!       | 4 | Id expr
                 8 => (3, symbols![nt 5]),               //  8: inst -> "print" expr ";"      | ◄8 ";" ►expr "print"       | 3 | expr
@@ -2236,7 +2225,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2246,7 +2235,6 @@ mod wrapper_source {
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
         // replace_source = false;
-
 
         let mut num_errors = 0;
         let mut num_src_errors = 0;
@@ -2449,7 +2437,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         build_items(TEST_SOURCE, TESTS_ALL, REPLACE_SOURCE);
     }
