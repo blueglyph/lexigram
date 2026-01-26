@@ -190,6 +190,15 @@ pub(crate) mod code_211_1 {
     #[derive(Debug, PartialEq)] pub struct SynI();
 }
 
+pub(crate) mod code_212_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> "," Id ":" type` iteration in `a -> Id "(" Id ":" type ( ►► <L> "," Id ":" type ◄◄ )* ")"`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `type`
+    #[derive(Debug, PartialEq)] pub struct SynType();
+}
+
 pub(crate) mod code_250_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();

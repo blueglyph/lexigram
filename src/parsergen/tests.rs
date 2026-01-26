@@ -678,43 +678,13 @@ mod wrapper_source {
                 2 => (1, symbols![]),                   //  2: a_1 -> ε       | ◄2            | 1 |
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
+                0 => (4, symbols![t 0, nt 2]),          //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 4    | Id a_1
+                1 => (1, symbols![t 0]),                //  1: type -> Id                      | ◄1 Id!                            | 1    | Id
+                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5, 3 | a_1 Id type
+                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                        | ◄3                                | 1    | a_1
 
-/*
-            (109, true, false, 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => (7, symbols![t 0, t 0, nt 1, nt 2]), //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 7 | Id Id type a_1
-                1 => (1, symbols![t 0]),                  //  1: type -> Id                      | ◄1 Id!                            | 1 | Id
-                2 => (5, symbols![nt 2, t 0, nt 1]),      //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5 | a_1 Id type
-                3 => (1, symbols![nt 2]),                 //  3: a_1 -> ε                        | ◄3                                | 1 | a_1
-            ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
-            (110, true, false, 0, btreemap![
-            ], btreemap![
-                0 => (0, symbols![]),                     //  0: a -> Id "(" a_2            | ►a_2 "(" Id!              | 0 |
-                1 => (1, symbols![t 0]),                  //  1: type -> Id                 | ◄1 Id!                    | 1 | Id
-                2 => (5, symbols![nt 2, t 0, nt 1]),      //  2: a_1 -> "," Id ":" type a_1 | ●a_1 ◄2 ►type ":" Id! "," | 5 | a_1 Id type
-                3 => (1, symbols![nt 2]),                 //  3: a_1 -> ε                   | ◄3                        | 1 | a_1
-                4 => (7, symbols![t 0, t 0, nt 1, nt 2]), //  4: a_2 -> Id ":" type a_1 ")" | ◄4 ")" ►a_1 ►type ":" Id! | 7 | Id Id type a_1
-                5 => (3, symbols![t 0]),                  //  5: a_2 -> ")"                 | ◄5 ")"                    | 3 | Id
-            ], NTValue::Default, btreemap![0 => vec![4, 5], 1 => vec![1]]),
-*/
-
-            // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
-            // type -> Id
-            // NT flags:
-            //  - a: parent_+_or_* (2048)
-            //  - a_1: child_+_or_* | sep_list (32769)
-            // parents:
-            //  - a_1 -> a
-            (109, true, false, 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => (4, symbols![t 0, nt 2]),          //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 4 | Id a_1
-                1 => (1, symbols![t 0]),                //  1: type -> Id                      | ◄1 Id!                            | 1 | Id
-                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5 | a_1 Id type
-                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                        | ◄3                                | 1 | a_1
-            ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
-
+            // a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")";
+            //
             // a -> Id "(" Id ":" type ("," Id ":" type)* ")" | Id "(" ")"
             // type -> Id
             // NT flags:
@@ -726,12 +696,12 @@ mod wrapper_source {
             //  - a_2 -> a
             (110, true, false, 0, btreemap![
             ], btreemap![
-                0 => (0, symbols![]),                   //  0: a -> Id "(" a_2            | ►a_2 "(" Id!              | 0 |
-                1 => (1, symbols![t 0]),                //  1: type -> Id                 | ◄1 Id!                    | 1 | Id
-                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1 | ●a_1 ◄2 ►type ":" Id! "," | 5 | a_1 Id type
-                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                   | ◄3                        | 1 | a_1
-                4 => (4, symbols![t 0, nt 2]),          //  4: a_2 -> Id ":" type a_1 ")" | ◄4 ")" ►a_1 ►type ":" Id! | 4 | Id a_1
-                5 => (3, symbols![t 0]),                //  5: a_2 -> ")"                 | ◄5 ")"                    | 3 | Id
+                0 => (0, symbols![]),                   //  0: a -> Id "(" a_2            | ►a_2 "(" Id!              | 0    |
+                1 => (1, symbols![t 0]),                //  1: type -> Id                 | ◄1 Id!                    | 1    | Id
+                2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1 | ●a_1 ◄2 ►type ":" Id! "," | 5, 3 | a_1 Id type
+                3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                   | ◄3                        | 1    | a_1
+                4 => (4, symbols![t 0, nt 2]),          //  4: a_2 -> Id ":" type a_1 ")" | ◄4 ")" ►a_1 ►type ":" Id! | 4    | Id a_1
+                5 => (3, symbols![t 0]),                //  5: a_2 -> ")"                 | ◄5 ")"                    | 3    | Id
             ], NTValue::Default, btreemap![0 => vec![4, 5], 1 => vec![1]]),
 
             // a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")"
@@ -744,11 +714,11 @@ mod wrapper_source {
             //  - a_2 -> a
             (111, false, false, 0, btreemap![
             ], btreemap![
-                0 => (6, symbols![t 0, nt 1, nt 2]),    //  0: a -> Id "(" Id a_1 "/" Id a_2 ")" | ◄0 ")" ►a_2 Id! "/" ►a_1 Id! "(" Id! | 6 | Id a_1 a_2
-                1 => (3, symbols![nt 1, t 0]),          //  1: a_1 -> "," Id a_1                 | ●a_1 ◄1 Id! ","                      | 3 | a_1 Id
-                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε                          | ◄2                                   | 1 | a_1
-                3 => (3, symbols![nt 2, t 0]),          //  3: a_2 -> "," Id a_2                 | ●a_2 ◄3 Id! ","                      | 3 | a_2 Id
-                4 => (1, symbols![nt 2]),               //  4: a_2 -> ε                          | ◄4                                   | 1 | a_2
+                0 => (6, symbols![t 0, nt 1, nt 2]),    //  0: a -> Id "(" Id a_1 "/" Id a_2 ")" | ◄0 ")" ►a_2 Id! "/" ►a_1 Id! "(" Id! | 6    | Id a_1 a_2
+                1 => (3, symbols![nt 1, t 0]),          //  1: a_1 -> "," Id a_1                 | ●a_1 ◄1 Id! ","                      | 3, 1 | a_1 Id
+                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε                          | ◄2                                   | 1    | a_1
+                3 => (3, symbols![nt 2, t 0]),          //  3: a_2 -> "," Id a_2                 | ●a_2 ◄3 Id! ","                      | 3, 1 | a_2 Id
+                4 => (1, symbols![nt 2]),               //  4: a_2 -> ε                          | ◄4                                   | 1    | a_2
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- norm+/* alternatives
@@ -1104,6 +1074,21 @@ mod wrapper_source {
                 3 => (4, symbols![t 0, t 0, nt 1, t 1]), //  3: a_1 -> A i C | ◄3 C! ►i A! | 4 | A A i C
                 4 => (4, symbols![t 0, t 1, nt 1, t 1]), //  4: a_1 -> C i C | ◄4 C! ►i C! | 4 | A C i C
             ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+
+            // a -> Id "(" Id ":" type (<L=i> "<" ">" Id ":" type)* ")"
+            // type -> Id
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - i: child_+_or_* | L-form | sep_list (32897)
+            // parents:
+            //  - i -> a
+            (212, true, false, 0, btreemap![
+            ], btreemap![
+                0 => (4, symbols![t 0, nt 1]),          //  0: a -> Id "(" Id ":" type i ")" | ◄0 ")" ►i ►type ":" Id! "(" Id! | 4    | Id i
+                1 => (6, symbols![nt 1, t 0, nt 2]),    //  1: i -> "<" ">" Id ":" type i    | ●i ◄1 ►type ":" Id! ">" "<"     | 6, 3 | i Id type
+                2 => (1, symbols![nt 1]),               //  2: i -> ε                        | ◄2                              | 1    | i
+                3 => (1, symbols![t 0]),                //  3: type -> Id                    | ◄3 Id!                          | 1    | Id
+            ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
             // --------------------------------------------------------------------------- norm+/* <L> alternatives
             // a -> (<L=i> A | B)*
@@ -2055,67 +2040,67 @@ mod wrapper_source {
                 19 => "SynAltItem1".to_string(),
                 20 => "SynCharSet1".to_string(),
             ], btreemap![
-                0 => (2, symbols![nt 2, nt 15]),        //  0: file -> header file_1                    | ◄0 ►file_1 ►header                  | 2 | header file_1
-                1 => (1, symbols![nt 15]),              //  1: file -> file_1                           | ◄1 ►file_1                          | 1 | file_1
-                2 => (1, symbols![nt 4]),               //  2: file_item -> option                      | ◄2 ►option                          | 1 | option
-                3 => (1, symbols![nt 3]),               //  3: file_item -> declaration                 | ◄3 ►declaration                     | 1 | declaration
-                4 => (1, symbols![nt 5]),               //  4: file_item -> rule                        | ◄4 ►rule                            | 1 | rule
-                5 => (3, symbols![t 27]),               //  5: header -> "lexicon" Id ";"               | ◄5 ";" Id! "lexicon"                | 3 | Id
-                6 => (3, symbols![t 27]),               //  6: declaration -> "mode" Id ";"             | ◄6 ";" Id! "mode"                   | 3 | Id
-                7 => (4, symbols![nt 16]),              //  7: option -> "channels" "{" Id option_1 "}" | ◄7 "}" ►option_1 Id! "{" "channels" | 4 | option_1
-                8 => (5, symbols![t 27, nt 8]),         //  8: rule -> "fragment" Id ":" match ";"      | ◄8 ";" ►match ":" Id! "fragment"    | 5 | Id match
-                9 => (0, symbols![]),                   //  9: rule -> Id ":" match rule_1              | ►rule_1 ►match ":" Id!              | 0 |
-                10 => (1, symbols![nt 17]),             // 10: actions -> action actions_1              | ◄10 ►actions_1 ►action              | 1 | actions_1
-                11 => (4, symbols![t 27]),              // 11: action -> "mode" "(" Id ")"              | ◄11 ")" Id! "(" "mode"              | 4 | Id
-                12 => (4, symbols![t 27]),              // 12: action -> "push" "(" Id ")"              | ◄12 ")" Id! "(" "push"              | 4 | Id
-                13 => (1, symbols![]),                  // 13: action -> "pop"                          | ◄13 "pop"                           | 1 |
-                14 => (1, symbols![]),                  // 14: action -> "skip"                         | ◄14 "skip"                          | 1 |
-                15 => (1, symbols![]),                  // 15: action -> "more"                         | ◄15 "more"                          | 1 |
-                16 => (4, symbols![t 27]),              // 16: action -> "type" "(" Id ")"              | ◄16 ")" Id! "(" "type"              | 4 | Id
-                17 => (4, symbols![t 27]),              // 17: action -> "channel" "(" Id ")"           | ◄17 ")" Id! "(" "channel"           | 4 | Id
-                18 => (1, symbols![nt 9]),              // 18: match -> alt_items                       | ◄18 ►alt_items                      | 1 | alt_items
-                19 => (1, symbols![nt 18]),             // 19: alt_items -> alt_item alt_items_1        | ◄19 ►alt_items_1 ►alt_item          | 1 | alt_items_1
-                20 => (1, symbols![nt 19]),             // 20: alt_item -> alt_item_1                   | ◄20 ►alt_item_1                     | 1 | alt_item_1
-                21 => (0, symbols![]),                  // 21: repeat_item -> item repeat_item_1        | ►repeat_item_1 ►item                | 0 |
-                22 => (3, symbols![nt 9]),              // 22: item -> "(" alt_items ")"                | ◄22 ")" ►alt_items "("              | 3 | alt_items
-                23 => (2, symbols![nt 12]),             // 23: item -> "~" item                         | ◄23 ►item "~"                       | 2 | item
-                24 => (1, symbols![t 27]),              // 24: item -> Id                               | ◄24 Id!                             | 1 | Id
-                25 => (0, symbols![]),                  // 25: item -> CharLit item_1                   | ►item_1 CharLit!                    | 0 |
-                26 => (1, symbols![t 29]),              // 26: item -> StrLit                           | ◄26 StrLit!                         | 1 | StrLit
-                27 => (1, symbols![nt 13]),             // 27: item -> char_set                         | ◄27 ►char_set                       | 1 | char_set
-                28 => (3, symbols![nt 20]),             // 28: char_set -> "[" char_set_1 "]"           | ◄28 "]" ►char_set_1 "["             | 3 | char_set_1
-                29 => (1, symbols![]),                  // 29: char_set -> "."                          | ◄29 "."                             | 1 |
-                30 => (1, symbols![t 30]),              // 30: char_set -> FixedSet                     | ◄30 FixedSet!                       | 1 | FixedSet
-                31 => (1, symbols![t 30]),              // 31: char_set_one -> FixedSet                 | ◄31 FixedSet!                       | 1 | FixedSet
-                32 => (0, symbols![]),                  // 32: char_set_one -> SetChar char_set_one_1   | ►char_set_one_1 SetChar!            | 0 |
-                33 => (2, symbols![nt 15, nt 1]),       // 33: file_1 -> file_item file_1               | ●file_1 ◄33 ►file_item              | 2 | file_1 file_item
-                34 => (1, symbols![nt 15]),             // 34: file_1 -> ε                              | ◄34                                 | 1 | file_1
-                35 => (3, symbols![nt 16, t 27]),       // 35: option_1 -> "," Id option_1              | ●option_1 ◄35 Id! ","               | 3 | option_1 Id
-                36 => (1, symbols![nt 16]),             // 36: option_1 -> ε                            | ◄36                                 | 1 | option_1
-                37 => (3, symbols![nt 17, nt 7]),       // 37: actions_1 -> "," action actions_1        | ●actions_1 ◄37 ►action ","          | 3 | actions_1 action
-                38 => (1, symbols![nt 17]),             // 38: actions_1 -> ε                           | ◄38                                 | 1 | actions_1
-                39 => (3, symbols![nt 18, nt 10]),      // 39: alt_items_1 -> "|" alt_item alt_items_1  | ●alt_items_1 ◄39 ►alt_item "|"      | 3 | alt_items_1 alt_item
-                40 => (1, symbols![nt 18]),             // 40: alt_items_1 -> ε                         | ◄40                                 | 1 | alt_items_1
-                41 => (0, symbols![]),                  // 41: alt_item_1 -> repeat_item alt_item_2     | ►alt_item_2 ►repeat_item            | 0 |
-                42 => (0, symbols![]),                  // 42: char_set_1 -> char_set_one char_set_2    | ►char_set_2 ►char_set_one           | 0 |
-                43 => (6, symbols![t 27, nt 8, nt 6]),  // 43: rule_1 -> "->" actions ";"               | ◄43 ";" ►actions "->"               | 6 | Id match actions
-                44 => (4, symbols![t 27, nt 8]),        // 44: rule_1 -> ";"                            | ◄44 ";"                             | 4 | Id match
-                45 => (0, symbols![]),                  // 45: repeat_item_1 -> "+" repeat_item_2       | ►repeat_item_2 "+"                  | 0 |
-                46 => (2, symbols![nt 12]),             // 46: repeat_item_1 -> "?"                     | ◄46 "?"                             | 2 | item
-                47 => (0, symbols![]),                  // 47: repeat_item_1 -> "*" repeat_item_3       | ►repeat_item_3 "*"                  | 0 |
-                48 => (1, symbols![nt 12]),             // 48: repeat_item_1 -> ε                       | ◄48                                 | 1 | item
-                49 => (3, symbols![t 28, t 28]),        // 49: item_1 -> ".." CharLit                   | ◄49 CharLit! ".."                   | 3 | CharLit CharLit
-                50 => (1, symbols![t 28]),              // 50: item_1 -> ε                              | ◄50                                 | 1 | CharLit
-                51 => (3, symbols![t 33, t 33]),        // 51: char_set_one_1 -> "-" SetChar            | ◄51 SetChar! "-"                    | 3 | SetChar SetChar
-                52 => (1, symbols![t 33]),              // 52: char_set_one_1 -> ε                      | ◄52                                 | 1 | SetChar
-                53 => (2, symbols![nt 19, nt 11]),      // 53: alt_item_2 -> alt_item_1                 | ●alt_item_1 ◄53                     | 2 | alt_item_1 repeat_item
-                54 => (2, symbols![nt 19, nt 11]),      // 54: alt_item_2 -> ε                          | ◄54                                 | 2 | alt_item_1 repeat_item
-                55 => (2, symbols![nt 20, nt 14]),      // 55: char_set_2 -> char_set_1                 | ●char_set_1 ◄55                     | 2 | char_set_1 char_set_one
-                56 => (2, symbols![nt 20, nt 14]),      // 56: char_set_2 -> ε                          | ◄56                                 | 2 | char_set_1 char_set_one
-                57 => (3, symbols![nt 12]),             // 57: repeat_item_2 -> "?"                     | ◄57 "?"                             | 3 | item
-                58 => (2, symbols![nt 12]),             // 58: repeat_item_2 -> ε                       | ◄58                                 | 2 | item
-                59 => (3, symbols![nt 12]),             // 59: repeat_item_3 -> "?"                     | ◄59 "?"                             | 3 | item
-                60 => (2, symbols![nt 12]),             // 60: repeat_item_3 -> ε                       | ◄60                                 | 2 | item
+                0 => (2, symbols![nt 2, nt 15]),        //  0: file -> header file_1                    | ◄0 ►file_1 ►header                  | 2    | header file_1
+                1 => (1, symbols![nt 15]),              //  1: file -> file_1                           | ◄1 ►file_1                          | 1    | file_1
+                2 => (1, symbols![nt 4]),               //  2: file_item -> option                      | ◄2 ►option                          | 1    | option
+                3 => (1, symbols![nt 3]),               //  3: file_item -> declaration                 | ◄3 ►declaration                     | 1    | declaration
+                4 => (1, symbols![nt 5]),               //  4: file_item -> rule                        | ◄4 ►rule                            | 1    | rule
+                5 => (3, symbols![t 27]),               //  5: header -> "lexicon" Id ";"               | ◄5 ";" Id! "lexicon"                | 3    | Id
+                6 => (3, symbols![t 27]),               //  6: declaration -> "mode" Id ";"             | ◄6 ";" Id! "mode"                   | 3    | Id
+                7 => (4, symbols![nt 16]),              //  7: option -> "channels" "{" Id option_1 "}" | ◄7 "}" ►option_1 Id! "{" "channels" | 4    | option_1
+                8 => (5, symbols![t 27, nt 8]),         //  8: rule -> "fragment" Id ":" match ";"      | ◄8 ";" ►match ":" Id! "fragment"    | 5    | Id match
+                9 => (0, symbols![]),                   //  9: rule -> Id ":" match rule_1              | ►rule_1 ►match ":" Id!              | 0    |
+                10 => (1, symbols![nt 17]),             // 10: actions -> action actions_1              | ◄10 ►actions_1 ►action              | 1    | actions_1
+                11 => (4, symbols![t 27]),              // 11: action -> "mode" "(" Id ")"              | ◄11 ")" Id! "(" "mode"              | 4    | Id
+                12 => (4, symbols![t 27]),              // 12: action -> "push" "(" Id ")"              | ◄12 ")" Id! "(" "push"              | 4    | Id
+                13 => (1, symbols![]),                  // 13: action -> "pop"                          | ◄13 "pop"                           | 1    |
+                14 => (1, symbols![]),                  // 14: action -> "skip"                         | ◄14 "skip"                          | 1    |
+                15 => (1, symbols![]),                  // 15: action -> "more"                         | ◄15 "more"                          | 1    |
+                16 => (4, symbols![t 27]),              // 16: action -> "type" "(" Id ")"              | ◄16 ")" Id! "(" "type"              | 4    | Id
+                17 => (4, symbols![t 27]),              // 17: action -> "channel" "(" Id ")"           | ◄17 ")" Id! "(" "channel"           | 4    | Id
+                18 => (1, symbols![nt 9]),              // 18: match -> alt_items                       | ◄18 ►alt_items                      | 1    | alt_items
+                19 => (1, symbols![nt 18]),             // 19: alt_items -> alt_item alt_items_1        | ◄19 ►alt_items_1 ►alt_item          | 1    | alt_items_1
+                20 => (1, symbols![nt 19]),             // 20: alt_item -> alt_item_1                   | ◄20 ►alt_item_1                     | 1    | alt_item_1
+                21 => (0, symbols![]),                  // 21: repeat_item -> item repeat_item_1        | ►repeat_item_1 ►item                | 0    |
+                22 => (3, symbols![nt 9]),              // 22: item -> "(" alt_items ")"                | ◄22 ")" ►alt_items "("              | 3    | alt_items
+                23 => (2, symbols![nt 12]),             // 23: item -> "~" item                         | ◄23 ►item "~"                       | 2    | item
+                24 => (1, symbols![t 27]),              // 24: item -> Id                               | ◄24 Id!                             | 1    | Id
+                25 => (0, symbols![]),                  // 25: item -> CharLit item_1                   | ►item_1 CharLit!                    | 0    |
+                26 => (1, symbols![t 29]),              // 26: item -> StrLit                           | ◄26 StrLit!                         | 1    | StrLit
+                27 => (1, symbols![nt 13]),             // 27: item -> char_set                         | ◄27 ►char_set                       | 1    | char_set
+                28 => (3, symbols![nt 20]),             // 28: char_set -> "[" char_set_1 "]"           | ◄28 "]" ►char_set_1 "["             | 3    | char_set_1
+                29 => (1, symbols![]),                  // 29: char_set -> "."                          | ◄29 "."                             | 1    |
+                30 => (1, symbols![t 30]),              // 30: char_set -> FixedSet                     | ◄30 FixedSet!                       | 1    | FixedSet
+                31 => (1, symbols![t 30]),              // 31: char_set_one -> FixedSet                 | ◄31 FixedSet!                       | 1    | FixedSet
+                32 => (0, symbols![]),                  // 32: char_set_one -> SetChar char_set_one_1   | ►char_set_one_1 SetChar!            | 0    |
+                33 => (2, symbols![nt 15, nt 1]),       // 33: file_1 -> file_item file_1               | ●file_1 ◄33 ►file_item              | 2    | file_1 file_item
+                34 => (1, symbols![nt 15]),             // 34: file_1 -> ε                              | ◄34                                 | 1    | file_1
+                35 => (3, symbols![nt 16, t 27]),       // 35: option_1 -> "," Id option_1              | ●option_1 ◄35 Id! ","               | 3, 1 | option_1 Id
+                36 => (1, symbols![nt 16]),             // 36: option_1 -> ε                            | ◄36                                 | 1    | option_1
+                37 => (3, symbols![nt 17, nt 7]),       // 37: actions_1 -> "," action actions_1        | ●actions_1 ◄37 ►action ","          | 3, 1 | actions_1 action
+                38 => (1, symbols![nt 17]),             // 38: actions_1 -> ε                           | ◄38                                 | 1    | actions_1
+                39 => (3, symbols![nt 18, nt 10]),      // 39: alt_items_1 -> "|" alt_item alt_items_1  | ●alt_items_1 ◄39 ►alt_item "|"      | 3, 1 | alt_items_1 alt_item
+                40 => (1, symbols![nt 18]),             // 40: alt_items_1 -> ε                         | ◄40                                 | 1    | alt_items_1
+                41 => (0, symbols![]),                  // 41: alt_item_1 -> repeat_item alt_item_2     | ►alt_item_2 ►repeat_item            | 0    |
+                42 => (0, symbols![]),                  // 42: char_set_1 -> char_set_one char_set_2    | ►char_set_2 ►char_set_one           | 0    |
+                43 => (6, symbols![t 27, nt 8, nt 6]),  // 43: rule_1 -> "->" actions ";"               | ◄43 ";" ►actions "->"               | 6    | Id match actions
+                44 => (4, symbols![t 27, nt 8]),        // 44: rule_1 -> ";"                            | ◄44 ";"                             | 4    | Id match
+                45 => (0, symbols![]),                  // 45: repeat_item_1 -> "+" repeat_item_2       | ►repeat_item_2 "+"                  | 0    |
+                46 => (2, symbols![nt 12]),             // 46: repeat_item_1 -> "?"                     | ◄46 "?"                             | 2    | item
+                47 => (0, symbols![]),                  // 47: repeat_item_1 -> "*" repeat_item_3       | ►repeat_item_3 "*"                  | 0    |
+                48 => (1, symbols![nt 12]),             // 48: repeat_item_1 -> ε                       | ◄48                                 | 1    | item
+                49 => (3, symbols![t 28, t 28]),        // 49: item_1 -> ".." CharLit                   | ◄49 CharLit! ".."                   | 3    | CharLit CharLit
+                50 => (1, symbols![t 28]),              // 50: item_1 -> ε                              | ◄50                                 | 1    | CharLit
+                51 => (3, symbols![t 33, t 33]),        // 51: char_set_one_1 -> "-" SetChar            | ◄51 SetChar! "-"                    | 3    | SetChar SetChar
+                52 => (1, symbols![t 33]),              // 52: char_set_one_1 -> ε                      | ◄52                                 | 1    | SetChar
+                53 => (2, symbols![nt 19, nt 11]),      // 53: alt_item_2 -> alt_item_1                 | ●alt_item_1 ◄53                     | 2    | alt_item_1 repeat_item
+                54 => (2, symbols![nt 19, nt 11]),      // 54: alt_item_2 -> ε                          | ◄54                                 | 2    | alt_item_1 repeat_item
+                55 => (2, symbols![nt 20, nt 14]),      // 55: char_set_2 -> char_set_1                 | ●char_set_1 ◄55                     | 2    | char_set_1 char_set_one
+                56 => (2, symbols![nt 20, nt 14]),      // 56: char_set_2 -> ε                          | ◄56                                 | 2    | char_set_1 char_set_one
+                57 => (3, symbols![nt 12]),             // 57: repeat_item_2 -> "?"                     | ◄57 "?"                             | 3    | item
+                58 => (2, symbols![nt 12]),             // 58: repeat_item_2 -> ε                       | ◄58                                 | 2    | item
+                59 => (3, symbols![nt 12]),             // 59: repeat_item_3 -> "?"                     | ◄59 "?"                             | 3    | item
+                60 => (2, symbols![nt 12]),             // 60: repeat_item_3 -> ε                       | ◄60                                 | 2    | item
             ], NTValue::Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60], 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
 
             // NT flags:
@@ -2123,7 +2108,7 @@ mod wrapper_source {
             //  - decl_i: child_+_or_* | L-form (129)
             //  - inst_i: child_+_or_* | parent_left_fact | L-form | plus (4257)
             //  - decl: parent_+_or_* (2048)
-            //  - id_i: child_+_or_* | L-form (129)
+            //  - id_i: child_+_or_* | L-form | sep_list (32897)
             //  - expr: parent_left_rec | parent_amb (1536)
             //  - expr_1: child_left_rec (4)
             //  - expr_2: right_rec (2)
@@ -2137,25 +2122,25 @@ mod wrapper_source {
             //  - inst_i_1 -> inst_i
             (902, true, false, 0, btreemap![
             ], btreemap![
-                0 => (2, symbols![nt 1, nt 2]),         //  0: program -> decl_i inst_i      | ◄0 ►inst_i ►decl_i         | 2 | decl_i inst_i
-                1 => (2, symbols![nt 1, nt 3]),         //  1: decl_i -> decl decl_i         | ●decl_i ◄1 ►decl           | 2 | decl_i decl
-                2 => (1, symbols![nt 1]),               //  2: decl_i -> ε                   | ◄2                         | 1 | decl_i
-                3 => (0, symbols![]),                   //  3: inst_i -> inst inst_i_1       | ►inst_i_1 ►inst            | 0 |
-                4 => (4, symbols![t 2, t 1, nt 4]),     //  4: decl -> Type Id id_i ";"      | ◄4 ";" ►id_i Id! Type!     | 4 | Type Id id_i
-                5 => (4, symbols![t 2, t 1]),           //  5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! "typedef" | 4 | Type Id
-                6 => (3, symbols![nt 4, t 1]),          //  6: id_i -> "," Id id_i           | ●id_i ◄6 Id! ","           | 3 | id_i Id
-                7 => (1, symbols![nt 4]),               //  7: id_i -> ε                     | ◄7                         | 1 | id_i
-                8 => (5, symbols![t 1, nt 6]),          //  8: inst -> "let" Id "=" expr ";" | ◄8 ";" ►expr "=" Id! "let" | 5 | Id expr
-                9 => (3, symbols![nt 6]),               //  9: inst -> "print" expr ";"      | ◄9 ";" ►expr "print"       | 3 | expr
-                10 => (1, symbols![nt 6]),              // 10: expr -> expr_2 expr_1         | ►expr_1 ◄10 ►expr_2        | 1 | expr
-                11 => (3, symbols![nt 6, nt 6]),        // 11: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄11 ►expr_2 "+"    | 3 | expr expr
-                12 => (3, symbols![nt 6, nt 6]),        // 12: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "-"    | 3 | expr expr
-                13 => (1, symbols![nt 6]),              // 13: expr_1 -> ε                   | ◄13                        | 1 | expr
-                14 => (2, symbols![nt 6]),              // 14: expr_2 -> "-" expr_2          | ◄14 ►expr_2 "-"            | 2 | expr
-                15 => (1, symbols![t 1]),               // 15: expr_2 -> Id                  | ◄15 Id!                    | 1 | Id
-                16 => (1, symbols![t 0]),               // 16: expr_2 -> Num                 | ◄16 Num!                   | 1 | Num
-                17 => (2, symbols![nt 2, nt 5]),        // 17: inst_i_1 -> inst_i            | ●inst_i ◄17                | 2 | inst_i inst
-                18 => (2, symbols![nt 2, nt 5]),        // 18: inst_i_1 -> ε                 | ◄18                        | 2 | inst_i inst
+                0 => (2, symbols![nt 1, nt 2]),         //  0: program -> decl_i inst_i      | ◄0 ►inst_i ►decl_i         | 2    | decl_i inst_i
+                1 => (2, symbols![nt 1, nt 3]),         //  1: decl_i -> decl decl_i         | ●decl_i ◄1 ►decl           | 2    | decl_i decl
+                2 => (1, symbols![nt 1]),               //  2: decl_i -> ε                   | ◄2                         | 1    | decl_i
+                3 => (0, symbols![]),                   //  3: inst_i -> inst inst_i_1       | ►inst_i_1 ►inst            | 0    |
+                4 => (3, symbols![t 2, nt 4]),          //  4: decl -> Type Id id_i ";"      | ◄4 ";" ►id_i Id! Type!     | 3    | Type id_i
+                5 => (4, symbols![t 2, t 1]),           //  5: decl -> "typedef" Type Id ";" | ◄5 ";" Id! Type! "typedef" | 4    | Type Id
+                6 => (3, symbols![nt 4, t 1]),          //  6: id_i -> "," Id id_i           | ●id_i ◄6 Id! ","           | 3, 1 | id_i Id
+                7 => (1, symbols![nt 4]),               //  7: id_i -> ε                     | ◄7                         | 1    | id_i
+                8 => (5, symbols![t 1, nt 6]),          //  8: inst -> "let" Id "=" expr ";" | ◄8 ";" ►expr "=" Id! "let" | 5    | Id expr
+                9 => (3, symbols![nt 6]),               //  9: inst -> "print" expr ";"      | ◄9 ";" ►expr "print"       | 3    | expr
+                10 => (1, symbols![nt 6]),              // 10: expr -> expr_2 expr_1         | ►expr_1 ◄10 ►expr_2        | 1    | expr
+                11 => (3, symbols![nt 6, nt 6]),        // 11: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄11 ►expr_2 "+"    | 3    | expr expr
+                12 => (3, symbols![nt 6, nt 6]),        // 12: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "-"    | 3    | expr expr
+                13 => (1, symbols![nt 6]),              // 13: expr_1 -> ε                   | ◄13                        | 1    | expr
+                14 => (2, symbols![nt 6]),              // 14: expr_2 -> "-" expr_2          | ◄14 ►expr_2 "-"            | 2    | expr
+                15 => (1, symbols![t 1]),               // 15: expr_2 -> Id                  | ◄15 Id!                    | 1    | Id
+                16 => (1, symbols![t 0]),               // 16: expr_2 -> Num                 | ◄16 Num!                   | 1    | Num
+                17 => (2, symbols![nt 2, nt 5]),        // 17: inst_i_1 -> inst_i            | ●inst_i ◄17                | 2    | inst_i inst
+                18 => (2, symbols![nt 2, nt 5]),        // 18: inst_i_1 -> ε                 | ◄18                        | 2    | inst_i inst
             ], NTValue::Default, btreemap![0 => vec![0], 3 => vec![4, 5], 5 => vec![8, 9], 6 => vec![10]]),
             (902, true, false, 0, btreemap![
             ], btreemap![
@@ -2195,24 +2180,24 @@ mod wrapper_source {
             //  - expr_2 -> expr
             (903, false, false, 0, btreemap![
             ], btreemap![
-                0 => (1, symbols![nt 1]),               //  0: program -> stmt_i             | ◄0 ►stmt_i                 | 1 | stmt_i
-                1 => (2, symbols![nt 1, nt 2]),         //  1: stmt_i -> stmt stmt_i         | ●stmt_i ◄1 ►stmt           | 2 | stmt_i stmt
-                2 => (1, symbols![nt 1]),               //  2: stmt_i -> ε                   | ◄2                         | 1 | stmt_i
-                3 => (1, symbols![nt 3]),               //  3: stmt -> decl                  | ◄3 ►decl                   | 1 | decl
-                4 => (1, symbols![nt 4]),               //  4: stmt -> inst                  | ◄4 ►inst                   | 1 | inst
-                5 => (3, symbols![t 2, nt 6]),          //  5: decl -> Type Id decl_1 ";"    | ◄5 ";" ►decl_1 Id! Type!   | 3 | Type decl_1
-                6 => (4, symbols![t 2, t 1]),           //  6: decl -> "typedef" Type Id ";" | ◄6 ";" Id! Type! "typedef" | 4 | Type Id
-                7 => (4, symbols![t 1, nt 5]),          //  7: inst -> Id "=" expr ";"       | ◄7 ";" ►expr "=" Id!       | 4 | Id expr
-                8 => (3, symbols![nt 5]),               //  8: inst -> "print" expr ";"      | ◄8 ";" ►expr "print"       | 3 | expr
-                9 => (1, symbols![nt 5]),               //  9: expr -> expr_2 expr_1         | ►expr_1 ◄9 ►expr_2         | 1 | expr
-                10 => (3, symbols![nt 6, t 1]),         // 10: decl_1 -> "," Id decl_1       | ●decl_1 ◄10 Id! ","        | 3 | decl_1 Id
-                11 => (1, symbols![nt 6]),              // 11: decl_1 -> ε                   | ◄11                        | 1 | decl_1
-                12 => (3, symbols![nt 5, nt 5]),        // 12: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "+"    | 3 | expr expr
-                13 => (3, symbols![nt 5, nt 5]),        // 13: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄13 ►expr_2 "-"    | 3 | expr expr
-                14 => (1, symbols![nt 5]),              // 14: expr_1 -> ε                   | ◄14                        | 1 | expr
-                15 => (2, symbols![nt 5]),              // 15: expr_2 -> "-" expr_2          | ◄15 ►expr_2 "-"            | 2 | expr
-                16 => (1, symbols![t 1]),               // 16: expr_2 -> Id                  | ◄16 Id!                    | 1 | Id
-                17 => (1, symbols![t 0]),               // 17: expr_2 -> Num                 | ◄17 Num!                   | 1 | Num
+                0 => (1, symbols![nt 1]),               //  0: program -> stmt_i             | ◄0 ►stmt_i                 | 1    | stmt_i
+                1 => (2, symbols![nt 1, nt 2]),         //  1: stmt_i -> stmt stmt_i         | ●stmt_i ◄1 ►stmt           | 2    | stmt_i stmt
+                2 => (1, symbols![nt 1]),               //  2: stmt_i -> ε                   | ◄2                         | 1    | stmt_i
+                3 => (1, symbols![nt 3]),               //  3: stmt -> decl                  | ◄3 ►decl                   | 1    | decl
+                4 => (1, symbols![nt 4]),               //  4: stmt -> inst                  | ◄4 ►inst                   | 1    | inst
+                5 => (3, symbols![t 2, nt 6]),          //  5: decl -> Type Id decl_1 ";"    | ◄5 ";" ►decl_1 Id! Type!   | 3    | Type decl_1
+                6 => (4, symbols![t 2, t 1]),           //  6: decl -> "typedef" Type Id ";" | ◄6 ";" Id! Type! "typedef" | 4    | Type Id
+                7 => (4, symbols![t 1, nt 5]),          //  7: inst -> Id "=" expr ";"       | ◄7 ";" ►expr "=" Id!       | 4    | Id expr
+                8 => (3, symbols![nt 5]),               //  8: inst -> "print" expr ";"      | ◄8 ";" ►expr "print"       | 3    | expr
+                9 => (1, symbols![nt 5]),               //  9: expr -> expr_2 expr_1         | ►expr_1 ◄9 ►expr_2         | 1    | expr
+                10 => (3, symbols![nt 6, t 1]),         // 10: decl_1 -> "," Id decl_1       | ●decl_1 ◄10 Id! ","        | 3, 1 | decl_1 Id
+                11 => (1, symbols![nt 6]),              // 11: decl_1 -> ε                   | ◄11                        | 1    | decl_1
+                12 => (3, symbols![nt 5, nt 5]),        // 12: expr_1 -> "+" expr_2 expr_1   | ●expr_1 ◄12 ►expr_2 "+"    | 3    | expr expr
+                13 => (3, symbols![nt 5, nt 5]),        // 13: expr_1 -> "-" expr_2 expr_1   | ●expr_1 ◄13 ►expr_2 "-"    | 3    | expr expr
+                14 => (1, symbols![nt 5]),              // 14: expr_1 -> ε                   | ◄14                        | 1    | expr
+                15 => (2, symbols![nt 5]),              // 15: expr_2 -> "-" expr_2          | ◄15 ►expr_2 "-"            | 2    | expr
+                16 => (1, symbols![t 1]),               // 16: expr_2 -> Id                  | ◄16 Id!                    | 1    | Id
+                17 => (1, symbols![t 0]),               // 17: expr_2 -> Num                 | ◄17 Num!                   | 1    | Num
             ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9]]),
             /*
             (, false, false, 0, btreemap![], btreemap![], Default, btreemap![]),
@@ -2225,7 +2210,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2240,7 +2225,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            // if !matches!(tr_id, 109..150) { continue }
+            // if !matches!(tr_id, 109..150 | 212..250) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
@@ -2437,7 +2422,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         build_items(TEST_SOURCE, TESTS_ALL, REPLACE_SOURCE);
     }

@@ -107,7 +107,7 @@ impl TestRules {
             210 => vec![r#"a -> A (<L=i> "B")* C;"#],
             211 => vec![r#"a -> A (A | C) (B <L=i>)* C;"#],
             // capture of first item in list of token-separated items
-            212 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)* ")"; type -> Id;"#],
+            212 => vec![r#"a -> Id "(" Id ":" type (<L=i> "<" ">" Id ":" type)* ")"; type -> Id;"#],
             213 => vec![r#"a -> Id "(" (Id ":" type (<L=i> "," Id ":" type)*)? ")"; type -> Id;"#],
             214 => vec![r#"a -> Id "(" Id (<L=i> "," Id)* "/" Id (<L=j> "," Id)* ")";"#],
             // no capture for +
