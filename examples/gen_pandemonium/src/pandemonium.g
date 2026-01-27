@@ -21,7 +21,7 @@ example:
 
 star:   Id Equal Id (Comma Num)* Semi;
 plus:   Id Equal Num (Comma Num)+ Semi;
-l_star: Id Equal Num (<L=l_star_i> Comma Num)* Semi;
+l_star: Id Equal Num (<L=l_star_i> Comma Then Num)* Semi;
 l_plus: Id Equal Num (<L=l_plus_i> Comma Num)+ Semi;
 rrec:   Id Equal Num rrec_i;
 l_rrec: Id Equal Num l_rrec_i;
@@ -33,8 +33,8 @@ plus_a:   Id Equal Lsbracket (Id | Num Colon Id)+ Rsbracket Semi;
 l_star_a: Id Equal Lsbracket (<L=l_star_a_i> Id | Num Colon Id)* Rsbracket Semi;
 l_plus_a: Id Equal Lsbracket (<L=l_plus_a_i> Id | Num Colon Id)+ Rsbracket Semi;
 
-sep_list:     Id Equal Id Colon Num (Comma Id Colon Num)* Semi;
-sep_list_opt: Id Equal (Id Colon Num (Comma Id Colon Num)*)? Semi;
+sep_list:     Id Equal Id Colon Num (Comma Then Id Colon Num)* Semi;
+sep_list_opt: Id Equal (Id Colon Num (Comma Then Id Colon Num)*)? Semi;
 
 rrec_i:
     Comma Num rrec_i

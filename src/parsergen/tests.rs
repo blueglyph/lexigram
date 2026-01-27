@@ -678,10 +678,20 @@ mod wrapper_source {
                 2 => (1, symbols![]),                   //  2: a_1 -> ε       | ◄2            | 1 |
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
+            // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
+            // type -> Id
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* | sep_list (32769)
+            // parents:
+            //  - a_1 -> a
+            (109, true, false, 0, btreemap![
+            ], btreemap![
                 0 => (4, symbols![t 0, nt 2]),          //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 4    | Id a_1
                 1 => (1, symbols![t 0]),                //  1: type -> Id                      | ◄1 Id!                            | 1    | Id
                 2 => (5, symbols![nt 2, t 0, nt 1]),    //  2: a_1 -> "," Id ":" type a_1      | ●a_1 ◄2 ►type ":" Id! ","         | 5, 3 | a_1 Id type
                 3 => (1, symbols![nt 2]),               //  3: a_1 -> ε                        | ◄3                                | 1    | a_1
+            ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
             // a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")";
             //
@@ -2210,7 +2220,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2422,7 +2432,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         build_items(TEST_SOURCE, TESTS_ALL, REPLACE_SOURCE);
     }

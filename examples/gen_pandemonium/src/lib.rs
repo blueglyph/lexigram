@@ -29,7 +29,7 @@ fn write_pandemonium_source(action: Action) {
         .indent(PARSER_INDENT)
         .extra_libs(["super::listener_types::*"])
         .span_params(true)
-        .set_nt_value(NTValue::Parents)
+        .set_nt_value(NTValue::Default)
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {

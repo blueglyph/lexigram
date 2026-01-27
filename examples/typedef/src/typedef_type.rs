@@ -244,8 +244,7 @@ impl TypedefListener for TypeListener<'_> {
     fn exit_decl(&mut self, ctx: CtxDecl, mut spans: Vec<PosSpan>) -> SynDecl {
         match ctx {
             // decl -> Type Id (<L> "," Id)* ";"
-            CtxDecl::V1 { type1, id, star: SynIdI(mut ids) } => {
-                ids.push((id, std::mem::take(&mut spans[1])));
+            CtxDecl::V1 { type1, star: SynIdI(mut ids) } => {
                 for (i, (id, span)) in ids.into_iter().enumerate() {
                     if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
                         self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
@@ -262,8 +261,9 @@ impl TypedefListener for TypeListener<'_> {
         SynDecl()
     }
 
-    fn init_id_i(&mut self) -> SynIdI {
-        SynIdI(vec![])
+    fn init_id_i(&mut self, ctx: InitCtxIdI, mut spans: Vec<PosSpan>) -> SynIdI {
+        let InitCtxIdI::V1 { id } = ctx;
+        SynIdI(vec![(id, spans.pop().unwrap())])
     }
 
     fn exit_id_i(&mut self, ctx: CtxIdI, mut spans: Vec<PosSpan>) -> SynIdI {
@@ -498,9 +498,14 @@ pub mod typedef_type_parser {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> Type Id (<L> "," Id)* ";"`
-        V1 { type1: String, id: String, star: SynIdI },
+        V1 { type1: String, star: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum InitCtxIdI {
+        /// value of `Id` before `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxIdI {
@@ -585,7 +590,7 @@ pub mod typedef_type_parser {
         fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) {}
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
-        fn init_id_i(&mut self) -> SynIdI;
+        fn init_id_i(&mut self, ctx: InitCtxIdI, spans: Vec<PosSpan>) -> SynIdI;
         fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) -> SynIdI;
         #[allow(unused_variables)]
         fn exitloop_id_i(&mut self, star_acc: &mut SynIdI) {}
@@ -614,7 +619,7 @@ pub mod typedef_type_parser {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 1 | 2 | 4) {
+                    if matches!(nt, 1 | 2) {
                         self.stack_span.push(PosSpan::empty());
                     }
                     match nt {
@@ -762,9 +767,8 @@ pub mod typedef_type_parser {
             let (n, ctx) = match alt_id {
                 4 => {
                     let star = self.stack.pop().unwrap().get_id_i();
-                    let id = self.stack_t.pop().unwrap();
                     let type1 = self.stack_t.pop().unwrap();
-                    (4, CtxDecl::V1 { type1, id, star })
+                    (3, CtxDecl::V1 { type1, star })
                 }
                 5 => {
                     let id = self.stack_t.pop().unwrap();
@@ -780,7 +784,11 @@ pub mod typedef_type_parser {
         }
 
         fn init_id_i(&mut self) {
-            let val = self.listener.init_id_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = InitCtxIdI::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.init_id_i(ctx, spans);
             self.stack.push(SynValue::IdI(val));
         }
 

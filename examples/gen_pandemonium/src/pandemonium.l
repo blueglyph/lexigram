@@ -21,6 +21,8 @@ Colon                   : ':';
 Comma                   : ',';
 Semi                    : ';';
 
+Then                    : 'then';
+
 Star                    : 'star';
 Plus                    : 'plus';
 L_Star                  : 'l-star';
