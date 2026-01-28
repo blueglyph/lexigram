@@ -82,7 +82,6 @@ impl TestRules {
             // no capture for +
             112 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#],
 
-
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
             152 => vec![r#"a -> A (B | b C b B C | E)* F; b -> D;"#],
