@@ -16,7 +16,7 @@ use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
 use crate::pandemonium_parser::*;
 
-const VERBOSE: bool = false;
+const VERBOSE: bool = true;
 const VERBOSE_WRAPPER: bool = false;
 
 #[test]
@@ -83,6 +83,10 @@ sep-list-opt Uniform =;
 "#;
 
 static VALUES1: &[&str] = &[
+    "[Charlie][103,130,350]",
+    "[Foxtrot][106,160,650,<end>]",
+    "[November][202]",
+    "[Papa][204,<end>]",
     "[Romeo][<a:1><b:2><c:3>]",
     "[Sierra][<d:4>]",
     "[Tango][<e/5><f/6><g/7>]",
@@ -270,6 +274,13 @@ impl<'ls> PanDemoListener<'ls> {
     fn attach_lines(&mut self, lines: Vec<&'ls str>) {
         self.lines = Some(lines);
     }
+
+    fn add_value(&mut self, id: String, value: String) {
+        if let Some(old) = self.values.insert(id.clone(), value) {
+            let new = self.values.get(&id).unwrap();
+            panic!("{}", format!("key was already in the values:\n- before: {id} = {old}\n- now   : {id} = {new}"));
+        };
+    }
 }
 
 impl GetLine for PanDemoListener<'_> {
@@ -353,22 +364,26 @@ impl PandemoniumListener for PanDemoListener<'_> {
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
         self.spans.push(format!("exit_l_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {
-            CtxLStar::V1 { id, star } => {}
+            CtxLStar::V1 { id, star: SynLStarI(items) } => {
+                self.add_value(id, items.join(","));
+            }
         }
         SynLStar()
     }
 
     fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) -> SynLStarI {
-        // todo!()
-        SynLStarI()
+        let InitCtxLStarI::V1 { num } = ctx;
+        assert_eq!(num, self.extract_text(&spans[0]));
+        SynLStarI(vec![num])
     }
 
     fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) -> SynLStarI {
+        // `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        let CtxLStarI::V1 { star_acc: SynLStarI(mut items), num } = ctx;
+        assert_eq!(num, self.extract_text(&spans[3]));
         self.spans.push(format!("exit_l_star_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLStarI::V1 { star_acc, num } => {}
-        }
-        SynLStarI()
+        items.push(num);
+        SynLStarI(items)
     }
 
     fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus {
@@ -380,7 +395,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn init_l_plus_i(&mut self) -> SynLPlusI {
-        // todo!()
         SynLPlusI()
     }
 
@@ -402,9 +416,9 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_l_rrec(&mut self, ctx: CtxLRrec, spans: Vec<PosSpan>) -> SynLRrec {
         self.spans.push(format!("exit_l_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLRrec::V1 { id, num, l_rrec_i: SynLRrecI() } => {}
-        }
+        let CtxLRrec::V1 { id, num, l_rrec_i: SynLRrecI(mut list) } = ctx;
+        list.insert(0, num);
+        self.add_value(id, list.join(","));
         SynLRrec()
     }
 
@@ -452,7 +466,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn init_l_star_a_i(&mut self) -> SynLStarAI {
-        // todo!()
         SynLStarAI()
     }
 
@@ -477,7 +490,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn init_l_plus_a_i(&mut self) -> SynLPlusAI {
-        // todo!()
         SynLPlusAI()
     }
 
@@ -497,9 +509,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         // sep_list -> Id "=" Id ":" Num ("," Id ":" Num)* ";"
         let CtxSepList::V1 { id, star: SynSepList1(items) } = ctx;
         let value = items.into_iter().map(|SynSepList1Item { id, num }| format!("<{id}:{num}>")).join("");
-        if let Some(old) = self.values.insert(id.clone(), value.clone()) {
-            panic!("{}", format!("key was already in the values:\n- before: {id} = {old}\n- now   : {id} = {value}"));
-        };
+        self.add_value(id, value);
         SynSepList()
     }
 
@@ -513,9 +523,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
             CtxSepListOpt::V2 { id } =>
                 (id, "-".to_string()),
         };
-        if let Some(old) = self.values.insert(id.clone(), value.clone()) {
-            panic!("{}", format!("key was already in the values:\n- before: {id} = {old}\n- now   : {id} = {value}"));
-        };
+        self.add_value(id, value);
         SynSepListOpt()
     }
 
@@ -529,16 +537,22 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn init_l_rrec_i(&mut self) -> SynLRrecI {
-        SynLRrecI()
+        SynLRrecI(vec![])
     }
 
     fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI {
         self.spans.push(format!("exit_l_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLRrecI::V1 { l_rrec_i: SynLRrecI(), num } => {}
-            CtxLRrecI::V2 { l_rrec_i: SynLRrecI() } => {}
-        }
-        SynLRrecI()
+        let list = match ctx {
+            CtxLRrecI::V1 { l_rrec_i: SynLRrecI(mut list), num } => {
+                list.push(num);
+                list
+            }
+            CtxLRrecI::V2 { l_rrec_i: SynLRrecI(mut list) } => {
+                list.push("<end>".to_string());
+                list
+            }
+        };
+        SynLRrecI(list)
     }
 
     fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI {
@@ -597,7 +611,7 @@ pub mod listener_types {
     /// User-defined type for `l_star`
     #[derive(Debug, PartialEq)] pub struct SynLStar();
     /// User-defined type for `<L> "," Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," Num ◄◄ )* ";"`
-    #[derive(Debug, PartialEq)] pub struct SynLStarI();
+    #[derive(Debug, PartialEq)] pub struct SynLStarI(pub Vec<String>);
     /// User-defined type for `l_plus`
     #[derive(Debug, PartialEq)] pub struct SynLPlus();
     /// User-defined type for `<L> "," Num` iteration in `l_plus -> Id "=" Num ( ►► <L> "," Num ◄◄ )+ ";"`
@@ -629,7 +643,7 @@ pub mod listener_types {
     /// User-defined type for `rrec_i`
     #[derive(Debug, PartialEq)] pub struct SynRrecI();
     /// User-defined type for `l_rrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynLRrecI();
+    #[derive(Debug, PartialEq)] pub struct SynLRrecI(pub Vec<String>);
     /// User-defined type for `lrec_i`
     #[derive(Debug, PartialEq)] pub struct SynLrecI();
     /// User-defined type for `amb_i`
