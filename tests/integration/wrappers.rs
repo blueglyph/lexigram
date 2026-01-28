@@ -970,15 +970,13 @@ mod rules_862_1 {
             SynExpr(vec![])
         }
 
-        fn exit_expr(&mut self, ctx: CtxExpr, _spans: Vec<PosSpan>) -> SynExpr {
-            let (mut e, num) = match ctx {
+        fn exit_expr(&mut self, acc: &mut SynExpr, ctx: CtxExpr, _spans: Vec<PosSpan>) {
+            match ctx {
                 // expr -> <L> Num "^" expr
-                CtxExpr::V1 { expr: SynExpr(e), num } => (e, num),
+                CtxExpr::V1 { num }
                 // expr -> Num
-                CtxExpr::V2 { expr: SynExpr(e), num } => (e, num),
+                | CtxExpr::V2 { num } => acc.0.push(num),
             };
-            e.push(num);
-            SynExpr(e)
         }
     }
 

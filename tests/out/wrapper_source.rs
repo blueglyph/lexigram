@@ -9278,9 +9278,9 @@ pub(crate) mod rules_401_1 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Id "." expr`
-        V1 { expr: SynExpr, id: String },
+        V1 { id: String },
         /// `expr -> "(" Num ")"`
-        V2 { expr: SynExpr, num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9310,7 +9310,7 @@ pub(crate) mod rules_401_1 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
+        fn exit_expr(&mut self, acc: &mut SynExpr, ctx: CtxExpr, spans: Vec<PosSpan>);
     }
 
     pub struct Wrapper<T> {
@@ -9431,20 +9431,18 @@ pub(crate) mod rules_401_1 {
             let (n, ctx) = match alt_id {
                 0 => {
                     let id = self.stack_t.pop().unwrap();
-                    let expr = self.stack.pop().unwrap().get_expr();
-                    (3, CtxExpr::V1 { expr, id })
+                    (3, CtxExpr::V1 { id })
                 }
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    let expr = self.stack.pop().unwrap().get_expr();
-                    (4, CtxExpr::V2 { expr, num })
+                    (4, CtxExpr::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            let Some(SynValue::Expr(acc)) = self.stack.last_mut() else { panic!(); };
+            self.listener.exit_expr(acc, ctx, spans);
         }
     }
 
@@ -16979,9 +16977,9 @@ pub(crate) mod rules_862_1 {
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> <L> Num "^" expr`
-        V1 { expr: SynExpr, num: String },
+        V1 { num: String },
         /// `expr -> Num`
-        V2 { expr: SynExpr, num: String },
+        V2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -17011,7 +17009,7 @@ pub(crate) mod rules_862_1 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn init_expr(&mut self) -> SynExpr;
-        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
+        fn exit_expr(&mut self, acc: &mut SynExpr, ctx: CtxExpr, spans: Vec<PosSpan>);
     }
 
     pub struct Wrapper<T> {
@@ -17134,20 +17132,18 @@ pub(crate) mod rules_862_1 {
             let (n, ctx) = match alt_id {
                 1 => {
                     let num = self.stack_t.pop().unwrap();
-                    let expr = self.stack.pop().unwrap().get_expr();
-                    (3, CtxExpr::V1 { expr, num })
+                    (3, CtxExpr::V1 { num })
                 }
                 2 => {
                     let num = self.stack_t.pop().unwrap();
-                    let expr = self.stack.pop().unwrap().get_expr();
-                    (2, CtxExpr::V2 { expr, num })
+                    (2, CtxExpr::V2 { num })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            let Some(SynValue::Expr(acc)) = self.stack.last_mut() else { panic!(); };
+            self.listener.exit_expr(acc, ctx, spans);
         }
     }
 

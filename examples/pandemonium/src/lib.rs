@@ -16,7 +16,7 @@ use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
 use crate::pandemonium_parser::*;
 
-const VERBOSE: bool = true;
+const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 #[test]
@@ -540,19 +540,16 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLRrecI(vec![])
     }
 
-    fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI {
+    fn exit_l_rrec_i(&mut self, acc: &mut SynLRrecI, ctx: CtxLRrecI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_l_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        let list = match ctx {
-            CtxLRrecI::V1 { l_rrec_i: SynLRrecI(mut list), num } => {
-                list.push(num);
-                list
+        match ctx {
+            CtxLRrecI::V1 { num } => {
+                acc.0.push(num);
             }
-            CtxLRrecI::V2 { l_rrec_i: SynLRrecI(mut list) } => {
-                list.push("<end>".to_string());
-                list
+            CtxLRrecI::V2 => {
+                acc.0.push("<end>".to_string());
             }
-        };
-        SynLRrecI(list)
+        }
     }
 
     fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI {
@@ -1024,9 +1021,9 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLRrecI {
         /// `l_rrec_i -> <L> "," Num l_rrec_i`
-        V1 { l_rrec_i: SynLRrecI, num: String },
+        V1 { num: String },
         /// `l_rrec_i -> ";"`
-        V2 { l_rrec_i: SynLRrecI },
+        V2,
     }
     #[derive(Debug)]
     pub enum CtxLrecI {
@@ -1309,7 +1306,7 @@ pub mod pandemonium_parser {
         fn init_rrec_i(&mut self) {}
         fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) -> SynRrecI;
         fn init_l_rrec_i(&mut self) -> SynLRrecI;
-        fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI;
+        fn exit_l_rrec_i(&mut self, acc: &mut SynLRrecI, ctx: CtxLRrecI, spans: Vec<PosSpan>);
         fn init_lrec_i(&mut self) {}
         fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI;
         #[allow(unused_variables)]
@@ -2052,19 +2049,17 @@ pub mod pandemonium_parser {
             let (n, ctx) = match alt_id {
                 41 => {
                     let num = self.stack_t.pop().unwrap();
-                    let l_rrec_i = self.stack.pop().unwrap().get_l_rrec_i();
-                    (3, CtxLRrecI::V1 { l_rrec_i, num })
+                    (3, CtxLRrecI::V1 { num })
                 }
                 42 => {
-                    let l_rrec_i = self.stack.pop().unwrap().get_l_rrec_i();
-                    (2, CtxLRrecI::V2 { l_rrec_i })
+                    (2, CtxLRrecI::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_rrec_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_l_rrec_i(ctx, spans);
-            self.stack.push(SynValue::LRrecI(val));
+            let Some(SynValue::LRrecI(acc)) = self.stack.last_mut() else { panic!(); };
+            self.listener.exit_l_rrec_i(acc, ctx, spans);
         }
 
         fn inter_lrec_i(&mut self) {

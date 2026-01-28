@@ -1361,7 +1361,9 @@ impl ParserGen {
                             vec![]
                         }
                     } else {
-                        let skip = if is_rep_child_no_lform { 1 } else { 0 };
+                        let is_rrec_lform_valued = self.nt_has_all_flags(owner, ruleflag::R_RECURSION | ruleflag::L_FORM)
+                            && self.nt_value[owner as usize];
+                        let skip = if is_rep_child_no_lform || is_rrec_lform_valued { 1 } else { 0 };
                         let mut infos = item_ops.into_iter()
                             .skip(skip)
                             .map(|s| {
@@ -2065,7 +2067,7 @@ impl ParserGen {
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
-                let is_child_repeat_lform = self.nt_has_all_flags(*var, ruleflag::CHILD_L_REPEAT);
+                let is_child_repeat_lform = self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT_LFORM);
                 let is_sep_list = flags & ruleflag::SEP_LIST != 0;
                 let is_l_form = flags & ruleflag::L_FORM != 0;
                 let (nu, nl, npl) = &nt_name[nt];
@@ -2112,7 +2114,7 @@ impl ParserGen {
                                     let exit_alts = all_exit_alts.into_iter()
                                         .filter(|f|
                                             (flags & ruleflag::CHILD_L_RECURSION == 0
-                                                && flags & (ruleflag::CHILD_L_REPEAT | ruleflag::REPEAT_PLUS) != ruleflag::CHILD_L_REPEAT)
+                                                && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) != ruleflag::CHILD_REPEAT_LFORM)
                                             || !self.is_alt_sym_empty(*f)
                                         );
                                     let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
@@ -2181,7 +2183,8 @@ impl ParserGen {
                     // let (nu, _nl, npl) = &nt_name[nt];
                     let (pnu, _pnl, pnpl) = &nt_name[parent_nt];
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
-                    let no_method = !has_value && flags & ruleflag::CHILD_L_REPEAT == ruleflag::CHILD_REPEAT;
+                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
+                    let is_rrec_lform = self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM);
                     let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
                         (pnpl, pnu, parent_nt, parent_has_value)    // parent_nt doesn't come through this code, so we must do it now
                     } else {
@@ -2190,7 +2193,12 @@ impl ParserGen {
                     if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
                         let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
                         if f_valued {
-                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {};", self.get_nt_type(fnt as VarId)));
+                            let nt_type = self.get_nt_type(fnt as VarId);
+                            if is_rrec_lform {
+                                src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
+                            } else {
+                                src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
+                            }
                         } else {
                             src_listener_decl.push(format!("    #[allow(unused_variables)]"));
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
@@ -2204,7 +2212,7 @@ impl ParserGen {
                     let (last_it_alts, exit_alts) = all_exit_alts.into_iter()
                         .partition::<Vec<_>, _>(|f|
                             (flags & ruleflag::CHILD_L_RECURSION != 0
-                                || flags & (ruleflag::CHILD_L_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_L_REPEAT)
+                                || flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT_LFORM)
                             && self.is_alt_sym_empty(*f));
                     if VERBOSE {
                         println!("    no_method: {no_method}, exit alts: {}", exit_alts.iter().join(", "));
@@ -2248,7 +2256,7 @@ impl ParserGen {
                         src_wrapper_impl.push(String::new());
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { ", alt_id: AltId" } else { "" }));
                     }
-                    if flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                    if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
                         if has_value {
                             let endpoints = child_repeat_endpoints.get(var).unwrap();
                             let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &fn_name, nu, false);
@@ -2295,6 +2303,7 @@ impl ParserGen {
                                 format!("Ctx{fnu}::{} {{ {ctx_params} }}", alt_info[a as usize].as_ref().unwrap().1)
                             };
                             if is_single {
+                                assert_eq!(is_rrec_lform, false);   // FIXME: remove
                                 src_wrapper_impl.push(format!("        let ctx = {ctx};"));
                                 if self.gen_span_params {
                                     src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
@@ -2319,12 +2328,19 @@ impl ParserGen {
                             if self.gen_span_params {
                                 src_wrapper_impl.extend(Self::source_update_span("n"));
                             }
-                            src_wrapper_impl.push(format!(
-                                "        {}self.listener.exit_{fnpl}(ctx{});",
-                                if a_has_value { "let val = " } else { "" },
-                                if self.gen_span_params { ", spans" } else { "" }));
-                            if a_has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
+                            let spans_param = if self.gen_span_params { ", spans" } else { "" };
+                            if is_rrec_lform && f_valued {
+                                src_wrapper_impl.push(
+                                    format!("        let Some(SynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!(); }};"));
+                                src_wrapper_impl.push(
+                                    format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
+                            } else {
+                                src_wrapper_impl.push(format!(
+                                    "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
+                                    if a_has_value { "let val = " } else { "" }));
+                                if a_has_value {
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
+                                }
                             }
                         }
                     }

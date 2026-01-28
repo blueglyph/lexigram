@@ -584,6 +584,14 @@ mod wrapper_source {
                 1 => (2, symbols![nt 1, t 1]),          //  1: a_1 -> B a_1 | ●a_1 ◄1 B!    | 2 | a_1 B
                 2 => (1, symbols![nt 1]),               //  2: a_1 -> ε     | ◄2            | 1 | a_1
             ], NTValue::Default, btreemap![0 => vec![0]]),
+            (102, false, false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![
+                0 => (3, symbols![t 0, nt 1, t 2]),     //  0: a -> A a_1 C | ◄0 C! ►a_1 A! | 3 | A a_1 C
+                1 => (2, symbols![nt 1, t 1]),          //  1: a_1 -> B a_1 | ●a_1 ◄1 B!    | 2 | a_1 B
+                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε     | ◄2            | 1 | a_1
+            ], NTValue::None, btreemap![0 => vec![0]]),
 
             // a -> A B+ C
             // NT flags:

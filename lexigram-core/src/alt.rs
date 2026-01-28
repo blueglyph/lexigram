@@ -60,7 +60,7 @@ pub mod ruleflag {
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
     pub const ALTERNATIVE_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
     pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
-    pub const CHILD_L_REPEAT: u32 = CHILD_REPEAT | L_FORM;
+    pub const CHILD_REPEAT_LFORM: u32 = CHILD_REPEAT | L_FORM;
 
 
     pub fn to_string(flags: u32) -> Vec<String> {
