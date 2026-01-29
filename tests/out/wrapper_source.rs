@@ -1265,7 +1265,7 @@ pub(crate) mod rules_102_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
         }
@@ -1459,7 +1459,7 @@ pub(crate) mod rules_103_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(b);
         }
@@ -1671,7 +1671,7 @@ pub(crate) mod rules_104_1 {
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -1894,7 +1894,7 @@ pub(crate) mod rules_105_1 {
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
         }
@@ -2120,7 +2120,7 @@ pub(crate) mod rules_106_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack.pop().unwrap().get_b();
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
         }
@@ -2137,7 +2137,7 @@ pub(crate) mod rules_106_1 {
             let a = self.stack_t.pop().unwrap();
             let val = SynA2Item { a, star };
             let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA2 item on wrapper stack");
+                panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -2350,7 +2350,7 @@ pub(crate) mod rules_106_2 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA2 item on wrapper stack");
+                panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(a);
         }
@@ -2740,7 +2740,7 @@ pub(crate) mod rules_109_1 {
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -2974,7 +2974,7 @@ pub(crate) mod rules_110_1 {
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -3191,7 +3191,7 @@ pub(crate) mod rules_150_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -3427,7 +3427,7 @@ pub(crate) mod rules_152_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -3710,7 +3710,7 @@ pub(crate) mod rules_153_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
         }
@@ -5164,7 +5164,7 @@ pub(crate) mod rules_206_1 {
             let a = self.stack_t.pop().unwrap();
             let val = SynA1Item { a, star };
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -7464,7 +7464,7 @@ pub(crate) mod rules_252_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
         }
@@ -7754,7 +7754,7 @@ pub(crate) mod rules_253_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
         }
@@ -16089,7 +16089,7 @@ pub(crate) mod rules_810_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(a);
         }
@@ -16295,7 +16295,7 @@ pub(crate) mod rules_811_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(a);
         }
@@ -16492,7 +16492,7 @@ pub(crate) mod rules_820_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(a);
         }
@@ -16706,7 +16706,7 @@ pub(crate) mod rules_821_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(a);
         }
@@ -16917,7 +16917,7 @@ pub(crate) mod rules_835_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
             let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynA1 item on wrapper stack");
+                panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(num);
         }
@@ -18079,7 +18079,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let file_item = self.stack.pop().unwrap().get_file_item();
             let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynFile1 item on wrapper stack");
+                panic!("expected SynFile1 item on wrapper stack");
             };
             star_acc.push(file_item);
         }
@@ -18145,7 +18145,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let id = self.stack_t.pop().unwrap();
             let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynOption1 item on wrapper stack");
+                panic!("expected SynOption1 item on wrapper stack");
             };
             star_acc.push(id);
         }
@@ -18197,7 +18197,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let action = self.stack.pop().unwrap().get_action();
             let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynActions1 item on wrapper stack");
+                panic!("expected SynActions1 item on wrapper stack");
             };
             star_acc.push(action);
         }
@@ -18267,7 +18267,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let alt_item = self.stack.pop().unwrap().get_alt_item();
             let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynAltItems1 item on wrapper stack");
+                panic!("expected SynAltItems1 item on wrapper stack");
             };
             star_acc.push(alt_item);
         }
@@ -18291,7 +18291,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
             let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynAltItem1 item on wrapper stack");
+                panic!("expected SynAltItem1 item on wrapper stack");
             };
             plus_acc.push(repeat_item);
         }
@@ -18400,7 +18400,7 @@ pub(crate) mod rules_901_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
             let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynCharSet1 item on wrapper stack");
+                panic!("expected SynCharSet1 item on wrapper stack");
             };
             plus_acc.push(char_set_one);
         }

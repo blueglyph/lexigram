@@ -610,7 +610,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let file_item = self.stack.pop().unwrap().get_file_item();
         let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynFile1 item on wrapper stack");
+            panic!("expected SynFile1 item on wrapper stack");
         };
         star_acc.push(file_item);
     }
@@ -676,7 +676,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let id = self.stack_t.pop().unwrap();
         let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynOption1 item on wrapper stack");
+            panic!("expected SynOption1 item on wrapper stack");
         };
         star_acc.push(id);
     }
@@ -778,7 +778,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let action = self.stack.pop().unwrap().get_action();
         let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynActions1 item on wrapper stack");
+            panic!("expected SynActions1 item on wrapper stack");
         };
         star_acc.push(action);
     }
@@ -851,7 +851,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let alt_item = self.stack.pop().unwrap().get_alt_item();
         let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynAltItems1 item on wrapper stack");
+            panic!("expected SynAltItems1 item on wrapper stack");
         };
         star_acc.push(alt_item);
     }
@@ -875,7 +875,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let repeat_item = self.stack.pop().unwrap().get_repeat_item();
         let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynAltItem1 item on wrapper stack");
+            panic!("expected SynAltItem1 item on wrapper stack");
         };
         plus_acc.push(repeat_item);
     }
@@ -984,7 +984,7 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let char_set_one = self.stack.pop().unwrap().get_char_set_one();
         let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynCharSet1 item on wrapper stack");
+            panic!("expected SynCharSet1 item on wrapper stack");
         };
         plus_acc.push(char_set_one);
     }

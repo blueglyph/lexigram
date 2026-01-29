@@ -2263,7 +2263,7 @@ impl ParserGen {
                             src_wrapper_impl.extend(src_val);
                             let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
                             src_wrapper_impl.push(format!("        let Some(SynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
-                            src_wrapper_impl.push(format!("            panic!(\"unexpected Syn{nu} item on wrapper stack\");"));
+                            src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
                             src_wrapper_impl.push(format!("        }};"));
                             src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
                         }

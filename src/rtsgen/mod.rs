@@ -1172,7 +1172,7 @@ pub mod rtsgen_parser {
         fn exit_decl1(&mut self) {
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
             let Some(SynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynDecl1 item on wrapper stack");
+                panic!("expected SynDecl1 item on wrapper stack");
             };
             star_acc.push(decl_terminal);
         }
@@ -1278,7 +1278,7 @@ pub mod rtsgen_parser {
         fn exit_rts_children1(&mut self) {
             let rts_expr = self.stack.pop().unwrap().get_rts_expr();
             let Some(SynValue::RtsChildren1(SynRtsChildren1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynRtsChildren1 item on wrapper stack");
+                panic!("expected SynRtsChildren1 item on wrapper stack");
             };
             star_acc.push(rts_expr);
         }

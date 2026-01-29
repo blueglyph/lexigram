@@ -457,7 +457,7 @@ impl<T: GramParserListener> Wrapper<T> {
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
         let Some(SynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
-            panic!("unexpected SynProdTerm1 item on wrapper stack");
+            panic!("expected SynProdTerm1 item on wrapper stack");
         };
         star_acc.push(prod_factor);
     }

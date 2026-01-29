@@ -756,7 +756,7 @@ pub mod microcalc_parser {
         fn exit_program1(&mut self) {
             let function = self.stack.pop().unwrap().get_function();
             let Some(SynValue::Program1(SynProgram1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynProgram1 item on wrapper stack");
+                panic!("expected SynProgram1 item on wrapper stack");
             };
             plus_acc.push(function);
         }
@@ -793,7 +793,7 @@ pub mod microcalc_parser {
         fn exit_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let Some(SynValue::FunParams1(SynFunParams1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynFunParams1 item on wrapper stack");
+                panic!("expected SynFunParams1 item on wrapper stack");
             };
             star_acc.push(id);
         }
@@ -813,7 +813,7 @@ pub mod microcalc_parser {
         fn exit_block1(&mut self) {
             let instruction = self.stack.pop().unwrap().get_instruction();
             let Some(SynValue::Block1(SynBlock1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynBlock1 item on wrapper stack");
+                panic!("expected SynBlock1 item on wrapper stack");
             };
             star_acc.push(instruction);
         }
@@ -988,7 +988,7 @@ pub mod microcalc_parser {
         fn exit_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
             let Some(SynValue::FunArgs1(SynFunArgs1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynFunArgs1 item on wrapper stack");
+                panic!("expected SynFunArgs1 item on wrapper stack");
             };
             star_acc.push(expr);
         }

@@ -1666,7 +1666,7 @@ pub mod pandemonium_parser {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
             let Some(SynValue::Star1(SynStar1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynStar1 item on wrapper stack");
+                panic!("expected SynStar1 item on wrapper stack");
             };
             star_acc.push(num);
         }
@@ -1692,7 +1692,7 @@ pub mod pandemonium_parser {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
             let Some(SynValue::Plus1(SynPlus1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynPlus1 item on wrapper stack");
+                panic!("expected SynPlus1 item on wrapper stack");
             };
             plus_acc.push(num);
         }
@@ -1831,7 +1831,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::StarA1(SynStarA1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynStarA1 item on wrapper stack");
+                panic!("expected SynStarA1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -1867,7 +1867,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(SynValue::PlusA1(SynPlusA1(plus_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynPlusA1 item on wrapper stack");
+                panic!("expected SynPlusA1 item on wrapper stack");
             };
             plus_acc.push(val);
         }
@@ -1977,7 +1977,7 @@ pub mod pandemonium_parser {
             let id = self.stack_t.pop().unwrap();
             let val = SynSepList1Item { id, num };
             let Some(SynValue::SepList1(SynSepList1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynSepList1 item on wrapper stack");
+                panic!("expected SynSepList1 item on wrapper stack");
             };
             star_acc.push(val);
         }
@@ -2017,7 +2017,7 @@ pub mod pandemonium_parser {
             let id = self.stack_t.pop().unwrap();
             let val = SynSepListOpt1Item { id, num };
             let Some(SynValue::SepListOpt1(SynSepListOpt1(star_acc))) = self.stack.last_mut() else {
-                panic!("unexpected SynSepListOpt1 item on wrapper stack");
+                panic!("expected SynSepListOpt1 item on wrapper stack");
             };
             star_acc.push(val);
         }
