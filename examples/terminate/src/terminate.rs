@@ -220,9 +220,7 @@ impl TerminateListener for Listener<'_> {
         SynLogI()
     }
 
-    fn exit_log_i(&mut self, ctx: CtxLogI, spans: Vec<PosSpan>) -> SynLogI {
-        SynLogI()
-    }
+    fn exit_log_i(&mut self, acc: &mut SynLogI, ctx: CtxLogI, spans: Vec<PosSpan>) {}
 
     fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine {
         let span = spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp);
@@ -480,7 +478,7 @@ pub mod terminate_parser {
     #[derive(Debug)]
     pub enum CtxLogI {
         /// `<L> line` iteration in `log -> ( ►► <L> line ◄◄ )*`
-        V1 { star_acc: SynLogI, line: SynLine },
+        V1 { line: SynLine },
     }
     #[derive(Debug)]
     pub enum CtxLine {
@@ -548,9 +546,9 @@ pub mod terminate_parser {
         fn init_log(&mut self) {}
         fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog;
         fn init_log_i(&mut self) -> SynLogI;
-        fn exit_log_i(&mut self, ctx: CtxLogI, spans: Vec<PosSpan>) -> SynLogI;
+        fn exit_log_i(&mut self, acc: &mut SynLogI, ctx: CtxLogI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_log_i(&mut self, star_acc: &mut SynLogI) {}
+        fn exitloop_log_i(&mut self, acc: &mut SynLogI) {}
         fn init_line(&mut self) {}
         fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine;
         fn init_message(&mut self) {}
@@ -694,17 +692,16 @@ pub mod terminate_parser {
 
         fn exit_log_i(&mut self) {
             let line = self.stack.pop().unwrap().get_line();
-            let star_acc = self.stack.pop().unwrap().get_log_i();
-            let ctx = CtxLogI::V1 { star_acc, line };
+            let ctx = CtxLogI::V1 { line };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_log_i(ctx, spans);
-            self.stack.push(SynValue::LogI(val));
+            let Some(SynValue::LogI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_log_i(acc, ctx, spans);
         }
 
         fn exitloop_log_i(&mut self) {
-            let SynValue::LogI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_log_i(star_acc);
+            let SynValue::LogI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_log_i(acc);
         }
 
         fn exit_line(&mut self, alt_id: AltId) {

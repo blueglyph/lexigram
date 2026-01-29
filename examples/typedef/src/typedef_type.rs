@@ -266,12 +266,11 @@ impl TypedefListener for TypeListener<'_> {
         SynIdI(vec![(id, spans.pop().unwrap())])
     }
 
-    fn exit_id_i(&mut self, ctx: CtxIdI, mut spans: Vec<PosSpan>) -> SynIdI {
+    fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, mut spans: Vec<PosSpan>) {
         // `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";"`
-        let CtxIdI::V1 { star_acc: SynIdI(mut items), id } = ctx;
+        let CtxIdI::V1 { id } = ctx;
         let span = spans.pop().unwrap();
-        items.push((id, span));
-        SynIdI(items)
+        acc.0.push((id, span));
     }
 
     fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
@@ -510,7 +509,7 @@ pub mod typedef_type_parser {
     #[derive(Debug)]
     pub enum CtxIdI {
         /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
-        V1 { star_acc: SynIdI, id: String },
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxInst {
@@ -591,9 +590,9 @@ pub mod typedef_type_parser {
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
         fn init_id_i(&mut self, ctx: InitCtxIdI, spans: Vec<PosSpan>) -> SynIdI;
-        fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) -> SynIdI;
+        fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_id_i(&mut self, star_acc: &mut SynIdI) {}
+        fn exitloop_id_i(&mut self, acc: &mut SynIdI) {}
         fn init_inst(&mut self) {}
         fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
         fn init_expr(&mut self) {}
@@ -794,17 +793,16 @@ pub mod typedef_type_parser {
 
         fn exit_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let star_acc = self.stack.pop().unwrap().get_id_i();
-            let ctx = CtxIdI::V1 { star_acc, id };
+            let ctx = CtxIdI::V1 { id };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_id_i(ctx, spans);
-            self.stack.push(SynValue::IdI(val));
+            let Some(SynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_id_i(acc, ctx, spans);
         }
 
         fn exitloop_id_i(&mut self) {
-            let SynValue::IdI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_id_i(star_acc);
+            let SynValue::IdI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_id_i(acc);
         }
 
         fn exit_inst(&mut self, alt_id: AltId) {
