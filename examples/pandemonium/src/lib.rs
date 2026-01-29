@@ -83,8 +83,12 @@ sep-list-opt Uniform =;
 "#;
 
 static VALUES1: &[&str] = &[
+    "[Alpha][a*101*110*150]",
+    "[Bravo][102+120+250]",
     "[Charlie][103,130,350]",
+    "[Delta][104,140,450]",
     "[Foxtrot][106,160,650,<end>]",
+    "[Mike][x]",
     "[November][202]",
     "[Papa][204,<end>]",
     "[Romeo][<a:1><b:2><c:3>]",
@@ -312,7 +316,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn init_i(&mut self) -> SynI {
-        // todo!()
         SynI()
     }
 
@@ -348,26 +351,24 @@ impl PandemoniumListener for PanDemoListener<'_> {
     fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar {
         self.spans.push(format!("exit_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {
-            CtxStar::V1 { id, star: SynStar1(star) } => {}
+            CtxStar::V1 { id: [id0, id1], star: SynStar1(star) } => {
+                self.add_value(id0, format!("{id1}{}", star.into_iter().map(|s| format!("*{s}")).join("")));
+            }
         }
         SynStar()
     }
 
     fn exit_plus(&mut self, ctx: CtxPlus, spans: Vec<PosSpan>) -> SynPlus {
         self.spans.push(format!("exit_plus({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxPlus::V1 { id, num, plus: SynPlus1(plus) } => {}
-        }
+        let CtxPlus::V1 { id, num, plus: SynPlus1(plus) } = ctx;
+        self.add_value(id, format!("{num}+{}", plus.join("+")));
         SynPlus()
     }
 
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
         self.spans.push(format!("exit_l_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLStar::V1 { id, star: SynLStarI(items) } => {
-                self.add_value(id, items.join(","));
-            }
-        }
+        let CtxLStar::V1 { id, star: SynLStarI(items) } = ctx;
+        self.add_value(id, items.join(","));
         SynLStar()
     }
 
@@ -388,29 +389,25 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus {
         self.spans.push(format!("exit_l_plus({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLPlus::V1 { id, num, plus } => {}
-        }
+        let CtxLPlus::V1 { id, num, plus: SynLPlusI(items) } = ctx;
+        self.add_value(id, format!("{num},{}", items.join(",")));
         SynLPlus()
     }
 
     fn init_l_plus_i(&mut self) -> SynLPlusI {
-        SynLPlusI()
+        SynLPlusI(vec![])
     }
 
     fn exit_l_plus_i(&mut self, ctx: CtxLPlusI, spans: Vec<PosSpan>) -> SynLPlusI {
         self.spans.push(format!("exit_l_plus_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLPlusI::V1 { plus_acc, num, last_iteration } => {}
-        }
-        SynLPlusI()
+        let CtxLPlusI::V1 { mut plus_acc, num, last_iteration } = ctx;
+        plus_acc.0.push(num);
+        plus_acc
     }
 
     fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec {
         self.spans.push(format!("exit_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxRrec::V1 { id, num, rrec_i: SynRrecI() } => {}
-        }
+        let CtxRrec::V1 { id, num, rrec_i: SynRrecI() } = ctx;
         SynRrec()
     }
 
@@ -612,7 +609,7 @@ pub mod listener_types {
     /// User-defined type for `l_plus`
     #[derive(Debug, PartialEq)] pub struct SynLPlus();
     /// User-defined type for `<L> "," Num` iteration in `l_plus -> Id "=" Num ( ►► <L> "," Num ◄◄ )+ ";"`
-    #[derive(Debug, PartialEq)] pub struct SynLPlusI();
+    #[derive(Debug, PartialEq)] pub struct SynLPlusI(pub Vec<String>);
     /// User-defined type for `rrec`
     #[derive(Debug, PartialEq)] pub struct SynRrec();
     /// User-defined type for `l_rrec`
