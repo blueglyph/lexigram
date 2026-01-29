@@ -88,6 +88,8 @@ static VALUES1: &[&str] = &[
     "[Charlie][103,130,350]",
     "[Delta][104,140,450]",
     "[Foxtrot][106,160,650,<end>]",
+    "[Kilo][2:Beta|Charlie|5:Echo]",
+    "[Lima][21:Uniform||Victor||25:Yankee]",
     "[Mike][x]",
     "[November][202]",
     "[Papa][204,<end>]",
@@ -319,12 +321,11 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynI()
     }
 
-    fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI {
+    fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {
-            CtxI::V1 { star_acc, example: SynExample() } => {}
+            CtxI::V1 { example: SynExample() } => {}
         }
-        SynI()
     }
 
     fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample {
@@ -378,13 +379,12 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLStarI(vec![num])
     }
 
-    fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) -> SynLStarI {
+    fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>) {
         // `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
-        let CtxLStarI::V1 { star_acc: SynLStarI(mut items), num } = ctx;
+        let CtxLStarI::V1 { num } = ctx;
         assert_eq!(num, self.extract_text(&spans[3]));
         self.spans.push(format!("exit_l_star_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        items.push(num);
-        SynLStarI(items)
+        acc.0.push(num);
     }
 
     fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus {
@@ -398,11 +398,10 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLPlusI(vec![])
     }
 
-    fn exit_l_plus_i(&mut self, ctx: CtxLPlusI, spans: Vec<PosSpan>) -> SynLPlusI {
+    fn exit_l_plus_i(&mut self, acc: &mut SynLPlusI, ctx: CtxLPlusI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_l_plus_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        let CtxLPlusI::V1 { mut plus_acc, num, last_iteration } = ctx;
-        plus_acc.0.push(num);
-        plus_acc
+        let CtxLPlusI::V1 { num, last_iteration } = ctx;
+        acc.0.push(num);
     }
 
     fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec {
@@ -455,50 +454,48 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_l_star_a(&mut self, ctx: CtxLStarA, spans: Vec<PosSpan>) -> SynLStarA {
         self.spans.push(format!("exit_l_star_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            // l_star_a -> Id "=" "[" (<L> Id | Num ":" Id)* "]" ";"
-            CtxLStarA::V1 { id, star } => {}
-        }
+        // l_star_a -> Id "=" "[" (<L> Id | Num ":" Id)* "]" ";"
+        let CtxLStarA::V1 { id, star: SynLStarAI(items) } = ctx;
+        self.add_value(id, items.join("|"));
         SynLStarA()
     }
 
     fn init_l_star_a_i(&mut self) -> SynLStarAI {
-        SynLStarAI()
+        SynLStarAI(vec![])
     }
 
-    fn exit_l_star_a_i(&mut self, ctx: CtxLStarAI, spans: Vec<PosSpan>) -> SynLStarAI {
+    fn exit_l_star_a_i(&mut self, acc: &mut SynLStarAI, ctx: CtxLStarAI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_l_star_a_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        let value = match ctx {
             // `<L> Id` iteration in `l_star_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)* "]" ";"`
-            CtxLStarAI::V1 { star_acc, id } => {}
+            CtxLStarAI::V1 { id } => id,
             // `Num ":" Id` iteration in `l_star_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )* "]" ";"`
-            CtxLStarAI::V2 { star_acc, num, id } => {}
-        }
-        SynLStarAI()
+            CtxLStarAI::V2 { num, id } => format!("{num}:{id}"),
+        };
+        acc.0.push(value);
     }
 
     fn exit_l_plus_a(&mut self, ctx: CtxLPlusA, spans: Vec<PosSpan>) -> SynLPlusA {
         self.spans.push(format!("exit_l_plus_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            // l_plus_a -> Id "=" "[" (<L> Id | Num ":" Id)+ "]" ";"
-            CtxLPlusA::V1 { id, plus } => {}
-        }
+        // l_plus_a -> Id "=" "[" (<L> Id | Num ":" Id)+ "]" ";"
+        let CtxLPlusA::V1 { id, plus: SynLPlusAI(items) } = ctx;
+        self.add_value(id, items.join("||"));
         SynLPlusA()
     }
 
     fn init_l_plus_a_i(&mut self) -> SynLPlusAI {
-        SynLPlusAI()
+        SynLPlusAI(vec![])
     }
 
-    fn exit_l_plus_a_i(&mut self, ctx: CtxLPlusAI, spans: Vec<PosSpan>) -> SynLPlusAI {
+    fn exit_l_plus_a_i(&mut self, acc: &mut SynLPlusAI, ctx: CtxLPlusAI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_l_plus_a_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        let value = match ctx {
             // `<L> Id` iteration in `l_plus_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)+ "]" ";"`
-            CtxLPlusAI::V1 { plus_acc, id, last_iteration } => {}
+            CtxLPlusAI::V1 { id, last_iteration } => id,
             // `Num ":" Id` iteration in `l_plus_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )+ "]" ";"`
-            CtxLPlusAI::V2 { plus_acc, num, id, last_iteration } => {}
-        }
-        SynLPlusAI()
+            CtxLPlusAI::V2 { num, id, last_iteration } => format!("{num}:{id}"),
+        };
+        acc.0.push(value);
     }
 
     fn exit_sep_list(&mut self, ctx: CtxSepList, spans: Vec<PosSpan>) -> SynSepList {
@@ -625,11 +622,11 @@ pub mod listener_types {
     /// User-defined type for `l_star_a`
     #[derive(Debug, PartialEq)] pub struct SynLStarA();
     /// User-defined type for `<L> Id` iteration in `l_star_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)* "]" ";"`
-    #[derive(Debug, PartialEq)] pub struct SynLStarAI();
+    #[derive(Debug, PartialEq)] pub struct SynLStarAI(pub Vec<String>);
     /// User-defined type for `l_plus_a`
     #[derive(Debug, PartialEq)] pub struct SynLPlusA();
     /// User-defined type for `<L> Id` iteration in `l_plus_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)+ "]" ";"`
-    #[derive(Debug, PartialEq)] pub struct SynLPlusAI();
+    #[derive(Debug, PartialEq)] pub struct SynLPlusAI(pub Vec<String>);
     /// User-defined type for `sep_list`
     #[derive(Debug, PartialEq)] pub struct SynSepList();
     /// User-defined type for `sep_list_opt`
@@ -874,7 +871,7 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )*`
-        V1 { star_acc: SynI, example: SynExample },
+        V1 { example: SynExample },
     }
     #[derive(Debug)]
     pub enum CtxExample {
@@ -930,7 +927,7 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLStarI {
         /// `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
-        V1 { star_acc: SynLStarI, num: String },
+        V1 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxLPlus {
@@ -940,7 +937,7 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLPlusI {
         /// `<L> "," Num` iteration in `l_plus -> Id "=" Num ( ►► <L> "," Num ◄◄ )+ ";"`
-        V1 { plus_acc: SynLPlusI, num: String, last_iteration: bool },
+        V1 { num: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxRrec {
@@ -980,9 +977,9 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLStarAI {
         /// `<L> Id` iteration in `l_star_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)* "]" ";"`
-        V1 { star_acc: SynLStarAI, id: String },
+        V1 { id: String },
         /// `Num ":" Id` iteration in `l_star_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )* "]" ";"`
-        V2 { star_acc: SynLStarAI, num: String, id: String },
+        V2 { num: String, id: String },
     }
     #[derive(Debug)]
     pub enum CtxLPlusA {
@@ -992,9 +989,9 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLPlusAI {
         /// `<L> Id` iteration in `l_plus_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)+ "]" ";"`
-        V1 { plus_acc: SynLPlusAI, id: String, last_iteration: bool },
+        V1 { id: String, last_iteration: bool },
         /// `Num ":" Id` iteration in `l_plus_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )+ "]" ";"`
-        V2 { plus_acc: SynLPlusAI, num: String, id: String, last_iteration: bool },
+        V2 { num: String, id: String, last_iteration: bool },
     }
     #[derive(Debug)]
     pub enum CtxSepList {
@@ -1255,9 +1252,9 @@ pub mod pandemonium_parser {
         fn init_text(&mut self) {}
         fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText;
         fn init_i(&mut self) -> SynI;
-        fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) -> SynI;
+        fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_i(&mut self, star_acc: &mut SynI) {}
+        fn exitloop_i(&mut self, acc: &mut SynI) {}
         fn init_example(&mut self) {}
         fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample;
         fn init_star(&mut self) {}
@@ -1267,13 +1264,13 @@ pub mod pandemonium_parser {
         fn init_l_star(&mut self) {}
         fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar;
         fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) -> SynLStarI;
-        fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) -> SynLStarI;
+        fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_l_star_i(&mut self, star_acc: &mut SynLStarI) {}
+        fn exitloop_l_star_i(&mut self, acc: &mut SynLStarI) {}
         fn init_l_plus(&mut self) {}
         fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus;
         fn init_l_plus_i(&mut self) -> SynLPlusI;
-        fn exit_l_plus_i(&mut self, ctx: CtxLPlusI, spans: Vec<PosSpan>) -> SynLPlusI;
+        fn exit_l_plus_i(&mut self, acc: &mut SynLPlusI, ctx: CtxLPlusI, spans: Vec<PosSpan>);
         fn init_rrec(&mut self) {}
         fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec;
         fn init_l_rrec(&mut self) {}
@@ -1289,13 +1286,13 @@ pub mod pandemonium_parser {
         fn init_l_star_a(&mut self) {}
         fn exit_l_star_a(&mut self, ctx: CtxLStarA, spans: Vec<PosSpan>) -> SynLStarA;
         fn init_l_star_a_i(&mut self) -> SynLStarAI;
-        fn exit_l_star_a_i(&mut self, ctx: CtxLStarAI, spans: Vec<PosSpan>) -> SynLStarAI;
+        fn exit_l_star_a_i(&mut self, acc: &mut SynLStarAI, ctx: CtxLStarAI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_l_star_a_i(&mut self, star_acc: &mut SynLStarAI) {}
+        fn exitloop_l_star_a_i(&mut self, acc: &mut SynLStarAI) {}
         fn init_l_plus_a(&mut self) {}
         fn exit_l_plus_a(&mut self, ctx: CtxLPlusA, spans: Vec<PosSpan>) -> SynLPlusA;
         fn init_l_plus_a_i(&mut self) -> SynLPlusAI;
-        fn exit_l_plus_a_i(&mut self, ctx: CtxLPlusAI, spans: Vec<PosSpan>) -> SynLPlusAI;
+        fn exit_l_plus_a_i(&mut self, acc: &mut SynLPlusAI, ctx: CtxLPlusAI, spans: Vec<PosSpan>);
         fn init_sep_list(&mut self) {}
         fn exit_sep_list(&mut self, ctx: CtxSepList, spans: Vec<PosSpan>) -> SynSepList;
         fn init_sep_list_opt(&mut self) {}
@@ -1563,17 +1560,16 @@ pub mod pandemonium_parser {
 
         fn exit_i(&mut self) {
             let example = self.stack.pop().unwrap().get_example();
-            let star_acc = self.stack.pop().unwrap().get_i();
-            let ctx = CtxI::V1 { star_acc, example };
+            let ctx = CtxI::V1 { example };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_i(ctx, spans);
-            self.stack.push(SynValue::I(val));
+            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i(star_acc);
+            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(acc);
         }
 
         fn exit_example(&mut self, alt_id: AltId) {
@@ -1715,17 +1711,16 @@ pub mod pandemonium_parser {
 
         fn exit_l_star_i(&mut self) {
             let num = self.stack_t.pop().unwrap();
-            let star_acc = self.stack.pop().unwrap().get_l_star_i();
-            let ctx = CtxLStarI::V1 { star_acc, num };
+            let ctx = CtxLStarI::V1 { num };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_l_star_i(ctx, spans);
-            self.stack.push(SynValue::LStarI(val));
+            let Some(SynValue::LStarI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_l_star_i(acc, ctx, spans);
         }
 
         fn exitloop_l_star_i(&mut self) {
-            let SynValue::LStarI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_l_star_i(star_acc);
+            let SynValue::LStarI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_l_star_i(acc);
         }
 
         fn exit_l_plus(&mut self) {
@@ -1747,12 +1742,11 @@ pub mod pandemonium_parser {
         fn exit_l_plus_i(&mut self, alt_id: AltId) {
             let last_iteration = alt_id == 78;
             let num = self.stack_t.pop().unwrap();
-            let plus_acc = self.stack.pop().unwrap().get_l_plus_i();
-            let ctx = CtxLPlusI::V1 { plus_acc, num, last_iteration };
+            let ctx = CtxLPlusI::V1 { num, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_l_plus_i(ctx, spans);
-            self.stack.push(SynValue::LPlusI(val));
+            let Some(SynValue::LPlusI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_l_plus_i(acc, ctx, spans);
         }
 
         fn exit_rrec(&mut self) {
@@ -1888,26 +1882,24 @@ pub mod pandemonium_parser {
             let (n, ctx) = match alt_id {
                 31 => {
                     let id = self.stack_t.pop().unwrap();
-                    let star_acc = self.stack.pop().unwrap().get_l_star_a_i();
-                    (2, CtxLStarAI::V1 { star_acc, id })
+                    (2, CtxLStarAI::V1 { id })
                 }
                 32 => {
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
-                    let star_acc = self.stack.pop().unwrap().get_l_star_a_i();
-                    (4, CtxLStarAI::V2 { star_acc, num, id })
+                    (4, CtxLStarAI::V2 { num, id })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_star_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_l_star_a_i(ctx, spans);
-            self.stack.push(SynValue::LStarAI(val));
+            let Some(SynValue::LStarAI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_l_star_a_i(acc, ctx, spans);
         }
 
         fn exitloop_l_star_a_i(&mut self) {
-            let SynValue::LStarAI(star_acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_l_star_a_i(star_acc);
+            let SynValue::LStarAI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_l_star_a_i(acc);
         }
 
         fn exit_l_plus_a(&mut self) {
@@ -1930,22 +1922,20 @@ pub mod pandemonium_parser {
                 79 | 80 => {
                     let last_iteration = alt_id == 80;
                     let id = self.stack_t.pop().unwrap();
-                    let plus_acc = self.stack.pop().unwrap().get_l_plus_a_i();
-                    (2, CtxLPlusAI::V1 { plus_acc, id, last_iteration })
+                    (2, CtxLPlusAI::V1 { id, last_iteration })
                 }
                 81 | 82 => {
                     let last_iteration = alt_id == 82;
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
-                    let plus_acc = self.stack.pop().unwrap().get_l_plus_a_i();
-                    (4, CtxLPlusAI::V2 { plus_acc, num, id, last_iteration })
+                    (4, CtxLPlusAI::V2 { num, id, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_l_plus_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_l_plus_a_i(ctx, spans);
-            self.stack.push(SynValue::LPlusAI(val));
+            let Some(SynValue::LPlusAI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_l_plus_a_i(acc, ctx, spans);
         }
 
         fn exit_sep_list(&mut self) {
@@ -2055,7 +2045,7 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LRrecI(acc)) = self.stack.last_mut() else { panic!(); };
+            let Some(SynValue::LRrecI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_rrec_i(acc, ctx, spans);
         }
 

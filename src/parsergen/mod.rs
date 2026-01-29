@@ -1280,7 +1280,7 @@ impl ParserGen {
                         }
                         owner = parent;
                     }
-                    let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
+                    let is_nt_child_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
                     for s in item_ops {
                         if let Some((_, c)) = indices.get_mut(s) {
                             *c = Some(0);
@@ -1296,7 +1296,7 @@ impl ParserGen {
                                         plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
                                         plus_name
                                     } else {
-                                        if is_nt_repeat && indices.is_empty() {
+                                        if is_nt_child_repeat && indices.is_empty() {
                                             // iterator variable in a + * loop (visible with <L>, for ex)
                                             if flag & ruleflag::REPEAT_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
                                         } else {
@@ -1336,8 +1336,6 @@ impl ParserGen {
                     let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
                         || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
 
-                    let is_rep_child_no_lform = is_nt_repeat && pinfo.flags[owner as usize] & ruleflag::L_FORM == 0;
-
                     let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
                     if VERBOSE {
                         println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
@@ -1348,9 +1346,10 @@ impl ParserGen {
                             .and_modify(|v| v.push(alt_id))
                             .or_insert_with(|| vec![alt_id]);
                     }
+                    let has_owner_value = self.nt_value[owner as usize];
                     item_info[i] = if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                         // we put here the return context for the final exit of left recursive rule
-                        if self.nt_value[owner as usize] {
+                        if has_owner_value {
                             vec![ItemInfo {
                                 name: nt_name[owner as usize].1.clone(),
                                 sym: Symbol::NT(owner),
@@ -1361,9 +1360,8 @@ impl ParserGen {
                             vec![]
                         }
                     } else {
-                        let is_rrec_lform_valued = self.nt_has_all_flags(owner, ruleflag::R_RECURSION | ruleflag::L_FORM)
-                            && self.nt_value[owner as usize];
-                        let skip = if is_rep_child_no_lform || is_rrec_lform_valued { 1 } else { 0 };
+                        let is_rrec_lform = self.nt_has_all_flags(owner, ruleflag::R_RECURSION | ruleflag::L_FORM);
+                        let skip = if (is_nt_child_repeat || is_rrec_lform) && has_owner_value { 1 } else { 0 };
                         let mut infos = item_ops.into_iter()
                             .skip(skip)
                             .map(|s| {
@@ -1391,7 +1389,7 @@ impl ParserGen {
                                 index: None,
                             });
                         };
-                        if is_nt_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
+                        if is_nt_child_repeat && infos.len() > 0 && !nt_repeat.contains_key(&owner) {
                             nt_repeat.insert(owner, infos.clone());
                         }
                         infos
@@ -1864,7 +1862,7 @@ impl ParserGen {
                             self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                             self.full_alt_components(a_id, None).1
                         );
-                        let ctx_content = self.source_infos(&item_info[a_id as usize][1..], false);
+                        let ctx_content = self.source_infos(&item_info[a_id as usize], false);
                         src.push(format!("    /// {comment}"));
                         let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
@@ -2122,7 +2120,7 @@ impl ParserGen {
                                     let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
                                     let a = exit_info_alts[0];
                                     let indent = "        ";
-                                    let (src_let, ctx_params) = Self::source_lets(&item_info[a as usize][1..], &nt_name, indent, last_alt_id_maybe);
+                                    let (src_let, ctx_params) = Self::source_lets(&item_info[a as usize], &nt_name, indent, last_alt_id_maybe);
                                     src_wrapper_impl.extend(src_let);
                                     let ctx = if ctx_params.is_empty() {
                                         format!("InitCtx{nu}::{}", alt_info[a as usize].as_ref().unwrap().1)
@@ -2194,7 +2192,7 @@ impl ParserGen {
                         let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
                         if f_valued {
                             let nt_type = self.get_nt_type(fnt as VarId);
-                            if is_rrec_lform {
+                            if is_rrec_lform || (is_child_repeat_lform){
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
                             } else {
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
@@ -2284,6 +2282,7 @@ impl ParserGen {
                             }
                         }
                         if VERBOSE { println!("    exit_alts -> {exit_info_alts:?}, last_alt_id -> {last_alt_ids:?}"); }
+                        let spans_param = if self.gen_span_params { ", spans" } else { "" };
                         for a in exit_info_alts {
                             if VERBOSE {
                                 println!("    - ALTERNATIVE {a}: {} -> {}",
@@ -2303,18 +2302,10 @@ impl ParserGen {
                                 format!("Ctx{fnu}::{} {{ {ctx_params} }}", alt_info[a as usize].as_ref().unwrap().1)
                             };
                             if is_single {
-                                assert_eq!(is_rrec_lform, false);   // FIXME: remove
                                 src_wrapper_impl.push(format!("        let ctx = {ctx};"));
                                 if self.gen_span_params {
                                     src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
 
-                                }
-                                src_wrapper_impl.push(format!(
-                                    "        {}self.listener.exit_{fnpl}(ctx{});",
-                                    if a_has_value { "let val = " } else { "" },
-                                    if self.gen_span_params { ", spans" } else { "" }));
-                                if a_has_value {
-                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                                 }
                             } else {
                                 let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string());
@@ -2328,19 +2319,18 @@ impl ParserGen {
                             if self.gen_span_params {
                                 src_wrapper_impl.extend(Self::source_update_span("n"));
                             }
-                            let spans_param = if self.gen_span_params { ", spans" } else { "" };
-                            if is_rrec_lform && f_valued {
-                                src_wrapper_impl.push(
-                                    format!("        let Some(SynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!(); }};"));
-                                src_wrapper_impl.push(
-                                    format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
-                            } else {
-                                src_wrapper_impl.push(format!(
-                                    "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
-                                    if a_has_value { "let val = " } else { "" }));
-                                if a_has_value {
-                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
-                                }
+                        }
+                        if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                            src_wrapper_impl.push(
+                                format!("        let Some(SynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
+                            src_wrapper_impl.push(
+                                format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
+                        } else {
+                            src_wrapper_impl.push(format!(
+                                "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
+                                if a_has_value { "let val = " } else { "" }));
+                            if a_has_value {
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                             }
                         }
                     }
@@ -2348,27 +2338,39 @@ impl ParserGen {
                         src_wrapper_impl.push(format!("    }}"));
                     }
                     for a in last_it_alts {
-                        if let Some(info) = item_info[a as usize].get(0) {
-                            if VERBOSE { println!("last_it_alts: {a}, info = {info:?}"); }
-                            let (variant, _, fnname) = &nt_name[info.owner as usize];
-                            let typ = self.get_nt_type(info.owner);
-                            let varname = &info.name;
-                            src_listener_decl.push(format!("    #[allow(unused_variables)]"));
-                            src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
-                            let (v, pf) = &self.parsing_table.alts[a as usize];
-                            let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
-                                self.full_alt_str(a, None, false)
-                            } else {
-                                pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
-                            };
-                            src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
-                            exit_alt_done.insert(a);
-                            src_wrapper_impl.push(String::new());
-                            src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
-                            src_wrapper_impl.push(format!("        let SynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
-                                                          if syns.len() > 1 { " else { panic!() }" } else { "" }));
-                            src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
-                            src_wrapper_impl.push(format!("    }}"));
+                        assert_eq!(flags, pinfo.flags[nt]);
+                        // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
+                        // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
+                        let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
+                            Some(*var)
+                        } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                            pinfo.parent[nt]
+                        } else {
+                            None
+                        };
+                        if let Some(owner) = owner_maybe {
+                            if self.nt_value[owner as usize] {
+                                let (variant, _, fnname) = &nt_name[owner as usize];
+                                let typ = self.get_nt_type(owner);
+                                let varname = if is_child_repeat_lform { "acc" } else { fnname };
+                                if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
+                                src_listener_decl.push(format!("    #[allow(unused_variables)]"));
+                                src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
+                                let (v, pf) = &self.parsing_table.alts[a as usize];
+                                let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
+                                    self.full_alt_str(a, None, false)
+                                } else {
+                                    pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
+                                };
+                                src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
+                                exit_alt_done.insert(a);
+                                src_wrapper_impl.push(String::new());
+                                src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
+                                src_wrapper_impl.push(format!("        let SynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
+                                                              if syns.len() > 1 { " else { panic!() }" } else { "" }));
+                                src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
+                                src_wrapper_impl.push(format!("    }}"));
+                            }
                         }
                     }
                 }
