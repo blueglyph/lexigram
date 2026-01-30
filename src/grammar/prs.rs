@@ -1136,7 +1136,7 @@ impl ProdRuleSet<LL1> {
                         if greedies.len() == 1 {
                             let chosen = greedies[0];
                             self.log.add_note(
-                                format!("- calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
+                                format!("  - calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
                                         Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                         if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
                                         table[pos].iter().map(|a_id|
@@ -1173,7 +1173,7 @@ impl ProdRuleSet<LL1> {
     }
 
     pub fn make_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
-        self.log.add_note("calculating parsing table...");
+        self.log.add_note("- calculating parsing table...");
         let first = self.calc_first();
         let follow = self.calc_follow(&first);
         self.calc_table(&first, &follow, error_recovery)

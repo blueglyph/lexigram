@@ -12,7 +12,7 @@ use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource,
 use crate::CollectJoin;
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::lexergen::LexigramCrate;
-use crate::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
+use crate::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::parser::{OpCode, Parser, Symbol};
 use crate::segments::Segments;
 use crate::segmap::Seg;
@@ -219,10 +219,11 @@ impl ParserGen {
     /// to name the user listener trait in the generated code.
     ///
     /// If [`rules`] already has a name, it is best to use the [BuildFrom<ProdRuleSet<T>>](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn build_from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self
+    pub fn build_from_rules<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
     where
         ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
     {
+        rules.log.add_note("building parser gen from rules...");
         let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.make_parsing_table(true);
@@ -553,6 +554,7 @@ impl ParserGen {
 
     fn make_opcodes(&mut self) {
         const VERBOSE: bool = false;
+        self.log.add_note("- making opcodes...");
         self.opcodes.clear();
         self.init_opcodes = vec![OpCode::End, OpCode::NT(self.start)];
         for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
@@ -712,6 +714,7 @@ impl ParserGen {
     ///     ```
     fn add_opcode_hooks(&mut self) {
         const VERBOSE: bool = false;
+        self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
         let num_nt = self.parsing_table.num_nt;
         let num_t = self.parsing_table.num_t;
@@ -769,6 +772,7 @@ impl ParserGen {
     }
 
     fn make_span_nbrs(&mut self) {
+        self.log.add_note("- making spans...");
         let mut span_nbrs = vec![0 as SpanNbr; self.parsing_table.alts.len()];
         for (alt_id, (var_id, _)) in self.parsing_table.alts.iter().enumerate() {
             let opcode = &self.opcodes[alt_id];
@@ -838,6 +842,7 @@ impl ParserGen {
 
     pub(crate) fn make_item_ops(&mut self) {
         const VERBOSE: bool = false;
+        self.log.add_note("- making item ops...");
         let info = &self.parsing_table;
         let mut items = vec![Vec::<Symbol>::new(); self.parsing_table.alts.len()];
         if VERBOSE {
@@ -1044,6 +1049,7 @@ impl ParserGen {
         //      if the pattern is empty after the loop, we have a candidate:
         //      - remove the pattern without the last NT from the parent's item_ops -> [Id a_1]
         const VERBOSE: bool = false;
+        self.log.add_note("- determining sep_list nonterminals...");
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
         for g in self.nt_parent.iter().filter(|va| !va.is_empty()) {
@@ -1204,7 +1210,7 @@ impl ParserGen {
     ///      ItemInfo { name: "e", sym: T(3), owner: 2, index: Some(1) }]
     /// child_repeat_endpoints: {2: [4, 6, 7]}
     /// ```
-    fn get_type_info(&self) -> (
+    fn get_type_info(&mut self) -> (
         Vec<(String, String, String)>,
         Vec<Option<(VarId, String)>>,
         Vec<Vec<ItemInfo>>,
@@ -1212,6 +1218,7 @@ impl ParserGen {
     ) {
         const VERBOSE: bool = false;
 
+        self.log.add_note("- determining item_info...");
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
@@ -1438,6 +1445,10 @@ impl ParserGen {
     // The whole code isn't that big, so it's not a major issue.
 
     pub fn gen_source_code(&mut self, indent: usize, wrapper: bool) -> String {
+        self.log.add_note("generating source code...");
+        if !self.log.has_no_errors() {
+            return String::new();
+        }
         let mut parts = vec![];
         if !self.headers.is_empty() {
             parts.push(self.headers.clone());
@@ -1478,7 +1489,8 @@ impl ParserGen {
             "::alt::Alternative",
             "::parser::Symbol",
         ];
-        self.log.add_note("generating build_parser() source...");
+
+        self.log.add_note("generating build_parser source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
         self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
@@ -1824,7 +1836,6 @@ impl ParserGen {
         }
 
         // Writes contexts
-        log.add_note(format!("- Contexts used in {}Listener trait:", self.name));
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
             // fetches the NT that have alt data
@@ -1875,13 +1886,11 @@ impl ParserGen {
                         src.push(ctx_item);
                         src.push(format!("}}"));
                     }
-                    log.add_note(format!("  - Ctx{}:", nt_name[nt as usize].0));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
                     if VERBOSE { println!("  context Ctx{}:", nt_name[nt as usize].0); }
                     for a_id in self.sort_alt_ids(group[0], alts) {
                         let comment = self.full_alt_str(a_id, None, true);
-                        log.add_note(format!("    /// {comment}"));
                         src.push(format!("    /// {comment}"));
                         if VERBOSE { println!("      /// {comment}"); }
                         let ctx_content = self.source_infos(&item_info[a_id as usize], false);
@@ -1893,7 +1902,6 @@ impl ParserGen {
                             if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
                             format!("    {a_name} {{ {ctx_content} }},", )
                         };
-                        log.add_note(ctx_item.clone());
                         src.push(ctx_item);
                     }
                     src.push(format!("}}"));
@@ -1903,7 +1911,6 @@ impl ParserGen {
 
         // Writes intermediate Syn types
         src.add_space();
-        log.add_note("- NT types and user-defined type templates:");
         src.push("// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):".to_string());
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
@@ -1921,7 +1928,6 @@ impl ParserGen {
                         format!("// {astr}"),
                         format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
                     ];
-                    log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
                     src.extend(user_def_type);
                     let extra_src = vec![
                         astr,
@@ -1972,7 +1978,6 @@ impl ParserGen {
                     format!("// /// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
                     format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
                 ];
-                log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
                 src.extend(user_def_type);
                 let extra_src = vec![
                     format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
