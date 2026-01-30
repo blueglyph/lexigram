@@ -8,6 +8,7 @@ static NO_LOG_STORE: LogMsg = LogMsg::NoLogStore;
 /// Common log functionalities for a message consumer/status verifyier
 pub trait LogStatus: Debug {
     fn num_notes(&self) -> usize;
+    fn num_infos(&self) -> usize;
     fn num_warnings(&self) -> usize;
     fn num_errors(&self) -> usize;
     #[inline]
@@ -31,6 +32,10 @@ pub trait LogStatus: Debug {
         self.get_messages().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
     }
 
+    fn get_infos(&self) -> impl Iterator<Item = &String> {
+        self.get_messages().filter_map(|m| if let LogMsg::Info(s) = m { Some(s) } else { None })
+    }
+
     fn get_warnings(&self) -> impl Iterator<Item = &String> {
         self.get_messages().filter_map(|m| if let LogMsg::Warning(s) = m { Some(s) } else { None })
     }
@@ -43,6 +48,7 @@ pub trait LogStatus: Debug {
 /// Common log functionalities for a message producer
 pub trait Logger: Debug {
     fn add_note<T: Into<String>>(&mut self, msg: T);
+    fn add_info<T: Into<String>>(&mut self, msg: T);
     fn add_warning<T: Into<String>>(&mut self, msg: T);
     fn add_error<T: Into<String>>(&mut self, msg: T);
 }
@@ -53,19 +59,24 @@ pub trait Logger: Debug {
 #[derive(Clone, Debug)]
 pub struct PrintLog {
     num_notes: usize,
+    num_infos: usize,
     num_warnings: usize,
     num_errors: usize
 }
 
 impl PrintLog {
     pub fn new() -> PrintLog {
-        PrintLog { num_notes: 0, num_warnings: 0, num_errors: 0}
+        PrintLog { num_notes: 0, num_infos: 0, num_warnings: 0, num_errors: 0}
     }
 }
 
 impl LogStatus for PrintLog {
     fn num_notes(&self) -> usize {
         self.num_notes
+    }
+
+    fn num_infos(&self) -> usize {
+        self.num_infos
     }
 
     fn num_warnings(&self) -> usize {
@@ -82,6 +93,10 @@ impl Logger for PrintLog {
         eprintln!("NOTE:    {}", msg.into());
     }
 
+    fn add_info<T: Into<String>>(&mut self, msg: T) {
+        eprintln!("INFO:    {}", msg.into());
+    }
+
     fn add_warning<T: Into<String>>(&mut self, msg: T) {
         eprintln!("WARNING: {}", msg.into());
     }
@@ -94,13 +109,14 @@ impl Logger for PrintLog {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub enum LogMsg { NoLogStore, Note(String), Warning(String), Error(String) }
+pub enum LogMsg { NoLogStore, Note(String), Info(String), Warning(String), Error(String) }
 
 impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LogMsg::NoLogStore => write!(f, "The log messages were not stored"),
             LogMsg::Note(s) =>    write!(f, "Note   : {s}"),
+            LogMsg::Info(s) =>    write!(f, "Info   : {s}"),
             LogMsg::Warning(s) => write!(f, "Warning: {s}"),
             LogMsg::Error(s) =>   write!(f, "ERROR  : {s}"),
         }
@@ -111,13 +127,14 @@ impl Display for LogMsg {
 pub struct BufLog {
     messages: Vec<LogMsg>,
     num_notes: usize,
+    num_infos: usize,
     num_warnings: usize,
     num_errors: usize
 }
 
 impl BufLog {
     pub fn new() -> Self {
-        BufLog { messages: Vec::new(), num_notes: 0, num_warnings: 0, num_errors: 0 }
+        BufLog { messages: Vec::new(), num_notes: 0, num_infos: 0, num_warnings: 0, num_errors: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -128,6 +145,7 @@ impl BufLog {
     pub fn clear(&mut self) {
         self.messages.clear();
         self.num_notes = 0;
+        self.num_infos = 0;
         self.num_warnings = 0;
         self.num_errors = 0;
     }
@@ -135,6 +153,7 @@ impl BufLog {
     /// Extends the messages with another Logger's messages.
     pub fn extend(&mut self, other: BufLog) {
         self.num_notes += other.num_notes;
+        self.num_infos += other.num_infos;
         self.num_warnings += other.num_warnings;
         self.num_errors += other.num_errors;
         self.messages.extend(other.messages)
@@ -145,6 +164,7 @@ impl BufLog {
             match m {
                 LogMsg::NoLogStore => {}
                 LogMsg::Note(_) => self.num_notes += 1,
+                LogMsg::Info(_) => self.num_infos += 1,
                 LogMsg::Warning(_) => self.num_warnings += 1,
                 LogMsg::Error(_) => self.num_errors += 1,
             }
@@ -156,6 +176,10 @@ impl BufLog {
 impl LogStatus for BufLog {
     fn num_notes(&self) -> usize {
         self.num_notes
+    }
+
+    fn num_infos(&self) -> usize {
+        self.num_infos
     }
 
     fn num_warnings(&self) -> usize {
@@ -180,6 +204,11 @@ impl Logger for BufLog {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Note(msg.into()));
         self.num_notes += 1;
+    }
+
+    fn add_info<T: Into<String>>(&mut self, msg: T) {
+        self.messages.push(LogMsg::Info(msg.into()));
+        self.num_infos += 1;
     }
 
     fn add_warning<T: Into<String>>(&mut self, msg: T) {
@@ -225,6 +254,10 @@ impl<T: LogReader + Debug> LogStatus for T {
         self.get_log().num_notes()
     }
 
+    fn num_infos(&self) -> usize {
+        self.get_log().num_infos()
+    }
+
     fn num_warnings(&self) -> usize {
         self.get_log().num_warnings()
     }
@@ -253,6 +286,10 @@ impl<T: LogReader + Debug> LogStatus for T {
 impl<L: LogWriter + Debug> Logger for L {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.get_mut_log().add_note(msg);
+    }
+
+    fn add_info<T: Into<String>>(&mut self, msg: T) {
+        self.get_mut_log().add_info(msg);
     }
 
     fn add_warning<T: Into<String>>(&mut self, msg: T) {
