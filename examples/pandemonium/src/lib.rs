@@ -12,6 +12,7 @@ use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::{Parser, Terminate};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
+use crate::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 use crate::listener_types::*;
 use crate::pandemonium_lexer::build_lexer;
 use crate::pandemonium_parser::*;
@@ -87,12 +88,19 @@ static VALUES1: &[&str] = &[
     "[Bravo][102+120+250]",
     "[Charlie][103,130,350]",
     "[Delta][104,140,450]",
+    "[Echo][105;150;550]",
     "[Foxtrot][106,160,650,<end>]",
+    "[Golf][(107),(170),(750)]",
+    "[Hotel][(5 - (2 * (- 6))) + ((3 ^ (2 ^ 4)) / 81)]",
+    "[India][1:Alpha/Beta/4:Delta/Echo/10:Juliet]",
+    "[Juliet][11:Kilo/Lima/Mike/26:Zoulou]",
     "[Kilo][2:Beta|Charlie|5:Echo]",
     "[Lima][21:Uniform||Victor||25:Yankee]",
     "[Mike][x]",
     "[November][202]",
+    "[Oscar][203]",
     "[Papa][204,<end>]",
+    "[Quebec][(205)]",
     "[Romeo][<a:1><b:2><c:3>]",
     "[Sierra][<d:4>]",
     "[Tango][<e/5><f/6><g/7>]",
@@ -138,6 +146,9 @@ static SPANS1: &[&str] = &[
     r#"exit_amb_i("5")"#,
     r#"exit_amb_i("2")"#,
     r#"exit_amb_i("6")"#,
+    r#"exit_amb_i("-", "6")"#,
+    r#"exit_amb_i("2", "*", "-6")"#,
+    r#"exit_amb_i("5", "-", "2*-6")"#,
     r#"exit_amb_i("3")"#,
     r#"exit_amb_i("2")"#,
     r#"exit_amb_i("4")"#,
@@ -145,10 +156,7 @@ static SPANS1: &[&str] = &[
     r#"exit_amb_i("3", "^", "2^4")"#,
     r#"exit_amb_i("81")"#,
     r#"exit_amb_i("3^2^4", "/", "81")"#,
-    r#"exit_amb_i("6", "+", "3^2^4 / 81")"#,
-    r#"exit_amb_i("-", "6 + 3^2^4 / 81")"#,
-    r#"exit_amb_i("2", "*", "-6 + 3^2^4 / 81")"#,
-    r#"exit_amb_i("5", "-", "2*-6 + 3^2^4 / 81")"#,
+    r#"exit_amb_i("5 - 2*-6", "+", "3^2^4 / 81")"#,
     r#"exit_amb("Hotel", "=", "5 - 2*-6 + 3^2^4 / 81", ";")"#,
     r#"exit_example("amb", "Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
     r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, then 130, then 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;", "amb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;")"#,
@@ -206,6 +214,42 @@ static SPANS1: &[&str] = &[
 
     r#"exit_text("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, then 130, then 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;")"#,
 ];
+
+// -------------------------------------------------------------------------
+// test helper
+
+pub mod level_string {
+    use std::cmp::max;
+
+    #[derive(Debug, PartialEq)]
+    pub struct LevelString(pub u32, pub String);
+
+    impl LevelString {
+        pub fn get_string(self) -> String {
+            self.1
+        }
+    }
+
+    pub fn par(ls: LevelString) -> String {
+        if ls.0 > 0 {
+            format!("({})", ls.1)
+        } else {
+            ls.1
+        }
+    }
+
+    pub fn ls_prefix_op(op: &str, ls: LevelString) -> LevelString {
+        LevelString(ls.0 + 1, format!("{op} {}", par(ls)))
+    }
+
+    pub fn ls_suffix_op(op: &str, ls: LevelString) -> LevelString {
+        LevelString(ls.0 + 1, format!("{} {op}", par(ls)))
+    }
+
+    pub fn ls_binary_op(op: &str, lsleft: LevelString, lsright: LevelString) -> LevelString {
+        LevelString(max(lsleft.0, lsright.0) + 1, format!("{} {op} {}", par(lsleft), par(lsright)))
+    }
+}
 
 // -------------------------------------------------------------------------
 // minimalist parser, top level
@@ -406,7 +450,9 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec {
         self.spans.push(format!("exit_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        let CtxRrec::V1 { id, num, rrec_i: SynRrecI() } = ctx;
+        let CtxRrec::V1 { id, num, rrec_i: SynRrecI(mut items) } = ctx;
+        items.push(num);
+        self.add_value(id, items.iter().rev().join(";"));
         SynRrec()
     }
 
@@ -418,37 +464,46 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLRrec()
     }
 
+
     fn exit_lrec(&mut self, ctx: CtxLrec, spans: Vec<PosSpan>) -> SynLrec {
         self.spans.push(format!("exit_lrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLrec::V1 { id, lrec_i: SynLrecI() } => {}
-        }
+        let CtxLrec::V1 { id, lrec_i: SynLrecI(items) } = ctx;
+        self.add_value(id, items.into_iter().map(|s| format!("({s})")).join(","));
         SynLrec()
     }
 
     fn exit_amb(&mut self, ctx: CtxAmb, spans: Vec<PosSpan>) -> SynAmb {
         self.spans.push(format!("exit_amb({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxAmb::V1 { id, amb_i: SynAmbI() } => {}
-        }
+        let CtxAmb::V1 { id, amb_i: SynAmbI(ls) } = ctx;
+        self.add_value(id, ls.get_string());
         SynAmb()
     }
 
     fn exit_star_a(&mut self, ctx: CtxStarA, spans: Vec<PosSpan>) -> SynStarA {
         self.spans.push(format!("exit_star_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            // star_a -> Id "=" "[" (Id | Num ":" Id)* "]" ";"
-            CtxStarA::V1 { id, star: SynStarA1(items) } => {}
-        }
+        // star_a -> Id "=" "[" (Id | Num ":" Id)* "]" ";"
+        let CtxStarA::V1 { id, star: SynStarA1(items) } = ctx;
+        let value = items.into_iter().map(|item|
+            match item {
+                SynStarA1Item::V1 { id } => id,
+                SynStarA1Item::V2 { num, id } => format!("{num}:{id}"),
+            })
+            .join("/");
+        self.add_value(id, value);
         SynStarA()
     }
 
     fn exit_plus_a(&mut self, ctx: CtxPlusA, spans: Vec<PosSpan>) -> SynPlusA {
         self.spans.push(format!("exit_plus_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            // plus_a -> Id "=" "[" (Id | Num ":" Id)+ "]" ";"
-            CtxPlusA::V1 { id, plus: SynPlusA1(items) } => {}
-        }
+        // plus_a -> Id "=" "[" (Id | Num ":" Id)+ "]" ";"
+        let CtxPlusA::V1 { id, plus: SynPlusA1(items) } = ctx;
+        let value = items.into_iter().map(|item|
+            match item {
+                SynPlusA1Item::V1 { id } => id,
+                SynPlusA1Item::V2 { num, id } => format!("{num}:{id}"),
+            })
+            .join("/");
+        self.add_value(id, value);
         SynPlusA()
     }
 
@@ -523,11 +578,14 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) -> SynRrecI {
         self.spans.push(format!("exit_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxRrecI::V1 { num, rrec_i: SynRrecI() } => {}
-            CtxRrecI::V2 => {}
-        }
-        SynRrecI()
+        let items = match ctx {
+            CtxRrecI::V1 { num, rrec_i: SynRrecI(mut prev_items) } => {
+                prev_items.push(num);
+                prev_items
+            }
+            CtxRrecI::V2 => vec![],
+        };
+        SynRrecI(items)
     }
 
     fn init_l_rrec_i(&mut self) -> SynLRrecI {
@@ -548,11 +606,14 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI {
         self.spans.push(format!("exit_lrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxLrecI::V1 { lrec_i: SynLrecI(), num } => {}
-            CtxLrecI::V2 { num } => {}
-        }
-        SynLrecI()
+        let items = match ctx {
+            CtxLrecI::V1 { lrec_i: SynLrecI(mut prev_items), num } => {
+                prev_items.push(num);
+                prev_items
+            }
+            CtxLrecI::V2 { num } => vec![num],
+        };
+        SynLrecI(items)
     }
 
     fn exitloop_lrec_i(&mut self, _lrec_i: &mut SynLrecI) {
@@ -560,27 +621,26 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) -> SynAmbI {
         self.spans.push(format!("exit_amb_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            // `amb_i -> <R> amb_i "^" amb_i`
-            CtxAmbI::V1 { amb_i: [SynAmbI(), SynAmbI()] } => {}
-            // `amb_i -> amb_i "*" amb_i`
-            CtxAmbI::V2 { amb_i: [SynAmbI(), SynAmbI()] } => {}
-            // `amb_i -> amb_i <P> "/" amb_i`
-            CtxAmbI::V3 { amb_i: [SynAmbI(), SynAmbI()] } => {}
-            // `amb_i -> amb_i "+" amb_i`
-            CtxAmbI::V4 { amb_i: [SynAmbI(), SynAmbI()] } => {}
-            // `amb_i -> amb_i <P> "-" amb_i`
-            CtxAmbI::V5 { amb_i: [SynAmbI(), SynAmbI()] } => {}
+        SynAmbI(match ctx {
             // `amb_i -> "-" amb_i`
-            CtxAmbI::V6 { amb_i: SynAmbI() } => {}
+            CtxAmbI::V1 { amb_i: SynAmbI(ls) } => ls_prefix_op("-", ls),
+            // `amb_i -> <R> amb_i "^" amb_i`
+            CtxAmbI::V2 { amb_i: [SynAmbI(left), SynAmbI(right)] } => ls_binary_op("^", left, right),
+            // `amb_i -> amb_i "*" amb_i`
+            CtxAmbI::V3 { amb_i: [SynAmbI(left), SynAmbI(right)] } => ls_binary_op("*", left, right),
+            // `amb_i -> amb_i <P> "/" amb_i`
+            CtxAmbI::V4 { amb_i: [SynAmbI(left), SynAmbI(right)] } => ls_binary_op("/", left, right),
+            // `amb_i -> amb_i "+" amb_i`
+            CtxAmbI::V5 { amb_i: [SynAmbI(left), SynAmbI(right)] } => ls_binary_op("+", left, right),
+            // `amb_i -> amb_i <P> "-" amb_i`
+            CtxAmbI::V6 { amb_i: [SynAmbI(left), SynAmbI(right)] } => ls_binary_op("-", left, right),
             // `amb_i -> "(" amb_i ")"`
-            CtxAmbI::V7 { amb_i: SynAmbI() } => {}
+            CtxAmbI::V7 { amb_i: SynAmbI(ls) } => ls,
             // `amb_i -> Id`
-            CtxAmbI::V8 { id } => {}
+            CtxAmbI::V8 { id } => LevelString(0, id),
             // `amb_i -> Num`
-            CtxAmbI::V9 { num } => {}
-        }
-        SynAmbI()
+            CtxAmbI::V9 { num } => LevelString(0, num),
+        })
     }
 }
 
@@ -589,6 +649,8 @@ impl PandemoniumListener for PanDemoListener<'_> {
 // (initially copied/uncommented from the generated parser code)
 
 pub mod listener_types {
+    use crate::level_string::LevelString;
+
     /// User-defined type for `text`
     #[derive(Debug, PartialEq)] pub struct SynText();
     /// User-defined type for `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )*`
@@ -632,13 +694,13 @@ pub mod listener_types {
     /// User-defined type for `sep_list_opt`
     #[derive(Debug, PartialEq)] pub struct SynSepListOpt();
     /// User-defined type for `rrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynRrecI();
+    #[derive(Debug, PartialEq)] pub struct SynRrecI(pub Vec<String>);
     /// User-defined type for `l_rrec_i`
     #[derive(Debug, PartialEq)] pub struct SynLRrecI(pub Vec<String>);
     /// User-defined type for `lrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynLrecI();
+    #[derive(Debug, PartialEq)] pub struct SynLrecI(pub Vec<String>);
     /// User-defined type for `amb_i`
-    #[derive(Debug, PartialEq)] pub struct SynAmbI();
+    #[derive(Debug, PartialEq)] pub struct SynAmbI(pub LevelString);
 }
 
 // -------------------------------------------------------------------------
@@ -841,8 +903,8 @@ pub mod pandemonium_parser {
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Add", Some("+")), ("Div", Some("/")), ("Equal", Some("=")), ("Exp", Some("^")), ("Lpar", Some("(")), ("Lsbracket", Some("[")), ("Mul", Some("*")), ("Rpar", Some(")")), ("Rsbracket", Some("]")), ("Sub", Some("-")), ("Colon", Some(":")), ("Comma", Some(",")), ("Semi", Some(";")), ("Then", Some("then")), ("Star", Some("star")), ("Plus", Some("plus")), ("L_Star", Some("l-star")), ("L_Plus", Some("l-plus")), ("L_Rrec", Some("l-rrec")), ("Rrec", Some("rrec")), ("Lrec", Some("lrec")), ("Amb", Some("amb")), ("Star_A", Some("star-a")), ("Plus_A", Some("plus-a")), ("L_Star_A", Some("l-star-a")), ("L_Plus_A", Some("l-plus-a")), ("SepList", Some("sep-list")), ("SepList_Opt", Some("sep-list-opt")), ("Id", None), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["text", "i", "example", "star", "plus", "l_star", "l_star_i", "l_plus", "l_plus_i", "rrec", "l_rrec", "lrec", "amb", "star_a", "plus_a", "l_star_a", "l_star_a_i", "l_plus_a", "l_plus_a_i", "sep_list", "sep_list_opt", "rrec_i", "l_rrec_i", "lrec_i", "amb_i", "star_1", "plus_1", "star_a_1", "plus_a_1", "sep_list_1", "sep_list_opt_1", "lrec_i_1", "amb_i_1", "amb_i_2", "amb_i_3", "amb_i_4", "amb_i_5", "amb_i_6", "l_plus_i_1", "l_plus_a_i_1", "l_plus_a_i_2", "sep_list_opt_2", "plus_2", "plus_a_2", "plus_a_3"];
     static ALT_VAR: [VarId; 91] = [0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 16, 16, 17, 18, 18, 19, 20, 21, 21, 22, 22, 23, 24, 25, 25, 26, 27, 27, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32, 32, 32, 32, 32, 32, 33, 34, 34, 34, 34, 35, 36, 36, 37, 37, 37, 37, 38, 38, 39, 39, 40, 40, 41, 41, 42, 42, 43, 43, 44, 44];
-    static PARSING_TABLE: [AltId; 1395] = [91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 91, 91, 0, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 91, 91, 2, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 3, 4, 5, 6, 8, 7, 9, 10, 11, 12, 13, 14, 15, 16, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 17, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 18, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 19, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 20, 21, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 22, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 23, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 24, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 25, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 26, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 27, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 28, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 29, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 30, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 33, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 31, 32, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 34, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 35, 36, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 37, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 38, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 39, 40, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 41, 42, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 43, 91, 92, 92, 91, 92, 44, 91, 92, 92, 91, 44, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 44, 44, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 45, 46, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 47, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 50, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 48, 49, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 51, 52, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 53, 54, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 55, 56, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 57, 58, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 62, 61, 91, 59, 91, 91, 60, 64, 91, 63, 91, 91, 64, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 65, 91, 92, 92, 91, 65, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 65, 65, 91, 69, 68, 91, 66, 91, 91, 67, 69, 91, 69, 91, 91, 69, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 70, 91, 92, 92, 91, 70, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 70, 70, 91, 72, 72, 91, 71, 91, 91, 72, 72, 91, 72, 91, 91, 72, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 74, 91, 92, 92, 91, 73, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 75, 76, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 77, 78, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 80, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 79, 79, 91, 91, 91, 91, 91, 91, 91, 91, 91, 82, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 81, 81, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 83, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 84, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 85, 86, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 88, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 87, 87, 91, 91, 91, 91, 91, 91, 91, 91, 91, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 89, 89, 91];
-    static OPCODES: [&[OpCode]; 91] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3), OpCode::T(14)], &[OpCode::Exit(4), OpCode::NT(4), OpCode::T(15)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(16)], &[OpCode::Exit(6), OpCode::NT(7), OpCode::T(17)], &[OpCode::Exit(7), OpCode::NT(9), OpCode::T(19)], &[OpCode::Exit(8), OpCode::NT(10), OpCode::T(18)], &[OpCode::Exit(9), OpCode::NT(11), OpCode::T(20)], &[OpCode::Exit(10), OpCode::NT(12), OpCode::T(21)], &[OpCode::Exit(11), OpCode::NT(13), OpCode::T(22)], &[OpCode::Exit(12), OpCode::NT(14), OpCode::T(23)], &[OpCode::Exit(13), OpCode::NT(15), OpCode::T(24)], &[OpCode::Exit(14), OpCode::NT(17), OpCode::T(25)], &[OpCode::Exit(15), OpCode::NT(19), OpCode::T(26)], &[OpCode::Exit(16), OpCode::NT(20), OpCode::T(27)], &[OpCode::Exit(17), OpCode::T(12), OpCode::NT(25), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(18), OpCode::T(12), OpCode::NT(26), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(19), OpCode::T(12), OpCode::NT(6), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(6), OpCode::Exit(20), OpCode::T(29), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(12), OpCode::NT(8), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(38), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(24), OpCode::NT(21), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(25), OpCode::NT(22), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(26), OpCode::T(12), OpCode::NT(23), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(27), OpCode::T(12), OpCode::NT(24), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(12), OpCode::T(8), OpCode::NT(27), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(29), OpCode::T(12), OpCode::T(8), OpCode::NT(28), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(12), OpCode::T(8), OpCode::NT(16), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(31), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(32), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(33)], &[OpCode::Exit(34), OpCode::T(12), OpCode::T(8), OpCode::NT(18), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(39), OpCode::T(28)], &[OpCode::NT(40), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(37), OpCode::T(12), OpCode::NT(29), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(41), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(39), OpCode::NT(21), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(40), OpCode::T(12)], &[OpCode::Loop(22), OpCode::Exit(41), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(42), OpCode::T(12)], &[OpCode::NT(31), OpCode::Exit(43), OpCode::T(29)], &[OpCode::NT(32), OpCode::Exit(44), OpCode::NT(37)], &[OpCode::Loop(25), OpCode::Exit(45), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(46)], &[OpCode::NT(42), OpCode::T(29), OpCode::T(11)], &[OpCode::Loop(27), OpCode::Exit(48), OpCode::T(28)], &[OpCode::Loop(27), OpCode::Exit(49), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(50)], &[OpCode::NT(43), OpCode::T(28)], &[OpCode::NT(44), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Loop(29), OpCode::Exit(53), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(54)], &[OpCode::Loop(30), OpCode::Exit(55), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(56)], &[OpCode::Loop(31), OpCode::Exit(57), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(58)], &[OpCode::Loop(32), OpCode::Exit(59), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(32), OpCode::Exit(60), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(32), OpCode::Exit(61), OpCode::NT(35), OpCode::T(1)], &[OpCode::Loop(32), OpCode::Exit(62), OpCode::NT(33), OpCode::T(0)], &[OpCode::Loop(32), OpCode::Exit(63), OpCode::NT(33), OpCode::T(9)], &[OpCode::Exit(64)], &[OpCode::NT(34), OpCode::Exit(65), OpCode::NT(37)], &[OpCode::Loop(34), OpCode::Exit(66), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(34), OpCode::Exit(67), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(34), OpCode::Exit(68), OpCode::NT(35), OpCode::T(1)], &[OpCode::Exit(69)], &[OpCode::NT(36), OpCode::Exit(70), OpCode::NT(37)], &[OpCode::Loop(36), OpCode::Exit(71), OpCode::NT(35), OpCode::T(3)], &[OpCode::Exit(72)], &[OpCode::Exit(73), OpCode::NT(24), OpCode::T(9)], &[OpCode::Exit(74), OpCode::T(7), OpCode::NT(24), OpCode::T(4)], &[OpCode::Exit(75), OpCode::T(28)], &[OpCode::Exit(76), OpCode::T(29)], &[OpCode::Loop(8), OpCode::Exit(77)], &[OpCode::Exit(78)], &[OpCode::Loop(18), OpCode::Exit(79)], &[OpCode::Exit(80)], &[OpCode::Loop(18), OpCode::Exit(81)], &[OpCode::Exit(82)], &[OpCode::Exit(83), OpCode::T(12)], &[OpCode::Exit(84), OpCode::T(12), OpCode::NT(30), OpCode::T(29), OpCode::T(10), OpCode::T(28)], &[OpCode::Loop(26), OpCode::Exit(85)], &[OpCode::Exit(86)], &[OpCode::Loop(28), OpCode::Exit(87)], &[OpCode::Exit(88)], &[OpCode::Loop(28), OpCode::Exit(89)], &[OpCode::Exit(90)]];
+    static PARSING_TABLE: [AltId; 1395] = [91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 91, 91, 0, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 91, 91, 2, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 3, 4, 5, 6, 8, 7, 9, 10, 11, 12, 13, 14, 15, 16, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 17, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 18, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 19, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 20, 21, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 22, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 23, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 24, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 25, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 26, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 27, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 28, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 29, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 30, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 33, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 31, 32, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 34, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 35, 36, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 37, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 38, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 39, 40, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 41, 42, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 43, 91, 91, 91, 91, 91, 44, 91, 91, 92, 91, 44, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 44, 44, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 45, 46, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 47, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 50, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 48, 49, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 51, 52, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 53, 54, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 55, 56, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 57, 58, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 62, 61, 91, 59, 91, 91, 60, 64, 91, 63, 91, 91, 64, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 65, 91, 92, 92, 91, 65, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 65, 65, 91, 69, 68, 91, 66, 91, 91, 67, 69, 91, 69, 91, 91, 69, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 70, 91, 92, 92, 91, 70, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 70, 70, 91, 72, 72, 91, 71, 91, 91, 72, 72, 91, 72, 91, 91, 72, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 74, 91, 92, 92, 91, 73, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 75, 76, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 77, 78, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 80, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 79, 79, 91, 91, 91, 91, 91, 91, 91, 91, 91, 82, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 81, 81, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 83, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 84, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 85, 86, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 88, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 87, 87, 91, 91, 91, 91, 91, 91, 91, 91, 91, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 89, 89, 91];
+    static OPCODES: [&[OpCode]; 91] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3), OpCode::T(14)], &[OpCode::Exit(4), OpCode::NT(4), OpCode::T(15)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(16)], &[OpCode::Exit(6), OpCode::NT(7), OpCode::T(17)], &[OpCode::Exit(7), OpCode::NT(9), OpCode::T(19)], &[OpCode::Exit(8), OpCode::NT(10), OpCode::T(18)], &[OpCode::Exit(9), OpCode::NT(11), OpCode::T(20)], &[OpCode::Exit(10), OpCode::NT(12), OpCode::T(21)], &[OpCode::Exit(11), OpCode::NT(13), OpCode::T(22)], &[OpCode::Exit(12), OpCode::NT(14), OpCode::T(23)], &[OpCode::Exit(13), OpCode::NT(15), OpCode::T(24)], &[OpCode::Exit(14), OpCode::NT(17), OpCode::T(25)], &[OpCode::Exit(15), OpCode::NT(19), OpCode::T(26)], &[OpCode::Exit(16), OpCode::NT(20), OpCode::T(27)], &[OpCode::Exit(17), OpCode::T(12), OpCode::NT(25), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(18), OpCode::T(12), OpCode::NT(26), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(19), OpCode::T(12), OpCode::NT(6), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(6), OpCode::Exit(20), OpCode::T(29), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(12), OpCode::NT(8), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(38), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(24), OpCode::NT(21), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(25), OpCode::NT(22), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(26), OpCode::T(12), OpCode::NT(23), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(27), OpCode::T(12), OpCode::NT(24), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(12), OpCode::T(8), OpCode::NT(27), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(29), OpCode::T(12), OpCode::T(8), OpCode::NT(28), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(12), OpCode::T(8), OpCode::NT(16), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(31), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(32), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(33)], &[OpCode::Exit(34), OpCode::T(12), OpCode::T(8), OpCode::NT(18), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(39), OpCode::T(28)], &[OpCode::NT(40), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(37), OpCode::T(12), OpCode::NT(29), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(41), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(39), OpCode::NT(21), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(40), OpCode::T(12)], &[OpCode::Loop(22), OpCode::Exit(41), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(42), OpCode::T(12)], &[OpCode::NT(31), OpCode::Exit(43), OpCode::T(29)], &[OpCode::NT(32), OpCode::Exit(44), OpCode::NT(37)], &[OpCode::Loop(25), OpCode::Exit(45), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(46)], &[OpCode::NT(42), OpCode::T(29), OpCode::T(11)], &[OpCode::Loop(27), OpCode::Exit(48), OpCode::T(28)], &[OpCode::Loop(27), OpCode::Exit(49), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(50)], &[OpCode::NT(43), OpCode::T(28)], &[OpCode::NT(44), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Loop(29), OpCode::Exit(53), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(54)], &[OpCode::Loop(30), OpCode::Exit(55), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(56)], &[OpCode::Loop(31), OpCode::Exit(57), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(58)], &[OpCode::Loop(32), OpCode::Exit(59), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(32), OpCode::Exit(60), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(32), OpCode::Exit(61), OpCode::NT(35), OpCode::T(1)], &[OpCode::Loop(32), OpCode::Exit(62), OpCode::NT(33), OpCode::T(0)], &[OpCode::Loop(32), OpCode::Exit(63), OpCode::NT(33), OpCode::T(9)], &[OpCode::Exit(64)], &[OpCode::NT(34), OpCode::Exit(65), OpCode::NT(37)], &[OpCode::Loop(34), OpCode::Exit(66), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(34), OpCode::Exit(67), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(34), OpCode::Exit(68), OpCode::NT(35), OpCode::T(1)], &[OpCode::Exit(69)], &[OpCode::NT(36), OpCode::Exit(70), OpCode::NT(37)], &[OpCode::Loop(36), OpCode::Exit(71), OpCode::NT(35), OpCode::T(3)], &[OpCode::Exit(72)], &[OpCode::Exit(73), OpCode::NT(37), OpCode::T(9)], &[OpCode::Exit(74), OpCode::T(7), OpCode::NT(24), OpCode::T(4)], &[OpCode::Exit(75), OpCode::T(28)], &[OpCode::Exit(76), OpCode::T(29)], &[OpCode::Loop(8), OpCode::Exit(77)], &[OpCode::Exit(78)], &[OpCode::Loop(18), OpCode::Exit(79)], &[OpCode::Exit(80)], &[OpCode::Loop(18), OpCode::Exit(81)], &[OpCode::Exit(82)], &[OpCode::Exit(83), OpCode::T(12)], &[OpCode::Exit(84), OpCode::T(12), OpCode::NT(30), OpCode::T(29), OpCode::T(10), OpCode::T(28)], &[OpCode::Loop(26), OpCode::Exit(85)], &[OpCode::Exit(86)], &[OpCode::Loop(28), OpCode::Exit(87)], &[OpCode::Exit(88)], &[OpCode::Loop(28), OpCode::Exit(89)], &[OpCode::Exit(90)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
@@ -1028,18 +1090,18 @@ pub mod pandemonium_parser {
     }
     #[derive(Debug)]
     pub enum CtxAmbI {
-        /// `amb_i -> <R> amb_i "^" amb_i`
-        V1 { amb_i: [SynAmbI; 2] },
-        /// `amb_i -> amb_i "*" amb_i`
-        V2 { amb_i: [SynAmbI; 2] },
-        /// `amb_i -> amb_i <P> "/" amb_i`
-        V3 { amb_i: [SynAmbI; 2] },
-        /// `amb_i -> amb_i "+" amb_i`
-        V4 { amb_i: [SynAmbI; 2] },
-        /// `amb_i -> amb_i <P> "-" amb_i`
-        V5 { amb_i: [SynAmbI; 2] },
         /// `amb_i -> "-" amb_i`
-        V6 { amb_i: SynAmbI },
+        V1 { amb_i: SynAmbI },
+        /// `amb_i -> <R> amb_i "^" amb_i`
+        V2 { amb_i: [SynAmbI; 2] },
+        /// `amb_i -> amb_i "*" amb_i`
+        V3 { amb_i: [SynAmbI; 2] },
+        /// `amb_i -> amb_i <P> "/" amb_i`
+        V4 { amb_i: [SynAmbI; 2] },
+        /// `amb_i -> amb_i "+" amb_i`
+        V5 { amb_i: [SynAmbI; 2] },
+        /// `amb_i -> amb_i <P> "-" amb_i`
+        V6 { amb_i: [SynAmbI; 2] },
         /// `amb_i -> "(" amb_i ")"`
         V7 { amb_i: SynAmbI },
         /// `amb_i -> Id`
@@ -1457,7 +1519,7 @@ pub mod pandemonium_parser {
                         71 => self.exit_amb_i1(59),                 // amb_i_5 -> <R> "^" amb_i_4 amb_i_5 (duplicate of 59)
                         67 => self.exit_amb_i1(60),                 // amb_i_3 -> "*" amb_i_4 amb_i_3 (duplicate of 60)
                         68 => self.exit_amb_i1(61),                 // amb_i_3 -> "/" amb_i_4 amb_i_3 (duplicate of 61)
-                        73 |                                        // amb_i_6 -> "-" amb_i
+                        73 |                                        // amb_i_6 -> "-" amb_i_6
                         74 |                                        // amb_i_6 -> "(" amb_i ")"
                         75 |                                        // amb_i_6 -> Id
                         76 => self.exit_amb_i6(alt_id),             // amb_i_6 -> Num
@@ -2078,27 +2140,27 @@ pub mod pandemonium_parser {
                 59 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
-                    (3, CtxAmbI::V1 { amb_i: [amb_i_1, amb_i_2] })
+                    (3, CtxAmbI::V2 { amb_i: [amb_i_1, amb_i_2] })
                 }
                 60 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
-                    (3, CtxAmbI::V2 { amb_i: [amb_i_1, amb_i_2] })
+                    (3, CtxAmbI::V3 { amb_i: [amb_i_1, amb_i_2] })
                 }
                 61 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
-                    (3, CtxAmbI::V3 { amb_i: [amb_i_1, amb_i_2] })
+                    (3, CtxAmbI::V4 { amb_i: [amb_i_1, amb_i_2] })
                 }
                 62 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
-                    (3, CtxAmbI::V4 { amb_i: [amb_i_1, amb_i_2] })
+                    (3, CtxAmbI::V5 { amb_i: [amb_i_1, amb_i_2] })
                 }
                 63 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
-                    (3, CtxAmbI::V5 { amb_i: [amb_i_1, amb_i_2] })
+                    (3, CtxAmbI::V6 { amb_i: [amb_i_1, amb_i_2] })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_amb_i1")
             };
@@ -2112,7 +2174,7 @@ pub mod pandemonium_parser {
             let (n, ctx) = match alt_id {
                 73 => {
                     let amb_i = self.stack.pop().unwrap().get_amb_i();
-                    (2, CtxAmbI::V6 { amb_i })
+                    (2, CtxAmbI::V1 { amb_i })
                 }
                 74 => {
                     let amb_i = self.stack.pop().unwrap().get_amb_i();

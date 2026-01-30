@@ -52,10 +52,10 @@ lrec_i:
 ;
 
 amb_i:
-    <R> amb_i Exp amb_i
+    Sub amb_i
+|   <R> amb_i Exp amb_i
 |   amb_i (Mul | <P> Div) amb_i
 |   amb_i (Add | <P> Sub) amb_i
-|   Sub amb_i
 |   Lpar amb_i Rpar
 |   Id
 |   Num
