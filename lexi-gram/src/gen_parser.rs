@@ -90,10 +90,12 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         builder.set_include_alts(options.gen_parser_alts);
         builder.extend_headers(&options.parser_headers);
         builder.extend_libs(options.extra_libs.clone());
+        builder.set_gen_wrapper(options.gen_wrapper);
         builder.set_gen_span_params(options.gen_span_params);
         builder.set_gen_token_enums(options.gen_token_enums);
         builder.set_crate(options.lib_crate.clone());
-        let (parser_log, parser_src) = builder.try_gen_source_code(options.parser_indent, options.gen_wrapper)?;
+        builder.set_indent(options.parser_indent);
+        let (parser_log, parser_src) = builder.try_gen_source_code()?;
         log.extend(parser_log);
         Some(parser_src)
     } else {

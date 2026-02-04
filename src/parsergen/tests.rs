@@ -37,7 +37,9 @@ mod gen_integration {
         let mut builder = ParserGen::build_from_rules(ll1, name);
         builder.set_include_alts(include_alts);
         builder.use_full_lib(true);
-        builder.gen_source_code(indent, false)
+        builder.set_gen_wrapper(false);
+        builder.set_indent(indent);
+        builder.gen_source_code()
     }
 
     fn get_test_data<'a>(id: u32) -> Option<(u32, usize, bool, &'a str, &'a str)> {
@@ -472,7 +474,8 @@ mod parser_source {
             assert_eq!(ll1.get_log().num_errors(), 0, "building the LL(1) failed:\n{}", ll1.get_log());
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
             builder.set_include_alts(include_alts);
-            let src = builder.gen_source_code(0, false);
+            builder.set_gen_wrapper(false);
+            let src = builder.gen_source_code();
             let alt_present = src.contains("static ALTERNATIVES");
             assert_eq!(alt_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
             let pt = ParserTables::build_from(builder);
@@ -2228,7 +2231,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2243,7 +2246,6 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            // if !matches!(tr_id, 109..150 | 212..250) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
@@ -2346,6 +2348,8 @@ mod wrapper_source {
             src.insert(0, builder.source_use());
             if VERBOSE && builder_has_errors {
                 println!("log:\n{}", builder.get_log().get_messages_str());
+            } else {
+                println!("log infos:\n{}", builder.get_log().get_infos().map(|s| format!("- {s}")).join("\n"))
             }
             if VERBOSE_TYPE {
                 if result_is_ambiguous {

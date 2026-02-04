@@ -308,7 +308,8 @@ fn write_lexiparser_source(replace_source: bool) {
         builder.print_flags(0);
         builder.print_items(0, false, false);
     }
-    let result_src = builder.gen_source_code(4, true);
+    builder.set_indent(4);
+    let result_src = builder.gen_source_code();
     if !cfg!(miri) {
         let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
         if result_src != expected_src {

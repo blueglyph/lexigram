@@ -4,8 +4,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use iter_index::IndexerIterator;
 use lexigram_core::alt::Alternative;
 use lexigram_core::TokenId;
-use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet, RuleTreeSet};
-use crate::{columns_to_str, indent_source, AltId, General, NameFixer, NameTransformer, Normalized, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
+use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet};
+use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::alt::ruleflag;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
@@ -189,6 +189,12 @@ pub struct ParserGen {
     item_ops: Vec<Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     init_opcodes: Vec<OpCode>,
+    /// generates the parser source code
+    gen_parser: bool,
+    /// generates the wrapper source code
+    gen_wrapper: bool,
+    /// source code indentation, in number of space characters
+    indent: usize,
     /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
     gen_span_params: bool,
     gen_token_enums: bool,
@@ -207,14 +213,6 @@ pub struct ParserGen {
 }
 
 impl ParserGen {
-    /// Creates a [`ParserGen`] from a set of rules and gives it a specific name, which is used
-    /// to name the user listener trait in the generated code.
-    pub fn build_from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
-        let normalized = RuleTreeSet::<Normalized>::build_from(tree);
-        let lr_rules = ProdRuleSet::build_from(normalized);
-        Self::build_from_rules(lr_rules, name)
-    }
-
     /// Creates a [`ParserGen`] from a set of production rules and gives it a specific name, which is used
     /// to name the user listener trait in the generated code.
     ///
@@ -253,6 +251,8 @@ impl ParserGen {
             item_ops: Vec::new(),
             opcodes: Vec::new(),
             init_opcodes: Vec::new(),
+            gen_parser: true,
+            gen_wrapper: true,
             span_nbrs: Vec::new(),
             span_nbrs_sep_list: HashMap::new(),
             start,
@@ -264,6 +264,7 @@ impl ParserGen {
             log: ll1_rules.log,
             include_alts: false,
             lib_crate: LexigramCrate::Core,
+            indent: 0,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -403,6 +404,21 @@ impl ParserGen {
     #[inline]
     pub fn set_nt_has_value(&mut self, v: VarId, has_value: bool) {
         self.nt_value[v as usize] = has_value;
+    }
+
+    /// Generates the parser source code if [gen_parser] is `true`. This option is `true` by default.
+    pub fn set_gen_parser(&mut self, gen_parser: bool) {
+        self.gen_parser = gen_parser;
+    }
+
+    /// Generates the wrapper source code if [gen_parser] is `true`. This option is `true` by default.
+    pub fn set_gen_wrapper(&mut self, gen_wrapper: bool) {
+        self.gen_wrapper = gen_wrapper;
+    }
+
+    /// Sets the source code indentation. This option is 0 by default.
+    pub fn set_indent(&mut self, indent: usize) {
+        self.indent = indent;
     }
 
     /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.
@@ -1444,7 +1460,7 @@ impl ParserGen {
     // - get the sources for the validation tests or print them / write them into a file.
     // The whole code isn't that big, so it's not a major issue.
 
-    pub fn gen_source_code(&mut self, indent: usize, wrapper: bool) -> String {
+    pub fn gen_source_code(&mut self) -> String {
         self.log.add_note("generating source code...");
         if !self.log.has_no_errors() {
             return String::new();
@@ -1453,19 +1469,23 @@ impl ParserGen {
         if !self.headers.is_empty() {
             parts.push(self.headers.clone());
         }
-        let mut tmp_parts = vec![self.source_build_parser()];
-        if wrapper {
+        let mut tmp_parts = if self.gen_parser {
+            vec![self.source_build_parser()]
+        } else {
+            vec![]
+        };
+        if self.gen_wrapper {
             self.make_item_ops();
             tmp_parts.push(self.source_wrapper());
         }
         parts.push(self.source_use());
         parts.extend(tmp_parts);
         // Create source code:
-        indent_source(parts, indent)
+        indent_source(parts, self.indent)
     }
 
-    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<(BufLog, String), BuildError> {
-        let src = self.gen_source_code(indent, wrapper);
+    pub fn try_gen_source_code(mut self) -> Result<(BufLog, String), BuildError> {
+        let src = self.gen_source_code();
         if self.log.has_no_errors() {
             Ok((self.give_log(), src))
         } else {
