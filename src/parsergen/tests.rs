@@ -2231,7 +2231,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -2281,7 +2281,18 @@ mod wrapper_source {
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
-            builder.make_item_ops();
+            builder.set_indent(4);
+            let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            let rule_name = format!("{tr_id}_{rule_iter}");
+            if !type_gen_exclusion(tr_id) {
+                builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
+            }
+            for (v, s) in nt_type.clone() {
+                builder.add_nt_type(v, s);
+            }
+            builder.set_gen_parser(test_source_parser);
+            let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
+            let result_src = builder.gen_source_code();
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
@@ -2294,15 +2305,6 @@ mod wrapper_source {
             let result_alts = (0..builder.parsing_table.num_nt).filter_map(|v|
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
-            let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
-            let rule_name = format!("{tr_id}_{rule_iter}");
-            if !type_gen_exclusion(tr_id) {
-                builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
-            }
-            for (v, s) in nt_type.clone() {
-                builder.add_nt_type(v, s);
-            }
-            let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
             if VERBOSE {
                 let gather_alts = (0..(builder.parsing_table.num_nt as VarId)).map(|v| (v, builder.gather_alts(v))).to_vec();
                 println!("gather_alts:\n{}", gather_alts.iter().map(|(v, alts)| {
@@ -2339,13 +2341,7 @@ mod wrapper_source {
                 }
                 println!("*/");
             }
-            let mut src = vec![];
-            if test_source_parser {
-                src.push(builder.source_build_parser())
-            }
-            src.push(builder.source_wrapper());
             let builder_has_errors = builder.log.num_errors() > 0;
-            src.insert(0, builder.source_use());
             if VERBOSE && builder_has_errors {
                 println!("log:\n{}", builder.get_log().get_messages_str());
             } else {
@@ -2370,7 +2366,6 @@ mod wrapper_source {
                     println!("}}\n");
                 }
             }
-            let result_src = indent_source(src, 4);
             if PRINT_SOURCE && !builder_has_errors {
                 println!("pub(crate) mod rules_{rule_name} {{");
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}\n    // [{test_name}]\n    // {:-<60}", "");
