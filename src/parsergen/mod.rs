@@ -2,7 +2,9 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use iter_index::IndexerIterator;
+use vectree::VecTree;
 use lexigram_core::alt::Alternative;
+use lexigram_core::log::LogMsg;
 use lexigram_core::TokenId;
 use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet};
 use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
@@ -1478,6 +1480,8 @@ impl ParserGen {
             self.make_item_ops();
             tmp_parts.push(self.source_wrapper());
         }
+        self.log_nt_info();
+        self.log_alt_info();
         parts.push(self.source_use());
         parts.extend(tmp_parts);
         // Create source code:
@@ -2693,6 +2697,120 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
 // Supporting functions
 
 impl ParserGen {
+
+    pub fn get_nt_tree(&self) -> VecTree<VarId> {
+        let mut tree = VecTree::new();
+        let root = tree.add_root(0);
+        let mut idx = HashMap::new();
+        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            idx.clear();
+            // some parents are later in the group, so we can't do this:
+            // for &c in group {
+            //     let idx_parent = self.parsing_table
+            //         .parent[c as usize]
+            //         .map(|v| idx.get(&v).unwrap())
+            //         .unwrap_or(&root);
+            //     let idx_c = tree.add(Some(*idx_parent), c);
+            //     idx.insert(c, idx_c);
+            // }
+            let tree_ids = tree.add_iter(None, group.into_iter().cloned()).to_vec();
+            idx.extend(group.into_iter().zip(tree_ids));
+            for &child in group.into_iter() {
+                tree.attach_child(
+                    self.parsing_table.parent[child as usize]
+                        .map(|p| idx[&p])
+                        .unwrap_or(root),
+                    idx[&child]);
+            }
+        }
+        tree
+    }
+
+    pub fn get_indented_nt(&self) -> Vec<(VarId, String)>{
+        let tree = self.get_nt_tree();
+        let mut indented = vec![];
+        let mut indent = vec![];
+        for node in tree.iter_pre_depth_simple().skip(1) {
+            let depth = node.depth as usize;
+            if indent.len() < depth {
+                indent.push((1..depth).map(|i| if i & 1 == 0 { "  " } else { "ˑ " }).join(""));
+            }
+            indented.push((*node, format!("{}{}", &indent[depth - 1], Symbol::NT(*node).to_str(self.get_symbol_table()))));
+        }
+        indented
+    }
+
+    pub fn get_nt_info(&self) -> Vec<String> {
+        let indented = self.get_indented_nt();
+        let mut cols = vec![
+            vec!["  nt".to_string(), "  name".to_string(), " val".to_string(), /*"  parent".to_string(),*/ "  flags".to_string(), String::new()]];
+        for (v, line) in indented {
+            let nt = v as usize;
+            // let parent = self.parsing_table.parent[nt].map(|p| Symbol::NT(p).to_str(self.get_symbol_table())).unwrap_or_else(||String::new());
+            cols.push(vec![
+                format!("| {v:3}"),
+                format!("| {line}"),
+                if self.nt_value[nt] { "| y".to_string() } else { "|".to_string() },
+                // format!("| {parent}"),
+                format!("| {}", ruleflag::to_string(self.parsing_table.flags[nt]).join(", ")),
+                "|".to_string(),
+            ]);
+        }
+        let mut txt = columns_to_str(cols, Some(vec![3, 5, 0, /*0,*/ 0, 0]));
+        if let Some(max) = txt.get(1).map(|s| s.chars().count()) {
+            let sep = format!("+{:-<1$}+", "", max - 2);
+            txt.insert(1, sep.clone());
+            txt.push(sep);
+        }
+        txt
+    }
+
+    pub fn log_nt_info(&mut self) {
+        let mut txt = self.get_nt_info();
+        txt.push(String::new());
+        self.log.extend_messages(txt.into_iter().map(|line| LogMsg::Info(line)));
+    }
+
+    pub fn get_alt_info(&self) -> Vec<String> {
+        let indented = self.get_indented_nt();
+        let mut cols = vec![
+            vec!["  nt".to_string(), "  alt".to_string(), "  opcodes".to_string(), " spans".to_string(), "  item_ops".to_string(), String::new()]];
+        for (v, line) in indented {
+            let nt = v as usize;
+            for &alt_id in &self.var_alts[nt] {
+                let a_id = alt_id as usize;
+                let alt = &self.parsing_table.alts[a_id].1;
+                let opcodes = self.opcodes[a_id].iter().map(|o| o.to_str_quote(self.get_symbol_table())).join(" ");
+                let item_ops = self.item_ops.get(a_id)
+                    .map(|ops| ops.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "))
+                    .unwrap_or_else(|| "-".to_string());
+                cols.push(vec![
+                    format!("| {v:3}"),
+                    format!("| {alt_id:4}: {line} -> {}", alt.to_str(self.get_symbol_table())),
+                    format!("| {opcodes}"),
+                    format!("| {}{}",
+                        &self.span_nbrs[a_id],
+                        if let Some(ispan) = self.span_nbrs_sep_list.get(&alt_id) { format!(", {ispan}") } else { String::new() }),
+                    format!("| {item_ops}"),
+                    "|".to_string(),
+                ]);
+            }
+        }
+        let mut txt = columns_to_str(cols, Some(vec![3, 5, 0, 0, 0, 0]));
+        if let Some(max) = txt.get(1).map(|s| s.chars().count()) {
+            let sep = format!("+{:-<1$}+", "", max - 2);
+            txt.insert(1, sep.clone());
+            txt.push(sep);
+        }
+        txt
+    }
+
+    pub fn log_alt_info(&mut self) {
+        let mut txt = self.get_alt_info();
+        txt.push(String::new());
+        self.log.extend_messages(txt.into_iter().map(|line| LogMsg::Info(line)));
+    }
+
     pub fn print_items(&self, indent: usize, show_symbols: bool, show_span: bool) {
         let tbl = self.get_symbol_table();
         let fields = (0..self.parsing_table.alts.len())
@@ -2723,7 +2841,7 @@ impl ParserGen {
                 ]);
                 cols
             }).to_vec();
-        let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0] };
+        let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0, 0] };
         for l in columns_to_str(fields, Some(widths)) {
             println!("{:indent$}{l}", "", indent = indent)
         }

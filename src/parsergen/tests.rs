@@ -2317,7 +2317,10 @@ mod wrapper_source {
                         }).join(", "))
                 }).join("\n"));
                 println!("{original_str}");
-                builder.print_flags(12);
+                // builder.print_flags(12);
+                let infos = builder.get_nt_info();
+                println!("            //");
+                println!("{}", infos.into_iter().map(|s| format!("            // {s}")).join("\n"));
                 println!("            ({tr_id}, {test_source}, {test_source_parser}, {start_nt}, btreemap![", );
                 if !result_nt_type.is_empty() {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("                {v} => \"{s}\".to_string(),")).join("\n"));
@@ -2344,8 +2347,6 @@ mod wrapper_source {
             let builder_has_errors = builder.log.num_errors() > 0;
             if VERBOSE && builder_has_errors {
                 println!("log:\n{}", builder.get_log().get_messages_str());
-            } else {
-                println!("log infos:\n{}", builder.get_log().get_infos().map(|s| format!("- {s}")).join("\n"))
             }
             if VERBOSE_TYPE {
                 if result_is_ambiguous {
