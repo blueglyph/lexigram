@@ -20,7 +20,7 @@ default = []
 [dependencies]
 lexigram-core = { path = "lexigram-core", version = "0.8.3" }
 iter-index = "1.0.0"
-vectree = "0.2.3"
+vectree = "0.4.1"
 
 [dev-dependencies]
 lexigram-core = { path = "lexigram-core", features = ["test_utils"]  , version = "0.8.3" }

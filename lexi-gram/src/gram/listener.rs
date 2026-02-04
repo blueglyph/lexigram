@@ -134,7 +134,7 @@ impl GramListener {
                 match check {
                     PostCheck::RepeatChildLform { node, var } => {
                         let tree = &self.rules[*var as usize];
-                        if tree.iter_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
+                        if tree.iter_post_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
                             let symtab = Some(&self.symbol_table);
                             self.log.add_error(
                                 format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
@@ -232,7 +232,7 @@ impl GramParserListener for GramListener {
         }
         // OPTIMIZE: we could have tagged the rules containing reserved NTs; here, we'll have to scan everything
         for rule in self.rules.iter_mut() {
-            for mut node in rule.iter_depth_simple_mut() {
+            for mut node in rule.iter_post_depth_simple_mut() {
                 if let GrNode::Symbol(Symbol::NT(old)) = *node {
                     if let Some(new) = old_new.get(&old) {
                         *node = GrNode::Symbol(Symbol::NT(*new));

@@ -72,7 +72,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             assert!(v < 26);
             if v >= num_nt { num_nt = v + 1 }
             let mut iter = 1;
-            for n in t.iter_depth_simple() {
+            for n in t.iter_post_depth_simple() {
                 match n.deref() {
                     GrNode::Symbol(Symbol::NT(nt)) => {
                         if *nt >= num_nt { num_nt = *nt + 1 }

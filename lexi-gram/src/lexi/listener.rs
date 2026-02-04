@@ -282,7 +282,7 @@ impl LexiListener {
                         self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
                         Some(ret),
                         if ret { Some(self.terminal_remap.get(&(*id as TokenId)).unwrap_or(id)) } else { None },
-                        self.terminals[*id as usize].iter_depth_simple().find_map(|n|
+                        self.terminals[*id as usize].iter_post_depth_simple().find_map(|n|
                             // unfortunately, we can't destructure entirely because term is a Box
                             if let ReType::End(term) = n.get_type() {
                                 if let ActionOption::Token(end) = term.action { Some(end) } else { None }
@@ -431,7 +431,7 @@ impl LexiListener {
         }
         for tree in self.terminals.iter_mut() {
             // changes all the temporary references since that first one
-            for mut node in tree.iter_depth_simple_mut() {
+            for mut node in tree.iter_post_depth_simple_mut() {
                 let x: &mut ReType = node.get_mut_type();
                 if let ReType::End(term) = x {
                     if let ActionOption::Token(old_id) = term.action {

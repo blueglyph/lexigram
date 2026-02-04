@@ -12,7 +12,7 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
     for (var, tree) in rules.get_trees_iter() {
         let mut indices = HashSet::<usize>::new();
         let mut n = 0;
-        for node in tree.iter_depth_simple() {
+        for node in tree.iter_post_depth_simple() {
             n += 1;
             if indices.contains(&node.index) {
                 msg.push_str(&format!("duplicate index {} for var {var} in tree {:#}\n", node.index, tree.to_str(None, None)));

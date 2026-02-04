@@ -192,7 +192,7 @@ impl DfaBuilder {
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
     fn preprocess_re(&mut self) {
         let mut nodes = vec![];
-        for mut inode in self.re.iter_depth_simple_mut() {
+        for mut inode in self.re.iter_post_depth_simple_mut() {
             if matches!(inode.op, ReType::String(_)) {
                 // we have to do it again to move the string
                 if let ReType::String(s) = std::mem::take(&mut inode.op) {
@@ -222,7 +222,7 @@ impl DfaBuilder {
     /// Calculates `firstpos`, `lastpost`, `nullable` for each node, and the `followpos` table.
     fn calc_node_pos(&mut self) {
         let mut id = 0;
-        for mut inode in self.re.iter_depth_mut() {
+        for mut inode in self.re.iter_post_depth_mut() {
             if inode.is_leaf() {
                 if inode.num_children() > 0 {
                     self.log.add_error(format!("node #{} {} had {} child(ren) but shouldn't have any", inode.index, inode.op, inode.num_children()));
@@ -325,7 +325,7 @@ impl DfaBuilder {
                             let lastpos = child.lastpos.clone();
                             inode.firstpos = firstpos;
                             inode.lastpos = lastpos;
-                            for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
+                            for ichild in inode.iter_post_depth_simple().filter(|node| node.is_leaf()) {
                                 self.lazypos.insert(ichild.id.unwrap());
                             }
                         } else {
@@ -1140,7 +1140,7 @@ pub fn retree_to_str(tree: &ReTree, node: Option<usize>, emphasis: Option<usize>
         return "<empty>".to_string();
     }
     let top = node.unwrap_or_else(|| tree.get_root().unwrap());
-    for node in tree.iter_depth_simple_at(top) {
+    for node in tree.iter_post_depth_simple_at(top) {
         let (pr, mut str) = match node.num_children() {
             0 => {
                 match &node.op {

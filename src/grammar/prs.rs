@@ -341,7 +341,7 @@ impl<T> ProdRuleSet<T> {
             }
         }
         for t in &mut self.origin.trees {
-            for mut node in t.iter_depth_simple_mut() {
+            for mut node in t.iter_post_depth_simple_mut() {
                 match *node {
                     GrNode::Symbol(Symbol::NT(ref mut v)) => {
                         if let Some(new_v) = conv.get(&v) {

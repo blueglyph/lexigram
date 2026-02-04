@@ -202,7 +202,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
     let before = if ansi { BEFORE_ANSI } else { BEFORE };
     let after = if ansi { AFTER_ANSI } else { AFTER };
     let top = node.unwrap_or_else(|| tree.get_root().unwrap());
-    for node in tree.iter_depth_simple_at(top) {
+    for node in tree.iter_post_depth_simple_at(top) {
         let (pr, mut str) = match node.num_children() {
             0 => {
                 match node.deref() {
@@ -452,7 +452,7 @@ impl Display for GrTreeFmt<'_> {
         }
         let start_node = self.start_node.unwrap_or_else(|| self.tree.get_root().expect("the tree must have a defined root"));
         let mut stack = Vec::<String>::new();
-        for node in self.tree.iter_depth_at(start_node) {
+        for node in self.tree.iter_post_depth_at(start_node) {
             let n = node.num_children();
             if n > 0 {
                 let children = stack.drain(stack.len() - n..).join(", ");
@@ -521,7 +521,7 @@ impl<T> RuleTreeSet<T> {
     /// Returns a set of all the terminals used in the ruleset.
     pub fn get_terminals(&self) -> HashSet<TokenId> {
         let tset = self.trees.iter()
-            .flat_map(|t| t.iter_depth_simple())
+            .flat_map(|t| t.iter_post_depth_simple())
             .filter_map(|x| if let GrNode::Symbol(Symbol::T(t)) = x.deref() { Some(*t) } else { None })
             .collect::<HashSet<_>>();
         tset
@@ -654,7 +654,7 @@ impl RuleTreeSet<General> {
             let mut orig_new = GrTree::new();
             let mut orig_rep_vars = HashMap::<VarId, usize>::new();
             let mut stack = Vec::<usize>::new();    // indices in new
-            for sym in orig.iter_depth() {
+            for sym in orig.iter_post_depth() {
                 let n = sym.num_children();
                 if VERBOSE { println!("- old {}:{}", sym.index, *sym); }
                 if n == 0 {
@@ -921,7 +921,7 @@ impl RuleTreeSet<General> {
                 // we must repeat those steps until all `orig_rep_vars` have been found and replaced.
                 let mut orig_rep_nodes = Vec::<(usize, usize)>::new();
                 let mut to_remove = Vec::<VarId>::new();
-                for node in orig_new.iter_depth() {
+                for node in orig_new.iter_post_depth() {
                     if let GrNode::Symbol(Symbol::NT(rep_var)) = node.deref() {
                         if let Some(&orig_rep_id) = orig_rep_vars.get(&rep_var) {
                             to_remove.push(*rep_var);
@@ -959,7 +959,7 @@ impl RuleTreeSet<General> {
 
         // finds possible occurences of <L=var>, detects conflicts, and updates qvar/rvar if necessary
         let mut lform_nt = None;
-        for node in orig_new.iter_depth_at(orig_rep_child) {
+        for node in orig_new.iter_post_depth_at(orig_rep_child) {
             if let GrNode::LForm(v) = *node {
                 if matches!(lform_nt, Some(v2) if v != v2) {
                     let symtab = self.get_symbol_table();
@@ -1106,12 +1106,12 @@ impl RuleTreeSet<General> {
                             grtree_to_str(orig_new, Some(orig_rep), None, Some(var), self.get_symbol_table(), false)));
             } else {
                 // self.nt_conversion.insert(v, MovedTo(qvar));
-                for mut node in qtree.iter_depth_simple_mut() {
+                for mut node in qtree.iter_post_depth_simple_mut() {
                     if let GrNode::LForm(v2) = node.deref_mut() {
                         if *v2 == v { *v2 = qvar; }
                     }
                 }
-                for mut node in orig_new.iter_depth_simple_at_mut(orig_rep_child) {
+                for mut node in orig_new.iter_post_depth_simple_at_mut(orig_rep_child) {
                     if let GrNode::LForm(v2) = node.deref_mut() {
                         if *v2 == v { *v2 = qvar; }
                     }
@@ -1170,7 +1170,7 @@ impl RuleTreeSet<General> {
         // We want A_1's parent to be A_2. We keep the wrong order in the parent chain: A_1 -> A_2 -> A,
         // which is unfortunate in some later tests but still easier than changing everything here.
         let mut rectify_maybe = None;
-        for node in self.get_tree(qvar).unwrap().iter_depth_simple() {
+        for node in self.get_tree(qvar).unwrap().iter_post_depth_simple() {
             if let GrNode::Symbol(Symbol::NT(child)) = node.deref() {
                 if *child != qvar && self.flags[*child as usize] & ruleflag::CHILD_REPEAT != 0 {
                     rectify_maybe = Some(*child);

@@ -1161,7 +1161,7 @@ impl ParserGen {
         let mut ids = alts.iter().filter_map(|&alt_id| self.parsing_table.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
             .collect::<HashMap<_, _>>();
         let tree = &self.origin.trees[top_nt as usize];
-        for node in tree.iter_depth() {
+        for node in tree.iter_post_depth() {
             if let Some((_, alt_id)) = ids.remove_entry(&node.index) {
                 sorted.push(alt_id);
             }

@@ -703,7 +703,7 @@ mod simple {
             }
             let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
             let result_end = listener.terminals.iter().enumerate().filter_map(|(id, t)| {
-                t.iter_depth_simple().find_map(|n|
+                t.iter_post_depth_simple().find_map(|n|
                     // unfortunately, we can't destructure entirely because term is a Box
                     if let ReType::End(term) = n.get_type() {
                         if let ActionOption::Token(end) = term.action {

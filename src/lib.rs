@@ -230,7 +230,7 @@ impl StructLibs {
     pub fn gen_source_code(&self) -> Vec<String> {
         let mut stack = Vec::<Vec<String>>::new();
         let tree = self.to_tree();
-        for node in tree.iter_depth_simple() {
+        for node in tree.iter_post_depth_simple() {
             if node.depth as usize >= stack.len() && node.depth > 0 {
                 while node.depth as usize > stack.len() {
                     stack.push(vec![]);
@@ -338,7 +338,7 @@ mod libtests {
         l.extend(l3);
         let tree = l.to_tree();
         if VERBOSE {
-            println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
+            println!("{}", tree.iter_post_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
             println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
         }
         let src = l.gen_source_code();

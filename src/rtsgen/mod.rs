@@ -234,7 +234,7 @@ impl<'a> RGListener<'a> {
             .map(|nt| std::mem::take(self.rules.get_mut(*nt as usize).unwrap()))
             .collect();
         for rule in &mut self.rules {
-            for mut node in rule.iter_depth_simple_mut() {
+            for mut node in rule.iter_post_depth_simple_mut() {
                 match *node {
                     GrNode::Symbol(Symbol::NT(ref mut old))
                     | GrNode::LForm(ref mut old) => *old = *dest.get(*old as usize).unwrap_or(&(*old as usize)) as VarId,

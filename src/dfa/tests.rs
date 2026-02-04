@@ -865,7 +865,7 @@ fn dfa_firstpos() {
         let mut dfa_builder = DfaBuilder::build_from(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
-        for inode in dfa_builder.re.iter_depth_simple() {
+        for inode in dfa_builder.re.iter_post_depth_simple() {
             let mut firstpos = inode.firstpos.iter().map(|n| *n).to_vec();
             firstpos.sort();
             result.push(firstpos)
@@ -997,7 +997,7 @@ fn dfa_lastpos() {
         let mut dfa_builder = DfaBuilder::build_from(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
-        for inode in dfa_builder.re.iter_depth_simple() {
+        for inode in dfa_builder.re.iter_post_depth_simple() {
             let mut lastpos = inode.lastpos.iter().map(|n| *n).to_vec();
             lastpos.sort();
             result.push(lastpos)
