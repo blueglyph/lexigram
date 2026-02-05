@@ -169,6 +169,11 @@ impl std::fmt::Debug for Dup {
 
 pub type GrTree = VecTree<GrNode>;
 
+pub(crate) const STR_BEFORE: &str = " ►► ";
+pub(crate) const STR_AFTER: &str = " ◄◄ ";
+pub(crate) const STR_BEFORE_ANSI: &str = "\u{1b}[4;1;36m";
+pub(crate) const STR_AFTER_ANSI: &str = "\u{1b}[0m";
+
 /// Builds the string representation of the [`GrTree`], using the [`symbol table`](SymbolTable) if available
 /// and optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the tree
 /// is emphasized in the string.
@@ -190,17 +195,12 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
     const PR_FACTOR: u32 = 3;
     const PR_ATOM: u32 = 4;
 
-    const BEFORE: &str = " ►► ";
-    const AFTER : &str = " ◄◄ ";
-    const BEFORE_ANSI: &str = "\u{1b}[4;1;36m";
-    const AFTER_ANSI : &str = "\u{1b}[0m";
-
     let mut children = vec![];
     if tree.is_empty() {
         return "<empty>".to_string();
     }
-    let before = if ansi { BEFORE_ANSI } else { BEFORE };
-    let after = if ansi { AFTER_ANSI } else { AFTER };
+    let before = if ansi { STR_BEFORE_ANSI } else { STR_BEFORE };
+    let after = if ansi { STR_AFTER_ANSI } else { STR_AFTER };
     let top = node.unwrap_or_else(|| tree.get_root().unwrap());
     for node in tree.iter_post_depth_simple_at(top) {
         let (pr, mut str) = match node.num_children() {
@@ -621,6 +621,8 @@ impl RuleTreeSet<General> {
         self.normalize_vars();
         self.flags.resize(self.trees.len(), 0);
         self.parent.resize(self.trees.len(), None);
+        (0..self.trees.len() as VarId)
+            .for_each(|v| self.log.add_note(format!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), self.to_str(v, None, None))));
     }
 
     fn check_num_nt_coherency(&mut self) {

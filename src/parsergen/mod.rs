@@ -2740,10 +2740,10 @@ impl ParserGen {
         indented
     }
 
-    pub fn get_nt_info(&self) -> Vec<String> {
+    pub fn nt_info_str(&self) -> Vec<String> {
         let indented = self.get_indented_nt();
         let mut cols = vec![
-            vec!["  nt".to_string(), "  name".to_string(), " val".to_string(), /*"  parent".to_string(),*/ "  flags".to_string(), String::new()]];
+            vec!["  NT".to_string(), "  name".to_string(), " val".to_string(), /*"  parent".to_string(),*/ "  flags".to_string(), String::new()]];
         for (v, line) in indented {
             let nt = v as usize;
             // let parent = self.parsing_table.parent[nt].map(|p| Symbol::NT(p).to_str(self.get_symbol_table())).unwrap_or_else(||String::new());
@@ -2766,15 +2766,16 @@ impl ParserGen {
     }
 
     pub fn log_nt_info(&mut self) {
-        let mut txt = self.get_nt_info();
+        let mut txt = self.nt_info_str();
         txt.push(String::new());
+        self.log.add_info("nonterminal information:");
         self.log.extend_messages(txt.into_iter().map(|line| LogMsg::Info(line)));
     }
 
-    pub fn get_alt_info(&self) -> Vec<String> {
+    pub fn alt_info_str(&self) -> Vec<String> {
         let indented = self.get_indented_nt();
         let mut cols = vec![
-            vec!["  nt".to_string(), "  alt".to_string(), "  opcodes".to_string(), " spans".to_string(), "  item_ops".to_string(), String::new()]];
+            vec!["  NT".to_string(), "  alt".to_string(), "  opcodes".to_string(), " spans".to_string(), "  item_ops".to_string(), String::new()]];
         for (v, line) in indented {
             let nt = v as usize;
             for &alt_id in &self.var_alts[nt] {
@@ -2806,8 +2807,9 @@ impl ParserGen {
     }
 
     pub fn log_alt_info(&mut self) {
-        let mut txt = self.get_alt_info();
+        let mut txt = self.alt_info_str();
         txt.push(String::new());
+        self.log.add_note("rule alternatives:");
         self.log.extend_messages(txt.into_iter().map(|line| LogMsg::Info(line)));
     }
 

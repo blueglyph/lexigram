@@ -2318,7 +2318,7 @@ mod wrapper_source {
                 }).join("\n"));
                 println!("{original_str}");
                 // builder.print_flags(12);
-                let infos = builder.get_nt_info();
+                let infos = builder.nt_info_str();
                 println!("            //");
                 println!("{}", infos.into_iter().map(|s| format!("            // {s}")).join("\n"));
                 println!("            ({tr_id}, {test_source}, {test_source_parser}, {start_nt}, btreemap![", );

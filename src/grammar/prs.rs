@@ -4,6 +4,7 @@ use super::*;
 use crate::{columns_to_str, AltId, SymbolTable, VarId};
 use lexigram_core::alt::{alt_to_rule_str, Alternative};
 use lexigram_core::CollectJoin;
+use lexigram_core::log::LogMsg;
 
 /// Stores a normalized production rule, where each alternative (e.g. `B C`) is stored in
 /// a `Vec<GrNode>` and all the alternatives are stored in a `Vec`.
@@ -965,13 +966,12 @@ impl<T> ProdRuleSet<T> {
     ///
     /// The output can be formatted with [`indent_source`].
     pub fn prs_alt_origins_str(&self, ansi: bool) -> Vec<String> {
-        let mut cols = vec![vec!["ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
-        cols.push(vec!["-----------".to_string(), "|".to_string(), "--------------".to_string()]);
+        let mut cols = vec![vec!["| ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
         // adds the current alternatives
         cols.extend(self.get_prules_iter()
             .flat_map(|(v, prule)| prule.iter()
                 .map(move |alt| vec![
-                    alt_to_rule_str(v, &alt.v, self.get_symbol_table()),
+                    format!("| {}", alt_to_rule_str(v, &alt.v, self.get_symbol_table())),
                     "|".to_string(),
                     if let Some((vo, ido)) = alt.origin {
                         let tree = &self.origin.trees[vo as usize];
@@ -983,6 +983,7 @@ impl<T> ProdRuleSet<T> {
                     }
                 ])
             ));
+        let n1 = cols.len();
         // adds child nonterminals that represent a part of the original nonterminals
         cols.extend((0..self.num_nt)
             .filter_map(|var|
@@ -990,14 +991,20 @@ impl<T> ProdRuleSet<T> {
                     .and_then(|_| self.origin.map.get(&(var as VarId))
                         .and_then(|&(v, index)| Some((var as VarId, v, index)))))
             .map(|(var, v, index)| vec![
-                Symbol::NT(var).to_str(self.get_symbol_table()),
+                format!("| {}", Symbol::NT(var).to_str(self.get_symbol_table())),
                 "|".to_string(),
                 format!("{} -> {}",
                         Symbol::NT(v).to_str(self.get_symbol_table()),
                         grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), None, self.get_symbol_table(), false, ansi))
 
             ]));
-        columns_to_str(cols, None)
+        let mut lines = columns_to_str(cols, None);
+        let max = lines.iter().map(|s| { s.replace(STR_BEFORE_ANSI, "").replace(STR_AFTER_ANSI, "").chars().count()}).max().unwrap();
+        let sep = format!("{:-<1$}", "", max);
+        lines.push(sep.clone());
+        lines.insert(n1, sep.clone());
+        lines.insert(1, sep);
+        lines
     }
 }
 
@@ -1045,7 +1052,9 @@ impl ProdRuleSet<LL1> {
     /// - `alts`, the production alternatives: (VarId, Alternative) where the first value is the non-terminal index and the second one of its alts
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production alternative for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
-    pub(super) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool) -> LLParsingTable {
+    pub(super) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool)
+        -> LLParsingTable
+    {
         fn add_table(table: &mut Vec<Vec<AltId>>, num_t: usize, nt_id: VarId, t_id: VarId, a_id: AltId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(a_id);
@@ -1169,7 +1178,13 @@ impl ProdRuleSet<LL1> {
         for (_, a) in &mut alts {
             a.flags &= !ruleflag::GREEDY;
         }
-        LLParsingTable { num_nt, num_t, alts, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
+        let table = LLParsingTable { num_nt, num_t, alts, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() };
+        self.log.add_info("parsing table:");
+        self.log.extend_messages(
+            table.to_str(self.get_symbol_table()).into_iter()
+                .map(|s| LogMsg::Info(s))
+        );
+        table
     }
 
     pub fn make_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
@@ -1428,6 +1443,10 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             rules.left_factorize();
             rules.transfer_alt_flags();
             rules.check_flags();
+            rules.log.add_note("final rule set:");
+            rules.log.extend_messages(
+                rules.prs_alt_origins_str(false).into_iter().map(|s| LogMsg::Note(s))
+            );
         }
         ProdRuleSet::<LL1> {
             prules: rules.prules,
@@ -1499,27 +1518,36 @@ impl<T> ProdRuleSet<T> {
 }
 
 impl LLParsingTable {
-    pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
+    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
         let LLParsingTable { num_nt, num_t, alts, table, .. } = self;
         let error_skip = alts.len() as AltId;
         let error_pop = error_skip + 1;
         let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
         let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
-        let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
+        let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str_quote(symbol_table) } else { "$".to_string() }).to_vec();
         let t_len = str_t.iter().map(|s| s.len().max(3)).to_vec();
-        println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
-        println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);
+        let mut lines = vec![];
+        lines.push(format!("{:<w$} | {}", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len));
+        lines.push(format!("{:-<w$}-+-{:-<t$}", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>()));
         for i in 0..*num_nt {
-            print!("{:<i$}// {:<w$} |", "", str_nt[i], w = max_nt_len, i = indent);
+            let mut line = format!("{:<w$} |", str_nt[i], w = max_nt_len);
             for j in 0..*num_t {
                 let value = table[i * num_t + j];
                 if value < error_skip {
-                    print!(" {:^w$}", value, w = t_len[j]);
+                    line.push_str(&format!(" {:^w$}", value, w = t_len[j]));
                 } else {
-                    print!(" {:^w$}", if value == error_pop { "p" } else { "." }, w = t_len[j]);
+                    line.push_str(&format!(" {:^w$}", if value == error_pop { "p" } else { "." }, w = t_len[j]));
                 }
             }
-            println!();
+            lines.push(line);
+        }
+        lines
+    }
+
+    pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
+        let lines = self.to_str(symbol_table);
+        for line in lines {
+            println!("{:<1$}// {line}", "", indent);
         }
     }
 }
