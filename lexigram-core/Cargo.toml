@@ -22,3 +22,6 @@ generated_tests = []
 delay_stream_interception = []
 
 [dependencies]
+
+[lints]
+workspace = true

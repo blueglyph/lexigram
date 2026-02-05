@@ -18,7 +18,7 @@ pub trait GetTextSpan: GetLine {
             let mut result = self.get_line(l1 as usize).chars().skip(c1 as usize - 1).collect::<String>();
             for i in (l1 as usize) + 1..(l2 as usize) {
                 result.push('\n');
-                result.push_str(&self.get_line(i));
+                result.push_str(self.get_line(i));
             }
             result.push('\n');
             result.push_str(&self.get_line(l2 as usize).chars().take(c2 as usize).collect::<String>());

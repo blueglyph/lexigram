@@ -549,6 +549,7 @@ impl<'a, R: Read> Lexer<'a, R> {
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
             loop {
                 if VERBOSE { print!("- state = {state}"); }
+                #[allow(clippy::unnecessary_unwrap)] // borrow checker disagreed with Clippy and won the argument
                 let input = self.input.as_mut().unwrap();
                 #[cfg(debug_assertions)] {
                     if last_state.map(|st| st == state).unwrap_or(false) && last_offset.map(|offset| offset == input.get_offset()).unwrap_or(false) {
@@ -567,7 +568,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                 let c_opt = input.get_char();
                 let is_eos = c_opt.is_none();
                 self.is_eos = is_eos;
-                let group = c_opt.and_then(|c| char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c))
+                let group = c_opt.and_then(|c| char_to_group(self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c))
                     .unwrap_or(self.nbr_groups);
                 if VERBOSE { print!(", char '{}' group {}", if let Some(c) = c_opt { escape_char(c) } else { "<EOF>".to_string() }, group); }
                 // we can use the state_table even if group = error = nrb_group (but we must
@@ -575,7 +576,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                 let new_state = self.state_table[self.nbr_groups as usize * state + group as usize];
                 if new_state >= self.nbr_states || group >= self.nbr_groups { // we can't do anything with the current character
                     if let Some(c) = c_opt {
-                        input.rewind(c).expect(&format!("Can't rewind character '{}'", escape_char(c)));
+                        input.rewind(c).unwrap_or_else(|_| panic!("Can't rewind character '{}'", escape_char(c)));
                     }
                     let is_accepting = self.first_end_state <= state && state < self.nbr_states;
                     if is_accepting { // accepting
@@ -608,7 +609,7 @@ impl<'a, R: Read> Lexer<'a, R> {
                         }
                         if let Some(token) = &terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, PosSpan::new(first_pos, last_pos))));
+                            return Ok(Some((*token, terminal.channel, more_text + &text, PosSpan::new(first_pos, last_pos))));
                         }
                         if !terminal.action.is_more() {
                             first_pos = self.cursor;
@@ -720,7 +721,7 @@ impl<'a, 'b, R: Read> Iterator for LexInterpretIter<'a, 'b, R> {
                 LexInterpretIterMode::Error => {
                     let info = self.error_info.as_ref().unwrap();
                     self.mode = LexInterpretIterMode::Normal;
-                    let msg = format!("{}, scanned before = '{}'", self.lexer.get_error().to_string(), self.error_info.as_ref().unwrap().text);
+                    let msg = format!("{}, scanned before = '{}'", self.lexer.get_error(), self.error_info.as_ref().unwrap().text);
                     let pos = Pos(info.line, info.col);
                     Some((TokenId::MAX, 0, msg, PosSpan::new(pos, pos)))
                 }
@@ -737,7 +738,7 @@ pub struct TokenSplit<I, F> {
     f: F
 }
 
-pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, PosSpan)> {
+pub trait TokenSpliterator: Iterator<Item=LexerToken> {
     /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, PosSpan)`) based on the channel ID:
     /// * the default channel 0 is output as another iterator on `(token, string, pos_span)`, suitable for the parser
     /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, pos_span)`
@@ -769,7 +770,7 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>
     /// ```
     fn split_channels<F>(self, channel: ChannelId, f: F) -> TokenSplit<Self, F>
     where Self: Sized,
-          F: FnMut((TokenId, ChannelId, String, PosSpan))
+          F: FnMut(LexerToken)
     {
         TokenSplit { iter: self, ch: channel, f }
     }
@@ -804,7 +805,7 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>
     /// let tokens = lexer.tokens().keep_channel(2);
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
-    fn keep_channel(self, channel: ChannelId) -> TokenSplit<Self, fn((TokenId, ChannelId, String, PosSpan))>
+    fn keep_channel(self, channel: ChannelId) -> TokenSplit<Self, fn(LexerToken)>
     where Self: Sized
     {
         TokenSplit { iter: self, ch: channel, f: |_| {} }
@@ -826,7 +827,7 @@ pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>
 }
 
 impl<I, F> Iterator for TokenSplit<I, F>
-    where I: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>,
+    where I: Iterator<Item=LexerToken>,
           F: FnMut((TokenId, ChannelId, String, PosSpan))
 {
     type Item = (TokenId, String, PosSpan);
@@ -845,4 +846,4 @@ impl<I, F> Iterator for TokenSplit<I, F>
     }
 }
 
-impl<I: Iterator<Item=(TokenId, ChannelId, String, PosSpan)>> TokenSpliterator for I {}
+impl<I: Iterator<Item=LexerToken>> TokenSpliterator for I {}

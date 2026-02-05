@@ -86,10 +86,16 @@ impl NameFixer {
     /// Adds `_{num}` or `{num}` to the string depending on its last character, whether it's respectivelly a digit or not.
     /// Used if we want to make sure a digit isn't added to an identifier ending with a number, which would make it confusing.
     pub fn add_number(s: &mut String, num: usize) {
-        if s.ends_with(|c: char| c.is_digit(10)) {
+        if s.ends_with(|c: char| c.is_ascii_digit()) {
             s.push('_');
         }
         s.push_str(&format!("{num}"));
+    }
+}
+
+impl Default for NameFixer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -132,13 +138,11 @@ impl NameTransformer for str {
             if c == '_' {
                 upper = true;
                 None
+            } else if upper {
+                upper = false;
+                Some(c.to_ascii_uppercase())
             } else {
-                if upper {
-                    upper = false;
-                    Some(c.to_ascii_uppercase())
-                } else {
-                    Some(c.to_ascii_lowercase())
-                }
+                Some(c.to_ascii_lowercase())
             }
         }).collect();
         assert!(!result.is_empty());

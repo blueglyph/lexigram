@@ -190,7 +190,7 @@ impl Segments {
             let mut new = BTreeSet::<Seg>::new();
             let mut segments = std::mem::take(&mut self.0).into_iter();
             let mut last = segments.next().unwrap();
-            while let Some(Seg(a, b)) = segments.next() {
+            for Seg(a, b) in segments {
                 if a > last.1 + 1 {
                     new.insert(last);
                     last = Seg(a, b);
@@ -247,11 +247,12 @@ impl Segments {
         }
         inv
     }
+}
 
-    pub fn from_iter<T: IntoIterator<Item = Seg>>(segs: T) -> Self {
+impl FromIterator<Seg> for Segments {
+    fn from_iter<T: IntoIterator<Item = Seg>>(segs: T) -> Self {
         Segments(BTreeSet::from_iter(segs))
     }
-
 }
 
 impl IntoIterator for Segments {
@@ -445,7 +446,7 @@ impl Add for Segments {
 impl Sum for Segments {
     fn sum<I: Iterator<Item=Self>>(mut iter: I) -> Self {
         let mut acc = iter.next().unwrap_or(Segments::empty());
-        while let Some(next) = iter.next() {
+        for next in iter {
             acc.add_partition(&next);
         }
         acc

@@ -59,7 +59,7 @@ const UTF8_LENGTH: [u8; 256] = [
 #[inline]
 /// Determines the number of bytes required to encode a UTF-8 character from its first byte.
 pub fn utf8_len(byte: u8) -> usize {
-    return UTF8_LENGTH[byte as usize] as usize;
+    UTF8_LENGTH[byte as usize] as usize
 }
 
 #[inline]
@@ -383,5 +383,5 @@ pub fn escape_char(c: char) -> String {
 }
 
 pub fn escape_string(s: &str) -> String {
-    s.chars().map(|c| escape_char(c)).collect::<String>()
+    s.chars().map(escape_char).collect::<String>()
 }

@@ -107,7 +107,7 @@ pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, iter_item: I) -> usize
 /// representing that column in all the lines (the +1 makes sure columns are separated by at least one
 /// space). The last column is left as-is; no spaces are added to adjust its width.
 pub fn columns_to_str(cols: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -> Vec<String> {
-    let min_widths = min_widths.unwrap_or(vec![0; cols.get(0).map(|v| v.len()).unwrap_or(0)]);
+    let min_widths = min_widths.unwrap_or(vec![0; cols.first().map(|v| v.len()).unwrap_or(0)]);
     let ncol = min_widths.len();
     let mut width = cols.iter().fold(min_widths, |acc, s| {
         assert_eq!(s.len(), ncol, "number of columns is not consistently {ncol}");
@@ -133,7 +133,7 @@ pub fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
         for string in part {
             for line in string.split("\n") {
                 let cured_line = line.trim_end();
-                if cured_line.len() > 0 {
+                if !cured_line.is_empty() {
                     source.push_str(&s);
                 }
                 source.push_str(cured_line);
@@ -242,7 +242,7 @@ impl StructLibs {
                     if sub.len() > 1 {
                         format!("{}::{{{}}}", node.deref(), sub.join(", "))
                     } else if sub.last().unwrap() == "self" {
-                        format!("{}", node.deref())
+                        node.deref().to_string()
                     } else {
                         format!("{}::{}", node.deref(), sub[0])
                     });

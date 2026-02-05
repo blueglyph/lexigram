@@ -37,17 +37,17 @@ impl Symbol {
     }
 
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_str(self)).unwrap_or(self.to_string())
+        symbol_table.map(|t| t.get_str(self)).unwrap_or_else(|| self.to_string())
     }
 
     /// Converts the symbol to string, using the symbol table if available, and
     /// surrounding it with quotes if it's a string literal.
     pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(format!("{}", self.to_string()))
+        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or_else(|| self.to_string())
     }
 
     pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name(self)).unwrap_or(format!("{}", self.to_string()))
+        symbol_table.map(|t| t.get_name(self)).unwrap_or_else(|| self.to_string())
     }
 
     /// Converts the symbol to string, using the symbol table if available.
@@ -153,7 +153,7 @@ impl OpCode {
     pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         if let Some(tbl) = symbol_table {
             match self {
-                OpCode::T(v) => format!("{}", tbl.get_t_str(*v)),
+                OpCode::T(v) => tbl.get_t_str(*v),
                 _ => self.to_str(symbol_table),
             }
         } else {
@@ -470,18 +470,16 @@ impl<'a> Parser<'a> {
                                  Symbol::NT(var).to_str(self.get_symbol_table()),
                                  if alt_id >= error_skip_alt_id {
                                      "ERROR".to_string()
+                                 } else if let Some(a) = self.alts.get(alt_id as usize) {
+                                     a.to_str(sym_table)
                                  } else {
-                                     if let Some(a) = self.alts.get(alt_id as usize) {
-                                         a.to_str(sym_table)
-                                     } else {
-                                         "(alternative)".to_string()
-                                     }
+                                     "(alternative)".to_string()
                                  });
                     }
                     if !recover_mode && alt_id >= error_skip_alt_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
-                            .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(sym_table) } else { "<EOF>".to_string() }))
+                            .map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(sym_table) } else { "<EOF>".to_string() }))
                             .collect::<Vec<_>>().join(", ");
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
                         let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
@@ -517,16 +515,14 @@ impl<'a> Parser<'a> {
                         } else if alt_id == error_pop_alt_id {
                             if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap();
+                        } else if alt_id < error_skip_alt_id {
+                            recover_mode = false;
+                            let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
+                            wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
+                                                                   stream_sym.to_str(self.get_symbol_table())));
+                            if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                         } else {
-                            if alt_id < error_skip_alt_id {
-                                recover_mode = false;
-                                let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
-                                wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
-                                                                       stream_sym.to_str(self.get_symbol_table())));
-                                if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
-                            } else {
-                                panic!("illegal alt_id {alt_id}")
-                            }
+                            panic!("illegal alt_id {alt_id}")
                         }
                     }
                     if !recover_mode {
@@ -545,8 +541,7 @@ impl<'a> Parser<'a> {
                             println!(
                                 "- {} {} -> {f_str} ({}): [{}]",
                                 if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.iter()
-                                    .cloned().collect::<Vec<_>>().join(" "));
+                                Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.join(" "));
                         }
                         if nbr_recovers == 0 {
                             wrapper.switch(call, var, alt_id, Some(t_data));
@@ -561,8 +556,7 @@ impl<'a> Parser<'a> {
                     if VERBOSE {
                         println!(
                             "- EXIT {} syn ({}): [{}]",
-                            Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter()
-                                .cloned().collect::<Vec<_>>().join(" "));
+                            Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.join(" "));
                     }
                     if nbr_recovers == 0 {
                         wrapper.switch(Call::Exit, var, alt_id, Some(t_data));

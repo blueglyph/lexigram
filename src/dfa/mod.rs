@@ -76,7 +76,7 @@ impl Display for ReType {
             ReType::End(t) => write!(f, "{t}"),
             ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
             ReType::CharRange(segments) => write!(f, "[{segments}]"),
-            ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
+            ReType::String(s) => write!(f, "'{}'", escape_string(s)),
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
             ReType::Plus => write!(f, "+"),
@@ -260,7 +260,7 @@ impl DfaBuilder {
                             let mut iter = inode.iter_children_simple();
                             let a = iter.next().unwrap();   // a is c[i]
                             let mut lastpos = a.lastpos.clone();
-                            while let Some(b) = iter.next() {   // b is c[i+1]
+                            for b in iter {   // b is c[i+1]
                                 for j in &lastpos {
                                     if !self.followpos.contains_key(j) {
                                         self.followpos.insert(*j, HashSet::new());
@@ -282,9 +282,9 @@ impl DfaBuilder {
                     ReType::Star | ReType::Plus => {
                         if inode.num_children() == 1 {
                             // firstpos, lastpos identical to child's
-                            let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
+                            let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().copied().to_vec();
                             inode.firstpos.extend(firstpos);
-                            let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
+                            let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().copied().to_vec();
                             inode.lastpos.extend(lastpos);
                             // followpos:
                             // for all i in *.lastpos,
@@ -359,7 +359,7 @@ impl DfaBuilder {
         }
         if VERBOSE { println!("new DFA"); }
         let mut current_id = 0;
-        let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
+        let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().copied());
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
         let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
@@ -367,7 +367,7 @@ impl DfaBuilder {
         dfa.initial_state = Some(current_id);
 
         // gathers lazy ids and their immediate followpos to remove phantom branches:
-        let mut lazy_followpos = self.lazypos.iter().map(|id| *id).collect::<BTreeSet<Id>>();
+        let mut lazy_followpos = self.lazypos.iter().copied().collect::<BTreeSet<Id>>();
         lazy_followpos.extend(self.lazypos.iter().filter_map(|id| self.followpos.get(id)).flatten());
         if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join(", ")); }
 
@@ -379,14 +379,14 @@ impl DfaBuilder {
                 node.op = ReType::CharRange(Box::new(Segments::from(c)));
             }
             if let ReType::CharRange(segments) = &node.op {
-                symbols_part.add_partition(&segments);
+                symbols_part.add_partition(segments);
             }
         }
         if VERBOSE { println!("symbols = {symbols_part:X}"); }
 
         // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {
-            let new_state_id = states.get(&s).unwrap().clone();
+            let new_state_id = *states.get(&s).unwrap();
             let is_lazy_state = s.iter().all(|id| lazy_followpos.contains(id));
             if VERBOSE {
                 println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), if is_lazy_state { ", lazy state" } else { "" });
@@ -398,10 +398,10 @@ impl DfaBuilder {
             let mut id_terminal: Option<Id> = None;         // selected terminal id, if any (used to remove phantom branches)
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
-                    if !dfa.state_graph.contains_key(&new_state_id) {
+                    dfa.state_graph.entry(new_state_id).or_insert_with(|| {
                         if VERBOSE { println!("  + {symbol} => create state {new_state_id}"); }
-                        dfa.state_graph.insert(new_state_id, BTreeMap::new());
-                    }
+                        BTreeMap::new()
+                    });
                     if let ReType::End(t) = symbol {
                         id_terminal = Some(id);
                         if first_terminal_id.is_none() {
@@ -419,34 +419,30 @@ impl DfaBuilder {
                                 panic!("overriding {id} -> {t2} with {id} -> {t} in end_states {}",
                                        terminals.iter().map(|(id, t)| format!("{id} {t}")).join(", "));
                             }
-                        } else {
-                            if !dfa.end_states.contains_key(&new_state_id) {
-                                dfa.end_states.insert(new_state_id, *t.clone());
-                                if VERBOSE { println!("  # end state: id {id} {t}"); }
-                            } else if VERBOSE {
-                                println!("  # end state: id {id} {t} ## DISCARDED since another one already taken");
-                            }
+                        } else if let std::collections::btree_map::Entry::Vacant(e) = dfa.end_states.entry(new_state_id) {
+                            e.insert(*t.clone());
+                            if VERBOSE { println!("  # end state: id {id} {t}"); }
+                        } else if VERBOSE {
+                            println!("  # end state: id {id} {t} ## DISCARDED since another one already taken");
                         }
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
-                } else {
-                    if let ReType::CharRange(segments) = symbol {
-                        if let Some(set) = self.followpos.get(&id) {
-                            id_transitions.extend(set);
-                            let cmp = segments.intersect(&symbols_part);
-                            assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
-                            if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
-                            for segment in cmp.common.into_iter() {
-                                if let Some(ids) = trans.get_mut(&segment) {
-                                    ids.insert(id);
-                                } else {
-                                    trans.insert(segment, btreeset![id]);
-                                }
+                } else if let ReType::CharRange(segments) = symbol {
+                    if let Some(set) = self.followpos.get(&id) {
+                        id_transitions.extend(set);
+                        let cmp = segments.intersect(&symbols_part);
+                        assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
+                        if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
+                        for segment in cmp.common.into_iter() {
+                            if let Some(ids) = trans.get_mut(&segment) {
+                                ids.insert(id);
+                            } else {
+                                trans.insert(segment, btreeset![id]);
                             }
-                        } else {
-                            self.log.add_error(format!("node #{id} is not in followpos; is an accepting state missing? Orphan segment: {segments}"));
                         }
+                    } else {
+                        self.log.add_error(format!("node #{id} is not in followpos; is an accepting state missing? Orphan segment: {segments}"));
                     }
                 }
             }
@@ -633,6 +629,12 @@ impl DfaBuilder {
     }
 }
 
+impl Default for DfaBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogReader for DfaBuilder {
     type Item = BufLog;
 
@@ -810,13 +812,13 @@ impl<T> Dfa<T> {
         }
         // - end states
         if separate_end_states {
-            for (st, _) in &self.end_states {
+            for st in self.end_states.keys() {
                 st_to_group.insert(*st, groups.len());
                 groups.push(BTreeSet::<StateId>::from([*st]));
             }
         } else {
-            st_to_group.extend(self.end_states.iter().map(|(id, _)| (*id, groups.len())));
-            groups.push(BTreeSet::from_iter(self.end_states.keys().map(|st| *st)));
+            st_to_group.extend(self.end_states.keys().map(|id| (*id, groups.len())));
+            groups.push(BTreeSet::from_iter(self.end_states.keys().copied()));
         }
         let mut last_ending_id = groups.len() - 1;
         let mut change = true;
@@ -836,29 +838,27 @@ impl<T> Dfa<T> {
                     if combinations.is_empty() {
                         combinations.insert(combination, id);   // first one remains in this group
                         if VERBOSE { println!(" (1st, no change)"); }
-                    } else {
-                        if let Some(&group_id) = combinations.get(&combination) {
-                            // programs the change if it's one of the new groups
-                            if group_id != id {
-                                changes.push((st_id, id, group_id));
-                                if VERBOSE { println!(" -> group #{group_id}"); }
-                            } else {
-                                if VERBOSE { println!(" (no change)"); }
-                            }
-                        } else {
-                            // creates a new group and programs the change
-                            let new_id = if id < first_ending_id {
-                                assert!(last_non_end_id + 1 < first_ending_id, "no more IDs for non-accepting state");
-                                last_non_end_id += 1;
-                                last_non_end_id
-                            } else {
-                                last_ending_id += 1;
-                                last_ending_id
-                            };
-                            combinations.insert(combination, new_id);
-                            changes.push((st_id, id, new_id));
-                            if VERBOSE { println!(" -> new group #{new_id}"); }
+                    } else if let Some(&group_id) = combinations.get(&combination) {
+                        // programs the change if it's one of the new groups
+                        if group_id != id {
+                            changes.push((st_id, id, group_id));
+                            if VERBOSE { println!(" -> group #{group_id}"); }
+                        } else if VERBOSE {
+                            println!(" (no change)");
                         }
+                    } else {
+                        // creates a new group and programs the change
+                        let new_id = if id < first_ending_id {
+                            assert!(last_non_end_id + 1 < first_ending_id, "no more IDs for non-accepting state");
+                            last_non_end_id += 1;
+                            last_non_end_id
+                        } else {
+                            last_ending_id += 1;
+                            last_ending_id
+                        };
+                        combinations.insert(combination, new_id);
+                        changes.push((st_id, id, new_id));
+                        if VERBOSE { println!(" -> new group #{new_id}"); }
                     }
                 }
             }
@@ -955,6 +955,12 @@ impl<T> HasBuildErrorSource for Dfa<T> {
 impl Dfa<General> {
     pub fn new() -> Dfa<General> {
         Dfa::with_log(BufLog::new())
+    }
+}
+
+impl Default for Dfa<General> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1102,18 +1108,20 @@ fn node_to_string(tree: &ReTree, index: usize, basic: bool) -> String {
     let node = tree.get(index);
     let mut result = String::new();
     if !basic {
-        if node.nullable.is_none() {
+        if let Some(b) = node.nullable {
+            if b {
+                result.push('!');
+            }
+        } else {
             result.push('?');
-        } else if node.nullable.unwrap() {
-            result.push('!');
         }
     }
     result.push_str(&node.to_string());
     let children = tree.children(index);
     if !children.is_empty() {
-        result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).to_vec().join(","));
-        result.push_str(")");
+        result.push('(');
+        result.push_str(&children.iter().map(|&c| node_to_string(tree, c, basic)).to_vec().join(","));
+        result.push(')');
     }
     result
 }
@@ -1180,7 +1188,7 @@ pub fn retree_to_str(tree: &ReTree, node: Option<usize>, emphasis: Option<usize>
 
 /// Debug function to display the content of a tree.
 pub fn tree_to_string(tree: &ReTree, root: Option<usize>, basic: bool) -> String {
-    if tree.len() > 0 {
+    if !tree.is_empty() {
         node_to_string(tree, root.unwrap_or_else(|| tree.get_root().unwrap()), basic)
     } else {
         "None".to_string()
@@ -1222,7 +1230,7 @@ fn graph_to_code(
         format!("{s}{} => branch!({}),{}",
                 state,
                 tr.into_iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
-                end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or(String::new()),
+                end_states.and_then(|map| map.get(state).map(|token| format!(" // {}", token))).unwrap_or_default(),
         )
     }).collect()
 }

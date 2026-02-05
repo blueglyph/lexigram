@@ -80,6 +80,12 @@ impl LLParsingTable {
     }
 }
 
+impl Default for LLParsingTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     pub(super) prules: Vec<ProdRule>,
@@ -198,9 +204,9 @@ impl<T> ProdRuleSet<T> {
 
     /// Calculates `num_t` and `num_nt` (done right after importing rules).
     /// - `num_t` is calculated on the basis of the higher symbol found in the production rules,
-    /// so we can drop any unused symbol that is higher and keep the table width down. We can't
-    /// compact the table by removing lower unused symbols, if any, because they are defined by
-    /// the lexer.
+    ///   so we can drop any unused symbol that is higher and keep the table width down. We can't
+    ///   compact the table by removing lower unused symbols, if any, because they are defined by
+    ///   the lexer.
     /// - `num_nt` is simply the number of production rules.
     pub(super) fn calc_num_symbols(&mut self) {
         self.num_nt = self.prules.len();
@@ -211,7 +217,9 @@ impl<T> ProdRuleSet<T> {
                 ).max().unwrap_or(0)
             ).max().unwrap_or(0)
         ).max().unwrap_or(0) as usize;
-        self.symbol_table.as_mut().map(|st| st.downsize_num_t(self.num_t));
+        if let Some(st) = self.symbol_table.as_mut() {
+            st.downsize_num_t(self.num_t)
+        }
         self.flags.resize(self.num_nt, 0);
         self.parent.resize(self.num_nt, None);
     }
@@ -246,7 +254,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     fn check_num_nt_coherency(&mut self) {
-        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+        if let Some(n) = self.symbol_table.as_ref().map(|table| table.get_num_nt()) {
             let num_nt = self.prules.len();
             if n != num_nt {
                 self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} nonterminal symbols: dropping the table"));
@@ -270,12 +278,12 @@ impl<T> ProdRuleSet<T> {
         }
         if VERBOSE {
             println!("Removing unused nonterminals:");
-            let mut all_h = self.prules.iter().flat_map(|p| p.iter().map(|x| &x.v).flatten()).cloned().collect::<HashSet<_>>();
+            let mut all_h = self.prules.iter().flat_map(|p| p.iter().flat_map(|x| &x.v)).cloned().collect::<HashSet<_>>();
             all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
             println!("  current NT symbols: {}", all.iter().filter_map(|s|
-                if let Symbol::NT(_) = s { Some(format!("{}", s.to_str(self.get_symbol_table()))) } else { None }).join(", "));
+                if let Symbol::NT(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(", "));
             println!("  current  T symbols: {}", all.iter().filter_map(|s|
                 if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
             let mut used = keep.iter().collect::<Vec<_>>();
@@ -286,7 +294,7 @@ impl<T> ProdRuleSet<T> {
                 if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
             println!("  nt_conversion: {:?}", self.nt_conversion);
             println!("  nt_content: {}", nt_content.iter().enumerate()
-                .filter_map(|(v, f)| if let Some(from) = f { Some(format!("{v}:{from}")) } else { None } )
+                .filter_map(|(v, f)| f.as_ref().map(|from| format!("{v}:{from}")))
                 .join(", ")
             );
         }
@@ -305,7 +313,7 @@ impl<T> ProdRuleSet<T> {
                 nt_content.remove(i);
                 self.prules.remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
-                self.symbol_table.as_mut().map(|t| t.remove_nonterminal(v));
+                if let Some(t) = self.symbol_table.as_mut() { t.remove_nonterminal(v) };
                 self.flags.remove(i);
                 self.parent.remove(i);
                 if self.origin.trees.len() > i {
@@ -328,7 +336,7 @@ impl<T> ProdRuleSet<T> {
                     }
                 }
                 if let Some((ref mut var, _id)) = f.origin {
-                    if let Some(new_var) = conv.get(&var) {
+                    if let Some(new_var) = conv.get(var) {
                         *var = *new_var;
                     }
                 }
@@ -343,29 +351,26 @@ impl<T> ProdRuleSet<T> {
         }
         for t in &mut self.origin.trees {
             for mut node in t.iter_post_depth_simple_mut() {
-                match *node {
-                    GrNode::Symbol(Symbol::NT(ref mut v)) => {
-                        if let Some(new_v) = conv.get(&v) {
-                            *v = *new_v;
-                        }
+                if let GrNode::Symbol(Symbol::NT(ref mut v)) = *node {
+                    if let Some(new_v) = conv.get(v) {
+                        *v = *new_v;
                     }
-                    _ => {}
                 }
             }
         }
         let new_map = self.origin.map.iter()
-            .map(|(v1, (v2, id))| (*conv.get(&v1).unwrap_or(&v1), (*conv.get(&v2).unwrap_or(&v2), *id)))
+            .map(|(v1, (v2, id))| (*conv.get(v1).unwrap_or(v1), (*conv.get(v2).unwrap_or(v2), *id)))
             .collect::<HashMap<_, _>>();
         // println!("old origin map: {:?}", self.origin.map);
         // println!("new origin map: {:?}", new_map);
         // println!("trees:\n{}", self.origin.trees.iter().enumerate().map(|(i, t)| format!("{i}:{}", grtree_to_str(t, None, None, None))).join("\n"));
         self.origin.map = new_map;
         keep.retain(|s| !matches!(s, Symbol::NT(_)));
-        keep.extend((0..new_num_nt as VarId).map(|v| Symbol::NT(v)));
+        keep.extend((0..new_num_nt as VarId).map(Symbol::NT));
         self.num_nt = new_num_nt as usize;
         if VERBOSE {
             println!("-> nt_content: {}", nt_content.iter().enumerate()
-                .filter_map(|(v, f)| if let Some(from) = f { Some(format!("{v}:{from}")) } else { None })
+                .filter_map(|(v, f)| f.map(|from| format!("{v}:{from}")))
                 .join(", ")
             );
         }
@@ -373,10 +378,8 @@ impl<T> ProdRuleSet<T> {
             if let Some(from) = f {
                 if from != to {
                     self.nt_conversion.insert(from, MovedTo(to as VarId));
-                } else {
-                    if self.nt_conversion.get(&from) == Some(&Removed) {
-                        self.nt_conversion.remove(&from);
-                    }
+                } else if self.nt_conversion.get(&from) == Some(&Removed) {
+                    self.nt_conversion.remove(&from);
                 }
             }
         };
@@ -400,7 +403,7 @@ impl<T> ProdRuleSet<T> {
             if !symbols.contains(&sym) {
                 symbols.insert(sym);
                 if let Symbol::NT(v) = sym {
-                    stack.extend(self.prules[v as usize].iter().map(|x| &x.v).flatten());
+                    stack.extend(self.prules[v as usize].iter().flat_map(|x| &x.v));
                 }
             }
         }
@@ -408,7 +411,7 @@ impl<T> ProdRuleSet<T> {
             let nt_removed = (0..self.num_nt as VarId)
                 // warnings about symbols that are not used but that have not been moved because of a */+ L-form:
                 .filter(|v| !symbols.contains(&Symbol::NT(*v)) && !matches!(self.nt_conversion.get(v), Some(MovedTo(_))))
-                .map(|v| Symbol::NT(v))
+                .map(Symbol::NT)
                 .to_vec();
             if !nt_removed.is_empty() {
                 self.log.add_warning(format!("calc_first: unused nonterminals: {}",
@@ -422,7 +425,7 @@ impl<T> ProdRuleSet<T> {
                 let s = Symbol::T(t_id as VarId);
                 if !symbols.contains(&s) { Some(format!("T({t_id}) = {}", s.to_str(self.get_symbol_table()))) } else { None }
             }).to_vec();
-        if unused_t.len() > 0 {
+        if !unused_t.is_empty() {
             self.log.add_warning(format!("calc_first: unused terminals: {}", unused_t.join(", ")))
         }
 
@@ -445,7 +448,7 @@ impl<T> ProdRuleSet<T> {
                 let num_items = first[&symbol].len();
                 for alt in prule {
                     if VERBOSE { println!("  - {}", alt.to_str(self.symbol_table.as_ref())); }
-                    assert!(alt.len() > 0, "empty alternative for {}: {}",
+                    assert!(!alt.is_empty(), "empty alternative for {}: {}",
                             symbol.to_str(self.symbol_table.as_ref()), alt.to_str(self.symbol_table.as_ref()));
                     if VERBOSE {
                         print!("    [0] {}", alt[0].to_str(self.symbol_table.as_ref()));
@@ -454,11 +457,9 @@ impl<T> ProdRuleSet<T> {
                     let new = alt.calc_alt_first(&first);
                     let _n = first.get(&symbol).unwrap().len();
                     first.get_mut(&symbol).unwrap().extend(new);
-                    if VERBOSE {
-                        if first.get(&symbol).unwrap().len() > _n {
-                            println!("    first[{}] -> {}", symbol.to_str(self.get_symbol_table()),
-                                     first.get(&symbol).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
-                        }
+                    if VERBOSE && first.get(&symbol).unwrap().len() > _n {
+                        println!("    first[{}] -> {}", symbol.to_str(self.get_symbol_table()),
+                                 first.get(&symbol).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
                     }
                 }
                 change |= first[&symbol].len() > num_items;
@@ -496,11 +497,9 @@ impl<T> ProdRuleSet<T> {
                         if let Symbol::NT(_) = sym_i {
                             let num_items = follow.get(sym_i).unwrap().len();
                             follow.get_mut(sym_i).unwrap().extend(&trail);
-                            if VERBOSE {
-                                if follow.get(sym_i).unwrap().len() > num_items {
-                                    println!("    follow[{}] -> {}", sym_i.to_str(self.get_symbol_table()),
-                                             follow.get(sym_i).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
-                                }
+                            if VERBOSE && follow.get(sym_i).unwrap().len() > num_items {
+                                println!("    follow[{}] -> {}", sym_i.to_str(self.get_symbol_table()),
+                                         follow.get(sym_i).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
                             }
                             change |= follow.get(sym_i).unwrap().len() > num_items;
                             if first[sym_i].contains(&Symbol::Empty) {
@@ -548,11 +547,12 @@ impl<T> ProdRuleSet<T> {
             println!("ORIGINAL:");
             self.print_rules(false, false);
         }
-        let mut var_new = self.get_next_available_var() as usize;
+        let next_avail_var = self.get_next_available_var() as usize;
+        let mut var_new = next_avail_var;
         // we must take prules out because of the borrow checker and other &mut borrows we need later...
         let mut prules = take(&mut self.prules);
         let mut ambig_alt_id = 0;
-        for var in 0..var_new {
+        for var in 0..next_avail_var {
             let prule = prules.get_mut(var).unwrap();
             let var = var as VarId;
             let symbol = Symbol::NT(var);
@@ -727,15 +727,15 @@ impl<T> ProdRuleSet<T> {
                     if i == 0 {
                         *prule = prod_nt;
                         extra_prods.push(prod_nt_loop);
-                        self.symbol_table.as_mut().map(|t| {
+                        if let Some(t) = self.symbol_table.as_mut() {
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[0].1);
-                        });
+                        };
                     } else {
                         extra_prods.extend([prod_nt, prod_nt_loop]);
-                        self.symbol_table.as_mut().map(|t| {
+                        if let Some(t) = self.symbol_table.as_mut() {
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].0);
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].1);
-                        });
+                        };
                     }
                     if has_ambig {
                         self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
@@ -743,9 +743,9 @@ impl<T> ProdRuleSet<T> {
                     }
                 }
                 if need_indep {
-                    self.symbol_table.as_mut().map(|t| {
+                    if let Some(t) = self.symbol_table.as_mut() {
                         assert_eq!(t.add_child_nonterminal(var), nt_indep_maybe.unwrap());
-                    });
+                    }
                 }
                 if VERBOSE {
                     println!("new alternatives: {}", new_alts.iter().enumerate()
@@ -783,10 +783,8 @@ impl<T> ProdRuleSet<T> {
                     self.log.add_note(
                         format!("     {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), prule_to_str(p, self.get_symbol_table())));
                 }
-            } else if prule.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) {
-                if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
-                    self.set_flags(var, ruleflag::R_RECURSION);
-                }
+            } else if prule.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) && self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
+                self.set_flags(var, ruleflag::R_RECURSION);
             }
             prules.extend(extra_prods);
             let incompatibility_flags = ruleflag::R_RECURSION | ruleflag::L_FORM | ruleflag::PARENT_L_RECURSION;
@@ -895,7 +893,9 @@ impl<T> ProdRuleSet<T> {
                 self.set_flags(var_prime, ruleflag::CHILD_L_FACT);
                 let rep_l_form = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
                 let top = if var_flags & rep_l_form == rep_l_form { var } else { self.get_top_parent(var) };
-                self.symbol_table.as_mut().map(|table| assert_eq!(table.add_child_nonterminal(top), var_prime));
+                if let Some(table) = self.symbol_table.as_mut() {
+                    assert_eq!(table.add_child_nonterminal(top), var_prime);
+                };
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);
                 factorized.v.push(symbol_prime);
@@ -988,8 +988,9 @@ impl<T> ProdRuleSet<T> {
         cols.extend((0..self.num_nt)
             .filter_map(|var|
                 self.parent[var]
-                    .and_then(|_| self.origin.map.get(&(var as VarId))
-                        .and_then(|&(v, index)| Some((var as VarId, v, index)))))
+                    .and_then(|_| self.origin.map
+                        .get(&(var as VarId))
+                        .map(|&(v, index)| (var as VarId, v, index))))
             .map(|(var, v, index)| vec![
                 format!("| {}", Symbol::NT(var).to_str(self.get_symbol_table())),
                 "|".to_string(),
@@ -1051,11 +1052,11 @@ impl ProdRuleSet<LL1> {
     /// - `num_t` = number of terminals (including the end symbol)
     /// - `alts`, the production alternatives: (VarId, Alternative) where the first value is the non-terminal index and the second one of its alts
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production alternative for
-    /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
+    ///   the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
     pub(super) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool)
         -> LLParsingTable
     {
-        fn add_table(table: &mut Vec<Vec<AltId>>, num_t: usize, nt_id: VarId, t_id: VarId, a_id: AltId) {
+        fn add_table(table: &mut [Vec<AltId>], num_t: usize, nt_id: VarId, t_id: VarId, a_id: AltId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(a_id);
         }
@@ -1182,7 +1183,7 @@ impl ProdRuleSet<LL1> {
         self.log.add_info("parsing table:");
         self.log.extend_messages(
             table.to_str(self.get_symbol_table()).into_iter()
-                .map(|s| LogMsg::Info(s))
+                .map(LogMsg::Info)
         );
         table
     }
@@ -1200,8 +1201,8 @@ impl ProdRuleSet<LL1> {
         // "origin" preparation
         source.push(format!("static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); {}] = [", self.origin.trees.len()));
         for t in &self.origin.trees {
-            let tree_str = (0..t.len()).into_iter()
-                .map(|i| format!("({}, &[{}])", t.get(i).gen_source_code(), t.children(i).into_iter().join(",")))
+            let tree_str = (0..t.len())
+                .map(|i| format!("({}, &[{}])", t.get(i).gen_source_code(), t.children(i).iter().join(",")))
                 .join(", ");
             source.push(format!("    ({:?}, &[{}]),", t.get_root(), tree_str));
         }
@@ -1210,7 +1211,7 @@ impl ProdRuleSet<LL1> {
         let mut sorted_map = self.origin.map.iter().to_vec();
         sorted_map.sort(); // we must sort it so that its output is reproducible
         source.extend(sorted_map.chunks(5)
-            .map(|chk| format!("    {},", chk.into_iter().map(|(a, (c, d))| format!("({a}, ({c}, {d}))")).join(", "))));
+            .map(|chk| format!("    {},", chk.iter().map(|(a, (c, d))| format!("({a}, ({c}, {d}))")).join(", "))));
         source.push("];".to_string());
         source.push("let origin = Origin::from_data(".to_string());
         source.push("    ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),".to_string());
@@ -1331,7 +1332,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 })
                 .map(|node| {
                 match node {
-                    GrNode::Symbol(s) => s.clone(),
+                    GrNode::Symbol(s) => *s,
                     x => panic!("unexpected symbol {x} under &")
                 }
             }).to_vec();
@@ -1357,7 +1358,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 let root_sym = tree.get(root);
                 let mut prule = match root_sym {
                     GrNode::Symbol(s) => {
-                        let mut alt = Alternative::new(vec![s.clone()]);
+                        let mut alt = Alternative::new(vec![*s]);
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
                             alt.origin = Some((v, ch));
                         }
@@ -1374,7 +1375,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         .map(|id| {
                             let child = tree.get(*id);
                             let mut alt = if let GrNode::Symbol(s) = child {
-                                Alternative::new(vec![s.clone()])
+                                Alternative::new(vec![*s])
                             } else {
                                 assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
                                 children_to_vec(tree, *id)
@@ -1445,7 +1446,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             rules.check_flags();
             rules.log.add_note("final rule set:");
             rules.log.extend_messages(
-                rules.prs_alt_origins_str(false).into_iter().map(|s| LogMsg::Note(s))
+                rules.prs_alt_origins_str(false).into_iter().map(LogMsg::Note)
             );
         }
         ProdRuleSet::<LL1> {

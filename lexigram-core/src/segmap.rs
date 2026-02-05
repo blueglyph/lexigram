@@ -42,10 +42,6 @@ impl<T: Clone> SegMap<T> {
         self.0.keys()
     }
 
-    pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
-        SegMap(BTreeMap::from_iter(iter))
-    }
-
     pub fn get(&self, value: u32) -> Option<T> {
         let (Seg(_a, b), data) = self.0.range((Included(&Seg(0, 0)), Included(&Seg(value, u32::MAX)))).next_back()?;
         if *b >= value {
@@ -69,6 +65,22 @@ impl<T: Clone> SegMap<T> {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl<T: Clone> Default for SegMap<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> FromIterator<(Seg, T)> for SegMap<T> {
+    fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
+        SegMap(BTreeMap::from_iter(iter))
     }
 }
 

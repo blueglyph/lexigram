@@ -306,8 +306,8 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
                     for i in empty_pos.into_iter().rev() {
                         new_children.remove(i);
                     }
-                } else {
-                    if VERBOSE { println!(" (nothing to do)"); }
+                } else if VERBOSE {
+                    println!(" (nothing to do)");
                 }
             }
             GrNode::Symbol(Symbol::Empty) => {
@@ -385,7 +385,7 @@ impl GrTreeExt for GrTree {
         match dup_index.get() {
             DupVal::Original(index) => index as usize,
             DupVal::Copy(index) => {
-                let node = self.get(index as usize).clone();
+                let node = *self.get(index as usize);
                 self.add(None, node)
             }
         }
@@ -393,7 +393,7 @@ impl GrTreeExt for GrTree {
 
     fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
         let tfmt = GrTreeFmt {
-            tree: &self,
+            tree: self,
             show_ids: false,
             show_depth: false,
             symbol_table,
@@ -404,7 +404,7 @@ impl GrTreeExt for GrTree {
 
     fn to_str_index(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
         let tfmt = GrTreeFmt {
-            tree: &self,
+            tree: self,
             show_ids: true,
             show_depth: false,
             symbol_table,
@@ -520,11 +520,10 @@ impl<T> RuleTreeSet<T> {
 
     /// Returns a set of all the terminals used in the ruleset.
     pub fn get_terminals(&self) -> HashSet<TokenId> {
-        let tset = self.trees.iter()
+        self.trees.iter()
             .flat_map(|t| t.iter_post_depth_simple())
             .filter_map(|x| if let GrNode::Symbol(Symbol::T(t)) = x.deref() { Some(*t) } else { None })
-            .collect::<HashSet<_>>();
-        tset
+            .collect::<HashSet<_>>()
     }
 
     pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
@@ -564,7 +563,6 @@ impl<T> LogReader for RuleTreeSet<T> {
     }
 }
 
-// Mutable methods for the General form.
 impl RuleTreeSet<General> {
     pub fn new() -> Self {
         Self::with_log(BufLog::new())
@@ -626,7 +624,7 @@ impl RuleTreeSet<General> {
     }
 
     fn check_num_nt_coherency(&mut self) {
-        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+        if let Some(n) = self.symbol_table.as_ref().map(|table| table.get_num_nt()) {
             if n != self.trees.len() {
                 self.log.add_error(format!("there are {} rules but the symbol table has {n} nonterminal symbols: dropping the table", self.trees.len()));
                 self.symbol_table = None;
@@ -660,7 +658,7 @@ impl RuleTreeSet<General> {
                 let n = sym.num_children();
                 if VERBOSE { println!("- old {}:{}", sym.index, *sym); }
                 if n == 0 {
-                    let new_id = new.add(None, orig.get(sym.index).clone());
+                    let new_id = new.add(None, *orig.get(sym.index));
                     stack.push(new_id);
                     if VERBOSE { print!("  leaf: "); }
                 } else {
@@ -675,92 +673,92 @@ impl RuleTreeSet<General> {
                             let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
                                 if VERBOSE { print!("  trivial {}: children={}\n  ", *sym, children.iter().map(|s| new.get(*s).to_str(self.get_symbol_table())).join(", ")); }
                                 // trivial case with only leaves as children (could be removed and treated as a general case)
-                                new.addci_iter(None, sym.clone(), children)
-                            } else {
-                                if *sym == GrNode::Or {
-                                    if VERBOSE {
-                                        // println!("  or: children={}", children.iter().map(|&id| format!("{id}:{}", grtree_to_str(&new, Some(id), None, self.get_symbol_table()))).join(", "));
-                                        println!("  or: children={}", children.iter().map(|&id| format!("{}", new.to_str_index(Some(id), self.get_symbol_table()))).join(", "));
-                                    }
-                                    // if parent sym is p:|
-                                    // - preserving the children's order:
-                                    //   - attach '|' children's children directly under p (discarding the '|' children)
-                                    //   - attach '&' children under p
-                                    // - push p back to stack
-                                    // ex: P: AB | (C|D) | E | (FG|HI)             -> P: AB | C | D | E | FG | HI
-                                    //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
-                                    let mut new_children = Vec::new();
-                                    for id in children {
-                                        match new.get(id) {
-                                            GrNode::Symbol(_) | GrNode::Concat | GrNode::Greedy => {
-                                                if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
-                                                new_children.push(id);
-                                            }
-                                            GrNode::Or => {
-                                                if VERBOSE { println!("  - child {id} is | with children {:?}", new.children(id)); }
-                                                new_children.extend(new.children(id));
-                                            }
-                                            x => panic!("unexpected node type under | node: {x}"),
-                                        }
-                                    }
-                                    new.addci_iter(None, gnode!(|), new_children)
-                                } else { // *sym == GrNode::Concat
-                                    if VERBOSE_CC { println!("  &: children={children:?}"); }
-                                    // if parent sym is p:&
-                                    // - merge adjacent leaves and '&' children (optional)
-                                    // - cartesian product of all '|' children's children and '&' children,
-                                    //       duplicating nodes are required
-                                    // - add r:'|' node to tree, attaching the new '&' nodes under it
-                                    // - push r to stack
-                                    // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
-                                    //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
-
-                                    // we store the dups in an array and reference them by index, because there will be multiple instances
-                                    // pointing to the same Dup and we can't do that with mutable references (which must be unique):
-                                    let mut dups = Vec::<Vec<Dup>>::new();
-                                    let concats_children = children.into_iter()
-                                        // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
-                                        .flat_map(|id| {
-                                            if VERBOSE_CC { print!("      FL {}: ", new.get(id)); }
-                                            match new.get(id) {
-                                                GrNode::Concat =>
-                                                    new.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
-                                                GrNode::Or => {
-                                                    let children = new.children(id).to_vec();
-                                                    vec![children.into_iter().map(|idc| {
-                                                        if let GrNode::Concat = new.get(idc) {
-                                                            let idc_children = new.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
-                                                            vaddi(&mut dups, idc_children)
-                                                        } else {
-                                                            vaddi(&mut dups, [Dup::new(idc)])
-                                                        }
-                                                    }).to_vec()]
-                                                }
-                                                _ => vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
-                                            }
-                                        })
-                                        // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
-                                        // .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
-                                        .cproduct()
-                                        // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
-                                        // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
-                                        //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
-                                        .map(|dup_ids| {
-                                            let mut nodes = dup_ids.into_iter()
-                                                .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
-                                                    .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
-                                            remove_concat_dup_empty(&new, &mut nodes);
-                                            nodes
-                                        })
-                                        // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
-                                        .to_vec();
-                                    // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
-                                    let concats = concats_children.into_iter()
-                                        .map(|children_ids| new.addci_iter(None, gnode!(&), children_ids))
-                                        .to_vec();
-                                    // Vec<node id of &-branch>
-                                    new.addci_iter(None, gnode!(|), concats)
+                                new.addci_iter(None, *sym, children)
+                            } else if *sym == GrNode::Or {
+                                if VERBOSE {
+                                    // println!("  or: children={}", children.iter().map(|&id| format!("{id}:{}", grtree_to_str(&new, Some(id), None, self.get_symbol_table()))).join(", "));
+                                    println!(
+                                        "  or: children={}",
+                                        children.iter().map(|&id| new.to_str_index(Some(id), self.get_symbol_table())).join(", "));
                                 }
+                                // if parent sym is p:|
+                                // - preserving the children's order:
+                                //   - attach '|' children's children directly under p (discarding the '|' children)
+                                //   - attach '&' children under p
+                                // - push p back to stack
+                                // ex: P: AB | (C|D) | E | (FG|HI)             -> P: AB | C | D | E | FG | HI
+                                //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
+                                let mut new_children = Vec::new();
+                                for id in children {
+                                    match new.get(id) {
+                                        GrNode::Symbol(_) | GrNode::Concat | GrNode::Greedy => {
+                                            if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
+                                            new_children.push(id);
+                                        }
+                                        GrNode::Or => {
+                                            if VERBOSE { println!("  - child {id} is | with children {:?}", new.children(id)); }
+                                            new_children.extend(new.children(id));
+                                        }
+                                        x => panic!("unexpected node type under | node: {x}"),
+                                    }
+                                }
+                                new.addci_iter(None, gnode!(|), new_children)
+                            } else { // *sym == GrNode::Concat
+                                if VERBOSE_CC { println!("  &: children={children:?}"); }
+                                // if parent sym is p:&
+                                // - merge adjacent leaves and '&' children (optional)
+                                // - cartesian product of all '|' children's children and '&' children,
+                                //       duplicating nodes are required
+                                // - add r:'|' node to tree, attaching the new '&' nodes under it
+                                // - push r to stack
+                                // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
+                                //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
+
+                                // we store the dups in an array and reference them by index, because there will be multiple instances
+                                // pointing to the same Dup and we can't do that with mutable references (which must be unique):
+                                let mut dups = Vec::<Vec<Dup>>::new();
+                                let concats_children = children.into_iter()
+                                    // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
+                                    .flat_map(|id| {
+                                        if VERBOSE_CC { print!("      FL {}: ", new.get(id)); }
+                                        match new.get(id) {
+                                            GrNode::Concat =>
+                                                new.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
+                                            GrNode::Or => {
+                                                let children = new.children(id).to_vec();
+                                                vec![children.into_iter().map(|idc| {
+                                                    if let GrNode::Concat = new.get(idc) {
+                                                        let idc_children = new.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
+                                                        vaddi(&mut dups, idc_children)
+                                                    } else {
+                                                        vaddi(&mut dups, [Dup::new(idc)])
+                                                    }
+                                                }).to_vec()]
+                                            }
+                                            _ => vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
+                                        }
+                                    })
+                                    // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
+                                    // .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                    .cproduct()
+                                    // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                    // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
+                                    //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
+                                    .map(|dup_ids| {
+                                        let mut nodes = dup_ids.into_iter()
+                                            .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
+                                                .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
+                                        remove_concat_dup_empty(&new, &mut nodes);
+                                        nodes
+                                    })
+                                    // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
+                                    .to_vec();
+                                // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
+                                let concats = concats_children.into_iter()
+                                    .map(|children_ids| new.addci_iter(None, gnode!(&), children_ids))
+                                    .to_vec();
+                                // Vec<node id of &-branch>
+                                new.addci_iter(None, gnode!(|), concats)
                             };
                             stack.push(new_id);
                         }
@@ -839,7 +837,6 @@ impl RuleTreeSet<General> {
                                 return;
                             }
                             let rep_child = stack.pop().unwrap();
-                            if VERBOSE {}
                             let proceed = match grtree_cleanup(&mut new, Some(rep_child), true) {
                                 None => {
                                     self.log.add_error(format!(
@@ -925,7 +922,7 @@ impl RuleTreeSet<General> {
                 let mut to_remove = Vec::<VarId>::new();
                 for node in orig_new.iter_post_depth() {
                     if let GrNode::Symbol(Symbol::NT(rep_var)) = node.deref() {
-                        if let Some(&orig_rep_id) = orig_rep_vars.get(&rep_var) {
+                        if let Some(&orig_rep_id) = orig_rep_vars.get(rep_var) {
                             to_remove.push(*rep_var);
                             orig_rep_nodes.push((node.index, orig_rep_id));
                             self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, orig_rep_id));
@@ -953,7 +950,9 @@ impl RuleTreeSet<General> {
     {
         const VERBOSE: bool = false;
         const OPTIMIZE_SUB_OR: bool = false;
-        self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
+        if let Some(st) = self.symbol_table.as_ref() {
+            assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt");
+        }
         let (mut qvar, mut rvar) = (*new_var, *new_var + 1);
         let mut qtree = GrTree::new();
         let mut rtree = GrTree::new();
@@ -985,9 +984,9 @@ impl RuleTreeSet<General> {
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
                 let cc = qtree.add(Some(or), gnode!(&));
-                let child = qtree.add(Some(cc), GrNode::Symbol(s.clone()));
+                let child = qtree.add(Some(cc), GrNode::Symbol(*s));
                 qtree.add(Some(cc), gnode!(nt qvar));
-                let child2 = qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
+                let child2 = qtree.add(Some(or), if is_plus { GrNode::Symbol(*s) } else { gnode!(e) });
                 self.origin.add((qvar, child), (var, orig_rep_child));     // useful?
                 self.origin.add((qvar, cc), (var, orig_rep_child));
                 if is_plus {
@@ -1004,7 +1003,7 @@ impl RuleTreeSet<General> {
                 let loop_id = qtree.add(Some(cc1), gnode!(nt qvar));
                 self.origin.add((qvar, loop_id), (var, orig_rep));
                 if is_plus {
-                    let loop_id2 = qtree.add_from_tree(Some(or), &new, Some(rep_child));
+                    let loop_id2 = qtree.add_from_tree(Some(or), new, Some(rep_child));
                     self.origin.add((qvar, loop_id2), (var, orig_rep_child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
@@ -1021,11 +1020,11 @@ impl RuleTreeSet<General> {
                     match orig_grchild {
                         GrNode::Symbol(s) => {
                             let cc = qtree.add(Some(or), gnode!(&));
-                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt qvar)])[0];
+                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(*s), gnode!(nt qvar)])[0];
                             self.origin.add((qvar, cc), (var, *orig_id_grchild));
                             self.origin.add((qvar, child), (var, *orig_id_grchild));
                             if is_plus {
-                                let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
+                                let plus_or = qtree.add(Some(or), GrNode::Symbol(*s));
                                 self.origin.add((qvar, plus_or), (var, *orig_id_grchild));
                             }
                         }
@@ -1035,7 +1034,7 @@ impl RuleTreeSet<General> {
                             });
                             qtree.add(Some(cc), gnode!(nt qvar));
                             if is_plus {
-                                qtree.add_from_tree_callback(Some(or), &orig_new, Some(*orig_id_grchild), |to, from, _| {
+                                qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, _| {
                                     self.origin.add((qvar, to), (var, from));
                                 });
                             }
@@ -1071,10 +1070,10 @@ impl RuleTreeSet<General> {
                     match orig_grchild {
                         GrNode::Symbol(s) => {
                             if is_plus {
-                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt rvar)]);
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(*s), gnode!(nt rvar)]);
                                 use_rtree = true;
                             } else {
-                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt qvar)]);
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(*s), gnode!(nt qvar)]);
                             }
                         }
                         GrNode::Concat => {
@@ -1120,20 +1119,14 @@ impl RuleTreeSet<General> {
                 }
             }
         }
-        self.symbol_table.as_mut().map(|st| {
-            if let Some(_v) = lform_nt {
-                // let name = st.remove_nt_name(v);
-                // if VERBOSE {
-                //     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
-                // }
-                // assert_eq!(st.add_nonterminal(name), qvar);
-            } else {
+        if let Some(st) = self.symbol_table.as_mut() {
+            if lform_nt.is_none() {
                 assert_eq!(st.add_child_nonterminal(var), qvar);
             }
             if use_rtree {
                 assert_eq!(st.add_child_nonterminal(var), rvar);
             }
-        });
+        }
         let id = new.add(None, gnode!(nt qvar));
         assert!(qvar as usize >= self.trees.len() || self.trees[qvar as usize].is_empty(), "overwriting tree {new_var}");
         if VERBOSE { println!("qtree: NT[{qvar}] {} -> {}", Symbol::NT(qvar).to_str(self.get_symbol_table()), grtree_to_str(&qtree, None, None, Some(qvar), self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
@@ -1191,6 +1184,13 @@ impl RuleTreeSet<General> {
         }
         *new_var = self.get_next_available_var();
         (id, qvar)
+    }
+}
+
+// Mutable methods for the General form.
+impl Default for RuleTreeSet<General> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

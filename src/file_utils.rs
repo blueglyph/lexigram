@@ -49,7 +49,7 @@ pub fn get_tagged_source(filename: &str, tag: &str) -> Result<String, SrcTagErro
     let mut opening_tag_found = false;
     let mut closing_tag_found = false;
     let result = BufReader::new(file).lines()
-        .filter_map(|l| l.ok())
+        .map_while(Result::ok)
         .skip_while(|l| !l.contains(&file_tag))
         .inspect(|_| opening_tag_found = true)
         .skip(2)
@@ -121,9 +121,7 @@ pub enum DiffResult {
 
 /// Compares two strings line by line.
 pub fn simple_diff(text1: &str, text2: &str) -> DiffResult {
-    let mut line_num = 0;
-    for (line1, line2) in text1.lines().zip(text2.lines()) {
-        line_num += 1;
+    for (line_num, (line1, line2)) in text1.lines().zip(text2.lines()).enumerate() {
         if line1 != line2 {
             return DiffResult::Mismatch { line_num, line1: line1.to_string(), line2: line2.to_string() }
         }

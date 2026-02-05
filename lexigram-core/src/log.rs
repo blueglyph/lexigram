@@ -70,6 +70,12 @@ impl PrintLog {
     }
 }
 
+impl Default for PrintLog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogStatus for PrintLog {
     fn num_notes(&self) -> usize {
         self.num_notes

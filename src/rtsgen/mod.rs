@@ -44,7 +44,7 @@ pub struct RtsGen<'l, 'p> {
 
 impl RtsGen<'_, '_> {
     pub fn new() -> Self {
-        let t_name_dictionary = Some(HashMap::from_iter(T_NAME_DICTIONARY.into_iter().map(|(a, b)| (a.to_string(), b.to_string()))));
+        let t_name_dictionary = Some(HashMap::from_iter(T_NAME_DICTIONARY.iter().map(|(a, b)| (a.to_string(), b.to_string()))));
         RtsGen::with_guess_names(t_name_dictionary)
     }
 
@@ -66,6 +66,12 @@ impl RtsGen<'_, '_> {
         let _ = self.parser.parse_stream(&mut wrapper, tokens); // errors are written in the log, so we can dismiss the error here
         let listener = wrapper.give_listener();
         listener.make_rts()
+    }
+}
+
+impl Default for RtsGen<'_, '_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -143,11 +149,10 @@ impl<'a> RGListener<'a> {
     /// it doesn't exist.
     fn get_or_create_nt(&mut self, name: String) -> VarId {
         let size = self.nt.len();
-        let var = *self.nt.entry(name).or_insert_with(|| {
+        *self.nt.entry(name).or_insert_with(|| {
             self.rules.push(GrTree::new());
             size.to_var_id("too many nonterminals")
-        });
-        var
+        })
     }
 
     /// Gets the terminal ID corresponding to the name or value, creating it if
@@ -332,8 +337,7 @@ impl RtsGenListener for RGListener<'_> {
             }
             var
         } else {
-            let var = self.get_or_create_nt(nonterminal.clone());
-            var
+            self.get_or_create_nt(nonterminal.clone())
         };
         if !error { self.nt_def_order.push(var); }
         self.curr_nt = Some(var);

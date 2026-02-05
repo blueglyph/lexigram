@@ -89,6 +89,12 @@ impl<F, T> Origin<F, T> {
     } 
 }
 
+impl<F, T> Default for Origin<F, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<F: Eq + Hash, T> Origin<F, T> {
     /// Adds a connection between a `new` node and its `origin` in the original [`GrTree`].
     /// 

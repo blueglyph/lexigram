@@ -100,7 +100,7 @@ pub mod ruleflag {
 
 // ---------------------------------------------------------------------------------------------
 
-pub fn alt_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+pub fn alt_to_str<T: SymInfoTable>(f: &[Symbol], symbol_table: Option<&T>) -> String {
     if f.is_empty() {
         "<empty>".to_string()
     } else {
@@ -108,7 +108,7 @@ pub fn alt_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) ->
     }
 }
 
-pub fn alt_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+pub fn alt_to_rule_str<T: SymInfoTable>(nt: VarId, f: &[Symbol], symbol_table: Option<&T>) -> String {
     format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), alt_to_str(f, symbol_table))
 }
 
