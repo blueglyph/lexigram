@@ -168,12 +168,10 @@ fn get_code<'a, I: Iterator<Item=&'a str>>(label: &str, args: &mut Peekable<I>) 
             return Err(ExeError::Option(format!("missing tag name in {label} code location")));
         };
         gencode!(filename: filename, tag: tag)
+    } else if filename == "-" {
+        gencode!(stdout)
     } else {
-        if filename == "-" {
-            gencode!(stdout)
-        } else {
-            gencode!(filename: filename)
-        }
+        gencode!(filename: filename)
     };
     Ok(code)
 }
@@ -286,7 +284,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
         }
     }
     let gen_options = builder.build()
-        .map_err(|e| ExeError::Option(e))?;
+        .map_err(ExeError::Option)?;
     let arg_options = ArgOptions {
         gen_options,
         show_log,

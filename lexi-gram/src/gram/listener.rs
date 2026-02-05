@@ -139,7 +139,7 @@ impl GramListener {
                             self.log.add_error(
                                 format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
                                         Symbol::NT(*var).to_str(symtab),
-                                        grtree_to_str(&tree, Some(*node), None, Some(*var), symtab, false)));
+                                        grtree_to_str(tree, Some(*node), None, Some(*var), symtab, false)));
                         }
                     }
                 }

@@ -19,3 +19,6 @@ readme = "README.md"
 lexigram-lib = { path = "..", version = "0.8.3" }
 iter-index = "1.0.0"
 vectree = "0.4.1"
+
+[lints]
+workspace = true

@@ -73,7 +73,7 @@ impl LexAction {
         }
         Ok(LexAction {
             option: if self.option == LexActionOption::None { rhs.option } else { self.option },
-            channel: self.channel.or_else(|| rhs.channel),
+            channel: self.channel.or(rhs.channel),
             mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
             pop: self.pop || rhs.pop,
             hook: self.hook || rhs.hook,
@@ -226,7 +226,7 @@ impl LexiListener {
     }
 
     pub fn get_pos_grammar(&self) -> Option<Pos> {
-        self.pos_grammar_opt.clone()
+        self.pos_grammar_opt
     }
 
     fn get_sorted_modes(&self) -> Vec<(ModeId, &str)> {
@@ -266,7 +266,7 @@ impl LexiListener {
                                  "ret".to_string(), "token ".to_string(), "tree".to_string()]];
         let mut rules = self.rules.iter().to_vec();
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
-        for (_i, (s, rt)) in rules.into_iter().enumerate() {
+        for (s, rt) in rules.into_iter() {
             let (t, lit, ret, sym_maybe, _end_maybe) = match rt {
                 RuleType::Fragment(id) => (
                     self.fragments.get(*id as usize).unwrap(),
@@ -276,10 +276,10 @@ impl LexiListener {
                     None
                 ),
                 RuleType::Terminal(id) => {
-                    let ret = *self.terminal_ret.get(*id as usize).expect(&format!("no item {id}"));
+                    let ret = *self.terminal_ret.get(*id as usize).unwrap_or_else(|| panic!("no item {id}"));
                     (
-                        self.terminals.get(*id as usize).expect(&format!("no item {id}")),
-                        self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
+                        self.terminals.get(*id as usize).unwrap_or_else(|| panic!("no item {id}")),
+                        self.terminal_literals.get(*id as usize).unwrap_or_else(|| panic!("no item {id}")),
                         Some(ret),
                         if ret { Some(self.terminal_remap.get(&(*id as TokenId)).unwrap_or(id)) } else { None },
                         self.terminals[*id as usize].iter_post_depth_simple().find_map(|n|
@@ -317,7 +317,7 @@ impl LexiListener {
         }
         lines.push("- definitions:".to_string());
         let mut table = lexigram_lib::columns_to_str(cols, None);
-        table.insert(1, format!("  {:-<width$}", "", width = table.get(0).unwrap().len() + 10));
+        table.insert(1, format!("  {:-<width$}", "", width = table.first().unwrap().len() + 10));
         lines.extend(table);
         lines
     }
@@ -444,7 +444,7 @@ impl LexiListener {
         }
         // Remaps the hooks
         self.terminal_hooks.iter_mut()
-            .for_each(|old| *old = *remap.get(&old).unwrap_or(&old));
+            .for_each(|old| *old = *remap.get(old).unwrap_or(old));
         self.terminal_remap = remap;
 
         // Checks the modes
@@ -459,7 +459,7 @@ impl LexiListener {
                 Some(Some(range)) => format!("{range:?}"),
                 _ => {
                     mode_errors.push(format!("mode '{mode}' referenced but not defined"));
-                    format!("## ERROR: undefined")
+                    "## ERROR: undefined".to_string()
                 }
             };
             if self.verbose { println!("- {mode_id} - {mode}: terminals = {terminals}"); }
@@ -533,7 +533,7 @@ impl Debug for LexiListener {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "LexiListener {{")?;
         writeln!(f, "  name = {}", self.name)?;
-        writeln!(f, "  curr = {}", self.curr.as_ref().map(|t| tree_to_string(t, None, true)).unwrap_or(String::new()))?;
+        writeln!(f, "  curr = {}", self.curr.as_ref().map(|t| tree_to_string(t, None, true)).unwrap_or_default())?;
         writeln!(f, "  curr_mode = {}", self.curr_mode)?;
         writeln!(f, "  rules: {}\n{}", self.rules.len(), self.rules_to_string(4))?;
         writeln!(f, "  fragments: {}", self.fragments.len())?;
@@ -846,7 +846,7 @@ impl LexiParserListener for LexiListener {
         let CtxAltItem::V1 { plus: SynAltItem1(mut items) } = ctx;
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = if items.len() > 1 {
-            let lit_maybe = items.iter().fold(Some(String::new()), |acc, next| if let Some(n) = &next.0.1 { acc.map(|a| a + n) } else { None });
+            let lit_maybe = items.iter().try_fold(String::new(), |acc, next| next.0.1.as_ref().map(|n| acc + n));
             (tree.addci_iter(None, node!(&), items.into_iter().map(|item| item.0.0)), lit_maybe)
         } else {
             items.pop().unwrap().0
@@ -934,7 +934,7 @@ impl LexiParserListener for LexiListener {
             CtxItem::V7 { item } => {            // item -> "~" item
                 let node = tree.get_mut(item.0.0);
                 if let ReType::CharRange(range) = node.get_mut_type() {
-                    *range = Box::new(range.not());
+                    **range = range.not();
                 } else {
                     self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to {}", self.curr_name.as_ref().unwrap(), node.get_type()));
                 }
@@ -1123,14 +1123,14 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
 pub mod macros {
     #[macro_export]
     macro_rules! action {
-        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (skip) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false, hook: false } };
-        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false, hook: false } };
-        (pop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true , hook: false } };
-        (hook) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: true  } };
-        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false, hook: false } };
-        (nop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (more) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (skip) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false, hook: false } };
+        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false, hook: false } };
+        (pop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true , hook: false } };
+        (hook) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: true  } };
+        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false, hook: false } };
+        (nop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
     }
 }

@@ -40,8 +40,8 @@ impl Specification {
         match self {
             Specification::None => Ok(None),
             Specification::String(s) => Ok(Some(s)),
-            Specification::File { filename } => Ok(std::fs::read_to_string(filename)?).map(|s| Some(s)),
-            Specification::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(|s| Some(s)),
+            Specification::File { filename } => Ok(Some(std::fs::read_to_string(filename)?)),
+            Specification::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(Some),
         }
     }
 }
@@ -80,8 +80,8 @@ impl CodeLocation {
     pub fn read(&self) -> Result<Option<String>, SrcTagError> {
         match self {
             CodeLocation::None => Ok(None),
-            CodeLocation::File { filename } => Ok(std::fs::read_to_string(filename)?).map(|s| Some(s)),
-            CodeLocation::FileTag { filename, tag } => get_tagged_source(&filename, &tag).map(|s| Some(s)),
+            CodeLocation::File { filename } => Ok(Some(std::fs::read_to_string(filename)?)),
+            CodeLocation::FileTag { filename, tag } => get_tagged_source(filename, tag).map(Some),
             CodeLocation::StdOut => {
                 Err(SrcTagError::Io(std::io::Error::new(std::io::ErrorKind::InvalidInput, "stdout can only be used as output")))
             }
@@ -94,7 +94,7 @@ impl CodeLocation {
             CodeLocation::File { filename } => {
                 Ok(std::fs::write(filename, source)?)
             }
-            CodeLocation::FileTag { filename, tag } => replace_tagged_source(filename, tag, &source),
+            CodeLocation::FileTag { filename, tag } => replace_tagged_source(filename, tag, source),
             CodeLocation::StdOut => {
                 Ok(std::io::stdout().write_all(source.as_bytes())?)
             }
@@ -204,7 +204,7 @@ enum BuilderState { Start, Lexer, Parser, Error }
 /// * options related to the lexer: [lexer](OptionsBuilder::lexer), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
 /// * options related to the parser: [parser](OptionsBuilder::parser), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
 /// * general options: [extra_libs](OptionsBuilder::extra_libs), [parser_alts](OptionsBuilder::parser_alts),
-/// [wrapper](OptionsBuilder::wrapper), [span_params](OptionsBuilder::span_params)
+///   [wrapper](OptionsBuilder::wrapper), [span_params](OptionsBuilder::span_params)
 ///
 /// Initially, the default option settings corresponds to [Object]'s defaults. The builder offers a convenient way to chain method
 /// in order to set custom options.
@@ -256,7 +256,7 @@ impl OptionsBuilder {
 
     /// Gets the current error message, if any
     pub fn get_error_message(&self) -> Option<&str> {
-        self.message.as_ref().map(|s| s.as_str())
+        self.message.as_deref()
     }
 
     pub fn reset(&mut self) {
@@ -556,7 +556,7 @@ impl OptionsBuilder {
         if !self.has_error() {
             if !self.options.has_lexer_spec() || !self.options.has_lexer_code() {
                 self.set_error("", ERR_MISSING_LEXER_OPTION)
-            } else if !self.options.has_parser_spec() ^ !self.options.has_parser_code() == true {
+            } else if self.options.has_parser_spec() ^ self.options.has_parser_code() {
                 self.set_error("", ERR_MISSING_PARSER_OPTION)
             }
         }
@@ -592,6 +592,12 @@ impl OptionsBuilder {
     /// remaining builder will only be partially reconfigurable**.
     pub fn options(self) -> Options {
         self.options
+    }
+}
+
+impl Default for OptionsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

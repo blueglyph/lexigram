@@ -25,9 +25,9 @@ use crate::options::{Action, Options};
 ///
 /// Notes:
 /// * `options.lexer_spec` and `options.parser_spec`, which specify how to get the lexicon and the grammar, aren't used
-/// by this function since they're given explicitly as string arguments.
+///   by this function since they're given explicitly as string arguments.
 /// * `options.lexer_code` and `options.parser_code`, which specify where to store the generated code, aren't used either,
-/// since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
+///   since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
 /// * if the lexicon and the grammar are combined in [`lexicon`], the [`grammar_opt`] parameter must be `None`.
 pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
     // 1. Lexer
