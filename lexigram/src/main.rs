@@ -1,20 +1,24 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
-use lexi_gram::lexigram_lib;
+use lexi_gram::{lexigram_lib, LEXIGRAM_PKG_VERSION, LEXIGRAM_PKG_NAME};
+use lexigram_lib::{LIB_PKG_VERSION, LIB_PKG_NAME};
+use lexigram_lib::lexigram_core::{CORE_PKG_VERSION, CORE_PKG_NAME};
 use lexigram_lib::log::LogStatus;
 use crate::arg_opt::{parse_args, ArgOptions, HELP_MESSAGE};
 
 mod arg_opt;
 
-/// Version of the program
-pub const BIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+// package name & version
+pub const BIN_PKG_NAME: &str = env!("CARGO_PKG_NAME");
+pub const BIN_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Error returned by [execute].
 pub enum ExeError {
     /// The "help" option was met; the [help message](HELP_MESSAGE) should be displayed.
     Help,
-    /// The "version" option was met; the [version](BIN_VERSION) should be displayed.
+    /// The "version" option was met; the versions of the executable and the other
+    /// crates it depends on should be displayed.
     Version,
     /// An unknown command-line option was given.
     Option(String),
@@ -42,7 +46,10 @@ fn main() {
                     1
                 }
                 ExeError::Version => {
-                    eprintln!("lexigram version {BIN_VERSION}");
+                    eprintln!("Versions:\n- {BIN_PKG_NAME}: {BIN_PKG_VERSION}");
+                    eprintln!("- {CORE_PKG_NAME}: {CORE_PKG_VERSION}");
+                    eprintln!("- {LIB_PKG_NAME}: {LIB_PKG_VERSION}");
+                    eprintln!("- {LEXIGRAM_PKG_NAME}: {LEXIGRAM_PKG_VERSION}");
                     1
                 }
                 ExeError::Option(msg) => {
