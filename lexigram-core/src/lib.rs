@@ -9,6 +9,10 @@ pub mod lexer;
 pub mod parser;
 pub mod text_span;
 
+// package name & version
+pub const CORE_PKG_NAME: &str = env!("CARGO_PKG_NAME");
+pub const CORE_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// ID of a lexer token
 pub type TokenId = u16;
 /// ID of a nonterminal
