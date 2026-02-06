@@ -1,6 +1,6 @@
 [package]
 name = "lexigram"
-version = "0.8.3"
+version = "0.9.0"
 description = "Lexer and LL(1) parser generator"
 edition.workspace = true
 rust-version.workspace = true
@@ -14,7 +14,7 @@ documentation = "https://docs.rs/lexigram"
 readme = "README.md"
 
 [dependencies]
-lexi-gram = { path = "../lexi-gram", version = "0.8.3" }
+lexi-gram = { path = "../lexi-gram", version = "0.9.0" }
 
 [[bin]]
 name = "lexigram"

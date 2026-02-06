@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-lexigram-lib = { path = "../..", version = "0.8.3" }
-lexi-gram = { path = "../../lexi-gram", version = "0.8.3" }
+lexigram-lib = { path = "../..", version = "0.9.0" }
+lexi-gram = { path = "../../lexi-gram", version = "0.9.0" }

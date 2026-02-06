@@ -57,9 +57,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram-lib: 0.8.3
-    // lexi-gram: 0.8.3
-    // build-stage1: 0.8.3
+    // lexigram-lib: 0.9.0
+    // lexi-gram: 0.9.0
+    // build-stage1: 0.9.0
 
     // [versions]
 

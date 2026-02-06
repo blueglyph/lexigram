@@ -1,6 +1,6 @@
 [package]
 name = "build-stage2"
-version = "0.8.3"
+version = "0.9.0"
 edition = "2024"
 
 [dependencies]
@@ -9,4 +9,4 @@ edition = "2024"
 #lexigram-lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.8.3", package = "lexigram-lib" }
 
 # use this dependency otherwise:
-lexigram-lib = { path = "..", version = "0.8.3" }
+lexigram-lib = { path = "..", version = "0.9.0" }

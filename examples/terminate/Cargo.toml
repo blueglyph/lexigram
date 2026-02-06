@@ -4,4 +4,4 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-lexigram-core = { path = "../../lexigram-core", version = "0.8.3" }
+lexigram-core = { path = "../../lexigram-core", version = "0.9.0" }
