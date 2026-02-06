@@ -251,9 +251,9 @@ pub enum Call {
     /// * when the parsing of the top rule has completed normally. In that case, the wrapper
     ///   calls the [exit(...)] method of the listener (done in the generated code).
     /// * when the parsing is [aborted](Terminate::Abort) or [concluded](Terminate::Conclude) in
-    ///  reaction to an [check_abort_request(...)](ListenerWrapper::check_abort_request) call. In
-    ///  that case, the wrapper calls the [abort(...)] method of the listener (done in the generated
-    ///  code).
+    ///   reaction to an [check_abort_request(...)](ListenerWrapper::check_abort_request) call. In
+    ///   that case, the wrapper calls the [abort(...)] method of the listener (done in the generated
+    ///   code).
     ///
     /// The [Terminate] value it contains tells the wrapper which of those eventualities has
     /// occurred.
