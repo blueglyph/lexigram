@@ -48,7 +48,6 @@ fn write_typedef_source(action: Action) {
         match try_gen_parser(action, options) {
             Ok(log) => {
                 println!("Code generated in {source_filename} [{lexer_tag}] / [{parser_tag}]\n{log}");
-                println!("{} note(s)\n{} warning(s)\n", log.num_notes(), log.num_warnings());
                 assert!(log.has_no_warnings(), "no warning expected");
             }
             Err(build_error) => panic!("[{lexicon_tag}] / [{grammar_tag}]: {build_error}"),

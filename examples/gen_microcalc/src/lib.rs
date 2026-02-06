@@ -33,7 +33,6 @@ fn write_microcalc_l_g_source(action: Action) {
     match try_gen_parser(action, options) {
         Ok(log) => {
             println!("Code generated in {SOURCE_FILENAME}\n{log}");
-            println!("{} note(s)\n{} warning(s)\n", log.num_notes(), log.num_warnings());
             assert!(log.has_no_warnings(), "no warning expected");
         }
         Err(build_error) => panic!("{build_error}"),
@@ -53,7 +52,6 @@ fn write_microcalc_lg_source(action: Action) {
     match try_gen_parser(action, options) {
         Ok(log) => {
             println!("Code generated in {SOURCE_FILENAME}\n{log}");
-            println!("{} note(s)\n{} warning(s)\n", log.num_notes(), log.num_warnings());
             assert!(log.has_no_warnings(), "no warning expected");
         }
         Err(build_error) => panic!("{build_error}"),

@@ -236,7 +236,8 @@ impl Default for BufLog {
 
 impl Display for BufLog {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.get_messages_str())
+        writeln!(f, "{}", self.get_messages_str())?;
+        writeln!(f, "{} note(s)\n{} info(s)\n{} warning(s)\n{} error(s)", self.num_notes(), self.num_infos(), self.num_warnings(), self.num_errors())
     }
 }
 
