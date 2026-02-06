@@ -9,24 +9,24 @@ use crate::VarId;
 use crate::grammar::GrTree;
 
 #[derive(Clone, Debug)]
-/// Origin from a RuleTreeSet perspective: [`Origin<(VarId, usize), FromRTS>`](Origin), where
-/// `(VarId, usize)` identifies a node in the processed [`RuleTreeSet`]:
-/// * [`VarId`] is the variable
-/// * `usize` is the node index in the [`GrTree`] of that variable
+/// Origin from a RuleTreeSet perspective: [Origin<(VarId, usize), FromRTS>](Origin), where
+/// `(VarId, usize)` identifies a node in the processed [RuleTreeSet](crate::grammar::RuleTreeSet):
+/// * [VarId] is the variable
+/// * `usize` is the node index in the [GrTree] of that variable
 ///
-/// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
-/// after normalization (but keeping the * and + ops).
+/// and associates it with a node `(VarId, usize)` of the original [RuleTreeSet](crate::grammar::RuleTreeSet)
+/// rules after normalization (but keeping the * and + ops).
 pub struct FromRTS;
 
 #[derive(Clone, Debug)]
-/// Origin from a ProdRuleSet perspective: [`Origin<VarId, FromPRS>`](Origin), where
-/// `VarId` identifies a children nonterminal in the processed [`ProdRuleSet`]:
-/// * [`VarId`] is the variable
+/// Origin from a ProdRuleSet perspective: [Origin<VarId, FromPRS>](Origin), where [VarId] identifies
+/// a children nonterminal in the processed [ProdRuleSet](crate::grammar::prs::ProdRuleSet):
+/// * [VarId] is the variable
 ///
-/// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
-/// after normalization (but keeping the * and + ops).
+/// and associates it with a node `(VarId, usize)` of the original
+/// [RuleTreeSet](crate::grammar::RuleTreeSet) rules after normalization (but keeping the * and + ops).
 ///
-/// The alternatives of the ProdRuleSet store their own [`VarId`, usize] links to the original
+/// The alternatives of the ProdRuleSet store their own `(VarId, usize)` links to the original
 /// nodes because it's easier than to track the data when they're moved around.
 pub struct FromPRS;
 

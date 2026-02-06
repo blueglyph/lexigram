@@ -7,10 +7,21 @@ use crate::arg_opt::{parse_args, ArgOptions, HELP_MESSAGE};
 
 mod arg_opt;
 
-enum ExeError {
+/// Version of the program
+pub const BIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Error returned by [execute].
+pub enum ExeError {
+    /// The "help" option was met; the [help message](HELP_MESSAGE) should be displayed.
     Help,
+    /// The "version" option was met; the [version](BIN_VERSION) should be displayed.
     Version,
+    /// An unknown command-line option was given.
     Option(String),
+    /// The source code generator produced an error. The original error is
+    /// in the `source` field.
+    ///
+    /// The `show_log` field determines whether the "log" option was desired or not.
     GenParser { source: GenParserError, show_log: bool },
 }
 
@@ -31,8 +42,7 @@ fn main() {
                     1
                 }
                 ExeError::Version => {
-                    let version = env!("CARGO_PKG_VERSION");
-                    eprintln!("lexigram version {version}");
+                    eprintln!("lexigram version {BIN_VERSION}");
                     1
                 }
                 ExeError::Option(msg) => {
@@ -56,7 +66,8 @@ fn main() {
     std::process::exit(code);
 }
 
-fn execute(all_args: Vec<String>) -> Result<Option<String>, ExeError> {
+/// Parses the command-line arguments in `all_args` and executes the corresponding actions.
+pub fn execute(all_args: Vec<String>) -> Result<Option<String>, ExeError> {
     let (action, arg_options) = parse_args(all_args)?;
     let ArgOptions { gen_options, show_log } = arg_options;
     match try_gen_parser(action, gen_options) {

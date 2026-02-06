@@ -143,7 +143,7 @@ pub struct Options {
     /// Generates enums for the terminal and nonterminal values.
     pub gen_token_enums: bool,
     /// Uses the full library instead of the core library in the generated code. Use this option for a lexer / parser that
-    /// needs [lexigram_lib] instead of the smaller [lexigram_core].
+    /// needs `lexigram_lib` instead of the smaller `lexigram_core` crate.
     ///
     /// Default: `false`
     pub lib_crate: LexigramCrate,
@@ -206,7 +206,7 @@ enum BuilderState { Start, Lexer, Parser, Error }
 /// * general options: [extra_libs](OptionsBuilder::extra_libs), [parser_alts](OptionsBuilder::parser_alts),
 ///   [wrapper](OptionsBuilder::wrapper), [span_params](OptionsBuilder::span_params)
 ///
-/// Initially, the default option settings corresponds to [Object]'s defaults. The builder offers a convenient way to chain method
+/// Initially, the default option settings corresponds to [Options]'s defaults. The builder offers a convenient way to chain method
 /// in order to set custom options.
 ///
 /// The builder offers a way to use some of those options differently, depending on their position in the method chain.
@@ -605,7 +605,7 @@ impl Default for OptionsBuilder {
 // Macros
 
 pub mod macros {
-    /// Generates a [Specification](crate::gen_parser::Specification) object:
+    /// Generates a [Specification](crate::options::Specification) object:
     /// ```ignore
     /// genspec!(none)
     /// genspec!(string: expr)
@@ -629,7 +629,7 @@ pub mod macros {
         };
     }
 
-    /// Generates a [CodeLocation](crate::gen_parser::CodeLocation) object:
+    /// Generates a [CodeLocation](crate::options::CodeLocation) object:
     /// ```ignore
     /// gencode!(none)
     /// gencode!(string: expr)

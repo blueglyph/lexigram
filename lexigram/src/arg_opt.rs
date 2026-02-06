@@ -9,8 +9,8 @@ use lexi_gram::lexigram_lib::parsergen::NTValue;
 use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::ExeError;
 
-/// Command-line arguments
-pub(crate) static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
+/// Description of the command-line arguments
+pub static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
 
 Usage:    lexigram [options]
 

@@ -144,7 +144,7 @@ impl TryBuildFrom<ParserGen> for ParserTables {
 /// * [`Default`](NTValue::Default): The top nonterminal parents and the children of `(<L> )+*` have a value
 /// * [`SetIds(Vec<VarId>)`](NTValue::SetIds): The nonterminals that have a value is set explicitly by ID
 /// * [`SetNames(Vec<String>)`](NTValue::SetNames): The nonterminals that have a value is set explicitly by name.
-///   The names "<default>" and "<parents>" can be used to set all the nonterminals of the corresponding class.
+///   The names "`<default>`" and "`<parents>`" can be used to set all the nonterminals of the corresponding class.
 #[derive(Clone, PartialEq, Debug)]
 pub enum NTValue {
     /// No nonterminal has a value
@@ -215,10 +215,11 @@ pub struct ParserGen {
 }
 
 impl ParserGen {
-    /// Creates a [`ParserGen`] from a set of production rules and gives it a specific name, which is used
+    /// Creates a [ParserGen] from a set of production rules and gives it a specific name, which is used
     /// to name the user listener trait in the generated code.
     ///
-    /// If [`rules`] already has a name, it is best to use the [BuildFrom<ProdRuleSet<T>>](BuildFrom<ProdRuleSet<T>>::build_from) trait.
+    /// If `rules` already has a name, it is best to use the
+    /// [`BuildFrom<ProdRuleSet<T>>`](BuildFrom<ProdRuleSet<T>>::build_from) trait.
     pub fn build_from_rules<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
     where
         ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
@@ -408,12 +409,12 @@ impl ParserGen {
         self.nt_value[v as usize] = has_value;
     }
 
-    /// Generates the parser source code if [gen_parser] is `true`. This option is `true` by default.
+    /// Generates the parser source code if `gen_parser` is `true`. This option is `true` by default.
     pub fn set_gen_parser(&mut self, gen_parser: bool) {
         self.gen_parser = gen_parser;
     }
 
-    /// Generates the wrapper source code if [gen_parser] is `true`. This option is `true` by default.
+    /// Generates the wrapper source code if `gen_parser` is `true`. This option is `true` by default.
     pub fn set_gen_wrapper(&mut self, gen_wrapper: bool) {
         self.gen_wrapper = gen_wrapper;
     }

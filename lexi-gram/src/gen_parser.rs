@@ -28,7 +28,7 @@ use crate::options::{Action, Options};
 ///   by this function since they're given explicitly as string arguments.
 /// * `options.lexer_code` and `options.parser_code`, which specify where to store the generated code, aren't used either,
 ///   since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
-/// * if the lexicon and the grammar are combined in [`lexicon`], the [`grammar_opt`] parameter must be `None`.
+/// * if the lexicon and the grammar are combined in `lexicon`, the `grammar_opt` parameter must be `None`.
 pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
     // 1. Lexer
 
@@ -149,7 +149,7 @@ impl Error for GenParserError {
 /// Generates (or just verifies) the source code for the lexer, the parser, and the wrapper / listener.
 ///
 /// The options given in argument include the location of the lexicon and grammar, and where the resulting
-/// code should be written. See [Options](crate::options::Options) and
+/// code should be written. See [Options] and
 /// [OptionsBuilder](crate::options::OptionsBuilder) for further details.
 pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenParserError> {
     let is_combined = options.lexer_spec == options.parser_spec;

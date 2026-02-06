@@ -75,7 +75,7 @@ impl<S, T> BuildInto<T> for S
 where
     T: BuildFrom<S>,
 {
-    /// Calls `T::from(self)` to convert a [`S`] into a [`T`].
+    /// Calls `T::from(self)` to convert a `S` into a `T`.
     #[inline]
     fn build_into(self) -> T { T::build_from(self) }
 }

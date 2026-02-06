@@ -61,7 +61,7 @@ impl Symbol {
         result
     }
 
-    /// Converts to symbols used in [`sym!`](macro@sym) and other related macros.
+    /// Converts to symbols used in `sym!` and other related macros of the `lexigram` crate.
     pub fn to_macro_item(&self) -> String {
         match self {
             Symbol::Empty => "e".to_string(),
@@ -213,32 +213,95 @@ impl OpCode {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Codes returned by the [check_abort_request(...)](ListenerWrapper::check_abort_request) method of
+/// the listener (via the wrapper pass-through).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Terminate {
+    /// Normal behaviour: continues parsing the text
+    None,
+    /// Irrecoverable error: stops parsing, calls the listener abort method, and returns an error
+    Abort,
+    /// Stops parsing, calls the listener exit method, and returns an Ok
+    Conclude,
+}
+
+/// Action calls to the wrapper with the method [ListenerWrapper::switch]. The wrapper translates the
+/// action accordingly to the current nonterminal and alternative; for example, by calling the
+/// appropriate listener callback.
 #[derive(PartialEq, Debug)]
-pub enum Call { Enter, Loop, Exit,  End(Terminate) }
+pub enum Call {
+    /// Enters a new nonterminal rule. The alternative is already known, but the values of the symbols
+    /// in that alternative haven't been scanned yet.
+    ///
+    /// This can be used to initialize the listener's variables when a particular rule is about to be
+    /// parsed (the listener methods associated with this action are normally optional since no
+    /// information is returned to the wrapper).
+    ///
+    /// The wrapper also uses this call to initialize stack items like accumulators used in rule loops
+    /// like `a -> b*`.
+    Enter,
+    /// Re-enters a loop nonterminal. This is currently not used in the wrapper.
+    Loop,
+    /// Exits an alternative, once all the symbols in it have been parsed: nonterminals and terminals.
+    ///
+    /// This is typically used to call an exit method of the listener and evaluate its value when it
+    /// has one.
+    Exit,
+    /// This action is used in two situations:
+    /// * when the parsing of the top rule has completed normally. In that case, the wrapper
+    ///   calls the [exit(...)] method of the listener (done in the generated code).
+    /// * when the parsing is [aborted](Terminate::Abort) or [concluded](Terminate::Conclude) in
+    ///  reaction to an [check_abort_request(...)](ListenerWrapper::check_abort_request) call. In
+    ///  that case, the wrapper calls the [abort(...)] method of the listener (done in the generated
+    ///  code).
+    ///
+    /// The [Terminate] value it contains tells the wrapper which of those eventualities has
+    /// occurred.
+    End(Terminate)
+}
 
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
-    fn switch(&mut self, _call: Call, _nt: VarId, _alt_id: AltId, _t_data: Option<Vec<String>>) {}
-    /// Checks if the wrapper requests an abort. This happens if an error is too difficult to recover from
-    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+    #[allow(unused_variables)]
+    fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {}
+
+    /// Checks if the listener requests an abort (wrapper pass-through). This method is called at the end of
+    /// each parser iteration. If an error is too difficult to recover from, the listener can set a flag that
+    /// tells to return a [Terminate::Abort] on the next call, and implement this method to return
+    /// the appropriate status.
+    ///
+    /// In that case, the parser
+    /// * calls [abort(...)](ListenerWrapper::abort)
+    /// * calls [switch([Call::End]([Terminate::Abort]))](ListenerWrapper::switch) (if there was no syntax error)
+    /// * returns [ParserError::AbortRequest].
     fn check_abort_request(&self) -> Terminate { Terminate::None }
+
     /// Aborts the parsing.
     fn abort(&mut self) {}
+
     /// Gets access to the listener's log to report possible errors and information about the parsing.
     fn get_mut_log(&mut self) -> &mut impl Logger;
+
     /// Pushes a location span onto the (optional) span stack
-    fn push_span(&mut self, _span: PosSpan) {}
+    #[allow(unused_variables)]
+    fn push_span(&mut self, span: PosSpan) {}
+
     /// Checks that the stack is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_empty(&self) -> bool { true }
+
     /// Checks that the stack_t is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_t_empty(&self) -> bool { true }
+
     /// Checks that the stack_span is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_span_empty(&self) -> bool { true }
-    /// Allows to dynamically translates a token
+
+    /// Allows to dynamically translate a token in the listener (wrapper pass-through)
     #[allow(unused_variables)]
     fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         token
     }
+
+    /// Allows to intercept any token in the listener (wrapper pass-through)
     #[allow(unused_variables)]
     fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         token
@@ -249,15 +312,57 @@ pub trait ListenerWrapper {
 
 pub type ParserToken = (TokenId, String, PosSpan);
 
+/// Code of the error that occurred during the parsing, returned by the
+/// [parse_stream(...)](Parser::parse_stream) method of the parser.
 #[derive(PartialEq, Debug)]
 pub enum ParserError {
+    /// A syntax error was met. Either
+    /// * The next terminal of the parsed text doesn't match the expected one in the current rule
+    ///   alternative; for example, a rule `assign -> "let" Id "=" expr ";";` has just successfully
+    ///   scanned the terminal `"let"`, but the next one isn't `Id`.
+    /// * The next symbol doesn't correspond to any correct option for the next nonterminal (
+    ///   in other words, there is no entry in the parsing table for that combination). For example,
+    ///   in the same rule as above, the terminal `"="` has just been scanned successfully, but `expr`
+    ///   doesn't begin with the next one.
+    ///
+    /// This error is returned only when the parser doesn't try to recover from syntax errors; this
+    /// option is set with the [set_try_recover(...)](Parser::set_try_recover) method and is
+    /// enabled by default.
+    ///
+    /// See also [ParserError::TooManyErrors].
     SyntaxError,
+    /// Too many syntax errors were met, either
+    /// * during the parsing. The limit is set by the constant [Parser::MAX_NBR_RECOVERS].
+    /// * by the lexer. The limit is set by the constant [Parser::MAX_NBR_LEXER_ERRORS].
+    ///
+    /// This error is returned only when the parser tries to recover from syntactic or lexical errors;
+    /// this option is set with the [set_try_recover(...)](Parser::set_try_recover) method and is
+    /// enabled by default.
+    ///
+    /// See also [ParserError::SyntaxError].
     TooManyErrors,
+    /// The parser has reached an irrecoverable error, after trying to recover from a syntax error and
+    /// encountering the end of the text.
     Irrecoverable,
+    /// The parser has reached the end of the top rule, but there are still terminals coming from
+    /// the lexer.
+    ///
+    /// Note that if the text is expected to contain something else after the part that must be parsed,
+    /// it is possible to tell the parser to conclude the parsing without looking any further. This
+    /// can be done in the listener with the [check_abort_request(...)] performed regularly by the
+    /// parser. See the [examples/terminate] parser to see how it can be used.
     ExtraSymbol,
+    /// The parser has encountered the end of the text, but the top rule hasn't been fully parsed.
     UnexpectedEOS,
+    /// This is an internal error that isn't supposed to happen.
     UnexpectedError,
+    /// The text has been fully parsed, but syntax errors were encountered by the parser (and could
+    /// be recovered from).
+    ///
+    /// See also [ParserError::SyntaxError].
     EncounteredErrors,
+    /// An [Abort](Terminate::Abort) was returned by the [check_abort_request(...)] method of the
+    /// listener.
     AbortRequest,
 }
 
@@ -276,16 +381,7 @@ impl Display for ParserError {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum Terminate {
-    /// Normal behaviour: continues parsing the text
-    None,
-    /// Irrecoverable error: stops parsing, calls the listener abort method, and returns an error
-    Abort,
-    /// Stops parsing, calls the listener exit method, and returns an Ok
-    Conclude,
-}
-
+/// Parser object. The [new(...)](Parser::new) method creates a new instance.
 pub struct Parser<'a> {
     num_nt: usize,
     num_t: usize,
@@ -318,15 +414,20 @@ impl<'a> Parser<'a> {
         Parser { num_nt, num_t, alt_var, alts, opcodes, init_opcodes, table, symbol_table, start, try_recover: true }
     }
 
+    /// Gets a reference to the symbol table, if one is attached.
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
         Some(&self.symbol_table)
     }
 
+    /// Sets the top nonterminal. The parser ends the parsing once the corresponding rule has been entirely parsed.
     pub fn set_start(&mut self, start: VarId) {
         assert!(self.num_nt > start as usize);
         self.start = start;
     }
 
+    /// Enables or disables the recovery from syntactic or lexical errors.
+    ///
+    /// See also [ParserError::TooManyErrors] and [ParserError::SyntaxError].
     pub fn set_try_recover(&mut self, try_recover: bool) {
         self.try_recover = try_recover;
     }
@@ -368,16 +469,19 @@ impl<'a> Parser<'a> {
         ok
     }
 
-    /// Parses an entire `stream` using the `listener`, and returns `Ok(())` if the whole stream could
-    /// be successfully parsed, or an error if it couldn't.
+    /// Parses the entire `stream`, calling the (listener) [wrapper](ListenerWrapper) with the
+    /// [actions](Call) that correspond to the parser events.
     ///
-    /// All errors are reported to the wrapper's log. Usually, the wrapper simply transmits the
-    /// reports to the user listener's log, where the user listener is embedded in the wrapper as one
-    /// of its fields and is defined by the user (instead of being generated like the wrapper).
+    /// Returns `Ok(())` if the whole stream could be successfully parsed, or an
+    /// [error](ParserError) if it couldn't.
+    ///
+    /// All errors are reported in the wrapper's log. Usually, the wrapper simply transmits the
+    /// reports to the user listener's log (done in the generated code).
     pub fn parse_stream<I, L>(&mut self, wrapper: &mut L, mut stream: I) -> Result<(), ParserError>
         where I: Iterator<Item=ParserToken>,
               L: ListenerWrapper,
     {
+        /// Outputs debug messages on stdout.
         const VERBOSE: bool = false;
 
         /// Delays the capture of the next token and the call to `intercept_token()` if it's possible.

@@ -48,7 +48,7 @@ use lexigram_core::CollectJoin;
 ///
 /// The new rules are called "children" of the transformed rules, and can be added
 /// with [`add_child_nonterminal()`](SymbolTable::add_child_nonterminal). The name
-/// is the parent's name followed by "_<number>". For example, adding a child to
+/// is the parent's name followed by "`_<number>`". For example, adding a child to
 /// nonterminal 0 creates
 ///
 /// ```ignore
