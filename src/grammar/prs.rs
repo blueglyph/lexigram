@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use super::*;
-use crate::{columns_to_str, AltId, SymbolTable, VarId};
+use crate::{columns_to_str, AltId, CharLen, SymbolTable, VarId};
 use lexigram_core::alt::{alt_to_rule_str, Alternative};
 use lexigram_core::CollectJoin;
 use lexigram_core::log::LogMsg;
@@ -1000,7 +1000,7 @@ impl<T> ProdRuleSet<T> {
 
             ]));
         let mut lines = columns_to_str(cols, None);
-        let max = lines.iter().map(|s| { s.replace(STR_BEFORE_ANSI, "").replace(STR_AFTER_ANSI, "").chars().count()}).max().unwrap();
+        let max = lines.iter().map(|s| s.replace(STR_BEFORE_ANSI, "").replace(STR_AFTER_ANSI, "").charlen()).max().unwrap();
         let sep = format!("{:-<1$}", "", max);
         lines.push(sep.clone());
         lines.insert(n1, sep.clone());

@@ -152,9 +152,9 @@ pub trait CharLen {
     fn charlen(&self) -> usize;
 }
 
-impl CharLen for str {
+impl<T: AsRef<str>> CharLen for T {
     fn charlen(&self) -> usize {
-        self.chars().count()
+        self.as_ref().chars().count()
     }
 }
 
@@ -301,8 +301,8 @@ mod libtests {
 
     #[test]
     fn test_charlen() {
-        assert_eq!("".to_string().charlen(), 0);
-        assert_eq!("12345".to_string().charlen(), 5);
+        assert_eq!("".charlen(), 0);
+        assert_eq!("12345".charlen(), 5);
         assert_eq!("◄123►".to_string().charlen(), 5);
     }
 

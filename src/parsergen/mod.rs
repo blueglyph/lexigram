@@ -7,7 +7,7 @@ use lexigram_core::alt::Alternative;
 use lexigram_core::log::LogMsg;
 use lexigram_core::TokenId;
 use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet};
-use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
+use crate::{columns_to_str, indent_source, AltId, CharLen, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::alt::ruleflag;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
@@ -2743,7 +2743,7 @@ impl ParserGen {
             ]);
         }
         let mut txt = columns_to_str(cols, Some(vec![3, 5, 0, /*0,*/ 0, 0]));
-        if let Some(max) = txt.get(1).map(|s| s.chars().count()) {
+        if let Some(max) = txt.get(1).map(|s| s.charlen()) {
             let sep = format!("+{:-<1$}+", "", max - 2);
             txt.insert(1, sep.clone());
             txt.push(sep);
@@ -2784,7 +2784,7 @@ impl ParserGen {
             }
         }
         let mut txt = columns_to_str(cols, Some(vec![3, 5, 0, 0, 0, 0]));
-        if let Some(max) = txt.get(1).map(|s| s.chars().count()) {
+        if let Some(max) = txt.get(1).map(|s| s.charlen()) {
             let sep = format!("+{:-<1$}+", "", max - 2);
             txt.insert(1, sep.clone());
             txt.push(sep);
