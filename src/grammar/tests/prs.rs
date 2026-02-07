@@ -1364,7 +1364,7 @@ fn prs_calc_table() {
         if VERBOSE {
             ll1.print_flags();
         }
-        let ambig_warnings = ll1.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
+        let ambig_warnings = ll1.log.get_warnings().filter(|w| w.get_inner_str().contains("calc_table: ambiguity")).join("\n");
         let result_is_ambiguous = !ambig_warnings.is_empty();
         if num_nt * num_t != table.len() {
             if VERBOSE { println!("{msg}: incorrect table size"); }
@@ -1513,11 +1513,11 @@ fn prs_grammar_notes() {
         assert_eq!(ll1.log.num_errors(), expected_errors.len(), "{msg}failed on # errors");
         assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "{msg}failed on # warnings");
         let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
-            if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
+            if !e.get_inner_str().contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
         ).to_vec();
         assert!(err_discr.is_empty(), "{msg}has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
         let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
-            if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
+            if !w.get_inner_str().contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
         ).to_vec();
         assert!(warn_discr.is_empty(), "{msg}has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }

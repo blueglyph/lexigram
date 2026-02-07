@@ -1492,11 +1492,11 @@ fn dfa_states() {
             }
             if dfa.get_log().num_warnings() != expected_warnings {
                 msg.push("Number of warnings not as expected".to_string());
-                msg.extend(dfa.get_log().get_warnings().cloned());
+                msg.extend(dfa.get_log().get_warnings().map(|m| m.to_string()));
             }
             if !dfa.get_log().has_no_errors() {
                 msg.push("Errors:".to_string());
-                msg.extend(dfa.get_log().get_errors().cloned());
+                msg.extend(dfa.get_log().get_errors().map(|m| m.to_string()));
             }
             if msg.len() > 0 {
                 println!("ERRORS in test {test_id}:");
@@ -1774,7 +1774,7 @@ fn dfa_error() {
         if VERBOSE { println!("Messages DfaBuilder:\n{}", dfa_builder.get_log().get_messages_str())}
         let dfa = Dfa::<General>::build_from(dfa_builder.clone());
         if VERBOSE { println!("Messages Dfa:\n{}", dfa.get_log().get_messages_str()); }
-        let result_error_msgs = dfa.get_log().get_errors().to_vec();
+        let result_error_msgs = dfa.get_log().get_errors().map(|m| m.get_inner_str()).to_vec();
         assert_eq!(expected_error_msgs, result_error_msgs, "test {test_id} failed");
 
         let try_dfa = Dfa::<General>::try_build_from(dfa_builder);

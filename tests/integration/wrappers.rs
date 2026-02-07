@@ -642,11 +642,11 @@ mod rules_640_1 {
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    Some(wrapper.get_listener().log.get_errors().map(|s| s.as_str()).to_vec())
+                    Some(wrapper.get_listener().log.get_errors().map(|s| s.to_string()).to_vec())
                 }
             };
             if VERBOSE {
-                let msg = wrapper.get_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = wrapper.get_listener().log.get_messages().map(|s| format!("- {s}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -775,7 +775,7 @@ mod rules_641_1 {
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    Some(wrapper.get_listener().log.get_errors().map(|s| s.as_str()).to_vec())
+                    Some(wrapper.get_listener().log.get_errors().map(|s| s.to_string()).to_vec())
                 }
             };
             if VERBOSE {
@@ -908,7 +908,7 @@ mod rules_642_1 {
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    Some(wrapper.get_listener().log.get_errors().map(|s| s.as_str()).to_vec())
+                    Some(wrapper.get_listener().log.get_errors().map(|s| s.to_string()).to_vec())
                 }
             };
             if VERBOSE {

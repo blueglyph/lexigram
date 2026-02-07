@@ -28,20 +28,29 @@ pub trait LogStatus: Debug {
         self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
     }
 
-    fn get_notes(&self) -> impl Iterator<Item = &String> {
-        self.get_messages().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
+    fn get_notes(&self) -> impl Iterator<Item = &LogMsg> {
+        self.get_messages().filter_map(|m| if let LogMsg::Note(_) = m { Some(m) } else { None })
     }
 
-    fn get_infos(&self) -> impl Iterator<Item = &String> {
-        self.get_messages().filter_map(|m| if let LogMsg::Info(s) = m { Some(s) } else { None })
+    fn get_infos(&self) -> impl Iterator<Item = &LogMsg> {
+        self.get_messages().filter_map(|m| if let LogMsg::Info(_) = m { Some(m) } else { None })
     }
 
-    fn get_warnings(&self) -> impl Iterator<Item = &String> {
-        self.get_messages().filter_map(|m| if let LogMsg::Warning(s) = m { Some(s) } else { None })
+    fn get_warnings(&self) -> impl Iterator<Item = &LogMsg> {
+        self.get_messages().filter_map(|m| if let LogMsg::Warning(_) = m { Some(m) } else { None })
     }
 
-    fn get_errors(&self) -> impl Iterator<Item = &String> {
-        self.get_messages().filter_map(|m| if let LogMsg::Error(s) = m { Some(s) } else { None })
+    fn get_errors(&self) -> impl Iterator<Item = &LogMsg> {
+        self.get_messages().filter_map(|m| if let LogMsg::Error(_) = m { Some(m) } else { None })
+    }
+
+    fn get_totals(&self) -> String {
+        format!(
+            "{} note(s)\n{} info(s)\n{} warning(s)\n{} error(s)",
+            self.num_notes(),
+            self.num_infos(),
+            self.num_warnings(),
+            self.num_errors())
     }
 }
 
@@ -117,10 +126,21 @@ impl Logger for PrintLog {
 #[derive(Clone, Debug)]
 pub enum LogMsg { NoLogStore, Note(String), Info(String), Warning(String), Error(String) }
 
+impl LogMsg {
+    pub fn get_inner_str(&self) -> &str {
+        match self {
+            LogMsg::NoLogStore => "The log messages were not stored",
+            LogMsg::Note(s)
+            | LogMsg::Info(s)
+            | LogMsg::Warning(s)
+            | LogMsg::Error(s) => s.as_str()
+        }
+    }
+}
 impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            LogMsg::NoLogStore => write!(f, "The log messages were not stored"),
+            LogMsg::NoLogStore => write!(f, "{}", self.get_inner_str()),
             LogMsg::Note(s) =>    write!(f, "Note   : {s}"),
             LogMsg::Info(s) =>    write!(f, "Info   : {s}"),
             LogMsg::Warning(s) => write!(f, "Warning: {s}"),
@@ -237,7 +257,7 @@ impl Default for BufLog {
 impl Display for BufLog {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}", self.get_messages_str())?;
-        writeln!(f, "{} note(s)\n{} info(s)\n{} warning(s)\n{} error(s)", self.num_notes(), self.num_infos(), self.num_warnings(), self.num_errors())
+        writeln!(f, "{}", self.get_totals())
     }
 }
 

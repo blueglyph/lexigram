@@ -207,7 +207,7 @@ fn catch_errors() {
             Err(log) => log,
         };
         if VERBOSE { println!("Log:\n{log}"); }
-        let mut result_errors = log.get_errors().map(|s| s.as_str()).to_vec();
+        let mut result_errors = log.get_errors().map(|s| s.get_inner_str()).to_vec();
         if VERBOSE_ANSWER {
             println!("Result:");
             println!("            vec![\n{}", result_errors.iter().map(|s| format!("                {s:?},")).join("\n"));

@@ -618,11 +618,11 @@ fn parser_parse_stream_id() {
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    Some(listener.0.get_errors().map(|s| s.as_str()).to_vec())
+                    Some(listener.0.get_errors().map(|s| s.get_inner_str()).to_vec())
                 }
             };
             if VERBOSE {
-                let msg = listener.0.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.0.get_messages().map(|s| format!("- {s}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }

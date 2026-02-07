@@ -2272,7 +2272,7 @@ mod wrapper_source {
             builder.set_gen_span_params(true);
             builder.set_include_alts(true);
             builder.use_full_lib(true);
-            let ambig_warnings = builder.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
+            let ambig_warnings = builder.log.get_warnings().filter(|w| w.get_inner_str().contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
             builder.set_nt_value(&has_value);
             if VERBOSE {

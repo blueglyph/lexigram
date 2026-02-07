@@ -2,6 +2,7 @@
 
 use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
 use lexi_gram::{lexigram_lib, LEXIGRAM_PKG_VERSION, LEXIGRAM_PKG_NAME};
+use lexi_gram::lexigram_lib::CollectJoin;
 use lexigram_lib::{LIB_PKG_VERSION, LIB_PKG_NAME};
 use lexigram_lib::lexigram_core::{CORE_PKG_VERSION, CORE_PKG_NAME};
 use lexigram_lib::log::LogStatus;
@@ -61,9 +62,9 @@ fn main() {
                     if let Some(log) = source.get_log() {
                         if show_log {
                             eprintln!("{log}");
+                        } else {
+                            eprintln!("{}", log.get_totals());
                         }
-                        if log.num_errors() > 0 { eprintln!("{} error(s)", log.num_errors()) }
-                        if log.num_warnings() > 0 { eprintln!("{} error(s)", log.num_warnings()) }
                     }
                     3
                 }
@@ -79,7 +80,11 @@ pub fn execute(all_args: Vec<String>) -> Result<Option<String>, ExeError> {
     let ArgOptions { gen_options, show_log } = arg_options;
     match try_gen_parser(action, gen_options) {
         Ok(log) => {
-            Ok(if show_log { Some(log.to_string()) } else { None })
+            Ok(if show_log {
+                Some(log.to_string())
+            } else {
+                Some(format!("{}{}", log.get_warnings().map(|s| s.to_string()).join("\n"), log.get_totals()))
+            })
         }
         Err(source) => {
             Err(ExeError::GenParser { source, show_log })

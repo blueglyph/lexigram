@@ -96,7 +96,7 @@ fn test_terminate() {
                 for exp_err in expected_errors {
                     let mut next_err = errors.next();
                     while let Some(err) = next_err {
-                        if err.contains(exp_err) {
+                        if err.get_inner_str().contains(exp_err) {
                             break;
                         }
                         next_err = errors.next();

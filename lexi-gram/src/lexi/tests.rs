@@ -873,7 +873,7 @@ mod lexicon {
                 for m in listener.get_log().get_errors() {
                     let mut i = 0;
                     while i < expected_errors.len() {
-                        if m.contains(expected_errors[i]) {
+                        if m.get_inner_str().contains(expected_errors[i]) {
                             expected_errors.remove(i);
                             break;
                         } else {
@@ -893,7 +893,7 @@ mod lexicon {
                 for m in listener.get_log().get_warnings() {
                     let mut i = 0;
                     while i < expected_warnings.len() {
-                        if m.contains(expected_warnings[i]) {
+                        if m.get_inner_str().contains(expected_warnings[i]) {
                             expected_warnings.remove(i);
                             break;
                         } else {

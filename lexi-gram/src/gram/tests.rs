@@ -225,7 +225,7 @@ mod listener {
             for m in ll1.get_log().get_errors() {
                 let mut i = 0;
                 while i < expected_grammar_errors.len() {
-                    if m.contains(expected_grammar_errors[i]) {
+                    if m.get_inner_str().contains(expected_grammar_errors[i]) {
                         expected_grammar_errors.remove(i);
                         break;
                     } else {
