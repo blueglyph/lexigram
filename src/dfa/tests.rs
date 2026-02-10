@@ -479,6 +479,34 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(p1), node!(['a'-'z']));
             re.add(Some(cc1), node!(=1));
         }
+        34 => {
+            // (a<end:0>|[a-z]+<end:1>)
+            let or = re.add_root(node!(|));
+            re.addc_iter(Some(or), node!(&), [node!(chr 'a'), node!(=0)]);
+            let cc0 = re.add(Some(or), node!(&));
+            re.addc_iter(Some(cc0), node!(+), [node!(['a'-'z'])]);
+            re.add(Some(cc0), node!(=1));
+        }
+        35 => {
+            // (a:<end:0>|[a-z]+:<end:1>)
+            let or = re.add_root(node!(|));
+            re.addc_iter(Some(or), node!(&), [node!(chr 'a'), node!(chr ':'), node!(=0)]);
+            let cc0 = re.add(Some(or), node!(&));
+            re.addc_iter(Some(cc0), node!(+), [node!(['a'-'z'])]);
+            re.add_iter(Some(cc0), [node!(chr ':'), node!(=1)]);
+        }
+        36 => {
+            // (a:[ ]+<end:0>|[a-z]+:[ ]+<end:1>)
+            let or = re.add_root(node!(|));
+            let cc0 = re.addc_iter(Some(or), node!(&), [node!(chr 'a'), node!(chr ':')]);
+            re.addc(Some(cc0), node!(*), node!(chr ' '));
+            re.add(Some(cc0), node!(=0));
+            let cc0 = re.add(Some(or), node!(&));
+            re.addc_iter(Some(cc0), node!(+), [node!(['a'-'z'])]);
+            re.add_iter(Some(cc0), [node!(chr ':')]);
+            re.addc(Some(cc0), node!(*), node!(chr ' '));
+            re.add(Some(cc0), node!(=1));
+        }
         // error tests ---------------------------------------------------------
         200 => { // abc(a|b)""<end>
             let root = re.add_root(node!(&));
@@ -723,6 +751,9 @@ fn dfa_nullable() {
         (25, "&(1:'/',2:'*',??(+(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
         (26, "&(1:'/',2:'*',!??(!*(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
         (30, "|(&(??(+(1:[DOT])),2:'/',3:<skip>),&(4:'*',5:'/',6:<end:1>))"),
+        (34, "|(&(1:'a',2:<end:0>),&(+(3:['a'-'z']),4:<end:1>))"),
+        (35, "|(&(1:'a',2:':',3:<end:0>),&(+(4:['a'-'z']),5:':',6:<end:1>))"),
+        (36, "|(&(1:'a',2:':',!*(3:' '),4:<end:0>),&(+(5:['a'-'z']),6:':',!*(7:' '),8:<end:1>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -859,6 +890,17 @@ fn dfa_firstpos() {
             vec![4, 5],
             vec![1, 2, 4, 5],
         ]),
+        // (a<end:0>|[a-z]+<end:1>)
+        (34, vec![
+            vec![1], vec![2], vec![1], vec![3], vec![3], vec![4], vec![3], vec![1, 3]
+        ]),
+        // (a:<end:0>|[a-z]+:<end:1>)
+        (35, vec![
+            vec![1], vec![2], vec![3], vec![1], vec![4], vec![4], vec![5], vec![6], vec![4], vec![1, 4]
+        ]),
+        (36, vec![
+            vec![1], vec![2], vec![3], vec![3], vec![4], vec![1], vec![5], vec![5], vec![6], vec![7], vec![7], vec![8], vec![5], vec![1, 5]
+        ]),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -990,7 +1032,15 @@ fn dfa_lastpos() {
             vec![5],
             vec![5],
             vec![3, 5]
-        ])
+        ]),
+        // (a<end:0>|[a-z]+<end:1>)
+        (34, vec![
+            vec![1], vec![2], vec![2], vec![3], vec![3], vec![4], vec![4], vec![2, 4]
+        ]),
+        // (a:<end:0>|[a-z]+:<end:1>)
+        (35, vec![
+            vec![1], vec![2], vec![3], vec![3], vec![4], vec![4], vec![5], vec![6], vec![6], vec![3, 6],
+        ]),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1141,7 +1191,33 @@ fn dfa_followpos() {
             3 => btreeset![],
             4 => btreeset![4, 5],
             5 => btreeset![]
-        ])
+        ]),
+        // (a<end:0>|[a-z]+<end:1>)
+        (34, btreemap![
+            1 => btreeset![2],
+            2 => btreeset![],
+            3 => btreeset![3, 4],
+            4 => btreeset![],
+        ]),
+        // (a:<end:0>|[a-z]+:<end:1>)
+        (35, btreemap![
+            1 => btreeset![2],
+            2 => btreeset![3],
+            3 => btreeset![],
+            4 => btreeset![4, 5],
+            5 => btreeset![6],
+            6 => btreeset![],
+        ]),
+        (36, btreemap![
+            1 => btreeset![2],
+            2 => btreeset![3, 4],
+            3 => btreeset![3, 4],
+            4 => btreeset![],
+            5 => btreeset![5, 6],
+            6 => btreeset![7, 8],
+            7 => btreeset![7, 8],
+            8 => btreeset![],
+        ]),
     };
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1466,6 +1542,30 @@ fn dfa_states() {
             2 => branch!('a'-'e', 'g'-'z' => 1, 'f' => 3), // <end:1>
             3 => branch!('a'-'z' => 1), // <end:0>
         ], btreemap![1 => term!(=1), 2 => term!(=1), 3 => term!(=0)], 0),
+        (34, btreemap![
+            0 => branch!('a' => 1, 'b'-'z' => 2),
+            1 => branch!('a'-'z' => 2), // <end:0>
+            2 => branch!('a'-'z' => 2), // <end:1>
+        ], btreemap![1 => term!(=0), 2 => term!(=1)], 0),
+        (35, btreemap![
+            0 => branch!('a' => 1, 'b'-'z' => 2),
+            1 => branch!(':' => 3, 'a'-'z' => 2),
+            2 => branch!(':' => 4, 'a'-'z' => 2),
+            3 => branch!(), // <end:0>
+            4 => branch!(), // <end:1>
+        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0),
+        // (a:[ ]+<end:0>|[a-z]+:[ ]+<end:1>)
+        (36, btreemap![
+            0 => branch!('a' => 1, 'b'-'z' => 2),
+            1 => branch!(':' => 3, 'a'-'z' => 2),
+            2 => branch!(':' => 4, 'a'-'z' => 2),
+            3 => branch!(' ' => 3), // <end:0>
+            4 => branch!(' ' => 4), // <end:1>
+        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0),
+        /* template
+        (, btreemap![
+        ], btreemap![], 0),
+        */
     ];
     const VERBOSE: bool = false;
     const RUN_ALL: bool = false;
