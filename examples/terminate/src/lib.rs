@@ -257,7 +257,6 @@ impl TerminateListener for Listener<'_> {
             }
             // line -> "SHUTDOWN"
             CtxLine::V4 => {
-                println!("SHUTDOWN!");
                 self.log.add_note(format!("encountered SHUTDOWN, parsing ended:\n{}", self.annotate_text(&span)));
                 self.abort = Terminate::Conclude;
             }
@@ -266,7 +265,6 @@ impl TerminateListener for Listener<'_> {
     }
 
     fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) -> SynMessage {
-        println!("exit_message(ctx={ctx:?}, spans={})", spans.iter().map(|s| s.to_string()).join(", "));
         if !self.sync_first {
             if self.curr_process.is_none() && !matches!(ctx, CtxMessage::V4 { .. }) {
                 let span = spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp);

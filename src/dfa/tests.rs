@@ -134,15 +134,23 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc3), node!(=2));
         },
         11 => {
-            // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
-            //       or1:                      ^         ^            ^        ^        ^
-            //          cc--------------------- --------- ------------ -------- -------- --------
-            //             or2    or3 star3
+            // [ \t\n\r]*(if<end:0>|print<end:1>|[a-z][a-z0-9]*<end:2>|=<end:3>|+<end:4>|;<end:5>)
+            //       or1:          ^            ^                     ^        ^        ^
+            //          cc--------- ------------ --------------------- -------- -------- --------
+            //                                    or2    or3 star3
             let cc0 = re.add_root(node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
             re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
             let or1 = re.add(Some(cc0), node!(|));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "if"));
+            re.add(Some(cc), node!(=0));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "print"));
+            re.add(Some(cc), node!(=1));
 
             let cc = re.add(Some(or1), node!(&));
             let or2 = re.add(Some(cc), node!(|));
@@ -151,14 +159,6 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let or3 = re.add(Some(star3), node!(|));
             re.add_iter(Some(or3), node!(chr 'a', 'z'));
             re.add_iter(Some(or3), node!(chr '0', '9'));
-            re.add(Some(cc), node!(=0));
-
-            let cc = re.add(Some(or1), node!(&));
-            re.add(Some(cc), node!(str "if"));
-            re.add(Some(cc), node!(=1));
-
-            let cc = re.add(Some(or1), node!(&));
-            re.add(Some(cc), node!(str "print"));
             re.add(Some(cc), node!(=2));
 
             let cc = re.add(Some(or1), node!(&));
@@ -281,27 +281,27 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         20 => {
             // revisiting 11:
-            // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
-            //       or1:                      ^         ^            ^        ^        ^
-            //          cc--------------------- --------- ------------ -------- -------- --------
-            //                        star3
+            // [ \t\n\r]*(if<end:0>|print<end:1>|[a-z][a-z0-9]*<end:2>|=<end:3>|+<end:4>|;<end:5>)
+            //       or1:          ^            ^                     ^        ^        ^
+            //          cc--------- ------------ --------------------- -------- -------- --------
+            //                                               star3
             let cc0 = re.add_root(node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             re.add(Some(s0), node!([' ', '\t', '\n', '\r']));
             let or1 = re.add(Some(cc0), node!(|));
 
             let cc = re.add(Some(or1), node!(&));
-            re.add(Some(cc), node!(['a'-'z']));
-            let star3 = re.add(Some(cc), node!(*));
-            re.add(Some(star3), node!(['a'-'z', '0'-'9']));
+            re.add(Some(cc), node!(str "if"));
             re.add(Some(cc), node!(=0));
 
             let cc = re.add(Some(or1), node!(&));
-            re.add(Some(cc), node!(str "if"));
+            re.add(Some(cc), node!(str "print"));
             re.add(Some(cc), node!(=1));
 
             let cc = re.add(Some(or1), node!(&));
-            re.add(Some(cc), node!(str "print"));
+            re.add(Some(cc), node!(['a'-'z']));
+            let star3 = re.add(Some(cc), node!(*));
+            re.add(Some(star3), node!(['a'-'z', '0'-'9']));
             re.add(Some(cc), node!(=2));
 
             let cc = re.add(Some(or1), node!(&));
@@ -362,15 +362,15 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(term!(skip)));
         },
         24 => {
-            // (.+?<skip>|'*'/<pop>)
+            // ('*/'<end:0>|.+?<skip>)
             let or = re.add_root(node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=0))]);
             let cc2 = re.add(Some(or), node!(&));
             let l2 = re.add(Some(cc2), node!(??));
             let s2 = re.add(Some(l2), node!(+));
             re.add(Some(s2), node!([DOT]));
             re.add(Some(cc2), node!(term!(skip)));
-            let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
         },
         25 => {
             // /'*'.+?'*'/<end:0>
@@ -441,16 +441,16 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc4), node!(=3));
         },
         30 => {
-            // variation on 24: (.+?'/'<skip>|'*/'<pop>)
+            // variation on 24: ('*/'<end:0>|.+?'/'<skip>)
             let or = re.add_root(node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=0))]);
             let cc2 = re.add(Some(or), node!(&));
             let l2 = re.add(Some(cc2), node!(??));
             let s2 = re.add(Some(l2), node!(+));
             re.add(Some(s2), node!([DOT]));
             re.add(Some(cc2), node!(chr '/'));
             re.add(Some(cc2), node!(term!(skip)));
-            let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
         },
         31 => {
             // & and | with only one child: "|(&(&(1:'a'),2:<end:0>))"
@@ -479,6 +479,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(p1), node!(['a'-'z']));
             re.add(Some(cc1), node!(=1));
         }
+        // more conflict tests:
         34 => {
             // (a<end:0>|[a-z]+<end:1>)
             let or = re.add_root(node!(|));
@@ -506,6 +507,24 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc0), [node!(chr ':')]);
             re.addc(Some(cc0), node!(*), node!(chr ' '));
             re.add(Some(cc0), node!(=1));
+        }
+        // failing conflicts:
+        100 => {
+            // error: <end:1> is never selected
+            // ([a-z]+<end:0>|a<end:1>)
+            let or = re.add_root(node!(|));
+            let cc0 = re.add(Some(or), node!(&));
+            re.addc_iter(Some(cc0), node!(+), [node!(['a'-'z'])]);
+            re.add(Some(cc0), node!(=0));
+            re.addc_iter(Some(or), node!(&), [node!(chr 'a'), node!(=1)]);
+        }
+        101 => {
+            // error: <end:1> and <end:2> are never selected
+            // ['a'-'z']<end:0>|['a'-'m']<end:1>|a<end:2>
+            let or = re.add_root(node!(|));
+            re.addc_iter(Some(or), node!(&), [node!(['a'-'z']), node!(=0)]);
+            re.addc_iter(Some(or), node!(&), [node!(['a'-'m']), node!(=1)]);
+            re.addc_iter(Some(or), node!(&), [node!(chr 'a'), node!(=2)]);
         }
         // error tests ---------------------------------------------------------
         200 => { // abc(a|b)""<end>
@@ -738,19 +757,19 @@ fn dfa_nullable() {
         (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
         (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
         (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"),
-        (11, "&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),|(&(|(5:'a',6:'b',7:'c',8:'d',9:'e',10:'f',11:'g',12:'h',13:'i',14:'j',15:'k',16:'l',17:'m',18:'n',19:'o',20:'p',21:'q',22:'r',23:'s',24:'t',25:'u',26:'v',27:'w',28:'x',29:'y',30:'z'),!*(|(31:'a',32:'b',33:'c',34:'d',35:'e',36:'f',37:'g',38:'h',39:'i',40:'j',41:'k',42:'l',43:'m',44:'n',45:'o',46:'p',47:'q',48:'r',49:'s',50:'t',51:'u',52:'v',53:'w',54:'x',55:'y',56:'z',57:'0',58:'1',59:'2',60:'3',61:'4',62:'5',63:'6',64:'7',65:'8',66:'9')),67:<end:0>),&(&(68:'i',69:'f'),70:<end:1>),&(&(71:'p',72:'r',73:'i',74:'n',75:'t'),76:<end:2>),&(77:'=',78:<end:3>),&(79:'+',80:<end:4>),&(81:';',82:<end:5>)))"),
+        (11, "&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),|(&(&(5:'i',6:'f'),7:<end:0>),&(&(8:'p',9:'r',10:'i',11:'n',12:'t'),13:<end:1>),&(|(14:'a',15:'b',16:'c',17:'d',18:'e',19:'f',20:'g',21:'h',22:'i',23:'j',24:'k',25:'l',26:'m',27:'n',28:'o',29:'p',30:'q',31:'r',32:'s',33:'t',34:'u',35:'v',36:'w',37:'x',38:'y',39:'z'),!*(|(40:'a',41:'b',42:'c',43:'d',44:'e',45:'f',46:'g',47:'h',48:'i',49:'j',50:'k',51:'l',52:'m',53:'n',54:'o',55:'p',56:'q',57:'r',58:'s',59:'t',60:'u',61:'v',62:'w',63:'x',64:'y',65:'z',66:'0',67:'1',68:'2',69:'3',70:'4',71:'5',72:'6',73:'7',74:'8',75:'9')),76:<end:2>),&(77:'=',78:<end:3>),&(79:'+',80:<end:4>),&(81:';',82:<end:5>)))"),
         (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
         (17, "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
         (19, "|(&(+(1:['a'-'f']),2:<end:0>),&(3:'\\'',4:[DOT],5:'\\'',6:<end:1>))"),
-        (20, "&(!*(1:['\\t'-'\\n', '\\r', ' ']),|(&(2:['a'-'z'],!*(3:['0'-'9', 'a'-'z']),4:<end:0>),&(&(5:'i',6:'f'),7:<end:1>),&(&(8:'p',9:'r',10:'i',11:'n',12:'t'),13:<end:2>),&(14:'=',15:<end:3>),&(16:'+',17:<end:4>),&(18:';',19:<end:5>)))"),
+        (20, "&(!*(1:['\\t'-'\\n', '\\r', ' ']),|(&(&(2:'i',3:'f'),4:<end:0>),&(&(5:'p',6:'r',7:'i',8:'n',9:'t'),10:<end:1>),&(11:['a'-'z'],!*(12:['0'-'9', 'a'-'z']),13:<end:2>),&(14:'=',15:<end:3>),&(16:'+',17:<end:4>),&(18:';',19:<end:5>)))"),
         (21, "|(&(!*(|(1:['\\t'-'\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
         (22, "|(&(+(|(1:['\\t'-'\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
         (23, "|(&(1:'*',2:'/',3:<end:1>),&(??(+(4:[DOT])),5:<skip>))"),
         (25, "&(1:'/',2:'*',??(+(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
         (26, "&(1:'/',2:'*',!??(!*(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
-        (30, "|(&(??(+(1:[DOT])),2:'/',3:<skip>),&(4:'*',5:'/',6:<end:1>))"),
+        (30, "|(&(1:'*',2:'/',3:<end:0>),&(??(+(4:[DOT])),5:'/',6:<skip>))"),
         (34, "|(&(1:'a',2:<end:0>),&(+(3:['a'-'z']),4:<end:1>))"),
         (35, "|(&(1:'a',2:':',3:<end:0>),&(+(4:['a'-'z']),5:':',6:<end:1>))"),
         (36, "|(&(1:'a',2:':',!*(3:' '),4:<end:0>),&(+(5:['a'-'z']),6:':',!*(7:' '),8:<end:1>))"),
@@ -1237,50 +1256,45 @@ fn dfa_states() {
             1 => branch!('a' => 1, 'b' => 2),
             2 => branch!('a' => 1, 'b' => 3),
             3 => branch!('a' => 1, 'b' => 0),
-        ], btreemap![3 => term!(=0)], 0),
+        ], btreemap![3 => term!(=0)], 0, 0),
         // (a|b)*abb<end>
         (1, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
             1 => branch!('a' => 1, 'b' => 2),
             2 => branch!('a' => 1, 'b' => 3),
             3 => branch!('a' => 1, 'b' => 0),
-        ], btreemap![3 => term!(=0)], 0),
+        ], btreemap![3 => term!(=0)], 0, 0),
         (2, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
             1 => branch!('a' => 1, 'b' => 2),
             2 => branch!('a' => 1, 'b' => 3),
             3 => branch!('a' => 1, 'b' => 0),
-        ], btreemap![3 => term!(=0)], 0),
-        // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
+        ], btreemap![3 => term!(=0)], 0, 0),
         (3, btreemap![
             0 => branch!('a' => 1),
             1 => branch!('b' => 2),
             2 => branch!('c' => 3),
             3 => branch!('a'-'b' => 4),
             4 => branch!()
-        ], btreemap![4 => term!(=0)], 0),
-        // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
+        ], btreemap![4 => term!(=0)], 0, 0),
         (4, btreemap![
             0 => branch!('s' => 1),
             1 => branch!('a'-'b' => 2),
             2 => branch!(),
-        ], btreemap![2 => term!(=0)], 0),
-        // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
+        ], btreemap![2 => term!(=0)], 0, 0),
         (5, btreemap![
             0 => branch!('s' => 1),
             1 => branch!('a' => 2, 'b' => 3),
             2 => branch!(),
             3 => branch!(),
-        ], btreemap![2 => term!(=0), 3 => term!(=1)], 0),
-        // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
+        ], btreemap![2 => term!(=0), 3 => term!(=1)], 0, 0),
         (6, btreemap![
             0 => branch!('a' => 1),
             1 => branch!('b' => 2, 'd' => 3),
             2 => branch!('c' => 4),
             3 => branch!(),
             4 => branch!('d' => 3)
-        ], btreemap![3 => term!(=0)], 0),
-        // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
+        ], btreemap![3 => term!(=0)], 0, 0),
         (7, btreemap![
             0 => branch!('a' => 1),
             1 => branch!('b' => 2, 'd' => 3, 'e' => 4),
@@ -1288,22 +1302,19 @@ fn dfa_states() {
             3 => branch!('e' => 4),
             4 => branch!(),
             5 => branch!('d' => 3, 'e' => 4)
-        ], btreemap![4 => term!(=0)], 0),
-        // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
+        ], btreemap![4 => term!(=0)], 0, 0),
         (8, btreemap![
             0 => branch!('a' => 1),
             1 => branch!('b' => 2),
             2 => branch!()
-        ], btreemap![1 => term!(=0), 2 => term!(=1)], 0),
-        // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
+        ], btreemap![1 => term!(=0), 2 => term!(=1)], 0, 0),
         (9, btreemap![
             0 => branch!('a' => 1),
             1 => branch!('b'-'c' => 2),
             2 => branch!('b'-'c' => 2, 'd' => 3),
             3 => branch!()
-        ], btreemap![3 => term!(=0)], 0),
+        ], btreemap![3 => term!(=0)], 0, 0),
         // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
-        // "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"
         (10, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 1, '0' => 2, '1'-'9' => 3),
             1 => branch!('\t'-'\n', '\r', ' ' => 1, '0'-'9' => 3),
@@ -1313,25 +1324,25 @@ fn dfa_states() {
             5 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7),
             6 => branch!('0'-'9' => 6), // <end:1>
             7 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7), // <end:2>
-        ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)], 0),
-        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
-        // "&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),|(&(|(5:'a',6:'b',7:'c',8:'d',9:'e',10:'f',11:'g',12:'h',13:'i',14:'j',15:'k',16:'l',17:'m',18:'n',19:'o',20:'p',21:'q',22:'r',23:'s',24:'t',25:'u',26:'v',27:'w',28:'x',29:'y',30:'z'),!*(|(31:'a',32:'b',33:'c',34:'d',35:'e',36:'f',37:'g',38:'h',39:'i',40:'j',41:'k',42:'l',43:'m',44:'n',45:'o',46:'p',47:'q',48:'r',49:'s',50:'t',51:'u',52:'v',53:'w',54:'x',55:'y',56:'z',57:'0',58:'1',59:'2',60:'3',61:'4',62:'5',63:'6',64:'7',65:'8',66:'9')),67:<end:0>),&(&(68:'i',69:'f'),70:<end:1>),&(&(71:'p',72:'r',73:'i',74:'n',75:'t'),76:<end:2>),&(77:'=',78:<end:3>),&(79:'+',80:<end:4>),&(81:';',82:<end:5>)))"
+        ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)], 0, 0),
+        // Ambiguous, solved:
+        // [ \t\n\r]*(if<end:0>|print<end:1>|[a-z][a-z0-9]*<end:2>|=<end:3>|+<end:4>|;<end:5>)
         (11, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 0, '+' => 1, ';' => 2, '=' => 3, 'a'-'h', 'j'-'o', 'q'-'z' => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
             3 => branch!(), // <end:3>
-            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
-            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:0>
-            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:0>
-            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
-            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:0>
-            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:0>
-            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:0>
-            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
+            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
+            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:2>
+            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:2>
+            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
+            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:2>
+            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:2>
+            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:2>
+            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
         ], btreemap![
-            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
-            7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)], 0),
+            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=2), 5 => term!(=2), 6 => term!(=2),
+            7 => term!(=0), 8 => term!(=2), 9 => term!(=2), 10 => term!(=2), 11 => term!(=1)], 0, 0),
         // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>), to check if string paths are merged
         (12, btreemap![
             0 => branch!('a' => 1),
@@ -1340,7 +1351,7 @@ fn dfa_states() {
             3 => branch!(), // <end:2>
             4 => branch!(), // <end:1>
             5 => branch!(), // <end:0>
-        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)], 0),
+        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)], 0, 0),
         // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
         (13, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 1, '0' => 2),
@@ -1355,33 +1366,31 @@ fn dfa_states() {
             9 => branch!('8' => 10),
             10 => branch!('9' => 11),
             11 => branch!(), // <end:0>
-        ], btreemap![1 => term!(=1) + term!(#1), 11 => term!(=0)], 0),
+        ], btreemap![1 => term!(=1) + term!(#1), 11 => term!(=0)], 0, 0),
         // \* /<end:0>|.+<end:1>
         (14, btreemap![
             0 => branch!('*' => 1, '.' => 2),
             1 => branch!('/' => 3),
             2 => branch!('.' => 2),// <end:1>
             3 => branch!(),// <end:0>
-        ], btreemap![2 => term!(=1), 3 => term!(=0)], 0),
-        // Ambiguous: [A-B]+<end:0>|[B-C]+<end:1>
-        // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"
+        ], btreemap![2 => term!(=1), 3 => term!(=0)], 0, 0),
+        // Ambiguous, solved:
+        // [A-B]+<end:0>|[B-C]+<end:1>
         (15, btreemap![
             0 => branch!('A' => 1, 'B' => 2, 'C' => 3),
             1 => branch!('A'-'B' => 1),// <end:0>
             2 => branch!('A' => 1, 'B' => 2, 'C' => 3),// <end:0>
             3 => branch!('B'-'C' => 3),// <end:1>
-        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=1)], 1),
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=1)], 0, 0),
         // [A-B]+<end:0>|[B-C]+Z<end:1>
-        // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"
         (16, btreemap![
             0 => branch!('A' => 1, 'B' => 2, 'C' => 3),
             1 => branch!('A'-'B' => 1),// <end:0>
             2 => branch!('A' => 1, 'B' => 2, 'C' => 3, 'Z' => 4),// <end:0>
             3 => branch!('B'-'C' => 3, 'Z' => 4),
             4 => branch!(),// <end:1>
-        ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)], 0),
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)], 0, 0),
         // segments: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
-        // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"
         (17, btreemap![
             0 => branch!('a'-'c' => 1, 'd', 'f' => 2, 'e' => 3, 'g'-'i' => 4),
             1 => branch!('a'-'f' => 1), // <end:0>
@@ -1390,85 +1399,73 @@ fn dfa_states() {
             4 => branch!('d'-'i' => 4, 'z' => 5),
             5 => branch!(), // <end:1>
             6 => branch!(), // <end:2>
-        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=0), 5 => term!(=1), 6 => term!(=2)], 0),
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=0), 5 => term!(=1), 6 => term!(=2)], 0, 0),
         // [a-f]+<end:0>|[d-i]+z<end:1>
-        // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"
         (18, btreemap![
             0 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 3),
             1 => branch!('a'-'f' => 1),// <end:0>
             2 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 3, 'z' => 4),// <end:0>
             3 => branch!('d'-'i' => 3, 'z' => 4),
             4 => branch!(),// <end:1>
-        ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)], 0),
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)], 0, 0),
         // [0-9]+<end:0>|'.'<end:1>
-        // "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:.,5:'\\'',6:<end:1>))"
         (19, btreemap![
             0 => branch!('\'' => 1, 'a'-'f' => 2),
             1 => branch!([DOT] => 3),
             2 => branch!('a'-'f' => 2), // <end:0>
             3 => branch!('\'' => 4),
             4 => branch!(), // <end:1>
-        ], btreemap![2 => term!(=0), 4 => term!(=1)], 0),
-        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
-        // "&(!*(1:['\t'-'\n', '\r', ' ']),|(&(2:['a'-'z'],!*(3:['0'-'9', 'a'-'z']),4:<end:0>),&(&(5:'i',6:'f'),7:<end:1>),&(&(8:'p',9:'r',10:'i',11:'n',12:'t'),13:<end:2>),&(14:'=',15:<end:3>),&(16:'+',17:<end:4>),&(18:';',19:<end:5>)))"
+        ], btreemap![2 => term!(=0), 4 => term!(=1)], 0, 0),
+        // Ambiguous, solved:
+        // [ \t\n\r]*(if<end:0>|print<end:1>|[a-z][a-z0-9]*<end:2>|=<end:3>|+<end:4>|;<end:5>)
         (20, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 0, '+' => 1, ';' => 2, '=' => 3, 'a'-'h', 'j'-'o', 'q'-'z' => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
             3 => branch!(), // <end:3>
-            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
-            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:0>
-            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:0>
-            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
-            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:0>
-            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:0>
-            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:0>
-            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
+            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
+            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:2>
+            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:2>
+            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
+            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:2>
+            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:2>
+            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:2>
+            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
         ], btreemap![
-            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
-            7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)], 0),
+            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=2), 5 => term!(=2), 6 => term!(=2),
+            7 => term!(=0), 8 => term!(=2), 9 => term!(=2), 10 => term!(=2), 11 => term!(=1)], 0, 0),
         // mode 0: ([ \t\n\r]*<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-        // |(  &(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),
-        //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
-        //     &(+(|(6:'0'-'9')),7:<end:0>))
         (21, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3), // <skip>
             1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
-        ], btreemap![0 => term!(skip), 1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 1),
+        ], btreemap![0 => term!(skip), 1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 1, 0),
         // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-        // |(  &(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),
-        //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
-        //     &(+(|(6:'0'-'9')),7:<end:0>))
         (22, btreemap![
             0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3),
             1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
-        ], btreemap![1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 0),
+        ], btreemap![1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 0, 0),
         // 23-26 need non-greedy repeaters
         // ('*'/<end:1>|.+?<skip>)
-        // "|(&(1:['*'],2:['/'],3:<end:1>),&(??(+(4:[DOT])),5:<skip>))"
         (23, btreemap![
             0 => branch!(~['*'] => 1, ['*'] => 2),
             1 => branch!(DOT => 1), // <skip>
             2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
             3 => branch!(), // <end:1>
-        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
-
-        // (.+?<skip>|'*'/<end:1>)
-        // "|(&(??(+(1:[DOT])),2:<skip>),&(3:['*'],4:['/'],5:<end:1>))"
+        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0, 0),
+        // ('*/'<end:0>|.+?<skip>)
         (24, btreemap![
             0 => branch!(~['*'] => 1, ['*'] => 2),
             1 => branch!(DOT => 1), // <skip>
             2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
-            3 => branch!(), // <end:1>
-        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
+            3 => branch!(), // <end:0>
+        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=0)], 0, 0),
         // /'*'.+?'*'/<end:0>
-        // "&(1:['/'],2:['*'],??(+(3:[DOT])),4:['*'],5:['/'],6:<end:0>)"
         (25, btreemap![
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
@@ -1476,56 +1473,50 @@ fn dfa_states() {
             3 => branch!(~['*'] => 3, ['*'] => 4),
             4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 5),
             5 => branch!(), // <end:0>
-        ], btreemap![5 => term!(=0)], 0),
+        ], btreemap![5 => term!(=0)], 0, 0),
         // '/*'.*?'*/'<end:0>
-        // "&(1:['/'],2:['*'],??(!*(3:[DOT])),4:['*'],5:['/'],6:<end:0>)"
         (26, btreemap![
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
             2 => branch!(~['*'] => 2, ['*'] => 3),
             3 => branch!(~['*', '/'] => 2, ['*'] => 3, ['/'] => 4),
             4 => branch!(), // <end:0>
-        ], btreemap![4 => term!(=0)], 0),
+        ], btreemap![4 => term!(=0)], 0, 0),
         // [a-c]*?[c-e]*?c<end:0>
-        // "&(!??(!*(1:['a'-'c'])),!??(!*(2:['c'-'e'])),3:['c'],4:<end:0>)"
         (27, btreemap![
             0 => branch!('a'-'b' => 0, 'c' => 1, 'd'-'e' => 2),
             1 => branch!(), // <end:0>
             2 => branch!('c' => 3, 'd'-'e' => 2),
             3 => branch!(), // <end:0>
-        ], btreemap![1 => term!(=0), 3 => term!(=0)], 0),
+        ], btreemap![1 => term!(=0), 3 => term!(=0)], 0, 0),
         // ([a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>)
-        // "|(&(!??(!*(1:['a'-'c'])),2:['a'],3:<end:0>),&(!??(!*(4:['a'-'c'])),5:['b'],6:<end:1>),&(!??(!*(7:['a'-'c'])),8:['c'],9:<end:2>))"
         (28, btreemap![
             0 => branch!('a' => 1, 'b' => 2, 'c' => 3),
             1 => branch!(), // <end:0>
             2 => branch!(), // <end:1>
             3 => branch!(), // <end:2>
-        ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=2)], 0),
+        ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=2)], 0, 0),
         // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
-        // "|(&(1:'a',2:<end:0>),&(3:'b',4:<end:1>),&(5:'c',6:<end:2>),&(7:[DOT],8:<end:3>))"
         (29, btreemap![
             0 => branch!(~['a', 'b', 'c'] => 1, ['a'] => 2, ['b'] => 3, ['c'] => 4),
             1 => branch!(), // <end:3>
             2 => branch!(), // <end:0>
             3 => branch!(), // <end:1>
             4 => branch!(), // <end:2>
-        ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 3),
-        // (.+?'/'<skip>|'*/'<end:1>)
-        // "|(&(??(+(1:[DOT])),2:['/'],3:<skip>),&(4:['*'],5:['/'],6:<end:1>))"
+        ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0, 0),
+        // ('*/'<end:0>|.+?'/'<skip>)
         (30, btreemap![
             0 => branch!(~['*'] => 1, ['*'] => 2),
-            1 => branch!(~['/'] => 1, ['/'] => 3),
-            2 => branch!(~['/'] => 1, ['/'] => 4),
-            3 => branch!(), // <skip>
-            4 => branch!(), // <end:1>
-        ], btreemap![3 => term!(skip), 4 => term!(=1)], 0),
+            1 => branch!(~['/'] => 1, ['/'] => 4),
+            2 => branch!(~['/'] => 1, ['/'] => 3),
+            3 => branch!(), // <end:0>
+            4 => branch!(), // <skip>
+        ], btreemap![3 => term!(=0), 4 => term!(skip)], 0, 0),
         // tests that & and | work correclty with only one child
-        // "|(&(&(1:'a'),2:<end:0>))"
         (31, btreemap![
             0 => branch!('a' => 1),
             1 => branch!(), // <end:0>
-        ], btreemap![1 => term!(=0)], 0),
+        ], btreemap![1 => term!(=0)], 0, 0),
         // .+?abc<end:0>
         (32, btreemap![
             0 => branch!(DOT => 1),
@@ -1533,27 +1524,28 @@ fn dfa_states() {
             2 => branch!(~['a'-'b'] => 1, ['a'] => 2, ['b'] => 3),
             3 => branch!(~['a', 'c'] => 1, ['a'] => 2, ['c'] => 4),
             4 => branch!(), // <end:0>
-        ], btreemap![4 => term!(=0)], 0),
+        ], btreemap![4 => term!(=0)], 0, 0),
         // (if<end:0>|[a-z]+<end:1>)
-        // "|(&(&(1:['i'],2:['f']),3:<end:0>),&(+(4:['a'-'z']),5:<end:1>))"
         (33, btreemap![
             0 => branch!('a'-'h', 'j'-'z' => 1, 'i' => 2),
             1 => branch!('a'-'z' => 1), // <end:1>
             2 => branch!('a'-'e', 'g'-'z' => 1, 'f' => 3), // <end:1>
             3 => branch!('a'-'z' => 1), // <end:0>
-        ], btreemap![1 => term!(=1), 2 => term!(=1), 3 => term!(=0)], 0),
+        ], btreemap![1 => term!(=1), 2 => term!(=1), 3 => term!(=0)], 0, 0),
+        // (a<end:0>|[a-z]+<end:1>)
         (34, btreemap![
             0 => branch!('a' => 1, 'b'-'z' => 2),
             1 => branch!('a'-'z' => 2), // <end:0>
             2 => branch!('a'-'z' => 2), // <end:1>
-        ], btreemap![1 => term!(=0), 2 => term!(=1)], 0),
+        ], btreemap![1 => term!(=0), 2 => term!(=1)], 0, 0),
+        // (a:<end:0>|[a-z]+:<end:1>)
         (35, btreemap![
             0 => branch!('a' => 1, 'b'-'z' => 2),
             1 => branch!(':' => 3, 'a'-'z' => 2),
             2 => branch!(':' => 4, 'a'-'z' => 2),
             3 => branch!(), // <end:0>
             4 => branch!(), // <end:1>
-        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0),
+        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0, 0),
         // (a:[ ]+<end:0>|[a-z]+:[ ]+<end:1>)
         (36, btreemap![
             0 => branch!('a' => 1, 'b'-'z' => 2),
@@ -1561,26 +1553,37 @@ fn dfa_states() {
             2 => branch!(':' => 4, 'a'-'z' => 2),
             3 => branch!(' ' => 3), // <end:0>
             4 => branch!(' ' => 4), // <end:1>
-        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0),
+        ], btreemap![3 => term!(=0), 4 => term!(=1)], 0, 0),
+        // 34 inverted: ([a-z]+<end:0>|a<end:1>) => error
+        (100, btreemap![
+            0 => branch!('a' => 1, 'b'-'z' => 2),
+            1 => branch!('a'-'z' => 2), // <end:0>
+            2 => branch!('a'-'z' => 2), // <end:0>
+        ], btreemap![1 => term!(=0), 2 => term!(=0)], 0, 1),
+        // ['a'-'z']<end:0>|['a'-'m']<end:1>|a<end:2> => 2 errors: <end:1> and <end:2>
+        (101, btreemap![
+            0 => branch!('a' => 1, 'b'-'m' => 2, 'n'-'z' => 3),
+            1 => branch!(), // <end:0>
+            2 => branch!(), // <end:0>
+            3 => branch!(), // <end:0>
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=0)], 0, 2),
         /* template
         (, btreemap![
-        ], btreemap![], 0),
+        ], btreemap![], 0, 0),
         */
     ];
     const VERBOSE: bool = false;
     const RUN_ALL: bool = false;
     let mut errors = 0;
-    for (test_id, expected, expected_ends, expected_warnings) in tests {
-        if VERBOSE { println!("Test {test_id}:"); }
+    for (test_id, expected, expected_ends, expected_warnings, expected_errors) in tests {
+        if VERBOSE { println!("{:-<80}\nTest {test_id}:", ""); }
         let re = build_re(test_id);
         let dfa = Dfa::<General>::build_from(DfaBuilder::build_from(re));
         if VERBOSE {
             dfa.print(12);
-            let msg = dfa.get_log().get_messages_str();
-            if !msg.is_empty() {
-                println!("{msg}");
+            if !dfa.log.is_empty() {
+                println!("{}\n", dfa.log);
             }
-            println!();
         }
         if RUN_ALL {
             let mut msg = Vec::<String>::new();
@@ -1609,8 +1612,8 @@ fn dfa_states() {
         } else {
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
             assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
-            assert_eq!(dfa.log.num_warnings(), expected_warnings, "test {test_id} failed:\n{}", dfa.get_log().get_messages_str());
-            assert_eq!(dfa.log.num_errors(), 0, "test {test_id} failed:\n{}", dfa.get_log().get_messages_str());
+            assert_eq!(dfa.log.num_warnings(), expected_warnings, "test {test_id} failed:\n{}", dfa.log);
+            assert_eq!(dfa.log.num_errors(), expected_errors, "test {test_id} failed:\n{}", dfa.log);
         }
     }
     assert_eq!(errors, 0, "{errors} error(s) during the tests");

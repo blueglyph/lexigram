@@ -365,6 +365,7 @@ impl DfaBuilder {
         let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
         states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
+        let mut conflicts = vec![];
 
         // gathers lazy ids and their immediate followpos to remove phantom branches:
         let mut lazy_followpos = self.lazypos.iter().copied().collect::<BTreeSet<Id>>();
@@ -454,45 +455,26 @@ impl DfaBuilder {
                             .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
                             .join(", "));
                     }
-                    // The potential terminals are obtained by removing all terminals associated with an id that is already the destination
-                    // of at least one transition from this state. The idea is to favour terminals that don't have another chance to be
-                    // used, in case of terminal conflict.
-                    let mut potentials = terminals.keys().cloned().filter(|id| !id_transitions.contains(id)).collect::<BTreeSet<_>>();
-                    let chosen = match potentials.len() {
-                        0 => {
-                            if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
-                            self.log.add_warning(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
-                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
-                            first_terminal_id.unwrap()
-                        }
-                        1 => {
-                            if VERBOSE { println!("    only one id has no transitions => selecting it"); }
-                            potentials.pop_first().unwrap()
-                        }
-                        n => {
-                            self.log.add_warning(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
-                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
-                            if potentials.contains(&first_terminal_id.unwrap()) {
-                                if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
-                                first_terminal_id.unwrap()
-                            } else {
-                                if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first one of the list"); }
-                                potentials.pop_first().unwrap()
-                            }
-                        }
-                    };
+                    // let terminals_str = terminals.iter().map(|(_, t)| format!("{t}")).join(", ");
+                    let ts = terminals.iter().map(|(_, &t)| t).collect::<BTreeSet<_>>();
+                    let (chosen, t) = terminals.pop_first().unwrap();
+                    conflicts.push((new_state_id, ts, t));
                     id_terminal = Some(chosen);
-                    let t = terminals.remove(&chosen).unwrap().clone();
-                    if VERBOSE { println!("    end state: id {chosen} {t}"); }
-                    dfa.end_states.insert(new_state_id, t);
+                    // self.log.add_note(format!(
+                    //     "conflicting terminals in state {new_state_id}: {terminals_str}. Selecting first defined: {t}"));
+                    if VERBOSE { println!("    selecting the first one of the list: id {chosen} {t}"); }
+                    dfa.end_states.insert(new_state_id, t.to_owned());
                 } else if let Some((id, terminal)) = terminals.pop_first() {
                     id_terminal = Some(id);
                     if VERBOSE { println!("  # end state: id {id} {terminal}"); }
                     dfa.end_states.insert(new_state_id, terminal.clone());
                 }
             }
-
-            let has_non_lazy_terminal = id_terminal.map(|id| !lazy_followpos.contains(&id)).unwrap_or(false);
+            let has_non_lazy_terminal = if let Some(id) = id_terminal {
+                !lazy_followpos.contains(&id)
+            } else {
+                false
+            };
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Segments>::new();
@@ -535,6 +517,32 @@ impl DfaBuilder {
             // finally, updates the graph with the reverse (symbol -> state) data
             dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
+
+        // checks if there are terminals that were never selected for accepting states:
+        let state_terminals = dfa.end_states.values().collect::<BTreeSet<_>>();
+        let missing = self.ids.values()
+            .filter_map(|x| if let ReType::End(t) = &self.re.get(*x).op { Some(t.as_ref()) } else { None })
+            .filter(|x| !state_terminals.contains(x))
+            .collect::<BTreeSet<_>>();
+        if VERBOSE && !missing.is_empty() { println!("# missing: {}", missing.iter().map(|t| t.to_string()).join(", ")); }
+        for missing_t in missing {
+            let related = conflicts.iter()
+                .filter_map(|(s_id, ts, chosen)|
+                    if ts.contains(missing_t) {
+                        Some(format!("\n    - conflict in state {s_id}: {} => {chosen} chosen", ts.iter().map(|t| t.to_string()).join(" <> ")))
+                    } else {
+                        None
+                    })
+                .to_vec();
+            if !related.is_empty() {
+                self.log.add_error(format!(
+                    "{missing_t} is never selected, but it was in conflict(s); check if re-ordering definitions solves the problem{}",
+                    related.join("")));
+            } else {
+                self.log.add_error(format!("{missing_t} is never selected"));
+            }
+        }
+
         dfa
     }
 

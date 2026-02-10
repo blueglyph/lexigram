@@ -56,10 +56,10 @@ const TXT2: &str = r#"
 
 const TXT3: &str = r#"
     lexicon C;
-    ID1: [a-z]+ -> type(ID);
     A:   'a';
-    ID:  [A-Z]+;
     B:   'b';
+    ID1: [a-z]+ -> type(ID);
+    ID:  [A-Z]+;
 "#;
 
 const TXT4: &str = r#"
@@ -341,16 +341,16 @@ mod simple {
                 TXT3, vec![],
                 vec![
                     ("A", Some("a")),
-                    ("ID", None),
                     ("B", Some("b")),
+                    ("ID", None),
                 ], btreemap![
                     0 => branch!('A'-'Z' => 1, 'a' => 2, 'b' => 3, 'c'-'z' => 4),
-                    1 => branch!('A'-'Z' => 1), // <end:1>
+                    1 => branch!('A'-'Z' => 1), // <end:2>
                     2 => branch!('a'-'z' => 4), // <end:0>
-                    3 => branch!('a'-'z' => 4), // <end:2>
-                    4 => branch!('a'-'z' => 4), // <end:1>
+                    3 => branch!('a'-'z' => 4), // <end:1>
+                    4 => branch!('a'-'z' => 4), // <end:2>
                 ], btreemap![
-                    1 => term!(=1), 2 => term!(=0), 3 => term!(=2), 4 => term!(=1)
+                    1 => term!(=2), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)
                 ], vec![],
                 None,
             ),
@@ -524,9 +524,11 @@ mod simple {
             assert_eq!(result_terminals, expected_terminals, "{text}: mismatch terminals");
             let SymbolicDfa { dfa, .. } = lexi.build_into();
             if VERBOSE {
+                println!("Dfa log:\n{}", dfa.get_log());
                 println!("Final optimized Dfa:");
                 dfa.print(20);
             }
+            assert!(dfa.get_log().has_no_errors(), "{text}: Dfa build has failed");
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}: mismatch DFA state graph");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}: mismatch DFA end states");
             assert_eq!(result_pos_grammar, expected_pos_grammar, "{text}: mismatch grammar start position");
@@ -668,8 +670,8 @@ mod simple {
              btreemap![5 => 0, 6 => 1, 9 => 2, 10 => 3],
             ),
             (TXT3,
-             vec!["A", "ID", "B"],
-             btreemap![0 => 1, 1 => 0, 2 => 1, 3 => 2],
+             vec!["A", "B", "ID"],
+             btreemap![0 => 0, 1 => 1, 2 => 2, 3 => 2],
             ),
             (TXT4,
              vec!["B", "D", "E", "F"],
