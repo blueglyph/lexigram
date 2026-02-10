@@ -29,19 +29,19 @@ pub trait LogStatus: Debug {
     }
 
     fn get_notes(&self) -> impl Iterator<Item = &LogMsg> {
-        self.get_messages().filter_map(|m| if let LogMsg::Note(_) = m { Some(m) } else { None })
+        self.get_messages().filter(|m| matches!(m, LogMsg::Note(_)))
     }
 
     fn get_infos(&self) -> impl Iterator<Item = &LogMsg> {
-        self.get_messages().filter_map(|m| if let LogMsg::Info(_) = m { Some(m) } else { None })
+        self.get_messages().filter(|m| matches!(m, LogMsg::Info(_)))
     }
 
     fn get_warnings(&self) -> impl Iterator<Item = &LogMsg> {
-        self.get_messages().filter_map(|m| if let LogMsg::Warning(_) = m { Some(m) } else { None })
+        self.get_messages().filter(|m| matches!(m, LogMsg::Warning(_)))
     }
 
     fn get_errors(&self) -> impl Iterator<Item = &LogMsg> {
-        self.get_messages().filter_map(|m| if let LogMsg::Error(_) = m { Some(m) } else { None })
+        self.get_messages().filter(|m| matches!(m, LogMsg::Error(_)))
     }
 
     fn get_totals(&self) -> String {
