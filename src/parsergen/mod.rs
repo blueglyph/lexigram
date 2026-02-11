@@ -1627,13 +1627,17 @@ impl ParserGen {
     }
 
     /// Structure elements used in a context or in a +* child type
-    fn source_infos(&self, infos: &[ItemInfo], add_pub: bool) -> String {
+    fn source_infos(&self, infos: &[ItemInfo], add_pub: bool, add_type: bool) -> String {
         let pub_str = if add_pub { "pub " } else { "" };
         infos.iter()
             .filter_map(|info| {
                 if info.index.is_none() || info.index == Some(0) {
-                    let type_name = self.get_info_type(infos, info);
-                    Some(format!("{pub_str}{}: {}", info.name, type_name))
+                    let type_name = if add_type {
+                        format!(": {}", self.get_info_type(infos, info))
+                    } else {
+                        String::new()
+                    };
+                    Some(format!("{pub_str}{}{type_name}", info.name))
                 } else {
                     None
                 }
@@ -1854,6 +1858,7 @@ impl ParserGen {
             self.nt_type.entry(v).or_insert_with(|| format!("Syn{}", name.0));
         }
 
+        let mut nt_contexts = vec![None; self.parsing_table.num_nt];
         // Writes contexts
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
@@ -1892,7 +1897,7 @@ impl ParserGen {
                             self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                             self.full_alt_components(a_id, None).1
                         );
-                        let ctx_content = self.source_infos(&item_info[a_id as usize], false);
+                        let ctx_content = self.source_infos(&item_info[a_id as usize], false, true);
                         src.push(format!("    /// {comment}"));
                         let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
@@ -1908,11 +1913,13 @@ impl ParserGen {
                     src.push("#[derive(Debug)]".to_string());
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
                     if VERBOSE { println!("  context Ctx{}:", nt_name[nt as usize].0); }
-                    for a_id in self.sort_alt_ids(group[0], alts) {
+                    let alts = self.sort_alt_ids(group[0], alts);
+                    nt_contexts[nt as usize] = Some(alts.clone());
+                    for a_id in alts {
                         let comment = self.full_alt_str(a_id, None, true);
                         src.push(format!("    /// {comment}"));
                         if VERBOSE { println!("      /// {comment}"); }
-                        let ctx_content = self.source_infos(&item_info[a_id as usize], false);
+                        let ctx_content = self.source_infos(&item_info[a_id as usize], false, true);
                         let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
                             if VERBOSE { println!("      {a_name},"); }
@@ -1970,7 +1977,7 @@ impl ParserGen {
                         src.push(format!("pub enum Syn{nu}Item {{"));
                         for (i, &a_id) in endpoints.iter().index_start(1) {
                             src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false)));
+                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false, true)));
                         }
                         src.push("}".to_string());
                     } else {
@@ -1988,7 +1995,7 @@ impl ParserGen {
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                             src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
                             src.push("#[derive(Debug, PartialEq)]".to_string());
-                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(infos, true)));
+                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(infos, true, true)));
                         }
                     }
                 }
@@ -2047,6 +2054,13 @@ impl ParserGen {
         let mut src_wrapper_impl = Vec::<String>::new();
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
+        let mut src_skel = vec![
+            format!("impl {}Listener for MyListener {{", self.name),
+            "    fn get_mut_log(&mut self) -> &mut impl Logger {".to_string(),
+            "        todo!()".to_string(),
+            "    }".to_string(),
+            String::new(),
+        ];
 
         // we proceed by var parent, then all alts in each parent/children group
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
@@ -2100,6 +2114,7 @@ impl ParserGen {
 
                 // Call::Enter
 
+                let mut has_skel_init = false;
                 let init_fn_name = format!("init_{npl}");
                 if self.parsing_table.parent[nt].is_none() {
                     init_nt_done.insert(*var);
@@ -2107,6 +2122,8 @@ impl ParserGen {
                         span_init.insert(*var);
                         src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                        src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                        has_skel_init = true;
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
@@ -2161,10 +2178,31 @@ impl ParserGen {
                                     "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) -> {};",
                                     if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" },
                                     self.get_nt_type(nt as VarId)));
+
+                                // skeleton
+                                src_skel.push(format!(
+                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) -> {} {{",
+                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" },
+                                    self.get_nt_type(nt as VarId)));
+                                let a_id = self.var_alts[nt][0];
+                                let a_info = &item_info[a_id as usize];
+                                if !a_info.is_empty() {
+                                    let comment = format!(
+                                        "value of `{}` before {}",
+                                        self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                        self.full_alt_components(a_id, None).1
+                                    );
+                                    let ctx_content = a_info.iter().map(|i| i.name.clone()).join(", ");
+                                    let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
+                                    src_skel.push(format!("        // {comment}"));
+                                    src_skel.push(format!("        let InitCtx{nu}::{a_name} {{ {ctx_content} }} = ctx;"));
+                                }
+                                has_skel_init = true;
                             } else {
                                 src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
                                 src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
-
+                                src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                                has_skel_init = true;
                             }
                             src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         } else if is_sep_list {
@@ -2189,9 +2227,15 @@ impl ParserGen {
                 } else {
                     // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                 }
+                if has_skel_init {
+                    src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
+                    src_skel.push("    }".to_string());
+                    src_skel.push(String::new());
+                }
 
                 // Call::Exit
 
+                let mut has_skel_exit = false;
                 // handles most rules except children of left factorization (already taken by self.gather_alts)
                 if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
                     // let (nu, _nl, npl) = &nt_name[nt];
@@ -2208,15 +2252,19 @@ impl ParserGen {
                         let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
                         if f_valued {
                             let nt_type = self.get_nt_type(fnt as VarId);
-                            if is_rrec_lform || (is_child_repeat_lform){
+                            if is_rrec_lform || (is_child_repeat_lform) {
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
+                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
                             } else {
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
+                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type} {{"));
                             }
                         } else {
                             src_listener_decl.push("    #[allow(unused_variables)]".to_string());
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
+                            src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
                         }
+                        has_skel_exit = true;
                     }
                     let all_exit_alts = if is_ambig_1st_child {
                         ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
@@ -2234,6 +2282,55 @@ impl ParserGen {
                             println!("    last_it_alts: {}", last_it_alts.iter().join(", "));
                         }
                     }
+
+                    // skeleton
+                    if has_skel_exit {
+                        if let Some(alts) = &nt_contexts[fnt] {
+                            let mut skel_ctx = vec![];
+                            for &a_id in alts {
+                                if let Some((_, variant)) = alt_info[a_id as usize].as_ref() {
+                                    let comment = self.full_alt_str(a_id, None, false);
+                                    let fields = self.source_infos(&item_info[a_id as usize], false, false);
+                                    let ctx_content = if fields.is_empty() {
+                                        String::new()
+                                    } else {
+                                        format!(" {{ {fields} }}")
+                                    };
+                                    // let ctx_items = &item_info[a_id as usize].iter().map(|i| i.name.clone()).join(", ");
+                                    // let ctx_content = if ctx_items.is_empty() {
+                                    //     String::new()
+                                    // } else {
+                                    //     format!(" {{ {ctx_items} }}")
+                                    // };
+                                    skel_ctx.push((comment, variant, ctx_content));
+                                }
+                            }
+                            match skel_ctx.len() {
+                                0 => {}
+                                1 => {
+                                    let (comment, variant, ctx_content) = skel_ctx.pop().unwrap();
+                                    src_skel.push(format!("        // {comment}"));
+                                    src_skel.push(format!("        let Ctx{fnu}::{variant}{ctx_content} = ctx;"));
+                                }
+                                _ => {
+                                    src_skel.push("        match ctx {".to_string());
+                                    for (comment, variant, ctx_content) in skel_ctx {
+                                        src_skel.push(format!("            // {comment}"));
+                                        src_skel.push(format!("            Ctx{fnu}::{variant}{ctx_content} => {{}}"));
+                                    }
+                                    src_skel.push("        }".to_string());
+                                }
+                            }
+                            if f_valued {
+                                src_skel.push(format!("        {}()", self.get_nt_type(fnt as VarId)));
+                            }
+                            src_skel.push("    }".to_string());
+                            src_skel.push(String::new());
+                        } else {
+                            panic!("no alts for NT {fnpl} [{fnt}]");
+                        }
+                    }
+
                     for f in &exit_alts {
                         exit_alt_done.insert(*f);
                     }
@@ -2424,6 +2521,16 @@ impl ParserGen {
                 }
             }
         }
+
+        // skeleton
+        if let Some(line) = src_skel.last() {
+            if line.is_empty() {
+                src_skel.pop();
+            }
+        }
+        src_skel.push("}".to_string());
+        log.add_info("Skeleton implementation of listener:");
+        log.extend_messages(src_skel.into_iter().map(|s| LogMsg::Info(s)));
 
         // Writes the listener trait declaration
         src.add_space();
