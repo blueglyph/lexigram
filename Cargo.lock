@@ -56,6 +56,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen_watcher"
+version = "0.1.0"
+dependencies = [
+ "lexi-gram",
+ "lexigram-lib",
+]
+
+[[package]]
 name = "iter-index"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,3 +131,10 @@ name = "vectree"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "003a8fcf0e8338bd7e06b676810451757c70d0a64b971b0da58123ac25de06f1"
+
+[[package]]
+name = "watcher"
+version = "0.1.0"
+dependencies = [
+ "lexigram-core",
+]

@@ -1,0 +1,83 @@
+// -----------------------------------------------------------------------------
+
+lexicon Watcher;
+
+fragment ToEndLine  : ~[\n\r]+;
+
+Category            : 'category'                -> mode(SKIP_SPACES);
+RightRecursive      : 'right-recursive'         -> mode(SKIP_SPACES);
+Star                : 'star'                    -> mode(SKIP_SPACES);
+End                 : 'end'                     -> mode(SKIP_SPACES);
+Shutdown            : 'shutdown'                -> mode(SKIP_SPACES);
+
+MsgPrefix           : '##' [ \t]*               -> skip, mode(HEADER_MODE);
+
+Eol                 : [\n]                      -> skip;
+SkipWindowsEol      : [\r]+                     -> skip;
+
+mode HEADER_MODE; // -------------------------------------------
+
+Note                : 'note:' [ \t]*            -> mode(MSG_MODE);
+Info                : 'info:' [ \t]*            -> mode(MSG_MODE);
+Warning             : 'warning:' [ \t]*         -> mode(MSG_MODE);
+Error               : 'error:' [ \t]*           -> mode(MSG_MODE);
+Header              : [a-zA-Z][a-zA-Z_0-9]* ':' [ \t]* -> mode(MSG_MODE);
+
+mode MSG_MODE; // ----------------------------------------------
+
+Message             : ToEndLine                 -> mode(DEFAULT_MODE);
+
+mode SKIP_SPACES;
+
+Spaces              : [ \t]*                    -> skip, mode(DEFAULT_MODE);
+
+// -----------------------------------------------------------------------------
+
+grammar Watcher;
+
+// simple loop until shutdown
+log:
+    log shutdown
+|   log? open_category category
+;
+
+// shutdown forces a completion of the parsing, ignoring everything coming after
+shutdown:
+    Shutdown
+;
+
+// we use a nonterminal to capture the position in case of error
+open_category:
+    Category
+;
+
+end_category:
+    End
+;
+
+// categories are used to test different types of loops
+category:
+    RightRecursive right_recursive
+|   Star star
+;
+
+right_recursive:
+    <L> line right_recursive
+|   end_category
+;
+
+star:
+    (<L=star_i> line)* end_category
+;
+
+line:
+    message
+|   shutdown
+;
+
+message:
+    (Note | Info | Warning | Error) Message
+|   Header Message
+;
+
+// -----------------------------------------------------------------------------
