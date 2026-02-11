@@ -68,7 +68,7 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
     }
 }
 
-fn write_lexilexer_source(replace_source: bool) {
+fn gen_source_lexilexer(replace_source: bool) {
     const FILENAME: &str = "tests/out/lexilexer.rs";
     const TAG: &str = "lexilexer";
 
@@ -87,18 +87,18 @@ fn write_lexilexer_source(replace_source: bool) {
 }
 
 mod lexilexer_source {
-    use super::write_lexilexer_source;
+    use super::gen_source_lexilexer;
 
     #[test]
     #[cfg(not(miri))]
     fn check_source() {
-        write_lexilexer_source(false);
+        gen_source_lexilexer(false);
     }
 
     #[ignore]
     #[test]
     fn write_source() {
-        write_lexilexer_source(true);
+        gen_source_lexilexer(true);
     }
 }
 #[test]

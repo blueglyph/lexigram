@@ -8,6 +8,7 @@
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexi_gram::options::{Action, OptionsBuilder};
+use lexigram_lib::CollectJoin;
 use lexigram_lib::log::LogStatus;
 use lexigram_lib::parsergen::NTValue;
 
@@ -27,7 +28,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn write_typedef_source(action: Action) {
+fn gen_source_typedef(action: Action) {
     for i in 0..LEXICON_TAGS.len() {
         let (lexicon_tag, grammar_tag) = (LEXICON_TAGS[i], GRAMMAR_TAGS[i]);
         let (lexer_tag, parser_tag, source_filename) = (LEXER_TAGS[i], PARSER_TAGS[i], SOURCE_FILENAMES[i]);
@@ -47,8 +48,10 @@ fn write_typedef_source(action: Action) {
             .expect("should have no error");
         match try_gen_parser(action, options) {
             Ok(log) => {
-                println!("Code generated in {source_filename} [{lexer_tag}] / [{parser_tag}]\n{log}");
-                assert!(log.has_no_warnings(), "no warning expected");
+                if action == Action::Generate {
+                    println!("Code generated in {source_filename} [{lexer_tag}] / [{parser_tag}]\n{log}");
+                }
+                assert!(log.has_no_warnings(), "unexpected warning(s):\n{}", log.get_warnings().join("\n"));
             }
             Err(build_error) => panic!("[{lexicon_tag}] / [{grammar_tag}]: {build_error}"),
         }
@@ -60,12 +63,12 @@ mod tests {
 
     #[test]
     fn check_source() {
-        write_typedef_source(Action::Verify);
+        gen_source_typedef(Action::Verify);
     }
 
     #[ignore]
     #[test]
     fn write_source() {
-        write_typedef_source(Action::Generate);
+        gen_source_typedef(Action::Generate);
     }
 }

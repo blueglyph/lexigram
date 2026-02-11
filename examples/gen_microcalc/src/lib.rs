@@ -8,6 +8,7 @@
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexi_gram::options::{Action, OptionsBuilder};
+use lexigram_lib::CollectJoin;
 use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/microcalc.l";
@@ -21,7 +22,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-fn write_microcalc_l_g_source(action: Action) {
+fn gen_source_microcalc_l_g(action: Action) {
     let options = OptionsBuilder::new()
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
@@ -32,14 +33,16 @@ fn write_microcalc_l_g_source(action: Action) {
         .expect("should have no error");
     match try_gen_parser(action, options) {
         Ok(log) => {
-            println!("Code generated in {SOURCE_FILENAME}\n{log}");
-            assert!(log.has_no_warnings(), "no warning expected");
+            if action == Action::Generate {
+                println!("Code generated in {SOURCE_FILENAME}\n{log}");
+            }
+            assert!(log.has_no_warnings(), "unexpected warning(s):\n{}", log.get_warnings().join("\n"));
         }
         Err(build_error) => panic!("{build_error}"),
     }
 }
 
-fn write_microcalc_lg_source(action: Action) {
+fn gen_source_microcalc_lg(action: Action) {
     let options = OptionsBuilder::new()
         .combined_spec(genspec!(filename: LEXICON_GRAMMAR_FILENAME))
         .lexer_code(gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
@@ -51,7 +54,9 @@ fn write_microcalc_lg_source(action: Action) {
         .expect("should have no error");
     match try_gen_parser(action, options) {
         Ok(log) => {
-            println!("Code generated in {SOURCE_FILENAME}\n{log}");
+            if action == Action::Generate {
+                println!("Code generated in {SOURCE_FILENAME}\n{log}");
+            }
             assert!(log.has_no_warnings(), "no warning expected");
         }
         Err(build_error) => panic!("{build_error}"),
@@ -63,13 +68,13 @@ mod tests_l_g {
 
     #[test]
     fn check_source() {
-        write_microcalc_l_g_source(Action::Verify);
+        gen_source_microcalc_l_g(Action::Verify);
     }
 
     #[ignore]
     #[test]
     fn write_source() {
-        write_microcalc_l_g_source(Action::Generate);
+        gen_source_microcalc_l_g(Action::Generate);
     }
 }
 
@@ -78,7 +83,7 @@ mod test_lg {
 
     #[test]
     fn check_source() {
-        write_microcalc_lg_source(Action::Verify);
+        gen_source_microcalc_lg(Action::Verify);
     }
 
 }
