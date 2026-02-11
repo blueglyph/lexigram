@@ -2055,9 +2055,14 @@ impl ParserGen {
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
         let mut src_skel = vec![
-            format!("impl {}Listener for MyListener {{", self.name),
+            "struct Listener {".to_string(),
+            "    log: BufLog,".to_string(),
+            "}".to_string(),
+            String::new(),
+            "#[allow(unused)]".to_string(),
+            format!("impl {}Listener for Listener {{", self.name),
             "    fn get_mut_log(&mut self) -> &mut impl Logger {".to_string(),
-            "        todo!()".to_string(),
+            "        &mut self.log".to_string(),
             "    }".to_string(),
             String::new(),
         ];
@@ -2235,9 +2240,10 @@ impl ParserGen {
 
                 // Call::Exit
 
-                let mut has_skel_exit = false;
                 // handles most rules except children of left factorization (already taken by self.gather_alts)
                 if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
+                    let mut has_skel_exit = false;
+                    let mut has_skel_exit_return = false;
                     // let (nu, _nl, npl) = &nt_name[nt];
                     let (pnu, _pnl, pnpl) = &nt_name[parent_nt];
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
@@ -2254,10 +2260,11 @@ impl ParserGen {
                             let nt_type = self.get_nt_type(fnt as VarId);
                             if is_rrec_lform || (is_child_repeat_lform) {
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
-                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
+                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param}) {{"));
                             } else {
                                 src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
                                 src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type} {{"));
+                                has_skel_exit_return = true;
                             }
                         } else {
                             src_listener_decl.push("    #[allow(unused_variables)]".to_string());
@@ -2296,12 +2303,6 @@ impl ParserGen {
                                     } else {
                                         format!(" {{ {fields} }}")
                                     };
-                                    // let ctx_items = &item_info[a_id as usize].iter().map(|i| i.name.clone()).join(", ");
-                                    // let ctx_content = if ctx_items.is_empty() {
-                                    //     String::new()
-                                    // } else {
-                                    //     format!(" {{ {ctx_items} }}")
-                                    // };
                                     skel_ctx.push((comment, variant, ctx_content));
                                 }
                             }
@@ -2321,7 +2322,7 @@ impl ParserGen {
                                     src_skel.push("        }".to_string());
                                 }
                             }
-                            if f_valued {
+                            if has_skel_exit_return {
                                 src_skel.push(format!("        {}()", self.get_nt_type(fnt as VarId)));
                             }
                             src_skel.push("    }".to_string());
