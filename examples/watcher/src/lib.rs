@@ -10,7 +10,6 @@ use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::{Parser, Terminate};
 use watcher_lexer::build_lexer;
 use watcher_parser::*;
-use listener_watcher_types::*;
 
 static TXT1: &str = r#"
 category right-recursive
@@ -57,12 +56,12 @@ fn test_watcher() {
     let tests: Vec<(&str, Vec<&str>, Vec<&str>)> = vec![
         (
             TXT1,
-            vec!["star,S"],
+            vec!["-,S"],
             vec![],
         ),
         (
             TXT2,
-            vec![],
+            vec!["star,S"],
             vec![],
         ),
     ];
@@ -162,15 +161,6 @@ impl Listener {
             curr_category: None,
         }
     }
-
-    fn open_category(&mut self, new_cat: String, spans: &[PosSpan]) {
-        if let Some(cat) = &self.curr_category {
-            let span = spans.iter().fold(PosSpan::empty(), |acc, s| acc + s);
-            self.log.add_error(format!("{span}: missing end for category {cat} when opening {new_cat}"));
-        }
-        self.log.add_note(format!("new category {new_cat}"));
-        self.curr_category = Some(new_cat);
-    }
 }
 
 #[allow(unused)]
@@ -184,128 +174,96 @@ impl WatcherListener for Listener {
     }
 
     fn abort(&mut self, terminate: Terminate) {
-        println!("fn abort");
         self.log.add_note("aborted");
-        self.messages.push(
-            format!(
-                "{},{}", self.curr_category.take().unwrap_or_else(|| "-".to_string()),
-                if terminate == Terminate::Conclude { 'S' } else { 'A' }));
+        self.messages.push(format!(
+            "{},{}",
+            self.curr_category.take().unwrap_or_else(|| "-".to_string()),
+            if terminate == Terminate::Conclude { 'S' } else { 'A' }));
     }
 
-    fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog {
-        println!("fn exit_log");
+    fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) {
         match ctx {
             // log -> log shutdown
-            CtxLog::V1 { log, shutdown } => {
+            CtxLog::V1 => {
                 self.abort = Terminate::Conclude;
             }
             // log -> log "category" category
-            CtxLog::V2 { log, category, .. } => {}
+            CtxLog::V2 => {}
             // log -> "category" category
-            CtxLog::V3 { category, .. } => {}
+            CtxLog::V3 => {}
         }
-        SynLog()
     }
 
-    fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) -> SynShutdown {
-        println!("fn exit_shutdown");
+    fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) {
         // shutdown -> "shutdown"
         let CtxShutdown::V1 = ctx;
         self.abort = Terminate::Conclude;
-        SynShutdown()
     }
 
-    fn exit_open_category(&mut self, ctx: CtxOpenCategory, spans: Vec<PosSpan>) -> SynOpenCategory {
+    fn exit_open_category(&mut self, ctx: CtxOpenCategory, spans: Vec<PosSpan>) {
         if let Some(cat) = &self.curr_category {
             let span = spans.iter().fold(PosSpan::empty(), |acc, s| acc + s);
             self.log.add_error(format!("{span}: missing end for category {cat} when opening new category"));
         }
-        SynOpenCategory()
     }
 
-    fn exit_end_category(&mut self, ctx: CtxEndCategory, spans: Vec<PosSpan>) -> SynEndCategory {
+    fn exit_end_category(&mut self, ctx: CtxEndCategory, spans: Vec<PosSpan>) {
         if self.curr_category.is_none() {
             let span = spans.iter().fold(PosSpan::empty(), |acc, s| acc + s);
             self.log.add_error(format!("{span}: 'end' encountered outside any category"));
         }
-        SynEndCategory()
+        self.curr_category = None;
     }
 
-    fn exit_category(&mut self, ctx: CtxCategory, spans: Vec<PosSpan>) -> SynCategory {
-        println!("fn exit_category");
+    fn exit_category(&mut self, ctx: CtxCategory, spans: Vec<PosSpan>) {
         match ctx {
             // category -> "right-recursive" right_recursive
             CtxCategory::V1 { .. } => {}
             // category -> "star" star
             CtxCategory::V2 { .. } => {}
         }
-        SynCategory()
     }
 
-    fn init_right_recursive(&mut self) -> SynRightRecursive {
-        println!("fn init_right_recursive");
-        SynRightRecursive()
+    fn init_right_recursive(&mut self) {
+        self.curr_category = Some("right-recursive".to_string());
     }
 
-    fn exit_right_recursive(&mut self, acc: &mut SynRightRecursive, ctx: CtxRightRecursive, spans: Vec<PosSpan>) {
-        println!("fn exit_right_recursive");
+    fn exit_right_recursive(&mut self, ctx: CtxRightRecursive, spans: Vec<PosSpan>) {
         match ctx {
             // right_recursive -> <L> line right_recursive
-            CtxRightRecursive::V1 { line } => {}
+            CtxRightRecursive::V1 => {}
             // right_recursive -> "end"
-            CtxRightRecursive::V2 => {
-                if let Some(cat) = &self.curr_category {
-                    self.log.add_note(format!("end {cat}"));
-                    self.curr_category = None;
-                } else {
-                    let span = &spans[1];
-                    self.log.add_error("{span}: end outside category");
-                }
-            }
+            CtxRightRecursive::V2 => {}
         }
     }
 
+    fn init_star(&mut self) {
+        self.curr_category = Some("star".to_string());
+    }
 
-    fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar {
-        println!("fn exit_star");
+    fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) {
         // star -> (<L> line)* "end"
-        let CtxStar::V1 { star } = ctx;
-        if let Some(cat) = &self.curr_category {
-            self.log.add_note(format!("end {cat}"));
-            self.curr_category = None;
-        } else {
-            let span = &spans[1];
-            self.log.add_error("{span}: end outside category");
-        }
-        SynStar()
+        let CtxStar::V1 = ctx;
     }
 
-    fn init_star_i(&mut self) -> SynStarI {
-        println!("fn init_star_i");
-        SynStarI()
+    fn init_star_i(&mut self) {
     }
 
-    fn exit_star_i(&mut self, acc: &mut SynStarI, ctx: CtxStarI, spans: Vec<PosSpan>) {
-        println!("fn exit_star_i");
+    fn exit_star_i(&mut self, ctx: CtxStarI, spans: Vec<PosSpan>) {
         // `<L> line` iteration in `star -> ( ►► <L> line ◄◄ )* "end"`
-        let CtxStarI::V1 { line } = ctx;
+        let CtxStarI::V1 = ctx;
     }
 
-    fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine {
-        println!("fn exit_line");
+    fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) {
         match ctx {
             // line -> message
-            CtxLine::V1 { message } => {}
+            CtxLine::V1 => {}
             // line -> shutdown
-            CtxLine::V2 { shutdown } => {
-                self.abort = Terminate::Conclude;
-            }
+            CtxLine::V2 => {}
         }
-        SynLine()
     }
 
-    fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) -> SynMessage {
-        println!("fn exit_message");
+    fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) {
         match ctx {
             // message -> Note Message
             CtxMessage::V1 { note, message } => {}
@@ -318,34 +276,10 @@ impl WatcherListener for Listener {
             // message -> Header Message
             CtxMessage::V5 { header, message } => {}
         }
-        SynMessage()
     }
 }
 
 //==============================================================================
-
-pub mod listener_watcher_types {
-    /// User-defined type for `log`
-    #[derive(Debug, PartialEq)] pub struct SynLog();
-    /// User-defined type for `shutdown`
-    #[derive(Debug, PartialEq)] pub struct SynShutdown();
-    /// User-defined type for `category`
-    #[derive(Debug, PartialEq)] pub struct SynCategory();
-    /// User-defined type for `open_category`
-    #[derive(Debug, PartialEq)] pub struct SynOpenCategory();
-    /// User-defined type for `end_category`
-    #[derive(Debug, PartialEq)] pub struct SynEndCategory();
-    /// User-defined type for `right_recursive`
-    #[derive(Debug, PartialEq)] pub struct SynRightRecursive();
-    /// User-defined type for `star`
-    #[derive(Debug, PartialEq)] pub struct SynStar();
-    /// User-defined type for `<L> line` iteration in `star -> ( ►► <L> line ◄◄ )* "end"`
-    #[derive(Debug, PartialEq)] pub struct SynStarI();
-    /// User-defined type for `line`
-    #[derive(Debug, PartialEq)] pub struct SynLine();
-    /// User-defined type for `message`
-    #[derive(Debug, PartialEq)] pub struct SynMessage();
-}
 
 pub mod watcher_lexer {
     // Generated code, don't modify manually anything between the tags below
@@ -496,7 +430,6 @@ pub mod watcher_parser {
     // [watcher_parser]
 
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
-    use super::listener_watcher_types::*;
 
     const PARSER_NUM_T: usize = 11;
     const PARSER_NUM_NT: usize = 11;
@@ -528,11 +461,11 @@ pub mod watcher_parser {
     #[derive(Debug)]
     pub enum CtxLog {
         /// `log -> log shutdown`
-        V1 { log: SynLog, shutdown: SynShutdown },
+        V1,
         /// `log -> log open_category category`
-        V2 { log: SynLog, open_category: SynOpenCategory, category: SynCategory },
+        V2,
         /// `log -> open_category category`
-        V3 { open_category: SynOpenCategory, category: SynCategory },
+        V3,
     }
     #[derive(Debug)]
     pub enum CtxShutdown {
@@ -552,33 +485,33 @@ pub mod watcher_parser {
     #[derive(Debug)]
     pub enum CtxCategory {
         /// `category -> "right-recursive" right_recursive`
-        V1 { right_recursive: SynRightRecursive },
+        V1,
         /// `category -> "star" star`
-        V2 { star: SynStar },
+        V2,
     }
     #[derive(Debug)]
     pub enum CtxRightRecursive {
         /// `right_recursive -> <L> line right_recursive`
-        V1 { line: SynLine },
+        V1,
         /// `right_recursive -> end_category`
-        V2 { end_category: SynEndCategory },
+        V2,
     }
     #[derive(Debug)]
     pub enum CtxStar {
         /// `star -> (<L> line)* end_category`
-        V1 { star: SynStarI, end_category: SynEndCategory },
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxStarI {
         /// `<L> line` iteration in `star -> ( ►► <L> line ◄◄ )* end_category`
-        V1 { line: SynLine },
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxLine {
         /// `line -> message`
-        V1 { message: SynMessage },
+        V1,
         /// `line -> shutdown`
-        V2 { shutdown: SynShutdown },
+        V2,
     }
     #[derive(Debug)]
     pub enum CtxMessage {
@@ -596,62 +529,12 @@ pub mod watcher_parser {
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `log`
-    // #[derive(Debug, PartialEq)] pub struct SynLog();
-    // /// User-defined type for `shutdown`
-    // #[derive(Debug, PartialEq)] pub struct SynShutdown();
-    // /// User-defined type for `open_category`
-    // #[derive(Debug, PartialEq)] pub struct SynOpenCategory();
-    // /// User-defined type for `end_category`
-    // #[derive(Debug, PartialEq)] pub struct SynEndCategory();
-    // /// User-defined type for `category`
-    // #[derive(Debug, PartialEq)] pub struct SynCategory();
-    // /// User-defined type for `right_recursive`
-    // #[derive(Debug, PartialEq)] pub struct SynRightRecursive();
-    // /// User-defined type for `star`
-    // #[derive(Debug, PartialEq)] pub struct SynStar();
-    // /// User-defined type for `<L> line` iteration in `star -> ( ►► <L> line ◄◄ )* end_category`
-    // #[derive(Debug, PartialEq)] pub struct SynStarI();
-    // /// User-defined type for `line`
-    // #[derive(Debug, PartialEq)] pub struct SynLine();
-    // /// User-defined type for `message`
-    // #[derive(Debug, PartialEq)] pub struct SynMessage();
+    /// Top non-terminal Log (has no value)
+    #[derive(Debug, PartialEq)]
+    pub struct SynLog();
 
     #[derive(Debug)]
-    enum SynValue { Log(SynLog), Shutdown(SynShutdown), OpenCategory(SynOpenCategory), EndCategory(SynEndCategory), Category(SynCategory), RightRecursive(SynRightRecursive), Star(SynStar), StarI(SynStarI), Line(SynLine), Message(SynMessage) }
-
-    impl SynValue {
-        fn get_log(self) -> SynLog {
-            if let SynValue::Log(val) = self { val } else { panic!() }
-        }
-        fn get_shutdown(self) -> SynShutdown {
-            if let SynValue::Shutdown(val) = self { val } else { panic!() }
-        }
-        fn get_open_category(self) -> SynOpenCategory {
-            if let SynValue::OpenCategory(val) = self { val } else { panic!() }
-        }
-        fn get_end_category(self) -> SynEndCategory {
-            if let SynValue::EndCategory(val) = self { val } else { panic!() }
-        }
-        fn get_category(self) -> SynCategory {
-            if let SynValue::Category(val) = self { val } else { panic!() }
-        }
-        fn get_right_recursive(self) -> SynRightRecursive {
-            if let SynValue::RightRecursive(val) = self { val } else { panic!() }
-        }
-        fn get_star(self) -> SynStar {
-            if let SynValue::Star(val) = self { val } else { panic!() }
-        }
-        fn get_star_i(self) -> SynStarI {
-            if let SynValue::StarI(val) = self { val } else { panic!() }
-        }
-        fn get_line(self) -> SynLine {
-            if let SynValue::Line(val) = self { val } else { panic!() }
-        }
-        fn get_message(self) -> SynMessage {
-            if let SynValue::Message(val) = self { val } else { panic!() }
-        }
-    }
+    enum SynValue {  }
 
     pub trait WatcherListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -661,33 +544,39 @@ pub mod watcher_parser {
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
-        fn exit(&mut self, log: SynLog, span: PosSpan) {}
+        fn exit(&mut self, span: PosSpan) {}
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn init_log(&mut self) {}
-        fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog;
         #[allow(unused_variables)]
-        fn exitloop_log(&mut self, log: &mut SynLog) {}
+        fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) {}
         fn init_shutdown(&mut self) {}
-        fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) -> SynShutdown;
-        fn init_open_category(&mut self) {}
-        fn exit_open_category(&mut self, ctx: CtxOpenCategory, spans: Vec<PosSpan>) -> SynOpenCategory;
-        fn init_end_category(&mut self) {}
-        fn exit_end_category(&mut self, ctx: CtxEndCategory, spans: Vec<PosSpan>) -> SynEndCategory;
-        fn init_category(&mut self) {}
-        fn exit_category(&mut self, ctx: CtxCategory, spans: Vec<PosSpan>) -> SynCategory;
-        fn init_right_recursive(&mut self) -> SynRightRecursive;
-        fn exit_right_recursive(&mut self, acc: &mut SynRightRecursive, ctx: CtxRightRecursive, spans: Vec<PosSpan>);
-        fn init_star(&mut self) {}
-        fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar;
-        fn init_star_i(&mut self) -> SynStarI;
-        fn exit_star_i(&mut self, acc: &mut SynStarI, ctx: CtxStarI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_star_i(&mut self, acc: &mut SynStarI) {}
+        fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) {}
+        fn init_open_category(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_open_category(&mut self, ctx: CtxOpenCategory, spans: Vec<PosSpan>) {}
+        fn init_end_category(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_end_category(&mut self, ctx: CtxEndCategory, spans: Vec<PosSpan>) {}
+        fn init_category(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_category(&mut self, ctx: CtxCategory, spans: Vec<PosSpan>) {}
+        fn init_right_recursive(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_right_recursive(&mut self, ctx: CtxRightRecursive, spans: Vec<PosSpan>) {}
+        fn init_star(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) {}
+        fn init_star_i(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_star_i(&mut self, ctx: CtxStarI, spans: Vec<PosSpan>) {}
         fn init_line(&mut self) {}
-        fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine;
+        #[allow(unused_variables)]
+        fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) {}
         fn init_message(&mut self) {}
-        fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) -> SynMessage;
+        #[allow(unused_variables)]
+        fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) {}
     }
 
     pub struct Wrapper<T> {
@@ -719,9 +608,9 @@ pub mod watcher_parser {
                         2 => self.listener.init_open_category(),    // open_category
                         3 => self.listener.init_end_category(),     // end_category
                         4 => self.listener.init_category(),         // category
-                        5 => self.init_right_recursive(),           // right_recursive
+                        5 => self.listener.init_right_recursive(),  // right_recursive
                         6 => self.listener.init_star(),             // star
-                        7 => self.init_star_i(),                    // star_i
+                        7 => self.listener.init_star_i(),           // star_i
                         8 => self.listener.init_line(),             // line
                         9 => self.listener.init_message(),          // message
                         _ => panic!("unexpected enter nonterminal id: {nt}")
@@ -733,7 +622,7 @@ pub mod watcher_parser {
                         0 => self.inter_log(),                      // log -> open_category category log_1
                         18 |                                        // log_1 -> shutdown log_1
                         19 => self.exit_log1(alt_id),               // log_1 -> open_category category log_1
-                        20 => self.exitloop_log1(),                 // log_1 -> ε
+                        20 => {}                                    // log_1 -> ε (not used)
                         1 => self.exit_shutdown(),                  // shutdown -> "shutdown"
                         2 => self.exit_open_category(),             // open_category -> "category"
                         3 => self.exit_end_category(),              // end_category -> "end"
@@ -743,7 +632,7 @@ pub mod watcher_parser {
                         7 => self.exit_right_recursive(alt_id),     // right_recursive -> <L> end_category
                         8 => self.exit_star(),                      // star -> star_i end_category
                         9 => self.exit_star_i(),                    // star_i -> <L> line star_i
-                        10 => self.exitloop_star_i(),               // star_i -> <L> ε
+                        10 => {}                                    // star_i -> <L> ε (not used)
                         11 |                                        // line -> message
                         12 => self.exit_line(alt_id),               // line -> shutdown
                         13 |                                        // message -> Note Message
@@ -757,9 +646,8 @@ pub mod watcher_parser {
                 Call::End(terminate) => {
                     match terminate {
                         Terminate::None => {
-                            let val = self.stack.pop().unwrap().get_log();
                             let span = self.stack_span.pop().unwrap();
-                            self.listener.exit(val, span);
+                            self.listener.exit(span);
                         }
                         Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
                     }
@@ -829,151 +717,105 @@ pub mod watcher_parser {
         }
 
         fn inter_log(&mut self) {
-            let category = self.stack.pop().unwrap().get_category();
-            let open_category = self.stack.pop().unwrap().get_open_category();
-            let ctx = CtxLog::V3 { open_category, category };
+            let ctx = CtxLog::V3;
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_log(ctx, spans);
-            self.stack.push(SynValue::Log(val));
+            self.listener.exit_log(ctx, spans);
         }
 
         fn exit_log1(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 18 => {
-                    let shutdown = self.stack.pop().unwrap().get_shutdown();
-                    let log = self.stack.pop().unwrap().get_log();
-                    (2, CtxLog::V1 { log, shutdown })
+                    (2, CtxLog::V1)
                 }
                 19 => {
-                    let category = self.stack.pop().unwrap().get_category();
-                    let open_category = self.stack.pop().unwrap().get_open_category();
-                    let log = self.stack.pop().unwrap().get_log();
-                    (3, CtxLog::V2 { log, open_category, category })
+                    (3, CtxLog::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_log1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_log(ctx, spans);
-            self.stack.push(SynValue::Log(val));
-        }
-
-        fn exitloop_log1(&mut self) {
-            let SynValue::Log(log) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_log(log);
+            self.listener.exit_log(ctx, spans);
         }
 
         fn exit_shutdown(&mut self) {
             let ctx = CtxShutdown::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_shutdown(ctx, spans);
-            self.stack.push(SynValue::Shutdown(val));
+            self.listener.exit_shutdown(ctx, spans);
         }
 
         fn exit_open_category(&mut self) {
             let ctx = CtxOpenCategory::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_open_category(ctx, spans);
-            self.stack.push(SynValue::OpenCategory(val));
+            self.listener.exit_open_category(ctx, spans);
         }
 
         fn exit_end_category(&mut self) {
             let ctx = CtxEndCategory::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_end_category(ctx, spans);
-            self.stack.push(SynValue::EndCategory(val));
+            self.listener.exit_end_category(ctx, spans);
         }
 
         fn exit_category(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 4 => {
-                    let right_recursive = self.stack.pop().unwrap().get_right_recursive();
-                    (2, CtxCategory::V1 { right_recursive })
+                    (2, CtxCategory::V1)
                 }
                 5 => {
-                    let star = self.stack.pop().unwrap().get_star();
-                    (2, CtxCategory::V2 { star })
+                    (2, CtxCategory::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_category")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_category(ctx, spans);
-            self.stack.push(SynValue::Category(val));
-        }
-
-        fn init_right_recursive(&mut self) {
-            let val = self.listener.init_right_recursive();
-            self.stack.push(SynValue::RightRecursive(val));
+            self.listener.exit_category(ctx, spans);
         }
 
         fn exit_right_recursive(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 6 => {
-                    let line = self.stack.pop().unwrap().get_line();
-                    (2, CtxRightRecursive::V1 { line })
+                    (2, CtxRightRecursive::V1)
                 }
                 7 => {
-                    let end_category = self.stack.pop().unwrap().get_end_category();
-                    (2, CtxRightRecursive::V2 { end_category })
+                    (2, CtxRightRecursive::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_right_recursive")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::RightRecursive(acc)) = self.stack.last_mut() else { panic!() };
-            self.listener.exit_right_recursive(acc, ctx, spans);
+            self.listener.exit_right_recursive(ctx, spans);
         }
 
         fn exit_star(&mut self) {
-            let end_category = self.stack.pop().unwrap().get_end_category();
-            let star = self.stack.pop().unwrap().get_star_i();
-            let ctx = CtxStar::V1 { star, end_category };
+            let ctx = CtxStar::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_star(ctx, spans);
-            self.stack.push(SynValue::Star(val));
-        }
-
-        fn init_star_i(&mut self) {
-            let val = self.listener.init_star_i();
-            self.stack.push(SynValue::StarI(val));
+            self.listener.exit_star(ctx, spans);
         }
 
         fn exit_star_i(&mut self) {
-            let line = self.stack.pop().unwrap().get_line();
-            let ctx = CtxStarI::V1 { line };
+            let ctx = CtxStarI::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::StarI(acc)) = self.stack.last_mut() else { panic!() };
-            self.listener.exit_star_i(acc, ctx, spans);
-        }
-
-        fn exitloop_star_i(&mut self) {
-            let SynValue::StarI(acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_star_i(acc);
+            self.listener.exit_star_i(ctx, spans);
         }
 
         fn exit_line(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 11 => {
-                    let message = self.stack.pop().unwrap().get_message();
-                    (1, CtxLine::V1 { message })
+                    (1, CtxLine::V1)
                 }
                 12 => {
-                    let shutdown = self.stack.pop().unwrap().get_shutdown();
-                    (1, CtxLine::V2 { shutdown })
+                    (1, CtxLine::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_line")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_line(ctx, spans);
-            self.stack.push(SynValue::Line(val));
+            self.listener.exit_line(ctx, spans);
         }
 
         fn exit_message(&mut self, alt_id: AltId) {
@@ -1007,8 +849,7 @@ pub mod watcher_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_message(ctx, spans);
-            self.stack.push(SynValue::Message(val));
+            self.listener.exit_message(ctx, spans);
         }
     }
 
