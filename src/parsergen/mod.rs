@@ -1065,7 +1065,7 @@ impl ParserGen {
         //             we decrease the indices in both alts
         //      if the pattern is empty after the loop, we have a candidate:
         //      - remove the pattern without the last NT from the parent's item_ops -> [Id a_1]
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         self.log.add_note("- determining sep_list nonterminals...");
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
@@ -1083,22 +1083,76 @@ impl ParserGen {
                     }
                 })
                 .to_vec();  // to avoid borrow checker issue with &mut self later
-            for (var_id, alt_id, _flags) in group {
+            for &(var_id, alt_id, _flags) in &group {
                 // we search for potential token-separated items,
                 // - first testing that the item_ops patterns match (easier without β)
                 // - then testing that the actual symbols match, too (in case non-values are in the syntax)
                 let c_alt = &self.parsing_table.alts[alt_id as usize].1.v;
                 let parent = self.parsing_table.parent[var_id as usize].unwrap();
-                let mut pattern = items[alt_id as usize].iter().skip(1).cloned().to_vec();
+                let has_value = self.nt_value[var_id as usize];
+                let skip = if has_value { 1 } else { 0 };
+                let mut pattern = items[alt_id as usize].iter()
+                    .skip(skip)
+                    .cloned()
+                    .to_vec();
+                if VERBOSE {
+                    println!(
+                        "? {} {alt_id}: pattern = {}",
+                        Symbol::NT(var_id).to_str(self.get_symbol_table()),
+                        pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
                 if !pattern.is_empty() {
-                    pattern.push(Symbol::NT(var_id));
+                    if has_value { pattern.push(Symbol::NT(var_id)); }
                     let pattern_len = pattern.len();
                     // finds the parent's alts, including those added by left-factorization
+                    let var_sym = Symbol::NT(var_id);
+                    let (p_var, p_alt_id, p_alt) = group.iter()
+                        .filter_map(|&(p_var, p_alt_id, _p_flag)| {
+                            if p_var != var_id {
+                                let p_alt = &self.parsing_table.alts[p_alt_id as usize].1.v;
+                                if p_alt.contains(&var_sym) {
+                                    Some((p_var, p_alt_id, p_alt))
+                                } else { None }
+                            } else { None }
+                        })
+                        .next()
+                        .unwrap();
+                    let mut c_pos = c_alt.len() - 1;
+                    let mut p_pos = p_alt.iter().position(|&s| s == Symbol::NT(var_id)).unwrap();
+                    let p_pos0 = p_pos;
+                    let mut span_nbr = 0;
+                    while !pattern.is_empty() {
+                        if p_alt[p_pos] == c_alt[c_pos] {
+                            span_nbr += 1;
+                            if self.sym_has_value(&c_alt[c_pos]) {
+                                pattern.pop();
+                            }
+                            if c_pos == 0 || p_pos == 0 {
+                                break;
+                            }
+                            c_pos -= 1;
+                            p_pos -= 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    if pattern.is_empty() {
+                        span_nbr -= skip as SpanNbr;
+                        let pos = p_alt[0..p_pos0].iter().filter(|s| self.sym_has_value(s)).count() - pattern_len;
+                        if VERBOSE { println!("- match: parent alt {p_alt_id}, child alt {alt_id}, pos in parent: {pos}, span_nbr = {span_nbr}"); }
+                        self.span_nbrs[p_alt_id as usize] -= span_nbr;
+                        self.span_nbrs_sep_list.insert(alt_id, span_nbr);
+                        items[p_alt_id as usize].drain(pos..pos + pattern_len - skip);
+                        self.parsing_table.flags[var_id as usize] |= ruleflag::SEP_LIST;
+                    }
+
+                    #[cfg(any())]
                     let p_alts = self.gather_alts(parent);
+                    #[cfg(any())]
                     if VERBOSE {
                         println!("- alt {alt_id}, pattern [{}], parent alts: {p_alts:?}",
                                  pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
                     }
+                    #[cfg(any())]
                     'parent: for a in p_alts {
                         // finds matching item patterns in parent
                         let mut span_nbr = 0;
@@ -2145,7 +2199,7 @@ impl ParserGen {
                     if !is_sep_list {
                         span_init.insert(*var);
                     }
-                    if has_value {
+                    if has_value || is_sep_list {
                         init_nt_done.insert(*var);
                         src_wrapper_impl.push(String::new());
                         src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
@@ -2180,18 +2234,24 @@ impl ParserGen {
                                     src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
                                 }
                                 src_wrapper_impl.push(format!(
-                                    "        let val = self.listener.{init_fn_name}(ctx{});",
+                                    "        {}self.listener.{init_fn_name}(ctx{});",
+                                    if has_value { "let val = " } else { "" },
                                     if self.gen_span_params { ", spans" } else { "" }));
+                                let ret = if has_value {
+                                    format!("-> {};", self.get_nt_type(nt as VarId))
+                                } else {
+                                    src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                                    "{}".to_string()
+                                };
                                 src_listener_decl.push(format!(
-                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) -> {};",
-                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" },
-                                    self.get_nt_type(nt as VarId)));
+                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
+                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
 
                                 // skeleton
+                                let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
                                 src_skel.push(format!(
-                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) -> {} {{",
-                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" },
-                                    self.get_nt_type(nt as VarId)));
+                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
+                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
                                 let a_id = self.var_alts[nt][0];
                                 let a_info = &item_info[a_id as usize];
                                 if !a_info.is_empty() {
@@ -2212,7 +2272,9 @@ impl ParserGen {
                                 src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
                                 has_skel_init = true;
                             }
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                            if has_value {
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                            }
                         } else if is_sep_list {
                             // fetch values from stack to init the list with the first value that was outside the repetition:
                             // first α in α (β α)*
@@ -2236,7 +2298,9 @@ impl ParserGen {
                     // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                 }
                 if has_skel_init {
-                    src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
+                    if has_value {
+                        src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
+                    }
                     src_skel.push("    }".to_string());
                     src_skel.push(String::new());
                 }
