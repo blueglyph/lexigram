@@ -2110,7 +2110,8 @@ impl ParserGen {
                 let is_parent = nt == parent_nt;
                 let is_child_repeat_lform = self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT_LFORM);
                 let is_sep_list = flags & ruleflag::SEP_LIST != 0;
-                let is_l_form = flags & ruleflag::L_FORM != 0;
+                let is_lform = flags & ruleflag::L_FORM != 0;
+                let is_rrec_lform = is_lform && flags & ruleflag::R_RECURSION != 0;
                 let (nu, nl, npl) = &nt_name[nt];
                 if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
                                       sym_nt.to_str(self.get_symbol_table()),
@@ -2123,8 +2124,10 @@ impl ParserGen {
                 let init_fn_name = format!("init_{npl}");
                 if self.parsing_table.parent[nt].is_none() {
                     init_nt_done.insert(*var);
-                    if has_value && self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                    if is_rrec_lform {
                         span_init.insert(*var);
+                    }
+                    if is_rrec_lform && has_value {
                         src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
@@ -2147,7 +2150,7 @@ impl ParserGen {
                         src_wrapper_impl.push(String::new());
                         src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
-                        if is_l_form {
+                        if is_lform {
                             if is_sep_list {
                                 let all_exit_alts = if is_ambig_1st_child {
                                     ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
@@ -2222,7 +2225,7 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         }
                         src_wrapper_impl.push("    }".to_string());
-                    } else if is_l_form {
+                    } else if is_lform {
                         init_nt_done.insert(*var);
                         src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
                         src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));

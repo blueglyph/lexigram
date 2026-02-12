@@ -9472,6 +9472,9 @@ pub(crate) mod rules_401_2 {
             }
             match call {
                 Call::Enter => {
+                    if matches!(nt, 0) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
                     match nt {
                         0 => self.listener.init_expr(),             // expr
                         _ => panic!("unexpected enter nonterminal id: {nt}")
