@@ -1331,11 +1331,11 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     }
                 })
                 .map(|node| {
-                match node {
-                    GrNode::Symbol(s) => *s,
-                    x => panic!("unexpected symbol {x} under &")
-                }
-            }).to_vec();
+                    match node {
+                        GrNode::Symbol(s) => *s,
+                        x => panic!("unexpected symbol {x} under &")
+                    }
+                }).to_vec();
             Alternative::new(alt).with_flags(flags)
         }
         let mut prules = Self::with_capacity(rules.trees.len());
@@ -1429,7 +1429,8 @@ impl BuildFrom<RuleTreeSet<General>> for ProdRuleSet<General> {
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
     fn build_from(rules: RuleTreeSet<General>) -> Self {
-        let mut prs = ProdRuleSet::build_from(RuleTreeSet::<Normalized>::build_from(rules));
+        let rts = RuleTreeSet::<Normalized>::build_from(rules);
+        let mut prs = ProdRuleSet::build_from(rts);
         if prs.log.has_no_errors() {
             prs.simplify();
         }

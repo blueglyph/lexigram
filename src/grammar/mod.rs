@@ -211,7 +211,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
                     GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                     GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
                     GrNode::Greedy => (PR_ATOM, "<G>".to_string()),
-                    s => panic!("{s:?} should have children"),
+                    _ => (PR_ATOM, "##ERROR##".to_string()),
                 }
             }
             n => {
@@ -223,7 +223,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
                     GrNode::Plus => pr_append(node_children.pop().unwrap(), "+", PR_FACTOR),
                     GrNode::Star => pr_append(node_children.pop().unwrap(), "*", PR_FACTOR),
                     GrNode::Instance => pr_join(node_children, " ", PR_FACTOR),
-                    s => panic!("{s:?} shouldn't have {n} child(ren)"),
+                    _ => (PR_ATOM, "##ERROR##".to_string()),
                 }
             }
         };
@@ -658,9 +658,17 @@ impl RuleTreeSet<General> {
                 let n = sym.num_children();
                 if VERBOSE { println!("- old {}:{}", sym.index, *sym); }
                 if n == 0 {
-                    let new_id = new.add(None, *orig.get(sym.index));
-                    stack.push(new_id);
-                    if VERBOSE { print!("  leaf: "); }
+                    if matches!(*sym, GrNode::Maybe | GrNode::Plus | GrNode::Star) {
+                        self.log.add_error(format!(
+                            "normalize_var({}): {} must have one child; found none",
+                            Symbol::NT(var).to_str(self.get_symbol_table()), *sym));
+                        // replace with empty symbol
+                        stack.push(new.add(None, GrNode::Symbol(Symbol::Empty)));
+                    } else {
+                        let new_id = new.add(None, *orig.get(sym.index));
+                        stack.push(new_id);
+                        if VERBOSE { print!("  leaf: "); }
+                    }
                 } else {
                     match *sym {
                         // we must rearrange the operations so that any item on the stack is only
@@ -764,7 +772,7 @@ impl RuleTreeSet<General> {
                         }
                         GrNode::Maybe => {
                             if n != 1 {
-                                self.log.add_error(format!("normalize_var({}): ? should only have one child; found {n}: {}",
+                                self.log.add_error(format!("normalize_var({}): ? must have one child; found {n}: {}",
                                                            Symbol::NT(var).to_str(self.get_symbol_table()),
                                                            orig.to_str(Some(sym.index), self.get_symbol_table())));
                             } else {
@@ -830,7 +838,7 @@ impl RuleTreeSet<General> {
                             if VERBOSE { print!("  {sym_char}: "); }
                             if n != 1 {
                                 self.log.add_error(format!(
-                                    "normalize_var({}): {sym_char} should only have one child; found {n}: {}",
+                                    "normalize_var({}): {sym_char} must have one child; found {n}: {}",
                                     Symbol::NT(var).to_str(self.get_symbol_table()),
                                     orig.to_str(Some(sym.index), self.get_symbol_table())));
                                 if VERBOSE { println!("ERROR: found {n} children instead of 1"); }

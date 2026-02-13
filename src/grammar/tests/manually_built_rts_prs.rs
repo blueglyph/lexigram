@@ -59,6 +59,12 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
+        100 => { // A -> a ()*
+            let cc = tree.add_root(gnode!(&));
+            // tree.add_iter(Some(cc), [gnode!(t 0), gnode!(*)]);
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc_iter(Some(cc), gnode!(*), []);
+        }
         _ => {}
     }
     if rules.symbol_table.is_none() {
@@ -113,7 +119,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                 table.set_nt_name(nt, name);
             }
         }
-        if 21 <= id && id <= 25 || id == 27 || id == 32 {
+        if matches!(id, 23 | 27) {
             table.extend_terminals([
                 ("a".to_string(), None),
                 if id != 25 { ("b".to_string(), None) } else { ("#".to_string(), Some("#".to_string())) },
@@ -630,4 +636,11 @@ fn parser_parse_stream_id() {
             assert_eq!(errors, expected_errors, "test {test_id}/{ll_id:?}/{start} failed for input {input}");
         }
     }
+}
+
+#[test]
+fn test_empty_repeat() {
+    let prs = T::RTS(100).try_build_prs(0, true);
+    let error = prs.log.get_errors().find(|s| s.to_string().contains("* must have one child; found none"));
+    assert!(error.is_some(), "didn't find the expected error:\n{}", prs.log);
 }
