@@ -1894,8 +1894,7 @@ impl ParserGen {
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
 
-        let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
-        log.add_note("generating wrapper source...");
+        self.log.add_note("generating wrapper source...");
         self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
         if self.gen_span_params {
             self.used_libs.add(format!("{}::lexer::PosSpan", self.lib_crate));
@@ -2597,8 +2596,8 @@ impl ParserGen {
             }
         }
         src_skel.push("}".to_string());
-        log.add_info("Skeleton implementation of listener:");
-        log.extend_messages(src_skel.into_iter().map(|s| LogMsg::Info(s)));
+        self.log.add_info("Skeleton implementation of listener:");
+        self.log.extend_messages(src_skel.into_iter().map(|s| LogMsg::Info(s)));
 
         // Writes the listener trait declaration
         src.add_space();
@@ -2821,7 +2820,6 @@ impl ParserGen {
 */
         src.extend(src_wrapper_impl);
         src.push("}".to_string());
-        self.log = log;
 
         src
     }
