@@ -893,8 +893,8 @@ impl ParserGen {
                              ).join(", "));
                 }
                 let g_top_has_value = self.nt_value[g_top as usize];
-                for (nt, alt_id) in &group {
-                    let ambig_loop_value = g_top_has_value && is_ambig && self.nt_has_all_flags(*nt, ruleflag::CHILD_L_RECURSION);
+                for (var_id, alt_id) in &group {
+                    let ambig_loop_value = g_top_has_value && is_ambig && self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_RECURSION);
                     items[*alt_id as usize] = if ambig_loop_value { vec![Symbol::NT(g_top)] } else { vec![] };
                 }
                 for (var_id, alt_id) in &group {
@@ -1043,151 +1043,123 @@ impl ParserGen {
     fn check_sep_list(&mut self, items: &mut [Vec<Symbol>]) {
         // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
         //
-        // alt | rule alternative                 | item_ops
+        // alt | rule alternative                 | items
         // ----+----------------------------------+---------------
         //  0  |  a -> Id "(" Id ":" type a_1 ")" | Id Id type a_1
         //  1  |  type -> Id                      | Id
         //  2  |  a_1 -> "," Id ":" type a_1      | a_1 Id type
         //  3  |  a_1 -> ε                        | a_1
         //
-        // 2 => pattern = [Id type a_1], parent = a, gather_alts(parent) = [0]
-        // - 0: pattern matches at positions 1-3
-        //     checking if symbol sequences match in rule alternatives:
+        // - c_alt = 2 is child_*, pattern in `items` = [Id type] (a_1 is skipped),
+        //   - pattern_len = 2
+        //   - find NT in group that's not a_1 and that has a_1 in one of its alt
+        //     => p_var = a, p_alt_id = 0
+        //   - find position of a_1 in p_alt; check if there's something on the left (reject if not)
+        //     and takes the position of the left symbol:
+
+        //          0   1  2   3    4          0  1   2  3   4    5
+        //       2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
+        //                     ^^^^ c_pos (init) = 3         ^^^^ p_pos0 = p_pos (init) = 4
         //
-        //     2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
-        //                        <--                           <--   <-- (1)
-        //            <--------------               <--------------   <-- (2)
+        //   - counts how many symbols match on the left, and
+        //     for each symbol that has a value, pops one from pattern,
+        //     until pattern is empty of c_pos/p_pos is 0
         //
-        //     (1) we start the comparison on NT(child)
-        //     (2) while the pattern isn't empty
-        //             if the symbols don't match of if an index is null, we stop
-        //             if it has value, we pop it from pattern
-        //             we decrease the indices in both alts
-        //      if the pattern is empty after the loop, we have a candidate:
-        //      - remove the pattern without the last NT from the parent's item_ops -> [Id a_1]
+        //          0   1  2   3    4          0  1   2  3   4    5
+        //       2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
+        //          !=  <----------               !=  <---------- span_nbr = 3 (Id ":" type)
+        //
+        //   - if pattern is empty, we have a match
+        //     - find the position of a_1 in items[p_alt]: pos = 3 (Id Id type a_1)
+        //       NOTE: at this stage, a_1 will be in items, regardless of nt_value[c_var];
+        //             it will be removed later if it has no value
+        //     - remove [pos - pattern_len..pos] from items[p_var] -> [3 - 2..3] = [1..3] => [Id a_1] is left
+
         const VERBOSE: bool = true;
         self.log.add_note("- determining sep_list nonterminals...");
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
-        for g in self.nt_parent.iter().filter(|va| !va.is_empty()) {
-            // takes all the alternatives in the group (and their NT ID):
-            let group = g.iter()
-                .filter_map(|&var_id| {
-                    let alts = &self.var_alts[var_id as usize];
-                    let flags = self.parsing_table.flags[var_id as usize];
+        for (top_nt, g) in self.nt_parent.iter().enumerate().filter(|va| !va.1.is_empty()) {
+            // takes the potential child_*
+            let candidate_children = g.iter()
+                .filter_map(|&var| {
+                    let alts = &self.var_alts[var as usize];
+                    let flags = self.parsing_table.flags[var as usize];
                     // takes only len() == 2 to reject complex cases like a -> A B C (B C | D)*
-                    if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS /*| ruleflag::L_FORM*/) == ruleflag::CHILD_REPEAT {
-                        Some((var_id, alts[0], flags))
+// FIXME: temporary
+let has_v = self.nt_value[var as  usize];
+                    if has_v && alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
+                        Some((var, alts[0] as usize, flags))
                     } else {
                         None
                     }
                 })
                 .to_vec();  // to avoid borrow checker issue with &mut self later
-            for &(var_id, alt_id, _flags) in &group {
-                // we search for potential token-separated items,
-                // - first testing that the item_ops patterns match (easier without β)
-                // - then testing that the actual symbols match, too (in case non-values are in the syntax)
-                let c_alt = &self.parsing_table.alts[alt_id as usize].1.v;
-                let parent = self.parsing_table.parent[var_id as usize].unwrap();
-                let has_value = self.nt_value[var_id as usize];
-                let skip = if has_value { 1 } else { 0 };
-                let mut pattern = items[alt_id as usize].iter()
-                    .skip(skip)
-                    .cloned()
-                    .to_vec();
+            for &(c_var, c_alt_id, _c_flags) in &candidate_children {
+                let has_value = self.nt_value[c_var as usize];
+                let skip_loop_nt = if has_value { 1 } else { 0 }; // the loop NT that's put in front when it has a value
+                let mut pattern = items[c_alt_id].iter().skip(skip_loop_nt).cloned().to_vec();
                 if VERBOSE {
                     println!(
-                        "? {} {alt_id}: pattern = {}",
-                        Symbol::NT(var_id).to_str(self.get_symbol_table()),
+                        "? {} {c_alt_id}: pattern = {}",
+                        Symbol::NT(c_var).to_str(self.get_symbol_table()),
                         pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
                 if !pattern.is_empty() {
-                    if has_value { pattern.push(Symbol::NT(var_id)); }
+                    // if has_value { pattern.push(Symbol::NT(c_var)); }
                     let pattern_len = pattern.len();
-                    // finds the parent's alts, including those added by left-factorization
-                    let var_sym = Symbol::NT(var_id);
-                    let (p_var, p_alt_id, p_alt) = group.iter()
-                        .filter_map(|&(p_var, p_alt_id, _p_flag)| {
-                            if p_var != var_id {
-                                let p_alt = &self.parsing_table.alts[p_alt_id as usize].1.v;
-                                if p_alt.contains(&var_sym) {
-                                    Some((p_var, p_alt_id, p_alt))
-                                } else { None }
-                            } else { None }
+                    let c_sym = Symbol::NT(c_var);
+                    // finds the parent's alt that includes this child_+*
+                    let (_p_var, p_alt_id, p_alt, mut p_pos) = self.nt_parent[top_nt].iter()
+                        .flat_map(|&p_var| &self.var_alts[p_var as usize])
+                        .filter_map(|&p_alt_id| {
+                            let (p_var, p_alt) = &self.parsing_table.alts[p_alt_id as usize];
+                            if *p_var != c_var {
+                                p_alt.v.iter().position(|s| s == &c_sym).map(|p_pos| (p_var, p_alt_id as usize, p_alt, p_pos))
+                            } else {
+                                None
+                            }
                         })
                         .next()
-                        .unwrap();
-                    let mut c_pos = c_alt.len() - 1;
-                    let mut p_pos = p_alt.iter().position(|&s| s == Symbol::NT(var_id)).unwrap();
-                    let p_pos0 = p_pos;
-                    let mut span_nbr = 0;
-                    while !pattern.is_empty() {
-                        if p_alt[p_pos] == c_alt[c_pos] {
-                            span_nbr += 1;
-                            if self.sym_has_value(&c_alt[c_pos]) {
-                                pattern.pop();
-                            }
-                            if c_pos == 0 || p_pos == 0 {
+                        .expect(&format!("NT {c_var} alt {c_alt_id} should have a parent's alt that includes it"));
+                    if p_pos > 0 {
+                        // verifies if enough symbols match
+                        p_pos -= 1; // easier to skip the child nonterminal, since it may or may not have a value
+                        let c_alt = &self.parsing_table.alts[c_alt_id].1.v;
+                        let mut c_pos = c_alt.len() - 2; // safe: there's at least another symbol before `c_sym` (per design)
+                        let p_pos0 = p_pos;
+                        let mut span_nbr = 0;
+                        while !pattern.is_empty() {
+                            if p_alt[p_pos] == c_alt[c_pos] {
+                                span_nbr += 1;
+                                if self.sym_has_value(&c_alt[c_pos]) {
+                                    pattern.pop();
+                                }
+                                if c_pos == 0 || p_pos == 0 {
+                                    break;
+                                }
+                                c_pos -= 1;
+                                p_pos -= 1;
+                            } else {
                                 break;
                             }
-                            c_pos -= 1;
-                            p_pos -= 1;
-                        } else {
-                            break;
                         }
-                    }
-                    if pattern.is_empty() {
-                        span_nbr -= skip as SpanNbr;
-                        let pos = p_alt[0..p_pos0].iter().filter(|s| self.sym_has_value(s)).count() - pattern_len;
-                        if VERBOSE { println!("- match: parent alt {p_alt_id}, child alt {alt_id}, pos in parent: {pos}, span_nbr = {span_nbr}"); }
-                        self.span_nbrs[p_alt_id as usize] -= span_nbr;
-                        self.span_nbrs_sep_list.insert(alt_id, span_nbr);
-                        items[p_alt_id as usize].drain(pos..pos + pattern_len - skip);
-                        self.parsing_table.flags[var_id as usize] |= ruleflag::SEP_LIST;
-                    }
-
-                    #[cfg(any())]
-                    let p_alts = self.gather_alts(parent);
-                    #[cfg(any())]
-                    if VERBOSE {
-                        println!("- alt {alt_id}, pattern [{}], parent alts: {p_alts:?}",
-                                 pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
-                    }
-                    #[cfg(any())]
-                    'parent: for a in p_alts {
-                        // finds matching item patterns in parent
-                        let mut span_nbr = 0;
-                        for (pos, sub) in items[a as usize].windows(pattern_len).enumerate() {
-                            if VERBOSE { println!("  - inspecting {}", sub.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                            if sub == pattern {
-                                // checks if the corresponding symbols match in the alts
-                                let p_alt = &self.parsing_table.alts[a as usize].1.v;
-                                let mut c_pos = c_alt.len() - 1;
-                                let mut p_pos = p_alt.iter().position(|&s| s == Symbol::NT(var_id)).unwrap();
-                                while !pattern.is_empty() {
-                                    if p_alt[p_pos] == c_alt[c_pos] {
-                                        span_nbr += 1;
-                                        if self.sym_has_value(&c_alt[c_pos]) {
-                                            pattern.pop().unwrap();
-                                        }
-                                        if c_pos == 0 || p_pos == 0 {
-                                            break;
-                                        }
-                                        c_pos -= 1;
-                                        p_pos -= 1;
-                                    } else {
-                                        break;
-                                    }
-                                }
-                                if pattern.is_empty() {
-                                    span_nbr -= 1;
-                                    if VERBOSE { println!("- match: parent alt {a}, child alt {alt_id}, pos in parent: {pos}, span_nbr = {span_nbr}"); }
-                                    self.span_nbrs[a as usize] -= span_nbr;
-                                    self.span_nbrs_sep_list.insert(alt_id, span_nbr);
-                                    items[a as usize].drain(pos..pos + pattern_len - 1);
-                                    self.parsing_table.flags[var_id as usize] |= ruleflag::SEP_LIST;
-                                }
-                                break 'parent;
-                            }
+                        if pattern.is_empty() {
+                            println!("- match:");
+                            println!("  p: {}    items: {}",
+                                     p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                     items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            println!("  c: {}    items: {}",
+                                     c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                     items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            let pos = items[p_alt_id].iter().position(|s| *s == c_sym).unwrap();
+                            println!(
+                                "  c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
+                                pos - pattern_len, pos);
+                            self.span_nbrs[p_alt_id] -= span_nbr as SpanNbr;
+                            self.span_nbrs_sep_list.insert(c_alt_id as AltId, span_nbr as SpanNbr);
+                            items[p_alt_id].drain(pos - pattern_len..pos);
+                            println!("  => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            self.parsing_table.flags[c_var as usize] |= ruleflag::SEP_LIST;
                         }
                     }
                 }
