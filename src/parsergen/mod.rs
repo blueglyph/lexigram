@@ -927,7 +927,21 @@ impl ParserGen {
                                     None
                                 }
                             };
-                            sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
+                            sym_maybe.and_then(|s| {
+                                // test that leaves child* nonterminals when they have no value,
+                                // because they're required by check_sep_list()
+                                // TODO: optimize
+                                const REP_MASK: u32 = ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS;
+                                const REP_SEL: u32 = ruleflag::CHILD_REPEAT;
+                                if self.sym_has_value(&s)
+                                    // leaves child* nonterminals for now:
+                                    || matches!(s, Symbol::NT(v) if self.parsing_table.flags[v as usize] & REP_MASK == REP_SEL)
+                                {
+                                    Some(s)
+                                } else {
+                                    None
+                                }
+                            })
                         }).to_vec();
                     // Looks if a child_repeat has a value
                     if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
@@ -940,7 +954,7 @@ impl ParserGen {
                             }
                         }
                         // +* non-lform children have the same value as their parent, but +* lform
-                        // children's "valueness" is independent from their parent's
+                        // children's value is independent of their parent's
                         if self.parsing_table.flags[top_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                             if VERBOSE && !self.nt_value[top_nt] {
                                 print!(" | {} is now valued {}",
@@ -1026,8 +1040,17 @@ impl ParserGen {
                 }
             }
         }
+
+        // adds sep_list flags to * with token-separated lists, and removes the corresponding
+        // items that will be taken in an init method or added in first position in the array
         self.check_sep_list(&mut items);
-        self.item_ops = items;
+
+        // removes the child* nonterminals with no value that had been left earlier for check_sep_list()
+        // TODO: optimize
+        self.item_ops = items.into_iter()
+            .map(|item| item.into_iter().filter(|s| self.sym_has_value(s)).to_vec())
+            .to_vec();
+
         self.log.add_note(
             format!(
                 "NT with value: {}",
@@ -1074,8 +1097,7 @@ impl ParserGen {
         //       NOTE: at this stage, a_1 will be in items, regardless of nt_value[c_var];
         //             it will be removed later if it has no value
         //     - remove [pos - pattern_len..pos] from items[p_var] -> [3 - 2..3] = [1..3] => [Id a_1] is left
-
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.log.add_note("- determining sep_list nonterminals...");
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
@@ -1086,9 +1108,7 @@ impl ParserGen {
                     let alts = &self.var_alts[var as usize];
                     let flags = self.parsing_table.flags[var as usize];
                     // takes only len() == 2 to reject complex cases like a -> A B C (B C | D)*
-// FIXME: temporary
-let has_v = self.nt_value[var as  usize];
-                    if has_v && alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
+                    if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
                         Some((var, alts[0] as usize, flags))
                     } else {
                         None
@@ -1144,21 +1164,27 @@ let has_v = self.nt_value[var as  usize];
                             }
                         }
                         if pattern.is_empty() {
-                            println!("- match:");
-                            println!("  p: {}    items: {}",
-                                     p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                     items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                            println!("  c: {}    items: {}",
-                                     c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                     items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            if VERBOSE {
+                                println!("- match:");
+                                println!("  p: {}    items: {}",
+                                         p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                         items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                                println!("  c: {}    items: {}",
+                                         c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                         items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            }
                             let pos = items[p_alt_id].iter().position(|s| *s == c_sym).unwrap();
-                            println!(
-                                "  c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
-                                pos - pattern_len, pos);
+                            if VERBOSE {
+                                println!(
+                                    "  c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
+                                    pos - pattern_len, pos);
+                            }
                             self.span_nbrs[p_alt_id] -= span_nbr as SpanNbr;
                             self.span_nbrs_sep_list.insert(c_alt_id as AltId, span_nbr as SpanNbr);
                             items[p_alt_id].drain(pos - pattern_len..pos);
-                            println!("  => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            if VERBOSE {
+                                println!("  => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            }
                             self.parsing_table.flags[c_var as usize] |= ruleflag::SEP_LIST;
                         }
                     }

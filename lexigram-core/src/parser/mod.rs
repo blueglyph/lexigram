@@ -36,6 +36,10 @@ impl Symbol {
         matches!(self, Symbol::NT(_))
     }
 
+    pub fn is_t_or_nt(&self) -> bool {
+        matches!(self, Symbol::T(_) | Symbol::NT(_))
+    }
+
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         symbol_table.map(|t| t.get_str(self)).unwrap_or_else(|| self.to_string())
     }

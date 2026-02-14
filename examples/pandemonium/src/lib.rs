@@ -1,7 +1,9 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
-pub mod value;
-pub mod no_value;
+#![cfg(test)]
+
+mod value;
+mod no_value;
 
 /// Text to parse
 static TXT1: &str = r#"
@@ -141,7 +143,8 @@ static SPANS1: &[&str] = &[
 // -------------------------------------------------------------------------
 // test helper
 
-pub mod level_string {
+#[allow(unused)]
+mod level_string {
     use std::cmp::max;
 
     #[derive(Debug, PartialEq)]

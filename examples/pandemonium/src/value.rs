@@ -719,6 +719,7 @@ pub mod pandemonium_lexer {
 
 // -------------------------------------------------------------------------
 
+#[allow(unused)]
 pub mod pandemonium_parser {
     // Generated code, don't modify manually anything between the tags below
 

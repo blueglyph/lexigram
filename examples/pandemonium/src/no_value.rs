@@ -429,6 +429,7 @@ pub mod pandemonium_lexer {
 
 // -------------------------------------------------------------------------
 
+#[allow(unused)]
 pub mod pandemonium_parser {
     // Generated code, don't modify manually anything between the tags below
 
@@ -517,7 +518,12 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxLStar {
         /// `l_star -> Id "=" Num (<L> "," "then" Num)* ";"`
-        V1 { id: String, num: String },
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum InitCtxLStarI {
+        /// value of `` before `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        V1 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxLStarI {
@@ -740,7 +746,8 @@ pub mod pandemonium_parser {
         fn init_l_star(&mut self) {}
         #[allow(unused_variables)]
         fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) {}
-        fn init_l_star_i(&mut self) {}
+        #[allow(unused_variables)]
+        fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
         fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) {}
         fn init_l_plus(&mut self) {}
@@ -818,7 +825,7 @@ pub mod pandemonium_parser {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 1 | 6 | 8 | 16 | 18 | 22 | 25 ..= 28) {
+                    if matches!(nt, 1 | 8 | 16 | 18 | 22 | 25 ..= 28) {
                         self.stack_span.push(PosSpan::empty());
                     }
                     match nt {
@@ -831,7 +838,7 @@ pub mod pandemonium_parser {
                         26 => self.init_plus1(),                    // plus_1
                         42 => {}                                    // plus_2
                         5 => self.listener.init_l_star(),           // l_star
-                        6 => self.listener.init_l_star_i(),         // l_star_i
+                        6 => self.init_l_star_i(),                  // l_star_i
                         7 => self.listener.init_l_plus(),           // l_plus
                         8 => self.listener.init_l_plus_i(),         // l_plus_i
                         38 => {}                                    // l_plus_i_1
@@ -1149,12 +1156,19 @@ pub mod pandemonium_parser {
         }
 
         fn exit_l_star(&mut self) {
-            let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxLStar::V1 { id, num };
-            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            let ctx = CtxLStar::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_l_star(ctx, spans);
+        }
+
+        fn init_l_star_i(&mut self) {
+            let num = self.stack_t.pop().unwrap();
+            let ctx = InitCtxLStarI::V1 { num };
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.init_l_star_i(ctx, spans);
         }
 
         fn exit_l_star_i(&mut self) {

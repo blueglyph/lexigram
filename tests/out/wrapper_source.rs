@@ -18845,9 +18845,14 @@ pub(crate) mod rules_902_2 {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> Type Id (<L> "," Id)* ";"`
-        V1 { type1: String, id: String },
+        V1 { type1: String },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum InitCtxIdI {
+        /// value of `` before `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxIdI {
@@ -18907,7 +18912,8 @@ pub(crate) mod rules_902_2 {
         fn init_decl(&mut self) {}
         #[allow(unused_variables)]
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) {}
-        fn init_id_i(&mut self) {}
+        #[allow(unused_variables)]
+        fn init_id_i(&mut self, ctx: InitCtxIdI, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
         fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) {}
         fn init_inst(&mut self) {}
@@ -18937,7 +18943,7 @@ pub(crate) mod rules_902_2 {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 1 | 2 | 4) {
+                    if matches!(nt, 1 | 2) {
                         self.stack_span.push(PosSpan::empty());
                     }
                     match nt {
@@ -18946,7 +18952,7 @@ pub(crate) mod rules_902_2 {
                         2 => self.listener.init_inst_i(),           // inst_i
                         9 => {}                                     // inst_i_1
                         3 => self.listener.init_decl(),             // decl
-                        4 => self.listener.init_id_i(),             // id_i
+                        4 => self.init_id_i(),                      // id_i
                         5 => self.listener.init_inst(),             // inst
                         6 => self.listener.init_expr(),             // expr
                         7 | 8 => {}                                 // expr_1, expr_2
@@ -19076,9 +19082,8 @@ pub(crate) mod rules_902_2 {
         fn exit_decl(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 4 => {
-                    let id = self.stack_t.pop().unwrap();
                     let type1 = self.stack_t.pop().unwrap();
-                    (4, CtxDecl::V1 { type1, id })
+                    (3, CtxDecl::V1 { type1 })
                 }
                 5 => {
                     let id = self.stack_t.pop().unwrap();
@@ -19090,6 +19095,14 @@ pub(crate) mod rules_902_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_decl(ctx, spans);
+        }
+
+        fn init_id_i(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = InitCtxIdI::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.init_id_i(ctx, spans);
         }
 
         fn exit_id_i(&mut self) {
