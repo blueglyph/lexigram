@@ -27,7 +27,7 @@ category star
 ## warning: 1
 ## warning: 2
 ## warning: 3
-## warning: 4
+## warning:  4
 ## error: ERROR
 end
 
@@ -56,12 +56,21 @@ fn test_watcher() {
     let tests: Vec<(&str, Vec<&str>, Vec<&str>)> = vec![
         (
             TXT1,
-            vec!["-,S"],
+            vec![
+                "right-recursive,N,first note",
+                "right-recursive,N,second note",
+                "right-recursive,W,incoming danger!",
+                "right-recursive,C,custom_header: ,#\"!!&",
+                "right-recursive,I,incoming danger",
+                "right-recursive,E,ERROR 1",
+                "star,I,new category", "star,W,1", "star,W,2", "star,W,3", "star,W,4", "star,E,ERROR",
+                "-,S"],
             vec![],
         ),
         (
             TXT2,
-            vec!["star,S"],
+            vec![
+                "star,I,1", "star,I,2", "star,I,3", "star,E,FATAL ERROR!", "star,S"],
             vec![],
         ),
     ];
@@ -104,7 +113,7 @@ fn test_watcher() {
 // parser
 
 #[derive(Debug)]
-pub struct ParserData {
+struct ParserData {
     pub log: BufLog,
     pub messages: Vec<String>,
 }
@@ -127,7 +136,6 @@ impl<'l, 'ls: 'l> WatcherParser<'l, '_, 'ls> {
         let stream = CharReader::new(Cursor::new(text));
         self.wrapper = Some(Wrapper::new(Listener::new(), VERBOSE_WRAPPER));
         self.lexer.attach_stream(stream);
-        // self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
@@ -295,17 +303,24 @@ impl WatcherListener for Listener {
     }
 
     fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) {
-        match ctx {
-            // message -> Note Message
-            CtxMessage::V1 { note, message } => {}
-            // message -> Info Message
-            CtxMessage::V2 { info, message } => {}
-            // message -> Warning Message
-            CtxMessage::V3 { warning, message } => {}
-            // message -> Error Message
-            CtxMessage::V4 { error, message } => {}
-            // message -> Header Message
-            CtxMessage::V5 { header, message } => {}
+        if let Some(category) = &self.curr_category {
+            let msg_opt = match ctx {
+                // message -> Note Message
+                CtxMessage::V1 { note, message } => Some(format!("{category},N,{message}")),
+                // message -> Info Message
+                CtxMessage::V2 { info, message } => Some(format!("{category},I,{message}")),
+                // message -> Warning Message
+                CtxMessage::V3 { warning, message } => Some(format!("{category},W,{message}")),
+                // message -> Error Message
+                CtxMessage::V4 { error, message } => Some(format!("{category},E,{message}")),
+                // message -> Header Message
+                CtxMessage::V5 { header, message } => Some(format!("{category},C,{header},{message}")),
+            };
+            if let Some(msg) = msg_opt {
+                self.messages.push(msg);
+            }
+        } else {
+            self.log.add_error(format!("out-of-category message: {ctx:?}"));
         }
     }
 }
