@@ -1188,7 +1188,7 @@ impl ParserGen {
                             }
                         })
                         .next()
-                        .expect(&format!("NT {c_var} alt {c_alt_id} should have a parent's alt that includes it"));
+                        .unwrap_or_else(|| panic!("NT {c_var} alt {c_alt_id} should have a parent's alt that includes it"));
                     if p_pos > 0 {
                         // verifies if enough symbols match
                         p_pos -= 1; // easier to skip the child nonterminal, since it may or may not have a value
@@ -2643,7 +2643,7 @@ impl ParserGen {
         }
         src_skel.push("}".to_string());
         self.log.add_info("Skeleton implementation of listener:");
-        self.log.extend_messages(src_skel.into_iter().map(|s| LogMsg::Info(s)));
+        self.log.extend_messages(src_skel.into_iter().map(LogMsg::Info));
 
         // Writes the listener trait declaration
         src.add_space();
