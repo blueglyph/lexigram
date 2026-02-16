@@ -33,7 +33,7 @@ end
 
 shutdown
 
-## fatal: shouldn't take this message
+some garbage
 "#;
 
 static TXT2: &str = r#"
@@ -44,7 +44,7 @@ category star
 ## error:FATAL ERROR!
 shutdown
 
-## fatal: shouldn't take this message
+some garbage
 "#;
 
 
@@ -184,9 +184,7 @@ impl WatcherListener for Listener {
     fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) {
         match ctx {
             // log -> log shutdown
-            CtxLog::V1 => {
-                self.abort = Terminate::Conclude;
-            }
+            CtxLog::V1 => { /* shutdown processed in `shutdown` nonterminal */ }
             // log -> log "category" category
             CtxLog::V2 => {}
             // log -> "category" category
@@ -194,6 +192,39 @@ impl WatcherListener for Listener {
         }
     }
 
+    fn init_shutdown(&mut self) {
+        // We intercept the shutdown in the init rather than the exit callback because it
+        // prevents the parser from fetching a new token.
+        //
+        // The parser follows this sequence at the end:
+        //   ("shutdown" is already the next token delivered by the lexer)
+        //   - EXIT  log_1 -> open_category category log_1
+        //   - LOOP  log_1 -> shutdown log_1
+        //   - ENTER shutdown -> "shutdown"
+        //      => calls this function
+        //   - MATCH shutdown
+        //      => removes the "shutdown" token
+        //   (>>> fetches next token <<<)
+        //   - EXIT  shutdown -> "shutdown"
+        //      => calls exit_shutdown(...)
+        //
+        // Another way is to use the exit_shutdown(...) callback with the parser in "delay_stream_interception"
+        // mode by enabling that feature. It delays fetching the next token as long as the parser is processing
+        // an EXIT opcode, which is the case here after popping the MATCH:
+        //
+        //   - ENTER shutdown -> "shutdown"
+        //      => calls this function
+        //   - MATCH shutdown
+        //      => removes the "shutdown" token
+        //   (next op = EXIT => doesn't fetch the next token yet)
+        //   - EXIT  shutdown -> "shutdown"
+        //      => calls exit_shutdown(...)
+        //   (would normally fetch the token here, but the abort has stopped the parser loop)
+
+        self.abort = Terminate::Conclude;
+    }
+
+    #[cfg(any())] // see explanation above in init_shutdown(...)
     fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) {
         // shutdown -> "shutdown"
         let CtxShutdown::V1 = ctx;
@@ -259,7 +290,7 @@ impl WatcherListener for Listener {
             // line -> message
             CtxLine::V1 => {}
             // line -> shutdown
-            CtxLine::V2 => {}
+            CtxLine::V2 => { /* shutdown processed in `shutdown` nonterminal */ }
         }
     }
 
