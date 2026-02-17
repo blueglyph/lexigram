@@ -2,7 +2,9 @@
 
 #![cfg(test)]
 
-use std::io::Cursor;
+use std::cell::RefCell;
+use std::io::Read;
+use std::rc::Rc;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::CollectJoin;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
@@ -47,9 +49,14 @@ shutdown
 some garbage
 "#;
 
+static TXT3: &str = r#"category star
+## warning: 1
+## warning: 2
+end"#;
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
+const VERBOSE_TRACE: bool = false;
 
 #[test]
 fn test_watcher() {
@@ -73,21 +80,29 @@ fn test_watcher() {
                 "star,I,1", "star,I,2", "star,I,3", "star,E,FATAL ERROR!", "star,S"],
             vec![],
         ),
+        (
+            TXT3,
+            vec![
+                "star,W,1", "star,W,2"],
+            vec![],
+        ),
     ];
     for (test_id, (txt, expected_messages, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80} {test_id}\n{txt}\n{0:-<80}", ""); }
         let mut parser = WatcherParser::new();
         match parser.parse(txt) {
-            Ok(ParserData { log, messages }) => {
+            Ok(ParserData { log, messages, trace }) => {
                 if VERBOSE {
                     println!("messages: {}", messages.iter().map(|s| format!("{s:?}")).join(", "));
+                    println!("trace:{}", trace.into_iter().map(|s| format!("\n{s}")).join(""));
                     println!("parsing successful\n{log}");
                 }
                 assert_eq!(messages, expected_messages, "var mismatch in test {test_id}");
             }
-            Err(ParserData { log, messages }) => {
+            Err(ParserData { log, messages, trace }) => {
                 if VERBOSE {
                     println!("messages: {}", messages.iter().map(|s| format!("{s:?}")).join(", "));
+                    println!("trace:{}", trace.into_iter().map(|s| format!("\n{s}")).join(""));
                     println!("errors during parsing:\n{log}");
                 }
                 assert_eq!(messages, expected_messages, "var mismatch in test {test_id}");
@@ -110,21 +125,83 @@ fn test_watcher() {
     }
 }
 
+// logged reader, used to monitor when lines are fetched and when
+// they're parsed, to show the latency.
+
+struct LoggedReader<'t> {
+    text: &'t str,
+    pos: usize,
+    cursor: usize,
+    trace: Rc<RefCell<Vec<String>>>,
+}
+
+impl<'t> LoggedReader<'t> {
+    const STR_BEFORE_ANSI: &'static str = "\u{1b}[35m";
+    const STR_AFTER_ANSI: &'static str = "\u{1b}[0m";
+
+    fn new<'o: 't>(text: &'o str) -> Self {
+        if VERBOSE_TRACE { println!("{}\nnew trace:{}", Self::STR_BEFORE_ANSI, Self::STR_AFTER_ANSI); }
+        LoggedReader {
+            text,
+            pos: 0,
+            cursor: 0,
+            trace: Rc::new(RefCell::new(vec![])),
+        }
+    }
+
+    fn output(&mut self, len: usize) -> &[u8] {
+       let pos = self.pos;
+
+        // 0 1 2 3 4 5 6 7 8 9 0 1 2 3     0 1 2 3 4 5 6 7 8 9 0 1 2 3
+        // a b c \ d e f g \ h i \ j k     a b c \ d e f g \ h i \ j k
+        //   ^-- pos = 1                                         ^--pos = 11
+        //   --------------> len = 8                             --> len = 2
+        // ^ cursor = 0 =>   ^ cursor = 9                          ^ cursor = 12 => cursor = 14
+
+        while self.cursor < pos + len {
+            if let Some(nbytes) = self.text[self.cursor..].as_bytes().iter().position(|b| *b == b'\n') {
+                if VERBOSE_TRACE { println!("{}> {:?} {}", Self::STR_BEFORE_ANSI, &self.text[self.cursor..self.cursor + nbytes], Self::STR_AFTER_ANSI); }
+                self.cursor += nbytes + 1;
+            } else {
+                if VERBOSE_TRACE { println!("{}> {:?} {}", Self::STR_BEFORE_ANSI, &self.text[self.cursor..], Self::STR_AFTER_ANSI); }
+                self.cursor = self.text.len();
+            }
+        }
+        self.pos += len;
+        &self.text[pos..pos + len].as_bytes()
+    }
+}
+
+impl Read for LoggedReader<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let len = buf.len();
+        let left = self.text.len() - self.pos;
+        if left >= len {
+            buf[..len].copy_from_slice(self.output(len));
+            Ok(len)
+        } else {
+            buf[..left].copy_from_slice(self.output(left));
+            Ok(left)
+        }
+    }
+}
+
 // parser
 
 #[derive(Debug)]
 struct ParserData {
-    pub log: BufLog,
-    pub messages: Vec<String>,
+    log: BufLog,
+    messages: Vec<String>,
+    trace: Vec<String>,
 }
 
-struct WatcherParser<'l, 'p, 'ls> {
-    lexer: Lexer<'l, Cursor<&'ls str>>,
+struct WatcherParser<'l, 'p, 'lr> {
+    lexer: Lexer<'l, LoggedReader<'lr>>,
     parser: Parser<'p>,
     wrapper: Option<Wrapper<Listener>>,
 }
 
-impl<'l, 'ls: 'l> WatcherParser<'l, '_, 'ls> {
+impl<'lr, 'l: 'lr> WatcherParser<'l, '_, 'lr> {
     /// Creates a new parser
     pub fn new() -> Self {
         let lexer = build_lexer();
@@ -132,9 +209,11 @@ impl<'l, 'ls: 'l> WatcherParser<'l, '_, 'ls> {
         WatcherParser { lexer, parser, wrapper: None }
     }
 
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, ParserData> {
-        let stream = CharReader::new(Cursor::new(text));
-        self.wrapper = Some(Wrapper::new(Listener::new(), VERBOSE_WRAPPER));
+    pub fn parse<'o: 'lr>(&mut self, text: &'o str) -> Result<ParserData, ParserData> {
+        let log_reader = LoggedReader::new(text);
+        let trace = log_reader.trace.clone();
+        let stream = CharReader::new(log_reader);
+        self.wrapper = Some(Wrapper::new(Listener::new(trace), VERBOSE_WRAPPER));
         self.lexer.attach_stream(stream);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
@@ -142,11 +221,12 @@ impl<'l, 'ls: 'l> WatcherParser<'l, '_, 'ls> {
         if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
             self.wrapper.as_mut().unwrap().get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let Listener { log, messages, .. } = self.wrapper.take().unwrap().give_listener();
+        let Listener { log, messages, trace, .. } = self.wrapper.take().unwrap().give_listener();
+        let t = trace.take();
         if log.has_no_errors() {
-            Ok(ParserData { log, messages })
+            Ok(ParserData { log, messages, trace: t })
         } else {
-            Err(ParserData { log, messages })
+            Err(ParserData { log, messages, trace: t })
         }
     }
 }
@@ -158,15 +238,17 @@ struct Listener {
     messages: Vec<String>,
     abort: Terminate,
     curr_category: Option<String>,
+    trace: Rc<RefCell<Vec<String>>>,
 }
 
 impl Listener {
-    fn new() -> Self {
+    fn new(trace: Rc<RefCell<Vec<String>>>) -> Self {
         Listener {
             log: BufLog::new(),
             messages: vec![],
             abort: Terminate::None,
             curr_category: None,
+            trace,
         }
     }
 }
@@ -317,6 +399,10 @@ impl WatcherListener for Listener {
                 CtxMessage::V5 { header, message } => Some(format!("{category},C,{header},{message}")),
             };
             if let Some(msg) = msg_opt {
+                const STR_BEFORE_ANSI: &str = "\u{1b}[36m";
+                const STR_AFTER_ANSI: &str = "\u{1b}[0m";
+                if VERBOSE_TRACE { println!("{STR_BEFORE_ANSI}< {msg}{STR_AFTER_ANSI}"); }
+                self.trace.borrow_mut().push(msg.clone());
                 self.messages.push(msg);
             }
         } else {
@@ -337,34 +423,33 @@ pub mod watcher_lexer {
     use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 26;
+    const NBR_GROUPS: u32 = 25;
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 57;
-    const NBR_STATES: StateId = 72;
+    const NBR_STATES: StateId = 71;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         25,  25,  25,  25,  25,  25,  25,  25,  25,  24,   0,  25,  25,   1,  25,  25,   // 0-15
-         25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,   // 16-31
-         24,  25,  25,   2,  25,  25,  25,  25,  25,  25,  25,  25,  25,  15,  25,  25,   // 32-47
-         21,  21,  21,  21,  21,  21,  21,  21,  21,  21,  22,  25,  25,  25,  25,  25,   // 48-63
-         25,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,   // 64-79
-         20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  25,  25,  25,  25,  21,   // 80-95
-         25,   7,  20,   3,  18,   4,  23,  12,  10,   9,  20,  20,  20,  20,   8,  13,   // 96-111
-         20,  20,   5,   6,  11,  16,  17,  19,  20,  14,  20,  25,  25,  25,  25,  25,   // 112-127
+         24,  24,  24,  24,  24,  24,  24,  24,  24,  23,   0,  24,  24,   0,  24,  24,   // 0-15
+         24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,   // 16-31
+         23,  24,  24,   1,  24,  24,  24,  24,  24,  24,  24,  24,  24,  14,  24,  24,   // 32-47
+         20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  21,  24,  24,  24,  24,  24,   // 48-63
+         24,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,   // 64-79
+         19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  24,  24,  24,  24,  20,   // 80-95
+         24,   6,  19,   2,  17,   3,  22,  11,   9,   8,  19,  19,  19,  19,   7,  12,   // 96-111
+         19,  19,   4,   5,  10,  15,  16,  18,  19,  13,  19,  24,  24,  24,  24,  24,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
     static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
-        (Seg(128, 55295), 25),
-        (Seg(57344, 1114111), 25),
+        (Seg(128, 55295), 24),
+        (Seg(57344, 1114111), 24),
     ];
-    static TERMINAL_TABLE: [Terminal;15] = [
+    static TERMINAL_TABLE: [Terminal;14] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(65), pop: false },
-        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(65), pop: false },
-        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(65), pop: false },
-        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(65), pop: false },
-        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(65), pop: false },
+        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(64), pop: false },
+        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(64), pop: false },
+        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(64), pop: false },
+        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(64), pop: false },
+        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::Mode(1), mode_state: Some(64), pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(2), mode_state: Some(24), pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
         Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(39), pop: false },
@@ -374,80 +459,79 @@ pub mod watcher_lexer {
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(39), pop: false },
         Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
     ];
-    static STATE_TABLE: [StateId; 1873] = [
-         57,  58,   1,   2,   3,   4,   5,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 0
-         72,  72,  64,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 1
-         72,  72,  72,  72,  72,  72,  72,   6,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 2
-         72,  72,  72,  72,  72,  72,  72,  72,  20,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 3
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  45,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 4
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  49,  40,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 5
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,   7,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 6
-         72,  72,  72,  72,   8,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 7
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,   9,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 8
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  10,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 9
-         72,  72,  72,  72,  72,  11,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 10
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  59,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 11
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  42,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 12
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  47,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 13
-         72,  72,  72,  15,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 14
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  48,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 15
-         72,  72,  72,  72,  72,  72,  41,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 16
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  18,  72,  72,  72,  72,  72,  72,  72,  72, // state 17
-         72,  72,  72,  72,  60,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 18
-         72,  72,  72,  72,  72,  61,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 19
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  62,  72,  72,  72,  72,  72,  72,  72, // state 20
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  46,  72,  72,  72,  72,  72,  72,  72, // state 21
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  23,  72,  72,  72,  72,  72,  72, // state 22
-         72,  72,  72,  72,  72,  72,  72,  72,  63,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 23
-         72,  72,  72,  25,  26,  25,  25,  25,  28,  27,  25,  25,  25,  25,  25,  72,  25,  25,  25,  29,  25,  72,  72,  25,  72,  72, // state 24
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 25
-         72,  72,  72,  25,  25,  51,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 26
-         72,  72,  72,  25,  25,  25,  25,  25,  33,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 27
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  30,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 28
-         72,  72,  72,  25,  25,  25,  25,  50,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 29
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  31,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 30
-         72,  72,  72,  25,  32,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 31
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  67,  25,  72,  72, // state 32
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  55,  72,  72, // state 33
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  68,  25,  72,  72, // state 34
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  54,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 35
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  37,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 36
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  69,  25,  72,  72, // state 37
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  70,  25,  72,  72, // state 38
-         72,  72,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 39
-         72,  72,  72,  72,  72,  72,  72,  19,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 40
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  17,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 41
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  13,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 42
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  21,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 43
-         72,  72,  72,  72,  14,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 44
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  12,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 45
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  22,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 46
-         72,  72,  72,  72,  72,  44,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 47
-         72,  72,  72,  72,  72,  16,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 48
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  43,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 49
-         72,  72,  72,  25,  25,  53,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 50
-         72,  72,  72,  25,  25,  56,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 51
-         72,  72,  72,  25,  25,  38,  25,  25,  25,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 52
-         72,  72,  72,  25,  25,  25,  25,  25,  35,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 53
-         72,  72,  72,  25,  25,  25,  25,  25,  36,  25,  25,  25,  25,  25,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 54
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  34,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 55
-         72,  72,  72,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  52,  25,  72,  25,  25,  25,  25,  25,  25,  66,  25,  72,  72, // state 56
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 57 <skip>
-         72,  58,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 58 <skip>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 59 <end:0,mode(1,state 65)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 60 <end:1,mode(1,state 65)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 61 <end:2,mode(1,state 65)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 62 <end:3,mode(1,state 65)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72, // state 63 <end:4,mode(1,state 65)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  64,  72, // state 64 <skip,mode(2,state 24)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  65,  72, // state 65 <skip,mode(0,state 0)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  66,  72, // state 66 <end:9,mode(3,state 39)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  67,  72, // state 67 <end:5,mode(3,state 39)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  68,  72, // state 68 <end:6,mode(3,state 39)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  69,  72, // state 69 <end:7,mode(3,state 39)>
-         72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  72,  70,  72, // state 70 <end:8,mode(3,state 39)>
-         72,  72,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 71 <end:10,mode(0,state 0)>
-         72 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 1776] = [
+         57,   1,   2,   3,   4,   5,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 0
+         71,  63,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 1
+         71,  71,  71,  71,  71,  71,   6,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 2
+         71,  71,  71,  71,  71,  71,  71,  20,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 3
+         71,  71,  71,  71,  71,  71,  71,  71,  45,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 4
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  49,  40,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 5
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,   7,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 6
+         71,  71,  71,   8,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 7
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,   9,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 8
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  10,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 9
+         71,  71,  71,  71,  11,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 10
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  58,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 11
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  42,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 12
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  47,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 13
+         71,  71,  15,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 14
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  48,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 15
+         71,  71,  71,  71,  71,  41,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 16
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  18,  71,  71,  71,  71,  71,  71,  71,  71, // state 17
+         71,  71,  71,  59,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 18
+         71,  71,  71,  71,  60,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 19
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  61,  71,  71,  71,  71,  71,  71,  71, // state 20
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  46,  71,  71,  71,  71,  71,  71,  71, // state 21
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  23,  71,  71,  71,  71,  71,  71, // state 22
+         71,  71,  71,  71,  71,  71,  71,  62,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 23
+         71,  71,  25,  26,  25,  25,  25,  28,  27,  25,  25,  25,  25,  25,  71,  25,  25,  25,  29,  25,  71,  71,  25,  71,  71, // state 24
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 25
+         71,  71,  25,  25,  51,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 26
+         71,  71,  25,  25,  25,  25,  25,  33,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 27
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  30,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 28
+         71,  71,  25,  25,  25,  25,  50,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 29
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  31,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 30
+         71,  71,  25,  32,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 31
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  66,  25,  71,  71, // state 32
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  55,  71,  71, // state 33
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  67,  25,  71,  71, // state 34
+         71,  71,  25,  25,  25,  25,  25,  25,  54,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 35
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  37,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 36
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  68,  25,  71,  71, // state 37
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  69,  25,  71,  71, // state 38
+         71,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70, // state 39
+         71,  71,  71,  71,  71,  71,  19,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 40
+         71,  71,  71,  71,  71,  71,  71,  71,  17,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 41
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  13,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 42
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  21,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 43
+         71,  71,  71,  14,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 44
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  12,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 45
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  22,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 46
+         71,  71,  71,  71,  44,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 47
+         71,  71,  71,  71,  16,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 48
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  43,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 49
+         71,  71,  25,  25,  53,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 50
+         71,  71,  25,  25,  56,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 51
+         71,  71,  25,  25,  38,  25,  25,  25,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 52
+         71,  71,  25,  25,  25,  25,  25,  35,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 53
+         71,  71,  25,  25,  25,  25,  25,  36,  25,  25,  25,  25,  25,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 54
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  34,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 55
+         71,  71,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  52,  25,  71,  25,  25,  25,  25,  25,  25,  65,  25,  71,  71, // state 56
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 57 <skip>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 58 <end:0,mode(1,state 64)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 59 <end:1,mode(1,state 64)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 60 <end:2,mode(1,state 64)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 61 <end:3,mode(1,state 64)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 62 <end:4,mode(1,state 64)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  63,  71, // state 63 <skip,mode(2,state 24)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  64,  71, // state 64 <skip,mode(0,state 0)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  65,  71, // state 65 <end:9,mode(3,state 39)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  66,  71, // state 66 <end:5,mode(3,state 39)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  67,  71, // state 67 <end:6,mode(3,state 39)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  68,  71, // state 68 <end:7,mode(3,state 39)>
+         71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  69,  71, // state 69 <end:8,mode(3,state 39)>
+         71,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70,  70, // state 70 <end:10,mode(0,state 0)>
+         71 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {

@@ -12,8 +12,7 @@ Shutdown            : 'shutdown'                -> mode(SKIP_SPACES);
 
 MsgPrefix           : '##' [ \t]*               -> skip, mode(HEADER_MODE);
 
-Eol                 : [\n]                      -> skip;
-SkipWindowsEol      : [\r]+                     -> skip;
+Eol                 : [\n\r]                    -> skip;
 
 mode HEADER_MODE; // -------------------------------------------
 
