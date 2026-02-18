@@ -22,7 +22,7 @@ Its main particularities are:
 ## Simplified Example
 
 Here is a lexicon and a grammar for a basic expression parser:
-```
+```text
 lexicon Calc;
 Add                     : '+';
 Div                     : '/';
@@ -32,7 +32,7 @@ Sub                     : '-';
 Num                     : [0-9]+;
 WhiteSpace              : [ \n\r\t]+    -> skip;
 ```
-```
+```text
 grammar Calc;
 expr:
     Sub expr
@@ -52,7 +52,7 @@ In such ambiguous rules,
 
 Each rule as an initialization method, called when the parser has predicted it was the next rule, and an exit method, called once the rule has been fully parsed.
 
-```rust
+```rust,ignore
 pub trait CalcListener {
     // ... (other general methods)
     fn exit(&mut self, expr: SynExpr) {}
@@ -65,7 +65,7 @@ Here, the type `SynExpr` represents the `expr` nonterminal value, and it must be
 The `exit_expr` method must return the value that has been calculated in function of the context, `ctx`, which contains the value of the terminals (tokens) and nonterminals (rules). Note that this is optional: nonterminals may hold no value, in which case the method has a default, empty definition.
 
 The context reflects the original grammar rules, regardless of how they were tranformed to accommodate an LL(1) parser: 
-```rust
+```rust,ignore
 pub enum CtxExpr {
     /// `expr -> "-" expr`
     V1 { expr: SynExpr },
@@ -86,7 +86,7 @@ pub enum CtxExpr {
 
 The user then creates a listener object, that will typically hold the AST, and implements the `CtxExpr` trait for that object. Here, we don't build an AST but just illustrate how the callback can be used for a basic calculator.
 
-```rust
+```rust,ignore
 pub struct SynExpr(pub f64);
 
 pub struct ExprListener {
@@ -126,7 +126,7 @@ The same stands for the output of **lexigram**: it can create stand-alone files 
 
 For example, if you create a file "calc.rs" with the following content, everything will be in a single file:
 
-````rust
+````rust,ignore
 /*!
 ```
 // [lexicon]
@@ -175,13 +175,13 @@ mod parser {
 
 Launch the following command:
 
-```
+```shell
 lexigram --indent 4 -x calc.rs tag lexicon -l calc.rs tag lexer_source \
     -g calc.rs tag grammar -p calc.rs tag parser_source \
     --lib "super::SynExpr" 
 ```
 
-It will insert the generated code of the lexer and parser inside the [lexer_source] and [parser_source] tags, respectively. Launching the same command will replace any existing code between the tags, so it can be used iteratively (useful if you need to fix or change the grammar!). 
+It will insert the generated code of the lexer and parser inside the `[lexer_source]` and `[parser_source]` tags, respectively. Launching the same command will replace any existing code between the tags, so it can be used iteratively (useful if you need to fix or change the grammar!). 
 
 You'll just need to add a dependency to `lexigram-core` with the version that corresponds to the **lexigram** binary ("lexigram -V" will show its version).
 
@@ -189,7 +189,7 @@ Using the `lexi-gram` crate allows you to generate the code programmatically fro
 
 # Where to Go From Here
 
-You can find some examples in the repository (https://github.com/blueglyph/lexigram)
+You can find some examples in the repository [https://github.com/blueglyph/lexigram](https://github.com/blueglyph/lexigram)
 * in [./examples](https://github.com/blueglyph/lexigram/tree/master/examples)
 * in [./build-rtsgen](https://github.com/blueglyph/lexigram/tree/master/build-rtsgen), which is a [lexer/parser](https://github.com/blueglyph/lexigram/blob/master/src/rtsgen/mod.rs) for simplified grammar language used in the unit tests.
 

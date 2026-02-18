@@ -393,7 +393,7 @@ Here, all the variants of the `CtxA` context are empty. If `a` only had one alte
 
 ## Base Grammar Transformations
 
-Lexigram accepts non-LL(1) grammars if it's able to transforme them to LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
+Lexigram accepts non-LL(1) grammars if it's able to transform them into LL(1). It tries to provide some degree of transparency, but some patterns require specific listener calls.
 
 The transformations done by Lexigram are:
 * `?` operator: `a -> X?` becomes `X | ε`

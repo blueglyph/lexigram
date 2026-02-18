@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![doc = include_str!("../README.md")]
+
 use lexi_gram::gen_parser::{try_gen_parser, GenParserError};
 use lexi_gram::{lexigram_lib, LEXIGRAM_PKG_VERSION, LEXIGRAM_PKG_NAME};
 use lexi_gram::lexigram_lib::CollectJoin;
