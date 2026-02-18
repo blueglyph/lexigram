@@ -5,21 +5,29 @@
 * token hook with new listener method `hook(...) -> TokenId`. This method is called when the declared hook terminals are susceptible to be scanned next in a rule. It's ideal to transform a token dynamically before it's used by the parser to determine the next rule alternative to select. The typical case is the C's typedef problem. 
   * e.g. `(Type) -> hook;` in lexicon
   * see examples/typedef/src/typedef_type.rs and typedef_id_type.rs for examples
+* `delay_stream_interception` feature in `lexigram-core` to postpone the capture of the next token, effectively reducing the latency between reading the parsed text and calling the `exit` listener methods
 * new `token-enums` command-line option to generate enums of the terminals and nonterminals (could be helpful with hooks and token interception)
 * new `--nt-value` command-line option to specify which nonterminals have a value
 * new `<G>` greedy attribute to help with parsing table ambiguities
 * optional spans argument in all listener "exit" methods, to locate the position of the text corresponding to terminals and nonterminals
 * new `--spans` command-line option to generate the spans
 * possibility to regroup the lexicon and the grammar in a single source file/tag. If the keyword `grammar` is found by Lexi when parsing the lexicon, Gram is called to parse the remaining text
+* removed some info from logs and added other results instead.
+* new "info" category in logs for useful information
+* skeleton code for user implementation of the listener given in log
+* user types now given in log instead of commented code in the wrapper
+* `SynValue`, a type used internally by the wrapper, has been renamed to `EnumSynValue` to avoid name collisions
+* a few more examples
+
+### Compatibility-breaking changes
+
 * `Terminate` return type for `check_abort_request(...)`, allowing `Abort` (abort, as before), `Conclude` (end of the parsing as if everything was parsed), and `None` (no interruption, as before). This can be used to stop the parsing "normally" if more unrelated text follows what we want to parse. For example, this is what makes it possible to regroup the lexicon and the grammar in the same source.
 * automatic recognition of token-separated items like `Id ("," Id)*`. The pattern can have more separator tokens; the criterion is identical list of symbols before the `(...)*` and inside it.
   * `α (β α)*` now provides a context with `{ star: Synα1, ... }` (instead of `{ α: Synα, star: Synα1, ... }`) where `star` contains the first `α` in `star[0]` and the remaining ones in `star[1..n]`, so the values are in the right order; no need to insert the first one in the list any more. 
-  * `α (<L=i> β α)*` now provides the first `α` in `init_i(&mut self, ctx: CtxInitI)`, before the `exit_i(&mut self, ctx: CtxI)` methods are called with the values inside the `(β a)*`. Again, the `α` values are received in the right order.
+  * `α (<L=i> β α)*` now provides the first `α` in `init_i(&mut self, ctx: InitCtxI)`, before the `exit_i(&mut self, ctx: CtxI)` methods are called with the values inside the `(β a)*`. Again, the `α` values are received in the right order.
 * `&mut acc` for all `<L>` constructions, instead of having to pop the value, give it to the listener method that returns the new value. Before, this was only done for right-recursive `<L>` rules. Example:
   * before: `fn exit_i(&mut self, ctx: CtxI) -> SynI;`
   * after: `fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI);` (`acc` not in `CtxI` any more)
-* removed some info from logs and added other results instead.
-* new "info" category in logs for useful information
 
 # 0.8.0
 
