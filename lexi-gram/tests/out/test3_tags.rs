@@ -252,17 +252,17 @@ pub enum CtxExpr {
 }
 
 #[derive(Debug)]
-enum SynValue { Program(SynProgram), Instruction(SynInstruction), Expr(SynExpr) }
+enum EnumSynValue { Program(SynProgram), Instruction(SynInstruction), Expr(SynExpr) }
 
-impl SynValue {
+impl EnumSynValue {
     fn get_program(self) -> SynProgram {
-        if let SynValue::Program(val) = self { val } else { panic!() }
+        if let EnumSynValue::Program(val) = self { val } else { panic!() }
     }
     fn get_instruction(self) -> SynInstruction {
-        if let SynValue::Instruction(val) = self { val } else { panic!() }
+        if let EnumSynValue::Instruction(val) = self { val } else { panic!() }
     }
     fn get_expr(self) -> SynExpr {
-        if let SynValue::Expr(val) = self { val } else { panic!() }
+        if let EnumSynValue::Expr(val) = self { val } else { panic!() }
     }
 }
 
@@ -291,7 +291,7 @@ pub trait Test1Listener {
 pub struct Wrapper<T> {
     verbose: bool,
     listener: T,
-    stack: Vec<SynValue>,
+    stack: Vec<EnumSynValue>,
     max_stack: usize,
     stack_t: Vec<String>,
     stack_span: Vec<PosSpan>,
@@ -431,7 +431,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_program(ctx, spans);
-        self.stack.push(SynValue::Program(val));
+        self.stack.push(EnumSynValue::Program(val));
     }
 
     fn exit_inst(&mut self) {
@@ -458,7 +458,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_instruction(ctx, spans);
-        self.stack.push(SynValue::Instruction(val));
+        self.stack.push(EnumSynValue::Instruction(val));
     }
 
     fn exit_expr1(&mut self, alt_id: AltId) {
@@ -498,7 +498,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_expr(ctx, spans);
-        self.stack.push(SynValue::Expr(val));
+        self.stack.push(EnumSynValue::Expr(val));
     }
 
     fn exit_expr6(&mut self, alt_id: AltId) {
@@ -524,7 +524,7 @@ impl<T: Test1Listener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_expr(ctx, spans);
-        self.stack.push(SynValue::Expr(val));
+        self.stack.push(EnumSynValue::Expr(val));
     }
 }
 

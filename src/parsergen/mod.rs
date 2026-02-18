@@ -2122,26 +2122,26 @@ impl ParserGen {
             src.push(format!("pub struct Syn{nu}();"))
         }
 
-        // Writes SynValue type and implementation
+        // Writes EnumSynValue type and implementation
         if VERBOSE { println!("syns = {syns:?}"); }
         src.add_space();
-        // SynValue type
+        // EnumSynValue type
         src.push("#[derive(Debug)]".to_string());
-        src.push(format!("enum SynValue {{ {} }}",
+        src.push(format!("enum EnumSynValue {{ {} }}",
                          syns.iter().map(|v| format!("{}({})", nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
         if !syns.is_empty() {
-            // SynValue getters
+            // EnumSynValue getters
             src.add_space();
-            src.push("impl SynValue {".to_string());
+            src.push("impl EnumSynValue {".to_string());
             for v in &syns {
                 let (nu, _, npl) = &nt_name[*v as usize];
                 let nt_type = self.get_nt_type(*v);
                 src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
                 if syns.len() == 1 {
-                    src.push(format!("        let SynValue::{nu}(val) = self;"));
+                    src.push(format!("        let EnumSynValue::{nu}(val) = self;"));
                     src.push("        val".to_string());
                 } else {
-                    src.push(format!("        if let SynValue::{nu}(val) = self {{ val }} else {{ panic!() }}"));
+                    src.push(format!("        if let EnumSynValue::{nu}(val) = self {{ val }} else {{ panic!() }}"));
                 }
                 src.push("    }".to_string());
             }
@@ -2240,7 +2240,7 @@ impl ParserGen {
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                        src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                        src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
                         src_wrapper_impl.push("    }".to_string());
                     } else {
                         src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
@@ -2324,7 +2324,7 @@ impl ParserGen {
                                 has_skel_init = true;
                             }
                             if has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
                             }
                         } else if is_sep_list {
                             // fetch values from stack to init the list with the first value that was outside the repetition:
@@ -2332,10 +2332,10 @@ impl ParserGen {
                             let endpoints = child_repeat_endpoints.get(var).unwrap();
                             let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &init_fn_name, nu, true);
                             src_wrapper_impl.extend(src_val);
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
+                            src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
                         } else {
                             src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                            src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
                         }
                         src_wrapper_impl.push("    }".to_string());
                     } else if is_lform {
@@ -2492,7 +2492,7 @@ impl ParserGen {
                             let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &fn_name, nu, false);
                             src_wrapper_impl.extend(src_val);
                             let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
-                            src_wrapper_impl.push(format!("        let Some(SynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
+                            src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
                             src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
                             src_wrapper_impl.push("        };".to_string());
                             src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
@@ -2554,7 +2554,7 @@ impl ParserGen {
                         }
                         if (is_rrec_lform | is_child_repeat_lform) && f_valued {
                             src_wrapper_impl.push(
-                                format!("        let Some(SynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
+                                format!("        let Some(EnumSynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
                             src_wrapper_impl.push(
                                 format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
                         } else {
@@ -2562,7 +2562,7 @@ impl ParserGen {
                                 "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
                                 if a_has_value { "let val = " } else { "" }));
                             if a_has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
+                                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{fnu}(val));"));
                             }
                         }
                     }
@@ -2598,7 +2598,7 @@ impl ParserGen {
                                 exit_alt_done.insert(a);
                                 src_wrapper_impl.push(String::new());
                                 src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
-                                src_wrapper_impl.push(format!("        let SynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
+                                src_wrapper_impl.push(format!("        let EnumSynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
                                                               if syns.len() > 1 { " else { panic!() }" } else { "" }));
                                 src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
                                 src_wrapper_impl.push("    }".to_string());
@@ -2701,7 +2701,7 @@ impl ParserGen {
         src.push("pub struct Wrapper<T> {".to_string());
         src.push("    verbose: bool,".to_string());
         src.push("    listener: T,".to_string());
-        src.push("    stack: Vec<SynValue>,".to_string());
+        src.push("    stack: Vec<EnumSynValue>,".to_string());
         src.push("    max_stack: usize,".to_string());
         src.push("    stack_t: Vec<String>,".to_string());
         if self.gen_span_params {
@@ -2869,13 +2869,13 @@ impl ParserGen {
                                   }
                                   fn init_a_iter(&mut self) {
                                       let val = self.listener.init_a_iter();
-                                      self.stack.push(SynValue::AIter(val));
+                                      self.stack.push(EnumSynValue::AIter(val));
                                   }
                                   fn exit_a_iter(&mut self) {
                                       let b = self.stack_t.pop().unwrap();
                                       let star_acc = self.stack.pop().unwrap().get_a_iter();
                                       let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_acc, b });
-                                      self.stack.push(SynValue::AIter(val));
+                                      self.stack.push(EnumSynValue::AIter(val));
                                   }
                                   // ...
                               }

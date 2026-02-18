@@ -491,41 +491,41 @@ pub mod microcalc_parser {
     pub struct SynFunArgs1(pub Vec<SynExpr>);
 
     #[derive(Debug)]
-    enum SynValue { Program(SynProgram), Function(SynFunction), FunParams(SynFunParams), Block(SynBlock), Instruction(SynInstruction), Expr(SynExpr), FunArgs(SynFunArgs), Program1(SynProgram1), FunParams1(SynFunParams1), Block1(SynBlock1), FunArgs1(SynFunArgs1) }
+    enum EnumSynValue { Program(SynProgram), Function(SynFunction), FunParams(SynFunParams), Block(SynBlock), Instruction(SynInstruction), Expr(SynExpr), FunArgs(SynFunArgs), Program1(SynProgram1), FunParams1(SynFunParams1), Block1(SynBlock1), FunArgs1(SynFunArgs1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_program(self) -> SynProgram {
-            if let SynValue::Program(val) = self { val } else { panic!() }
+            if let EnumSynValue::Program(val) = self { val } else { panic!() }
         }
         fn get_function(self) -> SynFunction {
-            if let SynValue::Function(val) = self { val } else { panic!() }
+            if let EnumSynValue::Function(val) = self { val } else { panic!() }
         }
         fn get_fun_params(self) -> SynFunParams {
-            if let SynValue::FunParams(val) = self { val } else { panic!() }
+            if let EnumSynValue::FunParams(val) = self { val } else { panic!() }
         }
         fn get_block(self) -> SynBlock {
-            if let SynValue::Block(val) = self { val } else { panic!() }
+            if let EnumSynValue::Block(val) = self { val } else { panic!() }
         }
         fn get_instruction(self) -> SynInstruction {
-            if let SynValue::Instruction(val) = self { val } else { panic!() }
+            if let EnumSynValue::Instruction(val) = self { val } else { panic!() }
         }
         fn get_expr(self) -> SynExpr {
-            if let SynValue::Expr(val) = self { val } else { panic!() }
+            if let EnumSynValue::Expr(val) = self { val } else { panic!() }
         }
         fn get_fun_args(self) -> SynFunArgs {
-            if let SynValue::FunArgs(val) = self { val } else { panic!() }
+            if let EnumSynValue::FunArgs(val) = self { val } else { panic!() }
         }
         fn get_program1(self) -> SynProgram1 {
-            if let SynValue::Program1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Program1(val) = self { val } else { panic!() }
         }
         fn get_fun_params1(self) -> SynFunParams1 {
-            if let SynValue::FunParams1(val) = self { val } else { panic!() }
+            if let EnumSynValue::FunParams1(val) = self { val } else { panic!() }
         }
         fn get_block1(self) -> SynBlock1 {
-            if let SynValue::Block1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Block1(val) = self { val } else { panic!() }
         }
         fn get_fun_args1(self) -> SynFunArgs1 {
-            if let SynValue::FunArgs1(val) = self { val } else { panic!() }
+            if let EnumSynValue::FunArgs1(val) = self { val } else { panic!() }
         }
     }
 
@@ -559,7 +559,7 @@ pub mod microcalc_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
     }
@@ -729,17 +729,17 @@ pub mod microcalc_parser {
             let plus = self.stack.pop().unwrap().get_program1();
             let ctx = CtxProgram::V1 { plus };
             let val = self.listener.exit_program(ctx);
-            self.stack.push(SynValue::Program(val));
+            self.stack.push(EnumSynValue::Program(val));
         }
 
         fn init_program1(&mut self) {
             let val = SynProgram1(Vec::new());
-            self.stack.push(SynValue::Program1(val));
+            self.stack.push(EnumSynValue::Program1(val));
         }
 
         fn exit_program1(&mut self) {
             let function = self.stack.pop().unwrap().get_function();
-            let Some(SynValue::Program1(SynProgram1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Program1(SynProgram1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynProgram1 item on wrapper stack");
             };
             plus_acc.push(function);
@@ -751,7 +751,7 @@ pub mod microcalc_parser {
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxFunction::V1 { id, fun_params, instruction };
             let val = self.listener.exit_function(ctx);
-            self.stack.push(SynValue::Function(val));
+            self.stack.push(EnumSynValue::Function(val));
         }
 
         fn exit_fun_params(&mut self, alt_id: AltId) {
@@ -766,17 +766,17 @@ pub mod microcalc_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_fun_params")
             };
             let val = self.listener.exit_fun_params(ctx);
-            self.stack.push(SynValue::FunParams(val));
+            self.stack.push(EnumSynValue::FunParams(val));
         }
 
         fn init_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.stack.push(SynValue::FunParams1(SynFunParams1(vec![id])));
+            self.stack.push(EnumSynValue::FunParams1(SynFunParams1(vec![id])));
         }
 
         fn exit_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(SynValue::FunParams1(SynFunParams1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::FunParams1(SynFunParams1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFunParams1 item on wrapper stack");
             };
             star_acc.push(id);
@@ -786,17 +786,17 @@ pub mod microcalc_parser {
             let star = self.stack.pop().unwrap().get_block1();
             let ctx = CtxBlock::V1 { star };
             let val = self.listener.exit_block(ctx);
-            self.stack.push(SynValue::Block(val));
+            self.stack.push(EnumSynValue::Block(val));
         }
 
         fn init_block1(&mut self) {
             let val = SynBlock1(Vec::new());
-            self.stack.push(SynValue::Block1(val));
+            self.stack.push(EnumSynValue::Block1(val));
         }
 
         fn exit_block1(&mut self) {
             let instruction = self.stack.pop().unwrap().get_instruction();
-            let Some(SynValue::Block1(SynBlock1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Block1(SynBlock1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynBlock1 item on wrapper stack");
             };
             star_acc.push(instruction);
@@ -850,7 +850,7 @@ pub mod microcalc_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
             };
             let val = self.listener.exit_instruction(ctx);
-            self.stack.push(SynValue::Instruction(val));
+            self.stack.push(EnumSynValue::Instruction(val));
         }
 
         fn exit_expr1(&mut self, alt_id: AltId) {
@@ -913,7 +913,7 @@ pub mod microcalc_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
             };
             let val = self.listener.exit_expr(ctx);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_expr8(&mut self, alt_id: AltId) {
@@ -946,7 +946,7 @@ pub mod microcalc_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_expr8")
             };
             let val = self.listener.exit_expr(ctx);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_fun_args(&mut self, alt_id: AltId) {
@@ -961,17 +961,17 @@ pub mod microcalc_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_fun_args")
             };
             let val = self.listener.exit_fun_args(ctx);
-            self.stack.push(SynValue::FunArgs(val));
+            self.stack.push(EnumSynValue::FunArgs(val));
         }
 
         fn init_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            self.stack.push(SynValue::FunArgs1(SynFunArgs1(vec![expr])));
+            self.stack.push(EnumSynValue::FunArgs1(SynFunArgs1(vec![expr])));
         }
 
         fn exit_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            let Some(SynValue::FunArgs1(SynFunArgs1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::FunArgs1(SynFunArgs1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFunArgs1 item on wrapper stack");
             };
             star_acc.push(expr);

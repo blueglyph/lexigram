@@ -106,38 +106,38 @@ pub enum CtxProdAtom {
 pub struct SynProdTerm1(pub Vec<SynProdFactor>);
 
 #[derive(Debug)]
-enum SynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdTerm(SynProdTerm), ProdFactor(SynProdFactor), ProdAtom(SynProdAtom), ProdTerm1(SynProdTerm1) }
+enum EnumSynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdTerm(SynProdTerm), ProdFactor(SynProdFactor), ProdAtom(SynProdAtom), ProdTerm1(SynProdTerm1) }
 
-impl SynValue {
+impl EnumSynValue {
     fn get_file(self) -> SynFile {
-        if let SynValue::File(val) = self { val } else { panic!() }
+        if let EnumSynValue::File(val) = self { val } else { panic!() }
     }
     fn get_header(self) -> SynHeader {
-        if let SynValue::Header(val) = self { val } else { panic!() }
+        if let EnumSynValue::Header(val) = self { val } else { panic!() }
     }
     fn get_rules(self) -> SynRules {
-        if let SynValue::Rules(val) = self { val } else { panic!() }
+        if let EnumSynValue::Rules(val) = self { val } else { panic!() }
     }
     fn get_rule(self) -> SynRule {
-        if let SynValue::Rule(val) = self { val } else { panic!() }
+        if let EnumSynValue::Rule(val) = self { val } else { panic!() }
     }
     fn get_rule_name(self) -> SynRuleName {
-        if let SynValue::RuleName(val) = self { val } else { panic!() }
+        if let EnumSynValue::RuleName(val) = self { val } else { panic!() }
     }
     fn get_prod(self) -> SynProd {
-        if let SynValue::Prod(val) = self { val } else { panic!() }
+        if let EnumSynValue::Prod(val) = self { val } else { panic!() }
     }
     fn get_prod_term(self) -> SynProdTerm {
-        if let SynValue::ProdTerm(val) = self { val } else { panic!() }
+        if let EnumSynValue::ProdTerm(val) = self { val } else { panic!() }
     }
     fn get_prod_factor(self) -> SynProdFactor {
-        if let SynValue::ProdFactor(val) = self { val } else { panic!() }
+        if let EnumSynValue::ProdFactor(val) = self { val } else { panic!() }
     }
     fn get_prod_atom(self) -> SynProdAtom {
-        if let SynValue::ProdAtom(val) = self { val } else { panic!() }
+        if let EnumSynValue::ProdAtom(val) = self { val } else { panic!() }
     }
     fn get_prod_term1(self) -> SynProdTerm1 {
-        if let SynValue::ProdTerm1(val) = self { val } else { panic!() }
+        if let EnumSynValue::ProdTerm1(val) = self { val } else { panic!() }
     }
 }
 
@@ -179,7 +179,7 @@ pub trait GramParserListener {
 pub struct Wrapper<T> {
     verbose: bool,
     listener: T,
-    stack: Vec<SynValue>,
+    stack: Vec<EnumSynValue>,
     max_stack: usize,
     stack_t: Vec<String>,
     stack_span: Vec<PosSpan>,
@@ -329,7 +329,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_file(ctx, spans);
-        self.stack.push(SynValue::File(val));
+        self.stack.push(EnumSynValue::File(val));
     }
 
     fn exit_header(&mut self) {
@@ -338,7 +338,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_header(ctx, spans);
-        self.stack.push(SynValue::Header(val));
+        self.stack.push(EnumSynValue::Header(val));
     }
 
     fn inter_rules(&mut self) {
@@ -347,7 +347,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rules(ctx, spans);
-        self.stack.push(SynValue::Rules(val));
+        self.stack.push(EnumSynValue::Rules(val));
     }
 
     fn exit_rules1(&mut self) {
@@ -357,11 +357,11 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rules(ctx, spans);
-        self.stack.push(SynValue::Rules(val));
+        self.stack.push(EnumSynValue::Rules(val));
     }
 
     fn exitloop_rules1(&mut self) {
-        let SynValue::Rules(rules) = self.stack.last_mut().unwrap() else { panic!() };
+        let EnumSynValue::Rules(rules) = self.stack.last_mut().unwrap() else { panic!() };
         self.listener.exitloop_rules(rules);
     }
 
@@ -382,7 +382,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rule(ctx, spans);
-        self.stack.push(SynValue::Rule(val));
+        self.stack.push(EnumSynValue::Rule(val));
     }
 
     fn exit_rule_name(&mut self) {
@@ -391,7 +391,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_rule_name(ctx, spans);
-        self.stack.push(SynValue::RuleName(val));
+        self.stack.push(EnumSynValue::RuleName(val));
     }
 
     fn inter_prod(&mut self) {
@@ -400,7 +400,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
-        self.stack.push(SynValue::Prod(val));
+        self.stack.push(EnumSynValue::Prod(val));
     }
 
     fn exit_prod1(&mut self) {
@@ -410,11 +410,11 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
-        self.stack.push(SynValue::Prod(val));
+        self.stack.push(EnumSynValue::Prod(val));
     }
 
     fn exitloop_prod1(&mut self) {
-        let SynValue::Prod(prod) = self.stack.last_mut().unwrap() else { panic!() };
+        let EnumSynValue::Prod(prod) = self.stack.last_mut().unwrap() else { panic!() };
         self.listener.exitloop_prod(prod);
     }
 
@@ -424,19 +424,19 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod_term(ctx, spans);
-        self.stack.push(SynValue::ProdTerm(val));
+        self.stack.push(EnumSynValue::ProdTerm(val));
     }
 
     fn init_prod_term1(&mut self) {
         let val = SynProdTerm1(Vec::new());
-        self.stack.push(SynValue::ProdTerm1(val));
+        self.stack.push(EnumSynValue::ProdTerm1(val));
     }
 
     fn exit_prod_term1(&mut self) {
         let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let Some(SynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
+        let Some(EnumSynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
             panic!("expected SynProdTerm1 item on wrapper stack");
         };
         star_acc.push(prod_factor);
@@ -465,7 +465,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod_factor(ctx, spans);
-        self.stack.push(SynValue::ProdFactor(val));
+        self.stack.push(EnumSynValue::ProdFactor(val));
     }
 
     fn exit_prod_atom(&mut self, alt_id: AltId) {
@@ -496,7 +496,7 @@ impl<T: GramParserListener> Wrapper<T> {
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod_atom(ctx, spans);
-        self.stack.push(SynValue::ProdAtom(val));
+        self.stack.push(EnumSynValue::ProdAtom(val));
     }
 }
 

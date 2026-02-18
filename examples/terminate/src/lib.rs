@@ -502,20 +502,20 @@ pub mod terminate_parser {
     }
 
     #[derive(Debug)]
-    enum SynValue { Log(SynLog), LogI(SynLogI), Line(SynLine), Message(SynMessage) }
+    enum EnumSynValue { Log(SynLog), LogI(SynLogI), Line(SynLine), Message(SynMessage) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_log(self) -> SynLog {
-            if let SynValue::Log(val) = self { val } else { panic!() }
+            if let EnumSynValue::Log(val) = self { val } else { panic!() }
         }
         fn get_log_i(self) -> SynLogI {
-            if let SynValue::LogI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LogI(val) = self { val } else { panic!() }
         }
         fn get_line(self) -> SynLine {
-            if let SynValue::Line(val) = self { val } else { panic!() }
+            if let EnumSynValue::Line(val) = self { val } else { panic!() }
         }
         fn get_message(self) -> SynMessage {
-            if let SynValue::Message(val) = self { val } else { panic!() }
+            if let EnumSynValue::Message(val) = self { val } else { panic!() }
         }
     }
 
@@ -545,7 +545,7 @@ pub mod terminate_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -669,12 +669,12 @@ pub mod terminate_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_log(ctx, spans);
-            self.stack.push(SynValue::Log(val));
+            self.stack.push(EnumSynValue::Log(val));
         }
 
         fn init_log_i(&mut self) {
             let val = self.listener.init_log_i();
-            self.stack.push(SynValue::LogI(val));
+            self.stack.push(EnumSynValue::LogI(val));
         }
 
         fn exit_log_i(&mut self) {
@@ -682,12 +682,12 @@ pub mod terminate_parser {
             let ctx = CtxLogI::V1 { line };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LogI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LogI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_log_i(acc, ctx, spans);
         }
 
         fn exitloop_log_i(&mut self) {
-            let SynValue::LogI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::LogI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_log_i(acc);
         }
 
@@ -715,7 +715,7 @@ pub mod terminate_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_line(ctx, spans);
-            self.stack.push(SynValue::Line(val));
+            self.stack.push(EnumSynValue::Line(val));
         }
 
         fn exit_message(&mut self, alt_id: AltId) {
@@ -745,7 +745,7 @@ pub mod terminate_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_message(ctx, spans);
-            self.stack.push(SynValue::Message(val));
+            self.stack.push(EnumSynValue::Message(val));
         }
     }
 

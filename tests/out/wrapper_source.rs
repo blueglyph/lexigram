@@ -34,14 +34,14 @@ pub(crate) mod rules_13_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { S(SynS), Val(SynVal) }
+    enum EnumSynValue { S(SynS), Val(SynVal) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_s(self) -> SynS {
-            if let SynValue::S(val) = self { val } else { panic!() }
+            if let EnumSynValue::S(val) = self { val } else { panic!() }
         }
         fn get_val(self) -> SynVal {
-            if let SynValue::Val(val) = self { val } else { panic!() }
+            if let EnumSynValue::Val(val) = self { val } else { panic!() }
         }
     }
 
@@ -65,7 +65,7 @@ pub(crate) mod rules_13_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -191,7 +191,7 @@ pub(crate) mod rules_13_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_s(ctx, spans);
-            self.stack.push(SynValue::S(val));
+            self.stack.push(EnumSynValue::S(val));
         }
 
         fn exit_val(&mut self, alt_id: AltId) {
@@ -209,7 +209,7 @@ pub(crate) mod rules_13_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_val(ctx, spans);
-            self.stack.push(SynValue::Val(val));
+            self.stack.push(EnumSynValue::Val(val));
         }
     }
 
@@ -245,17 +245,17 @@ pub(crate) mod rules_14_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), C(SynC) }
+    enum EnumSynValue { A(SynA), B(SynB), C(SynC) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_c(self) -> SynC {
-            if let SynValue::C(val) = self { val } else { panic!() }
+            if let EnumSynValue::C(val) = self { val } else { panic!() }
         }
     }
 
@@ -281,7 +281,7 @@ pub(crate) mod rules_14_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -404,7 +404,7 @@ pub(crate) mod rules_14_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_b(&mut self) {
@@ -414,7 +414,7 @@ pub(crate) mod rules_14_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
 
         fn exit_c(&mut self) {
@@ -423,7 +423,7 @@ pub(crate) mod rules_14_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_c(ctx, spans);
-            self.stack.push(SynValue::C(val));
+            self.stack.push(EnumSynValue::C(val));
         }
     }
 
@@ -457,14 +457,14 @@ pub(crate) mod rules_14_2 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB) }
+    enum EnumSynValue { A(SynA), B(SynB) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
     }
 
@@ -491,7 +491,7 @@ pub(crate) mod rules_14_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -612,7 +612,7 @@ pub(crate) mod rules_14_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_b(&mut self) {
@@ -621,7 +621,7 @@ pub(crate) mod rules_14_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
 
         fn exit_c(&mut self) {
@@ -663,14 +663,14 @@ pub(crate) mod rules_14_3 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), C(SynC) }
+    enum EnumSynValue { A(SynA), C(SynC) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_c(self) -> SynC {
-            if let SynValue::C(val) = self { val } else { panic!() }
+            if let EnumSynValue::C(val) = self { val } else { panic!() }
         }
     }
 
@@ -697,7 +697,7 @@ pub(crate) mod rules_14_3 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -819,7 +819,7 @@ pub(crate) mod rules_14_3 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_b(&mut self) {
@@ -837,7 +837,7 @@ pub(crate) mod rules_14_3 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_c(ctx, spans);
-            self.stack.push(SynValue::C(val));
+            self.stack.push(EnumSynValue::C(val));
         }
     }
 
@@ -871,11 +871,11 @@ pub(crate) mod rules_14_4 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -904,7 +904,7 @@ pub(crate) mod rules_14_4 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1024,7 +1024,7 @@ pub(crate) mod rules_14_4 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_b(&mut self) {
@@ -1068,14 +1068,14 @@ pub(crate) mod rules_102_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1097,7 +1097,7 @@ pub(crate) mod rules_102_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1213,19 +1213,19 @@ pub(crate) mod rules_102_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
@@ -1256,14 +1256,14 @@ pub(crate) mod rules_103_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1285,7 +1285,7 @@ pub(crate) mod rules_103_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1403,19 +1403,19 @@ pub(crate) mod rules_103_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(b);
@@ -1454,17 +1454,17 @@ pub(crate) mod rules_104_1 {
     pub struct SynA1Item { pub b: [SynB; 2], pub a: [String; 2], pub b1: String }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1488,7 +1488,7 @@ pub(crate) mod rules_104_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1604,12 +1604,12 @@ pub(crate) mod rules_104_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
@@ -1621,7 +1621,7 @@ pub(crate) mod rules_104_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -1633,7 +1633,7 @@ pub(crate) mod rules_104_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -1669,17 +1669,17 @@ pub(crate) mod rules_105_1 {
     pub struct SynA1Item { pub b: [SynB; 2], pub a: [String; 2], pub b1: String }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1703,7 +1703,7 @@ pub(crate) mod rules_105_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1821,12 +1821,12 @@ pub(crate) mod rules_105_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
@@ -1838,7 +1838,7 @@ pub(crate) mod rules_105_1 {
             let a_1 = self.stack_t.pop().unwrap();
             let b_1 = self.stack.pop().unwrap().get_b();
             let val = SynA1Item { b: [b_1, b_2], a: [a_1, a_2], b1 };
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
@@ -1850,7 +1850,7 @@ pub(crate) mod rules_105_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -1889,20 +1889,20 @@ pub(crate) mod rules_106_1 {
     pub struct SynA2Item { pub a: String, pub star: SynA1 }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
+    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
         fn get_a2(self) -> SynA2 {
-            if let SynValue::A2(val) = self { val } else { panic!() }
+            if let EnumSynValue::A2(val) = self { val } else { panic!() }
         }
     }
 
@@ -1926,7 +1926,7 @@ pub(crate) mod rules_106_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -2046,19 +2046,19 @@ pub(crate) mod rules_106_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack.pop().unwrap().get_b();
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
@@ -2066,7 +2066,7 @@ pub(crate) mod rules_106_1 {
 
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
-            self.stack.push(SynValue::A2(val));
+            self.stack.push(EnumSynValue::A2(val));
         }
 
         fn exit_a2(&mut self) {
@@ -2075,7 +2075,7 @@ pub(crate) mod rules_106_1 {
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
             let val = SynA2Item { a, star };
-            let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(val);
@@ -2087,7 +2087,7 @@ pub(crate) mod rules_106_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -2120,14 +2120,14 @@ pub(crate) mod rules_106_2 {
     pub struct SynA2(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A2(SynA2) }
+    enum EnumSynValue { A(SynA), A2(SynA2) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a2(self) -> SynA2 {
-            if let SynValue::A2(val) = self { val } else { panic!() }
+            if let EnumSynValue::A2(val) = self { val } else { panic!() }
         }
     }
 
@@ -2152,7 +2152,7 @@ pub(crate) mod rules_106_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -2272,19 +2272,19 @@ pub(crate) mod rules_106_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
-            self.stack.push(SynValue::A2(val));
+            self.stack.push(EnumSynValue::A2(val));
         }
 
         fn exit_a2(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(a);
@@ -2319,11 +2319,11 @@ pub(crate) mod rules_108_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -2346,7 +2346,7 @@ pub(crate) mod rules_108_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -2461,7 +2461,7 @@ pub(crate) mod rules_108_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
     }
 
@@ -2497,17 +2497,17 @@ pub(crate) mod rules_109_1 {
     pub struct SynA1Item { pub id: String, pub type1: SynType }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), Type(SynType), A1(SynA1) }
+    enum EnumSynValue { A(SynA), Type(SynType), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_type(self) -> SynType {
-            if let SynValue::Type(val) = self { val } else { panic!() }
+            if let EnumSynValue::Type(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -2531,7 +2531,7 @@ pub(crate) mod rules_109_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -2645,7 +2645,7 @@ pub(crate) mod rules_109_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
@@ -2654,7 +2654,7 @@ pub(crate) mod rules_109_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
-            self.stack.push(SynValue::A1(SynA1(vec![val])));
+            self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
         }
 
         fn exit_a1(&mut self) {
@@ -2663,7 +2663,7 @@ pub(crate) mod rules_109_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -2675,7 +2675,7 @@ pub(crate) mod rules_109_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_type(ctx, spans);
-            self.stack.push(SynValue::Type(val));
+            self.stack.push(EnumSynValue::Type(val));
         }
     }
 
@@ -2713,17 +2713,17 @@ pub(crate) mod rules_110_1 {
     pub struct SynA1Item { pub id: String, pub type1: SynType }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), Type(SynType), A1(SynA1) }
+    enum EnumSynValue { A(SynA), Type(SynType), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_type(self) -> SynType {
-            if let SynValue::Type(val) = self { val } else { panic!() }
+            if let EnumSynValue::Type(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -2747,7 +2747,7 @@ pub(crate) mod rules_110_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -2873,7 +2873,7 @@ pub(crate) mod rules_110_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
@@ -2882,7 +2882,7 @@ pub(crate) mod rules_110_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
-            self.stack.push(SynValue::A1(SynA1(vec![val])));
+            self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
         }
 
         fn exit_a1(&mut self) {
@@ -2891,7 +2891,7 @@ pub(crate) mod rules_110_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -2903,7 +2903,7 @@ pub(crate) mod rules_110_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_type(ctx, spans);
-            self.stack.push(SynValue::Type(val));
+            self.stack.push(EnumSynValue::Type(val));
         }
     }
 
@@ -2938,14 +2938,14 @@ pub(crate) mod rules_150_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -2967,7 +2967,7 @@ pub(crate) mod rules_150_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -3082,12 +3082,12 @@ pub(crate) mod rules_150_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -3104,7 +3104,7 @@ pub(crate) mod rules_150_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -3150,17 +3150,17 @@ pub(crate) mod rules_152_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -3184,7 +3184,7 @@ pub(crate) mod rules_152_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -3304,12 +3304,12 @@ pub(crate) mod rules_152_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -3334,7 +3334,7 @@ pub(crate) mod rules_152_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -3346,7 +3346,7 @@ pub(crate) mod rules_152_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -3421,17 +3421,17 @@ pub(crate) mod rules_153_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -3455,7 +3455,7 @@ pub(crate) mod rules_153_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -3581,12 +3581,12 @@ pub(crate) mod rules_153_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -3611,7 +3611,7 @@ pub(crate) mod rules_153_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
@@ -3623,7 +3623,7 @@ pub(crate) mod rules_153_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -3652,14 +3652,14 @@ pub(crate) mod rules_200_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI) }
+    enum EnumSynValue { A(SynA), I(SynI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -3685,7 +3685,7 @@ pub(crate) mod rules_200_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -3801,12 +3801,12 @@ pub(crate) mod rules_200_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -3814,12 +3814,12 @@ pub(crate) mod rules_200_1 {
             let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
     }
@@ -3849,11 +3849,11 @@ pub(crate) mod rules_200_2 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -3879,7 +3879,7 @@ pub(crate) mod rules_200_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -3994,7 +3994,7 @@ pub(crate) mod rules_200_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_i(&mut self) {
@@ -4031,14 +4031,14 @@ pub(crate) mod rules_201_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynMyA), I(SynMyI) }
+    enum EnumSynValue { A(SynMyA), I(SynMyI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynMyA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynMyI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -4062,7 +4062,7 @@ pub(crate) mod rules_201_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -4180,12 +4180,12 @@ pub(crate) mod rules_201_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -4194,7 +4194,7 @@ pub(crate) mod rules_201_1 {
             let ctx = CtxI::V1 { b, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
     }
@@ -4224,11 +4224,11 @@ pub(crate) mod rules_201_2 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynMyA) }
+    enum EnumSynValue { A(SynMyA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynMyA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -4254,7 +4254,7 @@ pub(crate) mod rules_201_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -4371,7 +4371,7 @@ pub(crate) mod rules_201_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -4413,11 +4413,11 @@ pub(crate) mod rules_201_3 {
     pub struct SynA();
 
     #[derive(Debug)]
-    enum SynValue { I(SynMyI) }
+    enum EnumSynValue { I(SynMyI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_i(self) -> SynMyI {
-            let SynValue::I(val) = self;
+            let EnumSynValue::I(val) = self;
             val
         }
     }
@@ -4443,7 +4443,7 @@ pub(crate) mod rules_201_3 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -4564,7 +4564,7 @@ pub(crate) mod rules_201_3 {
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -4573,7 +4573,7 @@ pub(crate) mod rules_201_3 {
             let ctx = CtxI::V1 { b, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
     }
@@ -4608,17 +4608,17 @@ pub(crate) mod rules_202_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), B(SynB) }
+    enum EnumSynValue { A(SynA), I(SynI), B(SynB) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
     }
 
@@ -4646,7 +4646,7 @@ pub(crate) mod rules_202_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -4762,12 +4762,12 @@ pub(crate) mod rules_202_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -4779,12 +4779,12 @@ pub(crate) mod rules_202_1 {
             let ctx = CtxI::V1 { b: [b_1, b_2], a: [a_1, a_2], b1 };
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
@@ -4794,7 +4794,7 @@ pub(crate) mod rules_202_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -4830,17 +4830,17 @@ pub(crate) mod rules_206_1 {
     pub struct SynA1Item { pub a: String, pub star: SynAiter }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), J(SynAiter), A1(SynA1) }
+    enum EnumSynValue { A(SynA), J(SynAiter), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynAiter {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -4866,7 +4866,7 @@ pub(crate) mod rules_206_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -4984,12 +4984,12 @@ pub(crate) mod rules_206_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self) {
@@ -4997,18 +4997,18 @@ pub(crate) mod rules_206_1 {
             let ctx = CtxJ::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_j(acc);
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
@@ -5017,7 +5017,7 @@ pub(crate) mod rules_206_1 {
             let star = self.stack.pop().unwrap().get_j();
             let a = self.stack_t.pop().unwrap();
             let val = SynA1Item { a, star };
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -5059,20 +5059,20 @@ pub(crate) mod rules_208_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
+    enum EnumSynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynJ {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
     }
 
@@ -5104,7 +5104,7 @@ pub(crate) mod rules_208_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -5224,12 +5224,12 @@ pub(crate) mod rules_208_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -5238,18 +5238,18 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxI::V1 { a, star };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self) {
@@ -5257,12 +5257,12 @@ pub(crate) mod rules_208_1 {
             let ctx = CtxJ::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_j(acc);
         }
 
@@ -5272,7 +5272,7 @@ pub(crate) mod rules_208_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -5311,14 +5311,14 @@ pub(crate) mod rules_208_2 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI) }
+    enum EnumSynValue { A(SynA), I(SynI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -5350,7 +5350,7 @@ pub(crate) mod rules_208_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -5470,12 +5470,12 @@ pub(crate) mod rules_208_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -5483,12 +5483,12 @@ pub(crate) mod rules_208_2 {
             let ctx = CtxI::V1 { a };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
@@ -5543,11 +5543,11 @@ pub(crate) mod rules_208_3 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -5579,7 +5579,7 @@ pub(crate) mod rules_208_3 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -5698,7 +5698,7 @@ pub(crate) mod rules_208_3 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_i(&mut self) {
@@ -5765,7 +5765,7 @@ pub(crate) mod rules_208_4 {
     pub struct SynA();
 
     #[derive(Debug)]
-    enum SynValue {  }
+    enum EnumSynValue {  }
 
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -5795,7 +5795,7 @@ pub(crate) mod rules_208_4 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -5964,11 +5964,11 @@ pub(crate) mod rules_210_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -5994,7 +5994,7 @@ pub(crate) mod rules_210_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -6109,7 +6109,7 @@ pub(crate) mod rules_210_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_i(&mut self) {
@@ -6147,14 +6147,14 @@ pub(crate) mod rules_211_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI) }
+    enum EnumSynValue { A(SynA), I(SynI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -6180,7 +6180,7 @@ pub(crate) mod rules_211_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -6312,12 +6312,12 @@ pub(crate) mod rules_211_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -6325,12 +6325,12 @@ pub(crate) mod rules_211_1 {
             let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
     }
@@ -6370,17 +6370,17 @@ pub(crate) mod rules_212_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), Type(SynType) }
+    enum EnumSynValue { A(SynA), I(SynI), Type(SynType) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_type(self) -> SynType {
-            if let SynValue::Type(val) = self { val } else { panic!() }
+            if let EnumSynValue::Type(val) = self { val } else { panic!() }
         }
     }
 
@@ -6408,7 +6408,7 @@ pub(crate) mod rules_212_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -6522,7 +6522,7 @@ pub(crate) mod rules_212_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
@@ -6532,7 +6532,7 @@ pub(crate) mod rules_212_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.init_i(ctx, spans);
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -6541,12 +6541,12 @@ pub(crate) mod rules_212_1 {
             let ctx = CtxI::V1 { id, type1 };
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
@@ -6556,7 +6556,7 @@ pub(crate) mod rules_212_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_type(ctx, spans);
-            self.stack.push(SynValue::Type(val));
+            self.stack.push(EnumSynValue::Type(val));
         }
     }
 
@@ -6588,14 +6588,14 @@ pub(crate) mod rules_250_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI) }
+    enum EnumSynValue { A(SynA), I(SynI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -6621,7 +6621,7 @@ pub(crate) mod rules_250_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -6736,12 +6736,12 @@ pub(crate) mod rules_250_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -6758,12 +6758,12 @@ pub(crate) mod rules_250_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
     }
@@ -6795,14 +6795,14 @@ pub(crate) mod rules_251_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI) }
+    enum EnumSynValue { A(SynA), I(SynI) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -6826,7 +6826,7 @@ pub(crate) mod rules_251_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -6945,12 +6945,12 @@ pub(crate) mod rules_251_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -6969,7 +6969,7 @@ pub(crate) mod rules_251_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
     }
@@ -7017,20 +7017,20 @@ pub(crate) mod rules_252_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), J(SynJ), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), J(SynJ), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynJ {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -7056,7 +7056,7 @@ pub(crate) mod rules_252_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -7186,12 +7186,12 @@ pub(crate) mod rules_252_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
@@ -7214,13 +7214,13 @@ pub(crate) mod rules_252_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -7238,7 +7238,7 @@ pub(crate) mod rules_252_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
@@ -7250,7 +7250,7 @@ pub(crate) mod rules_252_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -7297,20 +7297,20 @@ pub(crate) mod rules_253_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), B(SynB), A1(SynA1) }
+    enum EnumSynValue { A(SynA), I(SynI), B(SynB), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -7336,7 +7336,7 @@ pub(crate) mod rules_253_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -7466,12 +7466,12 @@ pub(crate) mod rules_253_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -7491,13 +7491,13 @@ pub(crate) mod rules_253_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -7518,7 +7518,7 @@ pub(crate) mod rules_253_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
@@ -7530,7 +7530,7 @@ pub(crate) mod rules_253_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -7573,20 +7573,20 @@ pub(crate) mod rules_254_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
+    enum EnumSynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynJ {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
     }
 
@@ -7618,7 +7618,7 @@ pub(crate) mod rules_254_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -7741,12 +7741,12 @@ pub(crate) mod rules_254_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -7764,18 +7764,18 @@ pub(crate) mod rules_254_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
@@ -7796,12 +7796,12 @@ pub(crate) mod rules_254_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_j(acc);
         }
 
@@ -7811,7 +7811,7 @@ pub(crate) mod rules_254_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -7849,17 +7849,17 @@ pub(crate) mod rules_256_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), B(SynB) }
+    enum EnumSynValue { A(SynA), I(SynI), B(SynB) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
+            if let EnumSynValue::B(val) = self { val } else { panic!() }
         }
     }
 
@@ -7885,7 +7885,7 @@ pub(crate) mod rules_256_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -8011,12 +8011,12 @@ pub(crate) mod rules_256_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -8044,7 +8044,7 @@ pub(crate) mod rules_256_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
@@ -8054,7 +8054,7 @@ pub(crate) mod rules_256_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_b(ctx, spans);
-            self.stack.push(SynValue::B(val));
+            self.stack.push(EnumSynValue::B(val));
         }
     }
 
@@ -8098,17 +8098,17 @@ pub(crate) mod rules_258_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), J(SynJ) }
+    enum EnumSynValue { A(SynA), I(SynI), J(SynJ) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynJ {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
     }
 
@@ -8138,7 +8138,7 @@ pub(crate) mod rules_258_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -8263,12 +8263,12 @@ pub(crate) mod rules_258_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -8295,18 +8295,18 @@ pub(crate) mod rules_258_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
@@ -8328,12 +8328,12 @@ pub(crate) mod rules_258_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
 
         fn exitloop_j(&mut self) {
-            let SynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::J(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_j(acc);
         }
     }
@@ -8378,17 +8378,17 @@ pub(crate) mod rules_259_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), I(SynI), J(SynJ) }
+    enum EnumSynValue { A(SynA), I(SynI), J(SynJ) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_j(self) -> SynJ {
-            if let SynValue::J(val) = self { val } else { panic!() }
+            if let EnumSynValue::J(val) = self { val } else { panic!() }
         }
     }
 
@@ -8414,7 +8414,7 @@ pub(crate) mod rules_259_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -8549,12 +8549,12 @@ pub(crate) mod rules_259_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
@@ -8585,13 +8585,13 @@ pub(crate) mod rules_259_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn init_j(&mut self) {
             let val = self.listener.init_j();
-            self.stack.push(SynValue::J(val));
+            self.stack.push(EnumSynValue::J(val));
         }
 
         fn exit_j(&mut self, alt_id: AltId) {
@@ -8616,7 +8616,7 @@ pub(crate) mod rules_259_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::J(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::J(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_j(acc, ctx, spans);
         }
     }
@@ -8643,11 +8643,11 @@ pub(crate) mod rules_301_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { Expr(SynExpr) }
+    enum EnumSynValue { Expr(SynExpr) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_expr(self) -> SynExpr {
-            let SynValue::Expr(val) = self;
+            let EnumSynValue::Expr(val) = self;
             val
         }
     }
@@ -8670,7 +8670,7 @@ pub(crate) mod rules_301_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -8789,7 +8789,7 @@ pub(crate) mod rules_301_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
     }
 
@@ -8820,7 +8820,7 @@ pub(crate) mod rules_301_2 {
     pub struct SynExpr();
 
     #[derive(Debug)]
-    enum SynValue {  }
+    enum EnumSynValue {  }
 
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -8841,7 +8841,7 @@ pub(crate) mod rules_301_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -8983,11 +8983,11 @@ pub(crate) mod rules_401_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { Expr(SynExpr) }
+    enum EnumSynValue { Expr(SynExpr) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_expr(self) -> SynExpr {
-            let SynValue::Expr(val) = self;
+            let EnumSynValue::Expr(val) = self;
             val
         }
     }
@@ -9010,7 +9010,7 @@ pub(crate) mod rules_401_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -9118,7 +9118,7 @@ pub(crate) mod rules_401_1 {
 
         fn init_expr(&mut self) {
             let val = self.listener.init_expr();
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
@@ -9135,7 +9135,7 @@ pub(crate) mod rules_401_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::Expr(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::Expr(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_expr(acc, ctx, spans);
         }
     }
@@ -9166,7 +9166,7 @@ pub(crate) mod rules_401_2 {
     pub struct SynExpr();
 
     #[derive(Debug)]
-    enum SynValue {  }
+    enum EnumSynValue {  }
 
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -9187,7 +9187,7 @@ pub(crate) mod rules_401_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -9336,14 +9336,14 @@ pub(crate) mod rules_502_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE), F(SynF) }
+    enum EnumSynValue { E(SynE), F(SynF) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            if let SynValue::E(val) = self { val } else { panic!() }
+            if let EnumSynValue::E(val) = self { val } else { panic!() }
         }
         fn get_f(self) -> SynF {
-            if let SynValue::F(val) = self { val } else { panic!() }
+            if let EnumSynValue::F(val) = self { val } else { panic!() }
         }
     }
 
@@ -9369,7 +9369,7 @@ pub(crate) mod rules_502_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -9482,7 +9482,7 @@ pub(crate) mod rules_502_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
@@ -9492,11 +9492,11 @@ pub(crate) mod rules_502_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exitloop_e1(&mut self) {
-            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_e(e);
         }
 
@@ -9506,7 +9506,7 @@ pub(crate) mod rules_502_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_f(ctx, spans);
-            self.stack.push(SynValue::F(val));
+            self.stack.push(EnumSynValue::F(val));
         }
     }
 
@@ -9541,11 +9541,11 @@ pub(crate) mod rules_502_2 {
     pub struct SynE();
 
     #[derive(Debug)]
-    enum SynValue { F(SynF) }
+    enum EnumSynValue { F(SynF) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_f(self) -> SynF {
-            let SynValue::F(val) = self;
+            let EnumSynValue::F(val) = self;
             val
         }
     }
@@ -9571,7 +9571,7 @@ pub(crate) mod rules_502_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -9699,7 +9699,7 @@ pub(crate) mod rules_502_2 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_f(ctx, spans);
-            self.stack.push(SynValue::F(val));
+            self.stack.push(EnumSynValue::F(val));
         }
     }
 
@@ -9728,11 +9728,11 @@ pub(crate) mod rules_580_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -9757,7 +9757,7 @@ pub(crate) mod rules_580_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -9878,7 +9878,7 @@ pub(crate) mod rules_580_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e1(&mut self) {
@@ -9887,11 +9887,11 @@ pub(crate) mod rules_580_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exitloop_e1(&mut self) {
-            let SynValue::E(e) = self.stack.last_mut().unwrap();
+            let EnumSynValue::E(e) = self.stack.last_mut().unwrap();
             self.listener.exitloop_e(e);
         }
     }
@@ -9919,11 +9919,11 @@ pub(crate) mod rules_600_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -9946,7 +9946,7 @@ pub(crate) mod rules_600_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -10059,7 +10059,7 @@ pub(crate) mod rules_600_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e2(&mut self) {
@@ -10068,7 +10068,7 @@ pub(crate) mod rules_600_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -10129,11 +10129,11 @@ pub(crate) mod rules_603_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -10156,7 +10156,7 @@ pub(crate) mod rules_603_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -10284,7 +10284,7 @@ pub(crate) mod rules_603_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -10302,7 +10302,7 @@ pub(crate) mod rules_603_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -10421,11 +10421,11 @@ pub(crate) mod rules_604_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -10448,7 +10448,7 @@ pub(crate) mod rules_604_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -10576,7 +10576,7 @@ pub(crate) mod rules_604_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -10594,7 +10594,7 @@ pub(crate) mod rules_604_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -10712,11 +10712,11 @@ pub(crate) mod rules_605_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -10739,7 +10739,7 @@ pub(crate) mod rules_605_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -10867,7 +10867,7 @@ pub(crate) mod rules_605_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -10885,7 +10885,7 @@ pub(crate) mod rules_605_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -11003,11 +11003,11 @@ pub(crate) mod rules_606_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -11030,7 +11030,7 @@ pub(crate) mod rules_606_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -11163,7 +11163,7 @@ pub(crate) mod rules_606_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -11172,7 +11172,7 @@ pub(crate) mod rules_606_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -11290,11 +11290,11 @@ pub(crate) mod rules_607_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -11317,7 +11317,7 @@ pub(crate) mod rules_607_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -11451,7 +11451,7 @@ pub(crate) mod rules_607_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -11460,7 +11460,7 @@ pub(crate) mod rules_607_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -11578,11 +11578,11 @@ pub(crate) mod rules_608_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -11605,7 +11605,7 @@ pub(crate) mod rules_608_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -11742,7 +11742,7 @@ pub(crate) mod rules_608_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
@@ -11751,7 +11751,7 @@ pub(crate) mod rules_608_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -11869,11 +11869,11 @@ pub(crate) mod rules_609_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -11896,7 +11896,7 @@ pub(crate) mod rules_609_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -12028,7 +12028,7 @@ pub(crate) mod rules_609_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -12037,7 +12037,7 @@ pub(crate) mod rules_609_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -12155,11 +12155,11 @@ pub(crate) mod rules_610_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -12182,7 +12182,7 @@ pub(crate) mod rules_610_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -12315,7 +12315,7 @@ pub(crate) mod rules_610_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -12324,7 +12324,7 @@ pub(crate) mod rules_610_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -12442,11 +12442,11 @@ pub(crate) mod rules_611_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -12469,7 +12469,7 @@ pub(crate) mod rules_611_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -12605,7 +12605,7 @@ pub(crate) mod rules_611_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
@@ -12614,7 +12614,7 @@ pub(crate) mod rules_611_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -12732,11 +12732,11 @@ pub(crate) mod rules_612_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -12759,7 +12759,7 @@ pub(crate) mod rules_612_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -12896,7 +12896,7 @@ pub(crate) mod rules_612_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e6(&mut self) {
@@ -12905,7 +12905,7 @@ pub(crate) mod rules_612_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -13023,11 +13023,11 @@ pub(crate) mod rules_613_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -13050,7 +13050,7 @@ pub(crate) mod rules_613_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -13183,7 +13183,7 @@ pub(crate) mod rules_613_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -13192,7 +13192,7 @@ pub(crate) mod rules_613_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -13310,11 +13310,11 @@ pub(crate) mod rules_614_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -13337,7 +13337,7 @@ pub(crate) mod rules_614_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -13471,7 +13471,7 @@ pub(crate) mod rules_614_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self) {
@@ -13480,7 +13480,7 @@ pub(crate) mod rules_614_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -13598,11 +13598,11 @@ pub(crate) mod rules_630_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -13625,7 +13625,7 @@ pub(crate) mod rules_630_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -13749,7 +13749,7 @@ pub(crate) mod rules_630_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
@@ -13767,7 +13767,7 @@ pub(crate) mod rules_630_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -13885,11 +13885,11 @@ pub(crate) mod rules_631_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -13912,7 +13912,7 @@ pub(crate) mod rules_631_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -14036,7 +14036,7 @@ pub(crate) mod rules_631_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
@@ -14054,7 +14054,7 @@ pub(crate) mod rules_631_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -14172,11 +14172,11 @@ pub(crate) mod rules_632_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -14199,7 +14199,7 @@ pub(crate) mod rules_632_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -14323,7 +14323,7 @@ pub(crate) mod rules_632_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e2(&mut self, alt_id: AltId) {
@@ -14341,7 +14341,7 @@ pub(crate) mod rules_632_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -14446,11 +14446,11 @@ pub(crate) mod rules_640_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -14473,7 +14473,7 @@ pub(crate) mod rules_640_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -14614,7 +14614,7 @@ pub(crate) mod rules_640_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -14632,7 +14632,7 @@ pub(crate) mod rules_640_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -14672,11 +14672,11 @@ pub(crate) mod rules_641_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -14699,7 +14699,7 @@ pub(crate) mod rules_641_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -14840,7 +14840,7 @@ pub(crate) mod rules_641_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -14858,7 +14858,7 @@ pub(crate) mod rules_641_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -14898,11 +14898,11 @@ pub(crate) mod rules_642_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { E(SynE) }
+    enum EnumSynValue { E(SynE) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_e(self) -> SynE {
-            let SynValue::E(val) = self;
+            let EnumSynValue::E(val) = self;
             val
         }
     }
@@ -14925,7 +14925,7 @@ pub(crate) mod rules_642_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -15066,7 +15066,7 @@ pub(crate) mod rules_642_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
 
         fn exit_e4(&mut self, alt_id: AltId) {
@@ -15084,7 +15084,7 @@ pub(crate) mod rules_642_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_e(ctx, spans);
-            self.stack.push(SynValue::E(val));
+            self.stack.push(EnumSynValue::E(val));
         }
     }
 
@@ -15110,11 +15110,11 @@ pub(crate) mod rules_650_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -15137,7 +15137,7 @@ pub(crate) mod rules_650_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -15252,7 +15252,7 @@ pub(crate) mod rules_650_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_a2(&mut self) {
@@ -15261,7 +15261,7 @@ pub(crate) mod rules_650_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
     }
 
@@ -15293,11 +15293,11 @@ pub(crate) mod rules_705_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -15320,7 +15320,7 @@ pub(crate) mod rules_705_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -15461,7 +15461,7 @@ pub(crate) mod rules_705_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
     }
 
@@ -15491,14 +15491,14 @@ pub(crate) mod rules_810_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -15520,7 +15520,7 @@ pub(crate) mod rules_810_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -15646,19 +15646,19 @@ pub(crate) mod rules_810_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(a);
@@ -15691,14 +15691,14 @@ pub(crate) mod rules_811_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -15720,7 +15720,7 @@ pub(crate) mod rules_811_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -15848,19 +15848,19 @@ pub(crate) mod rules_811_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(a);
@@ -15893,14 +15893,14 @@ pub(crate) mod rules_820_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -15924,7 +15924,7 @@ pub(crate) mod rules_820_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -16041,19 +16041,19 @@ pub(crate) mod rules_820_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(a);
@@ -16067,11 +16067,11 @@ pub(crate) mod rules_820_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exitloop_a2(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_a(a);
         }
     }
@@ -16102,14 +16102,14 @@ pub(crate) mod rules_821_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -16133,7 +16133,7 @@ pub(crate) mod rules_821_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -16251,19 +16251,19 @@ pub(crate) mod rules_821_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(a);
@@ -16277,11 +16277,11 @@ pub(crate) mod rules_821_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exitloop_a2(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_a(a);
         }
     }
@@ -16317,14 +16317,14 @@ pub(crate) mod rules_835_1 {
     pub struct SynA1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum EnumSynValue { A(SynA), A1(SynA1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
         }
         fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+            if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
     }
 
@@ -16346,7 +16346,7 @@ pub(crate) mod rules_835_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -16463,14 +16463,14 @@ pub(crate) mod rules_835_1 {
 
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
-            self.stack.push(SynValue::A1(val));
+            self.stack.push(EnumSynValue::A1(val));
         }
 
         fn exit_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
-            let Some(SynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(num);
@@ -16493,7 +16493,7 @@ pub(crate) mod rules_835_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_a3(&mut self, alt_id: AltId) {
@@ -16511,7 +16511,7 @@ pub(crate) mod rules_835_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
     }
 
@@ -16537,11 +16537,11 @@ pub(crate) mod rules_862_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { Expr(SynExpr) }
+    enum EnumSynValue { Expr(SynExpr) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_expr(self) -> SynExpr {
-            let SynValue::Expr(val) = self;
+            let EnumSynValue::Expr(val) = self;
             val
         }
     }
@@ -16564,7 +16564,7 @@ pub(crate) mod rules_862_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -16674,7 +16674,7 @@ pub(crate) mod rules_862_1 {
 
         fn init_expr(&mut self) {
             let val = self.listener.init_expr();
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
@@ -16691,7 +16691,7 @@ pub(crate) mod rules_862_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::Expr(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::Expr(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_expr(acc, ctx, spans);
         }
     }
@@ -16720,11 +16720,11 @@ pub(crate) mod rules_870_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -16749,7 +16749,7 @@ pub(crate) mod rules_870_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -16873,7 +16873,7 @@ pub(crate) mod rules_870_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_a1(&mut self) {
@@ -16883,11 +16883,11 @@ pub(crate) mod rules_870_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            let EnumSynValue::A(a) = self.stack.last_mut().unwrap();
             self.listener.exitloop_a(a);
         }
     }
@@ -16916,11 +16916,11 @@ pub(crate) mod rules_871_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA) }
+    enum EnumSynValue { A(SynA) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
+            let EnumSynValue::A(val) = self;
             val
         }
     }
@@ -16945,7 +16945,7 @@ pub(crate) mod rules_871_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -17058,7 +17058,7 @@ pub(crate) mod rules_871_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
@@ -17080,11 +17080,11 @@ pub(crate) mod rules_871_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
-            self.stack.push(SynValue::A(val));
+            self.stack.push(EnumSynValue::A(val));
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            let EnumSynValue::A(a) = self.stack.last_mut().unwrap();
             self.listener.exitloop_a(a);
         }
     }
@@ -17251,71 +17251,71 @@ pub(crate) mod rules_901_1 {
     pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 
     #[derive(Debug)]
-    enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
+    enum EnumSynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_file(self) -> SynFile {
-            if let SynValue::File(val) = self { val } else { panic!() }
+            if let EnumSynValue::File(val) = self { val } else { panic!() }
         }
         fn get_file_item(self) -> SynFileItem {
-            if let SynValue::FileItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::FileItem(val) = self { val } else { panic!() }
         }
         fn get_header(self) -> SynHeader {
-            if let SynValue::Header(val) = self { val } else { panic!() }
+            if let EnumSynValue::Header(val) = self { val } else { panic!() }
         }
         fn get_declaration(self) -> SynDeclaration {
-            if let SynValue::Declaration(val) = self { val } else { panic!() }
+            if let EnumSynValue::Declaration(val) = self { val } else { panic!() }
         }
         fn get_option(self) -> SynOption {
-            if let SynValue::Option(val) = self { val } else { panic!() }
+            if let EnumSynValue::Option(val) = self { val } else { panic!() }
         }
         fn get_rule(self) -> SynRule {
-            if let SynValue::Rule(val) = self { val } else { panic!() }
+            if let EnumSynValue::Rule(val) = self { val } else { panic!() }
         }
         fn get_actions(self) -> SynActions {
-            if let SynValue::Actions(val) = self { val } else { panic!() }
+            if let EnumSynValue::Actions(val) = self { val } else { panic!() }
         }
         fn get_action(self) -> SynAction {
-            if let SynValue::Action(val) = self { val } else { panic!() }
+            if let EnumSynValue::Action(val) = self { val } else { panic!() }
         }
         fn get_match(self) -> SynMatch {
-            if let SynValue::Match(val) = self { val } else { panic!() }
+            if let EnumSynValue::Match(val) = self { val } else { panic!() }
         }
         fn get_alt_items(self) -> SynAltItems {
-            if let SynValue::AltItems(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItems(val) = self { val } else { panic!() }
         }
         fn get_alt_item(self) -> SynAltItem {
-            if let SynValue::AltItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItem(val) = self { val } else { panic!() }
         }
         fn get_repeat_item(self) -> SynRepeatItem {
-            if let SynValue::RepeatItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::RepeatItem(val) = self { val } else { panic!() }
         }
         fn get_item(self) -> SynItem {
-            if let SynValue::Item(val) = self { val } else { panic!() }
+            if let EnumSynValue::Item(val) = self { val } else { panic!() }
         }
         fn get_char_set(self) -> SynCharSet {
-            if let SynValue::CharSet(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSet(val) = self { val } else { panic!() }
         }
         fn get_char_set_one(self) -> SynCharSetOne {
-            if let SynValue::CharSetOne(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSetOne(val) = self { val } else { panic!() }
         }
         fn get_file1(self) -> SynFile1 {
-            if let SynValue::File1(val) = self { val } else { panic!() }
+            if let EnumSynValue::File1(val) = self { val } else { panic!() }
         }
         fn get_option1(self) -> SynOption1 {
-            if let SynValue::Option1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Option1(val) = self { val } else { panic!() }
         }
         fn get_actions1(self) -> SynActions1 {
-            if let SynValue::Actions1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Actions1(val) = self { val } else { panic!() }
         }
         fn get_alt_items1(self) -> SynAltItems1 {
-            if let SynValue::AltItems1(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItems1(val) = self { val } else { panic!() }
         }
         fn get_alt_item1(self) -> SynAltItem1 {
-            if let SynValue::AltItem1(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItem1(val) = self { val } else { panic!() }
         }
         fn get_char_set1(self) -> SynCharSet1 {
-            if let SynValue::CharSet1(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSet1(val) = self { val } else { panic!() }
         }
     }
 
@@ -17365,7 +17365,7 @@ pub(crate) mod rules_901_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -17573,19 +17573,19 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_file(ctx, spans);
-            self.stack.push(SynValue::File(val));
+            self.stack.push(EnumSynValue::File(val));
         }
 
         fn init_file1(&mut self) {
             let val = SynFile1(Vec::new());
-            self.stack.push(SynValue::File1(val));
+            self.stack.push(EnumSynValue::File1(val));
         }
 
         fn exit_file1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let file_item = self.stack.pop().unwrap().get_file_item();
-            let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFile1 item on wrapper stack");
             };
             star_acc.push(file_item);
@@ -17610,7 +17610,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_file_item(ctx, spans);
-            self.stack.push(SynValue::FileItem(val));
+            self.stack.push(EnumSynValue::FileItem(val));
         }
 
         fn exit_header(&mut self) {
@@ -17619,7 +17619,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_header(ctx, spans);
-            self.stack.push(SynValue::Header(val));
+            self.stack.push(EnumSynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
@@ -17628,7 +17628,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_declaration(ctx, spans);
-            self.stack.push(SynValue::Declaration(val));
+            self.stack.push(EnumSynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
@@ -17637,21 +17637,21 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_option(ctx, spans);
-            self.stack.push(SynValue::Option(val));
+            self.stack.push(EnumSynValue::Option(val));
         }
 
         fn init_option1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let id = self.stack_t.pop().unwrap();
-            self.stack.push(SynValue::Option1(SynOption1(vec![id])));
+            self.stack.push(EnumSynValue::Option1(SynOption1(vec![id])));
         }
 
         fn exit_option1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let id = self.stack_t.pop().unwrap();
-            let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynOption1 item on wrapper stack");
             };
             star_acc.push(id);
@@ -17680,7 +17680,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rule(ctx, spans);
-            self.stack.push(SynValue::Rule(val));
+            self.stack.push(EnumSynValue::Rule(val));
         }
 
         fn exit_actions(&mut self) {
@@ -17689,21 +17689,21 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_actions(ctx, spans);
-            self.stack.push(SynValue::Actions(val));
+            self.stack.push(EnumSynValue::Actions(val));
         }
 
         fn init_actions1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let action = self.stack.pop().unwrap().get_action();
-            self.stack.push(SynValue::Actions1(SynActions1(vec![action])));
+            self.stack.push(EnumSynValue::Actions1(SynActions1(vec![action])));
         }
 
         fn exit_actions1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let action = self.stack.pop().unwrap().get_action();
-            let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynActions1 item on wrapper stack");
             };
             star_acc.push(action);
@@ -17741,7 +17741,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_action(ctx, spans);
-            self.stack.push(SynValue::Action(val));
+            self.stack.push(EnumSynValue::Action(val));
         }
 
         fn exit_match(&mut self) {
@@ -17750,7 +17750,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_match(ctx, spans);
-            self.stack.push(SynValue::Match(val));
+            self.stack.push(EnumSynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
@@ -17759,21 +17759,21 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_alt_items(ctx, spans);
-            self.stack.push(SynValue::AltItems(val));
+            self.stack.push(EnumSynValue::AltItems(val));
         }
 
         fn init_alt_items1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            self.stack.push(SynValue::AltItems1(SynAltItems1(vec![alt_item])));
+            self.stack.push(EnumSynValue::AltItems1(SynAltItems1(vec![alt_item])));
         }
 
         fn exit_alt_items1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynAltItems1 item on wrapper stack");
             };
             star_acc.push(alt_item);
@@ -17785,19 +17785,19 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_alt_item(ctx, spans);
-            self.stack.push(SynValue::AltItem(val));
+            self.stack.push(EnumSynValue::AltItem(val));
         }
 
         fn init_alt_item1(&mut self) {
             let val = SynAltItem1(Vec::new());
-            self.stack.push(SynValue::AltItem1(val));
+            self.stack.push(EnumSynValue::AltItem1(val));
         }
 
         fn exit_alt_item1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-            let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynAltItem1 item on wrapper stack");
             };
             plus_acc.push(repeat_item);
@@ -17834,7 +17834,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_repeat_item(ctx, spans);
-            self.stack.push(SynValue::RepeatItem(val));
+            self.stack.push(EnumSynValue::RepeatItem(val));
         }
 
         fn exit_item(&mut self, alt_id: AltId) {
@@ -17873,7 +17873,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_item(ctx, spans);
-            self.stack.push(SynValue::Item(val));
+            self.stack.push(EnumSynValue::Item(val));
         }
 
         fn exit_char_set(&mut self, alt_id: AltId) {
@@ -17894,19 +17894,19 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_char_set(ctx, spans);
-            self.stack.push(SynValue::CharSet(val));
+            self.stack.push(EnumSynValue::CharSet(val));
         }
 
         fn init_char_set1(&mut self) {
             let val = SynCharSet1(Vec::new());
-            self.stack.push(SynValue::CharSet1(val));
+            self.stack.push(EnumSynValue::CharSet1(val));
         }
 
         fn exit_char_set1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
-            let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynCharSet1 item on wrapper stack");
             };
             plus_acc.push(char_set_one);
@@ -17932,7 +17932,7 @@ pub(crate) mod rules_901_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_char_set_one(ctx, spans);
-            self.stack.push(SynValue::CharSetOne(val));
+            self.stack.push(EnumSynValue::CharSetOne(val));
         }
     }
 
@@ -18001,29 +18001,29 @@ pub(crate) mod rules_902_1 {
     }
 
     #[derive(Debug)]
-    enum SynValue { Program(SynProgram), DeclI(SynDeclI), InstI(SynInstI), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
+    enum EnumSynValue { Program(SynProgram), DeclI(SynDeclI), InstI(SynInstI), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_program(self) -> SynProgram {
-            if let SynValue::Program(val) = self { val } else { panic!() }
+            if let EnumSynValue::Program(val) = self { val } else { panic!() }
         }
         fn get_decl_i(self) -> SynDeclI {
-            if let SynValue::DeclI(val) = self { val } else { panic!() }
+            if let EnumSynValue::DeclI(val) = self { val } else { panic!() }
         }
         fn get_inst_i(self) -> SynInstI {
-            if let SynValue::InstI(val) = self { val } else { panic!() }
+            if let EnumSynValue::InstI(val) = self { val } else { panic!() }
         }
         fn get_decl(self) -> SynDecl {
-            if let SynValue::Decl(val) = self { val } else { panic!() }
+            if let EnumSynValue::Decl(val) = self { val } else { panic!() }
         }
         fn get_id_i(self) -> SynIdI {
-            if let SynValue::IdI(val) = self { val } else { panic!() }
+            if let EnumSynValue::IdI(val) = self { val } else { panic!() }
         }
         fn get_inst(self) -> SynInst {
-            if let SynValue::Inst(val) = self { val } else { panic!() }
+            if let EnumSynValue::Inst(val) = self { val } else { panic!() }
         }
         fn get_expr(self) -> SynExpr {
-            if let SynValue::Expr(val) = self { val } else { panic!() }
+            if let EnumSynValue::Expr(val) = self { val } else { panic!() }
         }
     }
 
@@ -18061,7 +18061,7 @@ pub(crate) mod rules_902_1 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -18199,12 +18199,12 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_program(ctx, spans);
-            self.stack.push(SynValue::Program(val));
+            self.stack.push(EnumSynValue::Program(val));
         }
 
         fn init_decl_i(&mut self) {
             let val = self.listener.init_decl_i();
-            self.stack.push(SynValue::DeclI(val));
+            self.stack.push(EnumSynValue::DeclI(val));
         }
 
         fn exit_decl_i(&mut self) {
@@ -18212,18 +18212,18 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxDeclI::V1 { decl };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::DeclI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::DeclI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_decl_i(acc, ctx, spans);
         }
 
         fn exitloop_decl_i(&mut self) {
-            let SynValue::DeclI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::DeclI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_decl_i(acc);
         }
 
         fn init_inst_i(&mut self) {
             let val = self.listener.init_inst_i();
-            self.stack.push(SynValue::InstI(val));
+            self.stack.push(EnumSynValue::InstI(val));
         }
 
         fn exit_inst_i(&mut self, alt_id: AltId) {
@@ -18232,7 +18232,7 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxInstI::V1 { inst, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::InstI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::InstI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_inst_i(acc, ctx, spans);
         }
 
@@ -18253,7 +18253,7 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_decl(ctx, spans);
-            self.stack.push(SynValue::Decl(val));
+            self.stack.push(EnumSynValue::Decl(val));
         }
 
         fn init_id_i(&mut self) {
@@ -18262,7 +18262,7 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.init_id_i(ctx, spans);
-            self.stack.push(SynValue::IdI(val));
+            self.stack.push(EnumSynValue::IdI(val));
         }
 
         fn exit_id_i(&mut self) {
@@ -18270,12 +18270,12 @@ pub(crate) mod rules_902_1 {
             let ctx = CtxIdI::V1 { id };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_id_i(acc, ctx, spans);
         }
 
         fn exitloop_id_i(&mut self) {
-            let SynValue::IdI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::IdI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_id_i(acc);
         }
 
@@ -18295,7 +18295,7 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_inst(ctx, spans);
-            self.stack.push(SynValue::Inst(val));
+            self.stack.push(EnumSynValue::Inst(val));
         }
 
         fn exit_expr1(&mut self, alt_id: AltId) {
@@ -18315,7 +18315,7 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_expr2(&mut self, alt_id: AltId) {
@@ -18337,7 +18337,7 @@ pub(crate) mod rules_902_1 {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
     }
 
@@ -18411,7 +18411,7 @@ pub(crate) mod rules_902_2 {
     pub struct SynProgram();
 
     #[derive(Debug)]
-    enum SynValue {  }
+    enum EnumSynValue {  }
 
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -18451,7 +18451,7 @@ pub(crate) mod rules_902_2 {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,

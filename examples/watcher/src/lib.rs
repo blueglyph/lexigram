@@ -662,7 +662,7 @@ pub mod watcher_parser {
     pub struct SynLog();
 
     #[derive(Debug)]
-    enum SynValue {  }
+    enum EnumSynValue {  }
 
     pub trait WatcherListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -710,7 +710,7 @@ pub mod watcher_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,

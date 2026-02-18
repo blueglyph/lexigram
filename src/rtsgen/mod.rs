@@ -866,47 +866,47 @@ pub mod rtsgen_parser {
     pub struct SynRtsChildren1(pub Vec<SynRtsExpr>);
 
     #[derive(Debug)]
-    enum SynValue { File(SynFile), Decls(SynDecls), Decl(SynDecl), DeclTerminal(SynDeclTerminal), Ruleset(SynRuleset), Rule(SynRule), RuleNt(SynRuleNt), RtsExpr(SynRtsExpr), RtsChildren(SynRtsChildren), PrsExpr(SynPrsExpr), Item(SynItem), Decl1(SynDecl1), RtsChildren1(SynRtsChildren1) }
+    enum EnumSynValue { File(SynFile), Decls(SynDecls), Decl(SynDecl), DeclTerminal(SynDeclTerminal), Ruleset(SynRuleset), Rule(SynRule), RuleNt(SynRuleNt), RtsExpr(SynRtsExpr), RtsChildren(SynRtsChildren), PrsExpr(SynPrsExpr), Item(SynItem), Decl1(SynDecl1), RtsChildren1(SynRtsChildren1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_file(self) -> SynFile {
-            if let SynValue::File(val) = self { val } else { panic!() }
+            if let EnumSynValue::File(val) = self { val } else { panic!() }
         }
         fn get_decls(self) -> SynDecls {
-            if let SynValue::Decls(val) = self { val } else { panic!() }
+            if let EnumSynValue::Decls(val) = self { val } else { panic!() }
         }
         fn get_decl(self) -> SynDecl {
-            if let SynValue::Decl(val) = self { val } else { panic!() }
+            if let EnumSynValue::Decl(val) = self { val } else { panic!() }
         }
         fn get_decl_terminal(self) -> SynDeclTerminal {
-            if let SynValue::DeclTerminal(val) = self { val } else { panic!() }
+            if let EnumSynValue::DeclTerminal(val) = self { val } else { panic!() }
         }
         fn get_ruleset(self) -> SynRuleset {
-            if let SynValue::Ruleset(val) = self { val } else { panic!() }
+            if let EnumSynValue::Ruleset(val) = self { val } else { panic!() }
         }
         fn get_rule(self) -> SynRule {
-            if let SynValue::Rule(val) = self { val } else { panic!() }
+            if let EnumSynValue::Rule(val) = self { val } else { panic!() }
         }
         fn get_rule_nt(self) -> SynRuleNt {
-            if let SynValue::RuleNt(val) = self { val } else { panic!() }
+            if let EnumSynValue::RuleNt(val) = self { val } else { panic!() }
         }
         fn get_rts_expr(self) -> SynRtsExpr {
-            if let SynValue::RtsExpr(val) = self { val } else { panic!() }
+            if let EnumSynValue::RtsExpr(val) = self { val } else { panic!() }
         }
         fn get_rts_children(self) -> SynRtsChildren {
-            if let SynValue::RtsChildren(val) = self { val } else { panic!() }
+            if let EnumSynValue::RtsChildren(val) = self { val } else { panic!() }
         }
         fn get_prs_expr(self) -> SynPrsExpr {
-            if let SynValue::PrsExpr(val) = self { val } else { panic!() }
+            if let EnumSynValue::PrsExpr(val) = self { val } else { panic!() }
         }
         fn get_item(self) -> SynItem {
-            if let SynValue::Item(val) = self { val } else { panic!() }
+            if let EnumSynValue::Item(val) = self { val } else { panic!() }
         }
         fn get_decl1(self) -> SynDecl1 {
-            if let SynValue::Decl1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Decl1(val) = self { val } else { panic!() }
         }
         fn get_rts_children1(self) -> SynRtsChildren1 {
-            if let SynValue::RtsChildren1(val) = self { val } else { panic!() }
+            if let EnumSynValue::RtsChildren1(val) = self { val } else { panic!() }
         }
     }
 
@@ -954,7 +954,7 @@ pub mod rtsgen_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
     }
@@ -1122,13 +1122,13 @@ pub mod rtsgen_parser {
             let decls = self.stack.pop().unwrap().get_decls();
             let ctx = CtxFile::V1 { decls, ruleset };
             let val = self.listener.exit_file(ctx);
-            self.stack.push(SynValue::File(val));
+            self.stack.push(EnumSynValue::File(val));
         }
 
         fn exit_decls(&mut self) {
             let ctx = CtxDecls::V1;
             let val = self.listener.exit_decls(ctx);
-            self.stack.push(SynValue::Decls(val));
+            self.stack.push(EnumSynValue::Decls(val));
         }
 
         fn exit_decl_iter(&mut self) {
@@ -1141,17 +1141,17 @@ pub mod rtsgen_parser {
             let star = self.stack.pop().unwrap().get_decl1();
             let ctx = CtxDecl::V1 { star };
             let val = self.listener.exit_decl(ctx);
-            self.stack.push(SynValue::Decl(val));
+            self.stack.push(EnumSynValue::Decl(val));
         }
 
         fn init_decl1(&mut self) {
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            self.stack.push(SynValue::Decl1(SynDecl1(vec![decl_terminal])));
+            self.stack.push(EnumSynValue::Decl1(SynDecl1(vec![decl_terminal])));
         }
 
         fn exit_decl1(&mut self) {
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let Some(SynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynDecl1 item on wrapper stack");
             };
             star_acc.push(decl_terminal);
@@ -1171,13 +1171,13 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_decl_terminal")
             };
             let val = self.listener.exit_decl_terminal(ctx);
-            self.stack.push(SynValue::DeclTerminal(val));
+            self.stack.push(EnumSynValue::DeclTerminal(val));
         }
 
         fn exit_ruleset(&mut self) {
             let ctx = CtxRuleset::V1;
             let val = self.listener.exit_ruleset(ctx);
-            self.stack.push(SynValue::Ruleset(val));
+            self.stack.push(EnumSynValue::Ruleset(val));
         }
 
         fn exit_rule_iter(&mut self) {
@@ -1201,14 +1201,14 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
             let val = self.listener.exit_rule(ctx);
-            self.stack.push(SynValue::Rule(val));
+            self.stack.push(EnumSynValue::Rule(val));
         }
 
         fn exit_rule_nt(&mut self) {
             let nonterminal = self.stack_t.pop().unwrap();
             let ctx = CtxRuleNt::V1 { nonterminal };
             let val = self.listener.exit_rule_nt(ctx);
-            self.stack.push(SynValue::RuleNt(val));
+            self.stack.push(EnumSynValue::RuleNt(val));
         }
 
         fn exit_rts_expr(&mut self, alt_id: AltId) {
@@ -1240,24 +1240,24 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rts_expr")
             };
             let val = self.listener.exit_rts_expr(ctx);
-            self.stack.push(SynValue::RtsExpr(val));
+            self.stack.push(EnumSynValue::RtsExpr(val));
         }
 
         fn exit_rts_children(&mut self) {
             let star = self.stack.pop().unwrap().get_rts_children1();
             let ctx = CtxRtsChildren::V1 { star };
             let val = self.listener.exit_rts_children(ctx);
-            self.stack.push(SynValue::RtsChildren(val));
+            self.stack.push(EnumSynValue::RtsChildren(val));
         }
 
         fn init_rts_children1(&mut self) {
             let val = SynRtsChildren1(Vec::new());
-            self.stack.push(SynValue::RtsChildren1(val));
+            self.stack.push(EnumSynValue::RtsChildren1(val));
         }
 
         fn exit_rts_children1(&mut self) {
             let rts_expr = self.stack.pop().unwrap().get_rts_expr();
-            let Some(SynValue::RtsChildren1(SynRtsChildren1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::RtsChildren1(SynRtsChildren1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynRtsChildren1 item on wrapper stack");
             };
             star_acc.push(rts_expr);
@@ -1290,7 +1290,7 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr1")
             };
             let val = self.listener.exit_prs_expr(ctx);
-            self.stack.push(SynValue::PrsExpr(val));
+            self.stack.push(EnumSynValue::PrsExpr(val));
         }
 
         fn exit_prs_expr6(&mut self, alt_id: AltId) {
@@ -1306,7 +1306,7 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr6")
             };
             let val = self.listener.exit_prs_expr(ctx);
-            self.stack.push(SynValue::PrsExpr(val));
+            self.stack.push(EnumSynValue::PrsExpr(val));
         }
 
         fn exit_item(&mut self, alt_id: AltId) {
@@ -1351,7 +1351,7 @@ pub mod rtsgen_parser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
             let val = self.listener.exit_item(ctx);
-            self.stack.push(SynValue::Item(val));
+            self.stack.push(EnumSynValue::Item(val));
         }
     }
 

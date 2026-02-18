@@ -184,71 +184,71 @@ pub(crate) mod lexiparser {
     pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 
     #[derive(Debug)]
-    enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
+    enum EnumSynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItems1(SynAltItems1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_file(self) -> SynFile {
-            if let SynValue::File(val) = self { val } else { panic!() }
+            if let EnumSynValue::File(val) = self { val } else { panic!() }
         }
         fn get_file_item(self) -> SynFileItem {
-            if let SynValue::FileItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::FileItem(val) = self { val } else { panic!() }
         }
         fn get_header(self) -> SynHeader {
-            if let SynValue::Header(val) = self { val } else { panic!() }
+            if let EnumSynValue::Header(val) = self { val } else { panic!() }
         }
         fn get_declaration(self) -> SynDeclaration {
-            if let SynValue::Declaration(val) = self { val } else { panic!() }
+            if let EnumSynValue::Declaration(val) = self { val } else { panic!() }
         }
         fn get_option(self) -> SynOption {
-            if let SynValue::Option(val) = self { val } else { panic!() }
+            if let EnumSynValue::Option(val) = self { val } else { panic!() }
         }
         fn get_rule(self) -> SynRule {
-            if let SynValue::Rule(val) = self { val } else { panic!() }
+            if let EnumSynValue::Rule(val) = self { val } else { panic!() }
         }
         fn get_actions(self) -> SynActions {
-            if let SynValue::Actions(val) = self { val } else { panic!() }
+            if let EnumSynValue::Actions(val) = self { val } else { panic!() }
         }
         fn get_action(self) -> SynAction {
-            if let SynValue::Action(val) = self { val } else { panic!() }
+            if let EnumSynValue::Action(val) = self { val } else { panic!() }
         }
         fn get_match(self) -> SynMatch {
-            if let SynValue::Match(val) = self { val } else { panic!() }
+            if let EnumSynValue::Match(val) = self { val } else { panic!() }
         }
         fn get_alt_items(self) -> SynAltItems {
-            if let SynValue::AltItems(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItems(val) = self { val } else { panic!() }
         }
         fn get_alt_item(self) -> SynAltItem {
-            if let SynValue::AltItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItem(val) = self { val } else { panic!() }
         }
         fn get_repeat_item(self) -> SynRepeatItem {
-            if let SynValue::RepeatItem(val) = self { val } else { panic!() }
+            if let EnumSynValue::RepeatItem(val) = self { val } else { panic!() }
         }
         fn get_item(self) -> SynItem {
-            if let SynValue::Item(val) = self { val } else { panic!() }
+            if let EnumSynValue::Item(val) = self { val } else { panic!() }
         }
         fn get_char_set(self) -> SynCharSet {
-            if let SynValue::CharSet(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSet(val) = self { val } else { panic!() }
         }
         fn get_char_set_one(self) -> SynCharSetOne {
-            if let SynValue::CharSetOne(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSetOne(val) = self { val } else { panic!() }
         }
         fn get_file1(self) -> SynFile1 {
-            if let SynValue::File1(val) = self { val } else { panic!() }
+            if let EnumSynValue::File1(val) = self { val } else { panic!() }
         }
         fn get_option1(self) -> SynOption1 {
-            if let SynValue::Option1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Option1(val) = self { val } else { panic!() }
         }
         fn get_actions1(self) -> SynActions1 {
-            if let SynValue::Actions1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Actions1(val) = self { val } else { panic!() }
         }
         fn get_alt_items1(self) -> SynAltItems1 {
-            if let SynValue::AltItems1(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItems1(val) = self { val } else { panic!() }
         }
         fn get_alt_item1(self) -> SynAltItem1 {
-            if let SynValue::AltItem1(val) = self { val } else { panic!() }
+            if let EnumSynValue::AltItem1(val) = self { val } else { panic!() }
         }
         fn get_char_set1(self) -> SynCharSet1 {
-            if let SynValue::CharSet1(val) = self { val } else { panic!() }
+            if let EnumSynValue::CharSet1(val) = self { val } else { panic!() }
         }
     }
 
@@ -298,7 +298,7 @@ pub(crate) mod lexiparser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
     }
@@ -490,17 +490,17 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
             let val = self.listener.exit_file(ctx);
-            self.stack.push(SynValue::File(val));
+            self.stack.push(EnumSynValue::File(val));
         }
 
         fn init_file1(&mut self) {
             let val = SynFile1(Vec::new());
-            self.stack.push(SynValue::File1(val));
+            self.stack.push(EnumSynValue::File1(val));
         }
 
         fn exit_file1(&mut self) {
             let file_item = self.stack.pop().unwrap().get_file_item();
-            let Some(SynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::File1(SynFile1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFile1 item on wrapper stack");
             };
             star_acc.push(file_item);
@@ -523,38 +523,38 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
             let val = self.listener.exit_file_item(ctx);
-            self.stack.push(SynValue::FileItem(val));
+            self.stack.push(EnumSynValue::FileItem(val));
         }
 
         fn exit_header(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxHeader::V1 { id };
             let val = self.listener.exit_header(ctx);
-            self.stack.push(SynValue::Header(val));
+            self.stack.push(EnumSynValue::Header(val));
         }
 
         fn exit_declaration(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxDeclaration::V1 { id };
             let val = self.listener.exit_declaration(ctx);
-            self.stack.push(SynValue::Declaration(val));
+            self.stack.push(EnumSynValue::Declaration(val));
         }
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
             let ctx = CtxOption::V1 { star };
             let val = self.listener.exit_option(ctx);
-            self.stack.push(SynValue::Option(val));
+            self.stack.push(EnumSynValue::Option(val));
         }
 
         fn init_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            self.stack.push(SynValue::Option1(SynOption1(vec![id])));
+            self.stack.push(EnumSynValue::Option1(SynOption1(vec![id])));
         }
 
         fn exit_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(SynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynOption1 item on wrapper stack");
             };
             star_acc.push(id);
@@ -581,24 +581,24 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
             let val = self.listener.exit_rule(ctx);
-            self.stack.push(SynValue::Rule(val));
+            self.stack.push(EnumSynValue::Rule(val));
         }
 
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
             let ctx = CtxActions::V1 { star };
             let val = self.listener.exit_actions(ctx);
-            self.stack.push(SynValue::Actions(val));
+            self.stack.push(EnumSynValue::Actions(val));
         }
 
         fn init_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
-            self.stack.push(SynValue::Actions1(SynActions1(vec![action])));
+            self.stack.push(EnumSynValue::Actions1(SynActions1(vec![action])));
         }
 
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
-            let Some(SynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynActions1 item on wrapper stack");
             };
             star_acc.push(action);
@@ -634,31 +634,31 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
             let val = self.listener.exit_action(ctx);
-            self.stack.push(SynValue::Action(val));
+            self.stack.push(EnumSynValue::Action(val));
         }
 
         fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
             let ctx = CtxMatch::V1 { alt_items };
             let val = self.listener.exit_match(ctx);
-            self.stack.push(SynValue::Match(val));
+            self.stack.push(EnumSynValue::Match(val));
         }
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
             let ctx = CtxAltItems::V1 { star };
             let val = self.listener.exit_alt_items(ctx);
-            self.stack.push(SynValue::AltItems(val));
+            self.stack.push(EnumSynValue::AltItems(val));
         }
 
         fn init_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            self.stack.push(SynValue::AltItems1(SynAltItems1(vec![alt_item])));
+            self.stack.push(EnumSynValue::AltItems1(SynAltItems1(vec![alt_item])));
         }
 
         fn exit_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let Some(SynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynAltItems1 item on wrapper stack");
             };
             star_acc.push(alt_item);
@@ -668,17 +668,17 @@ pub(crate) mod lexiparser {
             let plus = self.stack.pop().unwrap().get_alt_item1();
             let ctx = CtxAltItem::V1 { plus };
             let val = self.listener.exit_alt_item(ctx);
-            self.stack.push(SynValue::AltItem(val));
+            self.stack.push(EnumSynValue::AltItem(val));
         }
 
         fn init_alt_item1(&mut self) {
             let val = SynAltItem1(Vec::new());
-            self.stack.push(SynValue::AltItem1(val));
+            self.stack.push(EnumSynValue::AltItem1(val));
         }
 
         fn exit_alt_item1(&mut self) {
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-            let Some(SynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::AltItem1(SynAltItem1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynAltItem1 item on wrapper stack");
             };
             plus_acc.push(repeat_item);
@@ -713,7 +713,7 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
             let val = self.listener.exit_repeat_item(ctx);
-            self.stack.push(SynValue::RepeatItem(val));
+            self.stack.push(EnumSynValue::RepeatItem(val));
         }
 
         fn exit_item(&mut self, alt_id: AltId) {
@@ -750,7 +750,7 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
             let val = self.listener.exit_item(ctx);
-            self.stack.push(SynValue::Item(val));
+            self.stack.push(EnumSynValue::Item(val));
         }
 
         fn exit_char_set(&mut self, alt_id: AltId) {
@@ -769,17 +769,17 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
             let val = self.listener.exit_char_set(ctx);
-            self.stack.push(SynValue::CharSet(val));
+            self.stack.push(EnumSynValue::CharSet(val));
         }
 
         fn init_char_set1(&mut self) {
             let val = SynCharSet1(Vec::new());
-            self.stack.push(SynValue::CharSet1(val));
+            self.stack.push(EnumSynValue::CharSet1(val));
         }
 
         fn exit_char_set1(&mut self) {
             let char_set_one = self.stack.pop().unwrap().get_char_set_one();
-            let Some(SynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::CharSet1(SynCharSet1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynCharSet1 item on wrapper stack");
             };
             plus_acc.push(char_set_one);
@@ -803,7 +803,7 @@ pub(crate) mod lexiparser {
                 _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };
             let val = self.listener.exit_char_set_one(ctx);
-            self.stack.push(SynValue::CharSetOne(val));
+            self.stack.push(EnumSynValue::CharSetOne(val));
         }
     }
 

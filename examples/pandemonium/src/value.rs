@@ -980,101 +980,101 @@ pub mod pandemonium_parser {
     pub struct SynSepListOpt1Item { pub id: String, pub num: String }
 
     #[derive(Debug)]
-    enum SynValue { Text(SynText), I(SynI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), LRrec(SynLRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), RrecI(SynRrecI), LRrecI(SynLRrecI), LrecI(SynLrecI), AmbI(SynAmbI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1) }
+    enum EnumSynValue { Text(SynText), I(SynI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), LRrec(SynLRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), RrecI(SynRrecI), LRrecI(SynLRrecI), LrecI(SynLrecI), AmbI(SynAmbI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_text(self) -> SynText {
-            if let SynValue::Text(val) = self { val } else { panic!() }
+            if let EnumSynValue::Text(val) = self { val } else { panic!() }
         }
         fn get_i(self) -> SynI {
-            if let SynValue::I(val) = self { val } else { panic!() }
+            if let EnumSynValue::I(val) = self { val } else { panic!() }
         }
         fn get_example(self) -> SynExample {
-            if let SynValue::Example(val) = self { val } else { panic!() }
+            if let EnumSynValue::Example(val) = self { val } else { panic!() }
         }
         fn get_star(self) -> SynStar {
-            if let SynValue::Star(val) = self { val } else { panic!() }
+            if let EnumSynValue::Star(val) = self { val } else { panic!() }
         }
         fn get_plus(self) -> SynPlus {
-            if let SynValue::Plus(val) = self { val } else { panic!() }
+            if let EnumSynValue::Plus(val) = self { val } else { panic!() }
         }
         fn get_l_star(self) -> SynLStar {
-            if let SynValue::LStar(val) = self { val } else { panic!() }
+            if let EnumSynValue::LStar(val) = self { val } else { panic!() }
         }
         fn get_l_star_i(self) -> SynLStarI {
-            if let SynValue::LStarI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LStarI(val) = self { val } else { panic!() }
         }
         fn get_l_plus(self) -> SynLPlus {
-            if let SynValue::LPlus(val) = self { val } else { panic!() }
+            if let EnumSynValue::LPlus(val) = self { val } else { panic!() }
         }
         fn get_l_plus_i(self) -> SynLPlusI {
-            if let SynValue::LPlusI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LPlusI(val) = self { val } else { panic!() }
         }
         fn get_rrec(self) -> SynRrec {
-            if let SynValue::Rrec(val) = self { val } else { panic!() }
+            if let EnumSynValue::Rrec(val) = self { val } else { panic!() }
         }
         fn get_l_rrec(self) -> SynLRrec {
-            if let SynValue::LRrec(val) = self { val } else { panic!() }
+            if let EnumSynValue::LRrec(val) = self { val } else { panic!() }
         }
         fn get_lrec(self) -> SynLrec {
-            if let SynValue::Lrec(val) = self { val } else { panic!() }
+            if let EnumSynValue::Lrec(val) = self { val } else { panic!() }
         }
         fn get_amb(self) -> SynAmb {
-            if let SynValue::Amb(val) = self { val } else { panic!() }
+            if let EnumSynValue::Amb(val) = self { val } else { panic!() }
         }
         fn get_star_a(self) -> SynStarA {
-            if let SynValue::StarA(val) = self { val } else { panic!() }
+            if let EnumSynValue::StarA(val) = self { val } else { panic!() }
         }
         fn get_plus_a(self) -> SynPlusA {
-            if let SynValue::PlusA(val) = self { val } else { panic!() }
+            if let EnumSynValue::PlusA(val) = self { val } else { panic!() }
         }
         fn get_l_star_a(self) -> SynLStarA {
-            if let SynValue::LStarA(val) = self { val } else { panic!() }
+            if let EnumSynValue::LStarA(val) = self { val } else { panic!() }
         }
         fn get_l_star_a_i(self) -> SynLStarAI {
-            if let SynValue::LStarAI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LStarAI(val) = self { val } else { panic!() }
         }
         fn get_l_plus_a(self) -> SynLPlusA {
-            if let SynValue::LPlusA(val) = self { val } else { panic!() }
+            if let EnumSynValue::LPlusA(val) = self { val } else { panic!() }
         }
         fn get_l_plus_a_i(self) -> SynLPlusAI {
-            if let SynValue::LPlusAI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LPlusAI(val) = self { val } else { panic!() }
         }
         fn get_sep_list(self) -> SynSepList {
-            if let SynValue::SepList(val) = self { val } else { panic!() }
+            if let EnumSynValue::SepList(val) = self { val } else { panic!() }
         }
         fn get_sep_list_opt(self) -> SynSepListOpt {
-            if let SynValue::SepListOpt(val) = self { val } else { panic!() }
+            if let EnumSynValue::SepListOpt(val) = self { val } else { panic!() }
         }
         fn get_rrec_i(self) -> SynRrecI {
-            if let SynValue::RrecI(val) = self { val } else { panic!() }
+            if let EnumSynValue::RrecI(val) = self { val } else { panic!() }
         }
         fn get_l_rrec_i(self) -> SynLRrecI {
-            if let SynValue::LRrecI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LRrecI(val) = self { val } else { panic!() }
         }
         fn get_lrec_i(self) -> SynLrecI {
-            if let SynValue::LrecI(val) = self { val } else { panic!() }
+            if let EnumSynValue::LrecI(val) = self { val } else { panic!() }
         }
         fn get_amb_i(self) -> SynAmbI {
-            if let SynValue::AmbI(val) = self { val } else { panic!() }
+            if let EnumSynValue::AmbI(val) = self { val } else { panic!() }
         }
         fn get_star1(self) -> SynStar1 {
-            if let SynValue::Star1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Star1(val) = self { val } else { panic!() }
         }
         fn get_plus1(self) -> SynPlus1 {
-            if let SynValue::Plus1(val) = self { val } else { panic!() }
+            if let EnumSynValue::Plus1(val) = self { val } else { panic!() }
         }
         fn get_star_a1(self) -> SynStarA1 {
-            if let SynValue::StarA1(val) = self { val } else { panic!() }
+            if let EnumSynValue::StarA1(val) = self { val } else { panic!() }
         }
         fn get_plus_a1(self) -> SynPlusA1 {
-            if let SynValue::PlusA1(val) = self { val } else { panic!() }
+            if let EnumSynValue::PlusA1(val) = self { val } else { panic!() }
         }
         fn get_sep_list1(self) -> SynSepList1 {
-            if let SynValue::SepList1(val) = self { val } else { panic!() }
+            if let EnumSynValue::SepList1(val) = self { val } else { panic!() }
         }
         fn get_sep_list_opt1(self) -> SynSepListOpt1 {
-            if let SynValue::SepListOpt1(val) = self { val } else { panic!() }
+            if let EnumSynValue::SepListOpt1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1152,7 +1152,7 @@ pub mod pandemonium_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -1390,12 +1390,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_text(ctx, spans);
-            self.stack.push(SynValue::Text(val));
+            self.stack.push(EnumSynValue::Text(val));
         }
 
         fn init_i(&mut self) {
             let val = self.listener.init_i();
-            self.stack.push(SynValue::I(val));
+            self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
@@ -1403,12 +1403,12 @@ pub mod pandemonium_parser {
             let ctx = CtxI::V1 { example };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::I(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
 
         fn exitloop_i(&mut self) {
-            let SynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::I(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_i(acc);
         }
 
@@ -1475,7 +1475,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_example(ctx, spans);
-            self.stack.push(SynValue::Example(val));
+            self.stack.push(EnumSynValue::Example(val));
         }
 
         fn exit_star(&mut self) {
@@ -1486,19 +1486,19 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_star(ctx, spans);
-            self.stack.push(SynValue::Star(val));
+            self.stack.push(EnumSynValue::Star(val));
         }
 
         fn init_star1(&mut self) {
             let val = SynStar1(Vec::new());
-            self.stack.push(SynValue::Star1(val));
+            self.stack.push(EnumSynValue::Star1(val));
         }
 
         fn exit_star1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
-            let Some(SynValue::Star1(SynStar1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Star1(SynStar1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynStar1 item on wrapper stack");
             };
             star_acc.push(num);
@@ -1512,19 +1512,19 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_plus(ctx, spans);
-            self.stack.push(SynValue::Plus(val));
+            self.stack.push(EnumSynValue::Plus(val));
         }
 
         fn init_plus1(&mut self) {
             let val = SynPlus1(Vec::new());
-            self.stack.push(SynValue::Plus1(val));
+            self.stack.push(EnumSynValue::Plus1(val));
         }
 
         fn exit_plus1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let num = self.stack_t.pop().unwrap();
-            let Some(SynValue::Plus1(SynPlus1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Plus1(SynPlus1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynPlus1 item on wrapper stack");
             };
             plus_acc.push(num);
@@ -1537,7 +1537,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_star(ctx, spans);
-            self.stack.push(SynValue::LStar(val));
+            self.stack.push(EnumSynValue::LStar(val));
         }
 
         fn init_l_star_i(&mut self) {
@@ -1546,7 +1546,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.init_l_star_i(ctx, spans);
-            self.stack.push(SynValue::LStarI(val));
+            self.stack.push(EnumSynValue::LStarI(val));
         }
 
         fn exit_l_star_i(&mut self) {
@@ -1554,12 +1554,12 @@ pub mod pandemonium_parser {
             let ctx = CtxLStarI::V1 { num };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LStarI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LStarI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_star_i(acc, ctx, spans);
         }
 
         fn exitloop_l_star_i(&mut self) {
-            let SynValue::LStarI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::LStarI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_l_star_i(acc);
         }
 
@@ -1571,12 +1571,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_plus(ctx, spans);
-            self.stack.push(SynValue::LPlus(val));
+            self.stack.push(EnumSynValue::LPlus(val));
         }
 
         fn init_l_plus_i(&mut self) {
             let val = self.listener.init_l_plus_i();
-            self.stack.push(SynValue::LPlusI(val));
+            self.stack.push(EnumSynValue::LPlusI(val));
         }
 
         fn exit_l_plus_i(&mut self, alt_id: AltId) {
@@ -1585,7 +1585,7 @@ pub mod pandemonium_parser {
             let ctx = CtxLPlusI::V1 { num, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LPlusI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LPlusI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_plus_i(acc, ctx, spans);
         }
 
@@ -1597,7 +1597,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rrec(ctx, spans);
-            self.stack.push(SynValue::Rrec(val));
+            self.stack.push(EnumSynValue::Rrec(val));
         }
 
         fn exit_l_rrec(&mut self) {
@@ -1608,7 +1608,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_rrec(ctx, spans);
-            self.stack.push(SynValue::LRrec(val));
+            self.stack.push(EnumSynValue::LRrec(val));
         }
 
         fn exit_lrec(&mut self) {
@@ -1618,7 +1618,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec(ctx, spans);
-            self.stack.push(SynValue::Lrec(val));
+            self.stack.push(EnumSynValue::Lrec(val));
         }
 
         fn exit_amb(&mut self) {
@@ -1628,7 +1628,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb(ctx, spans);
-            self.stack.push(SynValue::Amb(val));
+            self.stack.push(EnumSynValue::Amb(val));
         }
 
         fn exit_star_a(&mut self) {
@@ -1638,12 +1638,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_star_a(ctx, spans);
-            self.stack.push(SynValue::StarA(val));
+            self.stack.push(EnumSynValue::StarA(val));
         }
 
         fn init_star_a1(&mut self) {
             let val = SynStarA1(Vec::new());
-            self.stack.push(SynValue::StarA1(val));
+            self.stack.push(EnumSynValue::StarA1(val));
         }
 
         fn exit_star_a1(&mut self, alt_id: AltId) {
@@ -1661,7 +1661,7 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::StarA1(SynStarA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::StarA1(SynStarA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynStarA1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -1674,12 +1674,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_plus_a(ctx, spans);
-            self.stack.push(SynValue::PlusA(val));
+            self.stack.push(EnumSynValue::PlusA(val));
         }
 
         fn init_plus_a1(&mut self) {
             let val = SynPlusA1(Vec::new());
-            self.stack.push(SynValue::PlusA1(val));
+            self.stack.push(EnumSynValue::PlusA1(val));
         }
 
         fn exit_plus_a1(&mut self, alt_id: AltId) {
@@ -1697,7 +1697,7 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::PlusA1(SynPlusA1(plus_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::PlusA1(SynPlusA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynPlusA1 item on wrapper stack");
             };
             plus_acc.push(val);
@@ -1710,12 +1710,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_star_a(ctx, spans);
-            self.stack.push(SynValue::LStarA(val));
+            self.stack.push(EnumSynValue::LStarA(val));
         }
 
         fn init_l_star_a_i(&mut self) {
             let val = self.listener.init_l_star_a_i();
-            self.stack.push(SynValue::LStarAI(val));
+            self.stack.push(EnumSynValue::LStarAI(val));
         }
 
         fn exit_l_star_a_i(&mut self, alt_id: AltId) {
@@ -1733,12 +1733,12 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LStarAI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LStarAI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_star_a_i(acc, ctx, spans);
         }
 
         fn exitloop_l_star_a_i(&mut self) {
-            let SynValue::LStarAI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::LStarAI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_l_star_a_i(acc);
         }
 
@@ -1749,12 +1749,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_plus_a(ctx, spans);
-            self.stack.push(SynValue::LPlusA(val));
+            self.stack.push(EnumSynValue::LPlusA(val));
         }
 
         fn init_l_plus_a_i(&mut self) {
             let val = self.listener.init_l_plus_a_i();
-            self.stack.push(SynValue::LPlusAI(val));
+            self.stack.push(EnumSynValue::LPlusAI(val));
         }
 
         fn exit_l_plus_a_i(&mut self, alt_id: AltId) {
@@ -1774,7 +1774,7 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LPlusAI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LPlusAI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_plus_a_i(acc, ctx, spans);
         }
 
@@ -1785,7 +1785,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_sep_list(ctx, spans);
-            self.stack.push(SynValue::SepList(val));
+            self.stack.push(EnumSynValue::SepList(val));
         }
 
         fn init_sep_list1(&mut self) {
@@ -1794,7 +1794,7 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepList1Item { id, num };
-            self.stack.push(SynValue::SepList1(SynSepList1(vec![val])));
+            self.stack.push(EnumSynValue::SepList1(SynSepList1(vec![val])));
         }
 
         fn exit_sep_list1(&mut self) {
@@ -1803,7 +1803,7 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepList1Item { id, num };
-            let Some(SynValue::SepList1(SynSepList1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::SepList1(SynSepList1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynSepList1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -1825,7 +1825,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_sep_list_opt(ctx, spans);
-            self.stack.push(SynValue::SepListOpt(val));
+            self.stack.push(EnumSynValue::SepListOpt(val));
         }
 
         fn init_sep_list_opt1(&mut self) {
@@ -1834,7 +1834,7 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepListOpt1Item { id, num };
-            self.stack.push(SynValue::SepListOpt1(SynSepListOpt1(vec![val])));
+            self.stack.push(EnumSynValue::SepListOpt1(SynSepListOpt1(vec![val])));
         }
 
         fn exit_sep_list_opt1(&mut self) {
@@ -1843,7 +1843,7 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepListOpt1Item { id, num };
-            let Some(SynValue::SepListOpt1(SynSepListOpt1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::SepListOpt1(SynSepListOpt1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynSepListOpt1 item on wrapper stack");
             };
             star_acc.push(val);
@@ -1864,12 +1864,12 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_rrec_i(ctx, spans);
-            self.stack.push(SynValue::RrecI(val));
+            self.stack.push(EnumSynValue::RrecI(val));
         }
 
         fn init_l_rrec_i(&mut self) {
             let val = self.listener.init_l_rrec_i();
-            self.stack.push(SynValue::LRrecI(val));
+            self.stack.push(EnumSynValue::LRrecI(val));
         }
 
         fn exit_l_rrec_i(&mut self, alt_id: AltId) {
@@ -1885,7 +1885,7 @@ pub mod pandemonium_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::LRrecI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::LRrecI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_rrec_i(acc, ctx, spans);
         }
 
@@ -1895,7 +1895,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec_i(ctx, spans);
-            self.stack.push(SynValue::LrecI(val));
+            self.stack.push(EnumSynValue::LrecI(val));
         }
 
         fn exit_lrec_i1(&mut self) {
@@ -1905,11 +1905,11 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_lrec_i(ctx, spans);
-            self.stack.push(SynValue::LrecI(val));
+            self.stack.push(EnumSynValue::LrecI(val));
         }
 
         fn exitloop_lrec_i1(&mut self) {
-            let SynValue::LrecI(lrec_i) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::LrecI(lrec_i) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_lrec_i(lrec_i);
         }
 
@@ -1945,7 +1945,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb_i(ctx, spans);
-            self.stack.push(SynValue::AmbI(val));
+            self.stack.push(EnumSynValue::AmbI(val));
         }
 
         fn exit_amb_i6(&mut self, alt_id: AltId) {
@@ -1971,7 +1971,7 @@ pub mod pandemonium_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb_i(ctx, spans);
-            self.stack.push(SynValue::AmbI(val));
+            self.stack.push(EnumSynValue::AmbI(val));
         }
     }
 

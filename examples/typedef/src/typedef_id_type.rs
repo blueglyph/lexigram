@@ -538,26 +538,26 @@ pub mod typedef_id_type_parser {
     }
 
     #[derive(Debug)]
-    enum SynValue { Program(SynProgram), Stmt(SynStmt), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
+    enum EnumSynValue { Program(SynProgram), Stmt(SynStmt), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 
-    impl SynValue {
+    impl EnumSynValue {
         fn get_program(self) -> SynProgram {
-            if let SynValue::Program(val) = self { val } else { panic!() }
+            if let EnumSynValue::Program(val) = self { val } else { panic!() }
         }
         fn get_stmt(self) -> SynStmt {
-            if let SynValue::Stmt(val) = self { val } else { panic!() }
+            if let EnumSynValue::Stmt(val) = self { val } else { panic!() }
         }
         fn get_decl(self) -> SynDecl {
-            if let SynValue::Decl(val) = self { val } else { panic!() }
+            if let EnumSynValue::Decl(val) = self { val } else { panic!() }
         }
         fn get_id_i(self) -> SynIdI {
-            if let SynValue::IdI(val) = self { val } else { panic!() }
+            if let EnumSynValue::IdI(val) = self { val } else { panic!() }
         }
         fn get_inst(self) -> SynInst {
-            if let SynValue::Inst(val) = self { val } else { panic!() }
+            if let EnumSynValue::Inst(val) = self { val } else { panic!() }
         }
         fn get_expr(self) -> SynExpr {
-            if let SynValue::Expr(val) = self { val } else { panic!() }
+            if let EnumSynValue::Expr(val) = self { val } else { panic!() }
         }
     }
 
@@ -596,7 +596,7 @@ pub mod typedef_id_type_parser {
     pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
-        stack: Vec<SynValue>,
+        stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
@@ -734,7 +734,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_program(ctx, spans);
-            self.stack.push(SynValue::Program(val));
+            self.stack.push(EnumSynValue::Program(val));
         }
 
         fn exit_stmt_i(&mut self) {
@@ -760,7 +760,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_stmt(ctx, spans);
-            self.stack.push(SynValue::Stmt(val));
+            self.stack.push(EnumSynValue::Stmt(val));
         }
 
         fn exit_decl(&mut self, alt_id: AltId) {
@@ -780,7 +780,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_decl(ctx, spans);
-            self.stack.push(SynValue::Decl(val));
+            self.stack.push(EnumSynValue::Decl(val));
         }
 
         fn init_id_i(&mut self) {
@@ -789,7 +789,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.init_id_i(ctx, spans);
-            self.stack.push(SynValue::IdI(val));
+            self.stack.push(EnumSynValue::IdI(val));
         }
 
         fn exit_id_i(&mut self) {
@@ -797,12 +797,12 @@ pub mod typedef_id_type_parser {
             let ctx = CtxIdI::V1 { id };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(SynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
+            let Some(EnumSynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_id_i(acc, ctx, spans);
         }
 
         fn exitloop_id_i(&mut self) {
-            let SynValue::IdI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            let EnumSynValue::IdI(acc) = self.stack.last_mut().unwrap() else { panic!() };
             self.listener.exitloop_id_i(acc);
         }
 
@@ -822,7 +822,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_inst(ctx, spans);
-            self.stack.push(SynValue::Inst(val));
+            self.stack.push(EnumSynValue::Inst(val));
         }
 
         fn exit_expr1(&mut self, alt_id: AltId) {
@@ -842,7 +842,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
 
         fn exit_expr2(&mut self, alt_id: AltId) {
@@ -864,7 +864,7 @@ pub mod typedef_id_type_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_expr(ctx, spans);
-            self.stack.push(SynValue::Expr(val));
+            self.stack.push(EnumSynValue::Expr(val));
         }
     }
 
