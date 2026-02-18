@@ -501,17 +501,6 @@ pub mod terminate_parser {
         V4 { header: String, message: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `log`
-    // #[derive(Debug, PartialEq)] pub struct SynLog();
-    // /// User-defined type for `<L> line` iteration in `log -> ( ►► <L> line ◄◄ )*`
-    // #[derive(Debug, PartialEq)] pub struct SynLogI();
-    // /// User-defined type for `line`
-    // #[derive(Debug, PartialEq)] pub struct SynLine();
-    // /// User-defined type for `message`
-    // #[derive(Debug, PartialEq)] pub struct SynMessage();
-
     #[derive(Debug)]
     enum SynValue { Log(SynLog), LogI(SynLogI), Line(SynLine), Message(SynMessage) }
 

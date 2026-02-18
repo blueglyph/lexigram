@@ -940,58 +940,6 @@ pub mod pandemonium_parser {
         V9 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `text`
-    // #[derive(Debug, PartialEq)] pub struct SynText();
-    // /// User-defined type for `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )*`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `example`
-    // #[derive(Debug, PartialEq)] pub struct SynExample();
-    // /// User-defined type for `star`
-    // #[derive(Debug, PartialEq)] pub struct SynStar();
-    // /// User-defined type for `plus`
-    // #[derive(Debug, PartialEq)] pub struct SynPlus();
-    // /// User-defined type for `l_star`
-    // #[derive(Debug, PartialEq)] pub struct SynLStar();
-    // /// User-defined type for `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynLStarI();
-    // /// User-defined type for `l_plus`
-    // #[derive(Debug, PartialEq)] pub struct SynLPlus();
-    // /// User-defined type for `<L> "," Num` iteration in `l_plus -> Id "=" Num ( ►► <L> "," Num ◄◄ )+ ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynLPlusI();
-    // /// User-defined type for `rrec`
-    // #[derive(Debug, PartialEq)] pub struct SynRrec();
-    // /// User-defined type for `l_rrec`
-    // #[derive(Debug, PartialEq)] pub struct SynLRrec();
-    // /// User-defined type for `lrec`
-    // #[derive(Debug, PartialEq)] pub struct SynLrec();
-    // /// User-defined type for `amb`
-    // #[derive(Debug, PartialEq)] pub struct SynAmb();
-    // /// User-defined type for `star_a`
-    // #[derive(Debug, PartialEq)] pub struct SynStarA();
-    // /// User-defined type for `plus_a`
-    // #[derive(Debug, PartialEq)] pub struct SynPlusA();
-    // /// User-defined type for `l_star_a`
-    // #[derive(Debug, PartialEq)] pub struct SynLStarA();
-    // /// User-defined type for `<L> Id` iteration in `l_star_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)* "]" ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynLStarAI();
-    // /// User-defined type for `l_plus_a`
-    // #[derive(Debug, PartialEq)] pub struct SynLPlusA();
-    // /// User-defined type for `<L> Id` iteration in `l_plus_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)+ "]" ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynLPlusAI();
-    // /// User-defined type for `sep_list`
-    // #[derive(Debug, PartialEq)] pub struct SynSepList();
-    // /// User-defined type for `sep_list_opt`
-    // #[derive(Debug, PartialEq)] pub struct SynSepListOpt();
-    // /// User-defined type for `rrec_i`
-    // #[derive(Debug, PartialEq)] pub struct SynRrecI();
-    // /// User-defined type for `l_rrec_i`
-    // #[derive(Debug, PartialEq)] pub struct SynLRrecI();
-    // /// User-defined type for `lrec_i`
-    // #[derive(Debug, PartialEq)] pub struct SynLrecI();
-    // /// User-defined type for `amb_i`
-    // #[derive(Debug, PartialEq)] pub struct SynAmbI();
     /// Computed `("," Num)*` array in `star -> Id "=" Id  ►► ("," Num)* ◄◄  ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynStar1(pub Vec<String>);

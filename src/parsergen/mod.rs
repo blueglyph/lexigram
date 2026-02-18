@@ -1932,6 +1932,7 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
+        static TYPE_DERIVE: &str = "#[derive(Debug, PartialEq)]";
         static PARSER_LIBS: [&str; 8] = [
             "::VarId", "::parser::Call", "::parser::ListenerWrapper",
             "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan",
@@ -2035,8 +2036,11 @@ impl ParserGen {
         }
 
         // Writes intermediate Syn types
-        src.add_space();
-        src.push("// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):".to_string());
+        let mut src_types = vec![
+            String::new(),
+            format!("// {:-<80}", ""),
+            "// User-defined types:".to_string(),
+        ];
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
         for (v, names) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
@@ -2049,14 +2053,13 @@ impl ParserGen {
                 let (t, var_oid) = self.origin.get(v).unwrap();
                 if is_lform {
                     let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
-                    let user_def_type = vec![
-                        format!("// {astr}"),
-                        format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
-                    ];
-                    src.extend(user_def_type);
+                    src_types.push(String::new());
+                    src_types.push(format!("// {astr}"));
+                    src_types.push(TYPE_DERIVE.to_string());
+                    src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
                     let extra_src = vec![
                         astr,
-                        "#[derive(Debug, PartialEq)]".to_string(),
+                        TYPE_DERIVE.to_string(),
                         format!("pub struct {nt_type}();"),
                     ];
                     self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
@@ -2099,11 +2102,10 @@ impl ParserGen {
                     }
                 }
             } else {
-                let user_def_type = vec![
-                    format!("// /// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
-                    format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
-                ];
-                src.extend(user_def_type);
+                src_types.push(String::new());
+                src_types.push(format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())));
+                src_types.push(TYPE_DERIVE.to_string());
+                src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
                 let extra_src = vec![
                     format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
                     "#[derive(Debug, PartialEq)]".to_string(),
@@ -2154,6 +2156,10 @@ impl ParserGen {
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
         let mut src_skel = vec![
+            String::new(),
+            format!("// {:-<80}", ""),
+            format!("// Template for the user implementation of {}Listener", self.name),
+            String::new(),
             "struct Listener {".to_string(),
             "    log: BufLog,".to_string(),
             "}".to_string(),
@@ -2635,15 +2641,25 @@ impl ParserGen {
             }
         }
 
-        // skeleton
+        // user types and skeleton code
+        src_types.extend(vec![
+            String::new(),
+            format!("// {:-<80}", ""),
+            String::new(),
+        ]);
+        self.log.add_info(format!("User types:\n{}", src_types.join("\n")));
         if let Some(line) = src_skel.last() {
             if line.is_empty() {
                 src_skel.pop();
             }
         }
-        src_skel.push("}".to_string());
-        self.log.add_info("Skeleton implementation of listener:");
-        self.log.extend_messages(src_skel.into_iter().map(LogMsg::Info));
+        src_skel.extend(vec![
+            "}".to_string(),
+            String::new(),
+            format!("// {:-<80}", ""),
+            String::new(),
+        ]);
+        self.log.add_info(format!("Skeleton implementation of listener:\n{}", src_skel.join("\n")));
 
         // Writes the listener trait declaration
         src.add_space();

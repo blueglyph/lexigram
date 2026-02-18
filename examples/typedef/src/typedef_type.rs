@@ -532,19 +532,6 @@ pub mod typedef_type_parser {
         V5 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `program`
-    // #[derive(Debug, PartialEq)] pub struct SynProgram();
-    // /// User-defined type for `decl`
-    // #[derive(Debug, PartialEq)] pub struct SynDecl();
-    // /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynIdI();
-    // /// User-defined type for `inst`
-    // #[derive(Debug, PartialEq)] pub struct SynInst();
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
-
     #[derive(Debug)]
     enum SynValue { Program(SynProgram), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 

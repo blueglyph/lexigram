@@ -188,44 +188,6 @@ pub enum CtxCharSetOne {
     V3 { fixedset: String },
 }
 
-// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-// /// User-defined type for `file`
-// #[derive(Debug, PartialEq)] pub struct SynFile();
-// /// User-defined type for `file_item`
-// #[derive(Debug, PartialEq)] pub struct SynFileItem();
-// /// User-defined type for `header`
-// #[derive(Debug, PartialEq)] pub struct SynHeader();
-// /// User-defined type for `declaration`
-// #[derive(Debug, PartialEq)] pub struct SynDeclaration();
-// /// User-defined type for `option`
-// #[derive(Debug, PartialEq)] pub struct SynOption();
-// /// User-defined type for `rule`
-// #[derive(Debug, PartialEq)] pub struct SynRule();
-// /// User-defined type for `opt_str_lit`
-// #[derive(Debug, PartialEq)] pub struct SynOptStrLit();
-// /// User-defined type for `rule_fragment_name`
-// #[derive(Debug, PartialEq)] pub struct SynRuleFragmentName();
-// /// User-defined type for `rule_terminal_name`
-// #[derive(Debug, PartialEq)] pub struct SynRuleTerminalName();
-// /// User-defined type for `actions`
-// #[derive(Debug, PartialEq)] pub struct SynActions();
-// /// User-defined type for `action`
-// #[derive(Debug, PartialEq)] pub struct SynAction();
-// /// User-defined type for `match`
-// #[derive(Debug, PartialEq)] pub struct SynMatch();
-// /// User-defined type for `alt_items`
-// #[derive(Debug, PartialEq)] pub struct SynAltItems();
-// /// User-defined type for `alt_item`
-// #[derive(Debug, PartialEq)] pub struct SynAltItem();
-// /// User-defined type for `repeat_item`
-// #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
-// /// User-defined type for `item`
-// #[derive(Debug, PartialEq)] pub struct SynItem();
-// /// User-defined type for `char_set`
-// #[derive(Debug, PartialEq)] pub struct SynCharSet();
-// /// User-defined type for `char_set_one`
-// #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
 /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynFile1(pub Vec<SynFileItem>);

@@ -858,30 +858,6 @@ pub mod rtsgen_parser {
         V10,
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `file`
-    // #[derive(Debug, PartialEq)] pub struct SynFile();
-    // /// User-defined type for `decls`
-    // #[derive(Debug, PartialEq)] pub struct SynDecls();
-    // /// User-defined type for `decl`
-    // #[derive(Debug, PartialEq)] pub struct SynDecl();
-    // /// User-defined type for `decl_terminal`
-    // #[derive(Debug, PartialEq)] pub struct SynDeclTerminal();
-    // /// User-defined type for `ruleset`
-    // #[derive(Debug, PartialEq)] pub struct SynRuleset();
-    // /// User-defined type for `rule`
-    // #[derive(Debug, PartialEq)] pub struct SynRule();
-    // /// User-defined type for `rule_nt`
-    // #[derive(Debug, PartialEq)] pub struct SynRuleNt();
-    // /// User-defined type for `rts_expr`
-    // #[derive(Debug, PartialEq)] pub struct SynRtsExpr();
-    // /// User-defined type for `rts_children`
-    // #[derive(Debug, PartialEq)] pub struct SynRtsChildren();
-    // /// User-defined type for `prs_expr`
-    // #[derive(Debug, PartialEq)] pub struct SynPrsExpr();
-    // /// User-defined type for `item`
-    // #[derive(Debug, PartialEq)] pub struct SynItem();
     /// Computed `("," decl_terminal)*` array in `decl -> "token" decl_terminal  ►► ("," decl_terminal)* ◄◄  ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynDecl1(pub Vec<SynDeclTerminal>);

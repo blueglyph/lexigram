@@ -649,8 +649,6 @@ pub mod pandemonium_parser {
         V9 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
     /// Computed `("," Num)*` array in `star -> Id "=" Id  ►► ("," Num)* ◄◄  ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynStar1(pub Vec<String>);

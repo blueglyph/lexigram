@@ -33,13 +33,6 @@ pub(crate) mod rules_13_1 {
         V2 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `s`
-    // #[derive(Debug, PartialEq)] pub struct SynS();
-    // /// User-defined type for `val`
-    // #[derive(Debug, PartialEq)] pub struct SynVal();
-
     #[derive(Debug)]
     enum SynValue { S(SynS), Val(SynVal) }
 
@@ -250,15 +243,6 @@ pub(crate) mod rules_14_1 {
         /// `c -> Id`
         V1 { id: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
-    // /// User-defined type for `c`
-    // #[derive(Debug, PartialEq)] pub struct SynC();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), C(SynC) }
@@ -472,13 +456,6 @@ pub(crate) mod rules_14_2 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB) }
 
@@ -684,13 +661,6 @@ pub(crate) mod rules_14_3 {
         /// `c -> Id`
         V1 { id: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `c`
-    // #[derive(Debug, PartialEq)] pub struct SynC();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), C(SynC) }
@@ -900,11 +870,6 @@ pub(crate) mod rules_14_4 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -1098,10 +1063,6 @@ pub(crate) mod rules_102_1 {
         V1 { a: String, star: SynA1, c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `B*` array in `a -> A  ►► B* ◄◄  C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -1290,10 +1251,6 @@ pub(crate) mod rules_103_1 {
         V1 { a: String, plus: SynA1, c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `B+` array in `a -> A  ►► B+ ◄◄  C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -1489,12 +1446,6 @@ pub(crate) mod rules_104_1 {
         V1 { c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(b A b B A)*` array in `a ->  ►► (b A b B A)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -1710,12 +1661,6 @@ pub(crate) mod rules_105_1 {
         V1 { c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(b A b B A)+` array in `a ->  ►► (b A b B A)+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -1933,12 +1878,6 @@ pub(crate) mod rules_106_1 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(b ",")*` array in `a -> (A  ►► (b ",")* ◄◄  ";")* C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynB>);
@@ -2176,10 +2115,6 @@ pub(crate) mod rules_106_2 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `(A (b ",")* ";")*` array in `a ->  ►► (A (b ",")* ";")* ◄◄  C`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<String>);
@@ -2383,11 +2318,6 @@ pub(crate) mod rules_108_1 {
         V1 { a: String, c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -2559,12 +2489,6 @@ pub(crate) mod rules_109_1 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `type`
-    // #[derive(Debug, PartialEq)] pub struct SynType();
     /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -2781,12 +2705,6 @@ pub(crate) mod rules_110_1 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `type`
-    // #[derive(Debug, PartialEq)] pub struct SynType();
     /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")" | Id "(" ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -3008,10 +2926,6 @@ pub(crate) mod rules_150_1 {
         V1 { star: SynA1 },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `(A | B)*` array in `a ->  ►► (A | B)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -3222,12 +3136,6 @@ pub(crate) mod rules_152_1 {
         V1 { d: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(B | b C b B C | E)*` array in `a -> A  ►► (B | b C b B C | E)* ◄◄  F`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -3499,12 +3407,6 @@ pub(crate) mod rules_153_1 {
         V1 { d: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(B | b C b B C | E)+` array in `a -> A  ►► (B | b C b B C | E)+ ◄◄  F`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -3749,13 +3651,6 @@ pub(crate) mod rules_200_1 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI) }
 
@@ -3953,11 +3848,6 @@ pub(crate) mod rules_200_2 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -4139,13 +4029,6 @@ pub(crate) mod rules_201_1 {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
         V1 { b: String, last_iteration: bool },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynMyA();
-    // /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-    // #[derive(Debug, PartialEq)] pub struct SynMyI();
 
     #[derive(Debug)]
     enum SynValue { A(SynMyA), I(SynMyI) }
@@ -4340,11 +4223,6 @@ pub(crate) mod rules_201_2 {
         V1 { b: String, last_iteration: bool },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynMyA();
-
     #[derive(Debug)]
     enum SynValue { A(SynMyA) }
 
@@ -4530,10 +4408,6 @@ pub(crate) mod rules_201_3 {
         V1 { b: String, last_iteration: bool },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-    // #[derive(Debug, PartialEq)] pub struct SynMyI();
     /// Top non-terminal A (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynA();
@@ -4732,15 +4606,6 @@ pub(crate) mod rules_202_1 {
         /// `b -> C`
         V1 { c: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> b A b B A` iteration in `a -> ( ►► <L> b A b B A ◄◄ )*`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), B(SynB) }
@@ -4957,12 +4822,6 @@ pub(crate) mod rules_206_1 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> B ","` iteration in `a -> (A ( ►► <L> B "," ◄◄ )* ";")* C`
-    // #[derive(Debug, PartialEq)] pub struct SynAiter();
     /// Computed `(A (<L> B ",")* ";")*` array in `a ->  ►► (A (<L> B ",")* ";")* ◄◄  C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -5198,17 +5057,6 @@ pub(crate) mod rules_208_1 {
         /// `b -> B`
         V1 { b: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`
-    // #[derive(Debug, PartialEq)] pub struct SynJ();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
@@ -5462,13 +5310,6 @@ pub(crate) mod rules_208_2 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI) }
 
@@ -5701,11 +5542,6 @@ pub(crate) mod rules_208_3 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -5924,8 +5760,6 @@ pub(crate) mod rules_208_4 {
         V1 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
     /// Top non-terminal A (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynA();
@@ -6129,11 +5963,6 @@ pub(crate) mod rules_210_1 {
         V1,
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -6316,13 +6145,6 @@ pub(crate) mod rules_211_1 {
         /// `B <L>` iteration in `a -> A A ( ►► B <L> ◄◄ )* C | A C ( ►► B <L> ◄◄ )* C`
         V1 { b: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `B <L>` iteration in `a -> A A ( ►► B <L> ◄◄ )* C | A C ( ►► B <L> ◄◄ )* C`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI) }
@@ -6547,15 +6369,6 @@ pub(crate) mod rules_212_1 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> "<" ">" Id ":" type` iteration in `a -> Id "(" Id ":" type ( ►► <L> "<" ">" Id ":" type ◄◄ )* ")"`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `type`
-    // #[derive(Debug, PartialEq)] pub struct SynType();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), Type(SynType) }
 
@@ -6774,13 +6587,6 @@ pub(crate) mod rules_250_1 {
         V2 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI) }
 
@@ -6987,13 +6793,6 @@ pub(crate) mod rules_251_1 {
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
         V2 { b: String, last_iteration: bool },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI) }
@@ -7206,14 +7005,6 @@ pub(crate) mod rules_252_1 {
         V1 { h: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `D` iteration in `a -> A ((<L> b C b B C |  ►► D ◄◄ )+ E | F)+ G`
-    // #[derive(Debug, PartialEq)] pub struct SynJ();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `((<L> b C b B C | D)+ E | F)+` array in `a -> A  ►► ((<L> b C b B C | D)+ E | F)+ ◄◄  G`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -7494,14 +7285,6 @@ pub(crate) mod rules_253_1 {
         V1 { h: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `F` iteration in `a -> A (<L> (b C b B C | D)+ E |  ►► F ◄◄ )+ G`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `(b C b B C | D)+` array in `a -> A (<L>  ►► (b C b B C | D)+ ◄◄  E | F)+ G`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
@@ -7789,17 +7572,6 @@ pub(crate) mod rules_254_1 {
         V1 { h: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> (<L> b C b B C | D)* E` iteration in `a -> A ( ►► <L> (<L> b C b B C | D)* E ◄◄  | F)* G`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `<L> b C b B C` iteration in `a -> A (<L> ( ►► <L> b C b B C ◄◄  | D)* E | F)* G`
-    // #[derive(Debug, PartialEq)] pub struct SynJ();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), J(SynJ), B(SynB) }
 
@@ -8076,15 +7848,6 @@ pub(crate) mod rules_256_1 {
         V1 { f: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C b | D)+ E`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `b`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), B(SynB) }
 
@@ -8333,15 +8096,6 @@ pub(crate) mod rules_258_1 {
         /// `G` iteration in `a -> (<L> A | A B | C | D (<L> E | E F |  ►► G ◄◄ )*)*`
         V3 { g: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `i -> <alt 1 NOT FOUND>`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `j -> <alt 5 NOT FOUND>`
-    // #[derive(Debug, PartialEq)] pub struct SynJ();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), J(SynJ) }
@@ -8623,15 +8377,6 @@ pub(crate) mod rules_259_1 {
         V3 { g: String, last_iteration: bool },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | A B | C | D (<L> E | E F | G)+)+`
-    // #[derive(Debug, PartialEq)] pub struct SynI();
-    // /// User-defined type for `<L> E` iteration in `a -> (<L> A | A B | C | D ( ►► <L> E ◄◄  | E F | G)+)+`
-    // #[derive(Debug, PartialEq)] pub struct SynJ();
-
     #[derive(Debug)]
     enum SynValue { A(SynA), I(SynI), J(SynJ) }
 
@@ -8897,11 +8642,6 @@ pub(crate) mod rules_301_1 {
         V2 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
-
     #[derive(Debug)]
     enum SynValue { Expr(SynExpr) }
 
@@ -9075,8 +8815,6 @@ pub(crate) mod rules_301_2 {
         V2 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
     /// Top non-terminal Expr (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynExpr();
@@ -9243,11 +8981,6 @@ pub(crate) mod rules_401_1 {
         /// `expr -> "(" Num ")"`
         V2 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
 
     #[derive(Debug)]
     enum SynValue { Expr(SynExpr) }
@@ -9428,8 +9161,6 @@ pub(crate) mod rules_401_2 {
         V2 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
     /// Top non-terminal Expr (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynExpr();
@@ -9603,13 +9334,6 @@ pub(crate) mod rules_502_1 {
         /// `f -> Id`
         V1 { id: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-    // /// User-defined type for `f`
-    // #[derive(Debug, PartialEq)] pub struct SynF();
 
     #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
@@ -9812,10 +9536,6 @@ pub(crate) mod rules_502_2 {
         V1 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `f`
-    // #[derive(Debug, PartialEq)] pub struct SynF();
     /// Top non-terminal E (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynE();
@@ -10007,11 +9727,6 @@ pub(crate) mod rules_580_1 {
         V3 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -10202,11 +9917,6 @@ pub(crate) mod rules_600_1 {
         /// `e -> Num`
         V2 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -10417,11 +10127,6 @@ pub(crate) mod rules_603_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -10715,11 +10420,6 @@ pub(crate) mod rules_604_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -11010,11 +10710,6 @@ pub(crate) mod rules_605_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -11307,11 +11002,6 @@ pub(crate) mod rules_606_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -11598,11 +11288,6 @@ pub(crate) mod rules_607_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -11891,11 +11576,6 @@ pub(crate) mod rules_608_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -12188,11 +11868,6 @@ pub(crate) mod rules_609_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -12478,11 +12153,6 @@ pub(crate) mod rules_610_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -12770,11 +12440,6 @@ pub(crate) mod rules_611_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -13065,11 +12730,6 @@ pub(crate) mod rules_612_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -13362,11 +13022,6 @@ pub(crate) mod rules_613_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -13653,11 +13308,6 @@ pub(crate) mod rules_614_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -13947,11 +13597,6 @@ pub(crate) mod rules_630_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -14238,11 +13883,6 @@ pub(crate) mod rules_631_1 {
         /// `e -> Num`
         V4 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -14531,11 +14171,6 @@ pub(crate) mod rules_632_1 {
         V4 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -14810,11 +14445,6 @@ pub(crate) mod rules_640_1 {
         V6 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -15040,11 +14670,6 @@ pub(crate) mod rules_641_1 {
         /// `e -> Id`
         V6 { id: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
     enum SynValue { E(SynE) }
@@ -15272,11 +14897,6 @@ pub(crate) mod rules_642_1 {
         V6 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `e`
-    // #[derive(Debug, PartialEq)] pub struct SynE();
-
     #[derive(Debug)]
     enum SynValue { E(SynE) }
 
@@ -15489,11 +15109,6 @@ pub(crate) mod rules_650_1 {
         V2 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
     #[derive(Debug)]
     enum SynValue { A(SynA) }
 
@@ -15676,11 +15291,6 @@ pub(crate) mod rules_705_1 {
         /// `a -> E`
         V5 { e: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -15876,10 +15486,6 @@ pub(crate) mod rules_810_1 {
         V2 { c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `A*` array in `a ->  ►► A* ◄◄  B a | C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -16080,10 +15686,6 @@ pub(crate) mod rules_811_1 {
         V2 { c: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `A+` array in `a ->  ►► A+ ◄◄  B a | C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -16286,10 +15888,6 @@ pub(crate) mod rules_820_1 {
         V2 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `A*` array in `a -> a  ►► A* ◄◄  C | B`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -16499,10 +16097,6 @@ pub(crate) mod rules_821_1 {
         V2 { b: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `A+` array in `a -> a  ►► A+ ◄◄  C | B`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -16718,10 +16312,6 @@ pub(crate) mod rules_835_1 {
         V4 { id: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
     /// Computed `Num+` array in `a -> a "x" a | a "*" "["  ►► Num+ ◄◄  "]" | "-" a | Id`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
@@ -16946,11 +16536,6 @@ pub(crate) mod rules_862_1 {
         V2 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
-
     #[derive(Debug)]
     enum SynValue { Expr(SynExpr) }
 
@@ -17133,11 +16718,6 @@ pub(crate) mod rules_870_1 {
         /// `a -> B D`
         V3 { b: String, d: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -17334,11 +16914,6 @@ pub(crate) mod rules_871_1 {
         /// `a -> D`
         V3 { d: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `a`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -17656,38 +17231,6 @@ pub(crate) mod rules_901_1 {
         V3 { fixedset: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `file`
-    // #[derive(Debug, PartialEq)] pub struct SynFile();
-    // /// User-defined type for `file_item`
-    // #[derive(Debug, PartialEq)] pub struct SynFileItem();
-    // /// User-defined type for `header`
-    // #[derive(Debug, PartialEq)] pub struct SynHeader();
-    // /// User-defined type for `declaration`
-    // #[derive(Debug, PartialEq)] pub struct SynDeclaration();
-    // /// User-defined type for `option`
-    // #[derive(Debug, PartialEq)] pub struct SynOption();
-    // /// User-defined type for `rule`
-    // #[derive(Debug, PartialEq)] pub struct SynRule();
-    // /// User-defined type for `actions`
-    // #[derive(Debug, PartialEq)] pub struct SynActions();
-    // /// User-defined type for `action`
-    // #[derive(Debug, PartialEq)] pub struct SynAction();
-    // /// User-defined type for `match`
-    // #[derive(Debug, PartialEq)] pub struct SynMatch();
-    // /// User-defined type for `alt_items`
-    // #[derive(Debug, PartialEq)] pub struct SynAltItems();
-    // /// User-defined type for `alt_item`
-    // #[derive(Debug, PartialEq)] pub struct SynAltItem();
-    // /// User-defined type for `repeat_item`
-    // #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
-    // /// User-defined type for `item`
-    // #[derive(Debug, PartialEq)] pub struct SynItem();
-    // /// User-defined type for `char_set`
-    // #[derive(Debug, PartialEq)] pub struct SynCharSet();
-    // /// User-defined type for `char_set_one`
-    // #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
     /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynFile1(pub Vec<SynFileItem>);
@@ -18457,23 +18000,6 @@ pub(crate) mod rules_902_1 {
         V5 { num: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `program`
-    // #[derive(Debug, PartialEq)] pub struct SynProgram();
-    // /// User-defined type for `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
-    // #[derive(Debug, PartialEq)] pub struct SynDeclI();
-    // /// User-defined type for `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
-    // #[derive(Debug, PartialEq)] pub struct SynInstI();
-    // /// User-defined type for `decl`
-    // #[derive(Debug, PartialEq)] pub struct SynDecl();
-    // /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
-    // #[derive(Debug, PartialEq)] pub struct SynIdI();
-    // /// User-defined type for `inst`
-    // #[derive(Debug, PartialEq)] pub struct SynInst();
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
-
     #[derive(Debug)]
     enum SynValue { Program(SynProgram), DeclI(SynDeclI), InstI(SynInstI), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 
@@ -18879,8 +18405,6 @@ pub(crate) mod rules_902_2 {
         /// `expr -> Num`
         V5 { num: String },
     }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
     /// Top non-terminal Program (has no value)
     #[derive(Debug, PartialEq)]

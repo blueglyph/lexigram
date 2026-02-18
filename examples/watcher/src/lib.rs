@@ -657,8 +657,6 @@ pub mod watcher_parser {
         V5 { header: String, message: String },
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
     /// Top non-terminal Log (has no value)
     #[derive(Debug, PartialEq)]
     pub struct SynLog();

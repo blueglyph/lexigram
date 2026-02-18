@@ -477,22 +477,6 @@ pub mod microcalc_parser {
         V2,
     }
 
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `program`
-    // #[derive(Debug, PartialEq)] pub struct SynProgram();
-    // /// User-defined type for `function`
-    // #[derive(Debug, PartialEq)] pub struct SynFunction();
-    // /// User-defined type for `fun_params`
-    // #[derive(Debug, PartialEq)] pub struct SynFunParams();
-    // /// User-defined type for `block`
-    // #[derive(Debug, PartialEq)] pub struct SynBlock();
-    // /// User-defined type for `instruction`
-    // #[derive(Debug, PartialEq)] pub struct SynInstruction();
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)] pub struct SynExpr();
-    // /// User-defined type for `fun_args`
-    // #[derive(Debug, PartialEq)] pub struct SynFunArgs();
     /// Computed `function+` array in `program ->  ►► function+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynProgram1(pub Vec<SynFunction>);

@@ -253,15 +253,6 @@ pub enum CtxExpr {
     V10 { num: String },
 }
 
-// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-// /// User-defined type for `program`
-// #[derive(Debug, PartialEq)] pub struct SynProgram();
-// /// User-defined type for `instruction`
-// #[derive(Debug, PartialEq)] pub struct SynInstruction();
-// /// User-defined type for `expr`
-// #[derive(Debug, PartialEq)] pub struct SynExpr();
-
 #[derive(Debug)]
 enum SynValue { Program(SynProgram), Instruction(SynInstruction), Expr(SynExpr) }
 

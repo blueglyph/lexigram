@@ -101,26 +101,6 @@ pub enum CtxProdAtom {
     V6 { prod: SynProd },
 }
 
-// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-// /// User-defined type for `file`
-// #[derive(Debug, PartialEq)] pub struct SynFile();
-// /// User-defined type for `header`
-// #[derive(Debug, PartialEq)] pub struct SynHeader();
-// /// User-defined type for `rules`
-// #[derive(Debug, PartialEq)] pub struct SynRules();
-// /// User-defined type for `rule`
-// #[derive(Debug, PartialEq)] pub struct SynRule();
-// /// User-defined type for `rule_name`
-// #[derive(Debug, PartialEq)] pub struct SynRuleName();
-// /// User-defined type for `prod`
-// #[derive(Debug, PartialEq)] pub struct SynProd();
-// /// User-defined type for `prod_term`
-// #[derive(Debug, PartialEq)] pub struct SynProdTerm();
-// /// User-defined type for `prod_factor`
-// #[derive(Debug, PartialEq)] pub struct SynProdFactor();
-// /// User-defined type for `prod_atom`
-// #[derive(Debug, PartialEq)] pub struct SynProdAtom();
 /// Computed `prod_factor*` array in `prod_term ->  ►► prod_factor* ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynProdTerm1(pub Vec<SynProdFactor>);
