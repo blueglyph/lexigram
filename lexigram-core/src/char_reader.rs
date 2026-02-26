@@ -64,7 +64,7 @@ pub fn utf8_len(byte: u8) -> usize {
 
 #[inline]
 /// Determines the number of bytes required to encode a UTF-8 character from its first byte.
-pub fn utf8_len_notable(byte: u8) -> usize {
+pub fn utf8_len_no_table(byte: u8) -> usize {
     match byte {
         0x00..=0x7f => 1,
         0xc2..=0xdf => 2,
@@ -256,7 +256,7 @@ mod char_reader {
     #[test]
     fn utf8_length() {
         for i in 0_u8..128 {
-            assert_eq!(utf8_len(i), utf8_len_notable(i), "length of {i} (0x{i:x}) differs");
+            assert_eq!(utf8_len(i), utf8_len_no_table(i), "length of {i} (0x{i:x}) differs");
         }
     }
 
