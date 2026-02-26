@@ -14,7 +14,6 @@ use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, To
 use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Pos, PosSpan, Terminal};
 use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
-use crate::action;
 use crate::lexi::lexiparser::*;
 use crate::lexi::lexiparser::lexiparser_types::*;
 
@@ -43,6 +42,18 @@ pub struct LexAction {
     pub mode: ModeOption,
     pub pop: bool,
     pub hook: bool,
+}
+
+macro_rules! action {
+    (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+    (more) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+    (skip) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
+    (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false, hook: false } };
+    (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false, hook: false } };
+    (pop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true , hook: false } };
+    (hook) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: true  } };
+    (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false, hook: false } };
+    (nop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
 }
 
 impl LexAction {
@@ -1117,20 +1128,5 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
             b'w' => Ok(segments!('0'-'9', '_', 'A'-'Z', 'a'-'z')),
             _ => Err(format!("unknown shorthand code '{fixedset}'")), // shouldn't happen
         }
-    }
-}
-
-pub mod macros {
-    #[macro_export]
-    macro_rules! action {
-        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (more) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (skip) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
-        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false, hook: false } };
-        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false, hook: false } };
-        (pop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true , hook: false } };
-        (hook) =>            { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: true  } };
-        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false, hook: false } };
-        (nop) =>             { $crate::lexi::listener::LexAction { option: $crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false, hook: false } };
     }
 }
