@@ -20,7 +20,20 @@ pub type VarId = u16;
 /// ID of a rule alternative. We use the same type as [VarId] because they're very similar quantities.
 pub type AltId = VarId;
 
+/// This trait provides a shortcut for two commonly used iterator adapters.
+///
+/// * [join(...)](CollectJoin::join): joins [ToString] items into a `Vec::<String>` by inserting a separator between them.
+/// * [to_vec(...)](CollectJoin::to_vec): equivalent to `.collect::<Vec<_>>()`
 pub trait CollectJoin {
+    /// Iterator adapter that joins [ToString] items into a `Vec::<String>` by inserting `separator` between them.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use lexigram_core::CollectJoin;
+    /// let numbers = (0..10).filter(|&x| x < 5).join(", ");
+    /// assert_eq!(numbers, "0, 1, 2, 3, 4");
+    /// ```
     fn join(&mut self, separator: &str) -> String
         where Self: Iterator,
               <Self as Iterator>::Item: ToString
@@ -28,6 +41,15 @@ pub trait CollectJoin {
         self.map(|x| x.to_string()).collect::<Vec<_>>().join(separator)
     }
 
+    /// Iterator adapter that joins items into a `Vec<_>`; equivalent to `.collect::<Vec<_>>()`
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use lexigram_core::CollectJoin;
+    /// let values = [1, 5, 10, 25, 50].into_iter().map(|x| x * x).to_vec();
+    /// assert_eq!(values, vec![1, 25, 100, 625, 2500]);
+    /// ```
     fn to_vec(self) -> Vec<<Self as Iterator>::Item>
         where Self: Iterator + Sized
     {
