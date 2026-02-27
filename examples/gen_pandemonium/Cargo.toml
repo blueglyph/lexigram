@@ -2,7 +2,12 @@
 name = "gen_pandemonium"
 version = "0.1.0"
 edition = "2024"
+authors.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
-lexigram-lib = { path = "../..", version = "0.9.0" }
 lexi-gram = { path = "../../lexi-gram", version = "0.9.0" }

@@ -2,8 +2,7 @@
 name = "watcher"
 version = "0.1.0"
 description = "example of watcher with low latency and infinite input"
-edition.workspace = true
-rust-version.workspace = true
+edition = "2024"
 authors.workspace = true
 categories.workspace = true
 keywords.workspace = true

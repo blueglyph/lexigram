@@ -24,11 +24,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen_config"
+version = "0.1.0"
+dependencies = [
+ "lexi-gram",
+]
+
+[[package]]
 name = "gen_microcalc"
 version = "0.1.0"
 dependencies = [
  "lexi-gram",
- "lexigram-lib",
 ]
 
 [[package]]
@@ -36,7 +42,6 @@ name = "gen_pandemonium"
 version = "0.1.0"
 dependencies = [
  "lexi-gram",
- "lexigram-lib",
 ]
 
 [[package]]
@@ -44,7 +49,6 @@ name = "gen_terminate"
 version = "0.1.0"
 dependencies = [
  "lexi-gram",
- "lexigram-lib",
 ]
 
 [[package]]
@@ -52,7 +56,6 @@ name = "gen_typedef"
 version = "0.1.0"
 dependencies = [
  "lexi-gram",
- "lexigram-lib",
 ]
 
 [[package]]
@@ -60,7 +63,6 @@ name = "gen_watcher"
 version = "0.1.0"
 dependencies = [
  "lexi-gram",
- "lexigram-lib",
 ]
 
 [[package]]

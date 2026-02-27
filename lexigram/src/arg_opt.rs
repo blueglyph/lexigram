@@ -65,7 +65,8 @@ Main options. Please note:
 Secondary lexer / parser / template options. Those options can be set before -l/--lexer and -p/--parser
 if they apply to both, or after either of them if they only apply to the lexer or the parser:
 
-  --header <string>         Adds a header in front of the generated code.
+  --header <string>         Adds a header in front of the generated code. This option can
+                            be used multiple times if several headers are required.
                             There are no headers in the templates, so this options will be
                             ignored after types and listener.
 

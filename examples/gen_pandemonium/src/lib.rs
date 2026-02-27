@@ -5,6 +5,8 @@
 
 #![cfg(test)]
 
+use lexi_gram::lexigram_lib;
+
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
 use lexi_gram::options::{Action, OptionsBuilder};
