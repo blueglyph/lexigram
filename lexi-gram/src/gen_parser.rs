@@ -21,7 +21,11 @@ use crate::options::{Action, Options};
 
 // ---------------------------------------------------------------------------------------------
 
-/// Generates the source code for the lexer, the parser, and the wrapper / listener.
+/// Generates the source code for the lexer, the parser, and the wrapper / listener. The latter is
+/// an [Option] and includes three parts (3 formatted strings):
+/// * the indented source of the wrapper
+/// * the indented source of the template for the user types
+/// * the indented source of the template for the listener implementation
 ///
 /// Notes:
 /// * `options.lexer_spec` and `options.parser_spec`, which specify how to get the lexicon and the grammar, aren't used
@@ -29,7 +33,9 @@ use crate::options::{Action, Options};
 /// * `options.lexer_code` and `options.parser_code`, which specify where to store the generated code, aren't used either,
 ///   since it's returned by the function as a string for the lexer and an optional string for the parser (if it must be generated).
 /// * if the lexicon and the grammar are combined in `lexicon`, the `grammar_opt` parameter must be `None`.
-pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options) -> Result<(String, Option<String>, BufLog), BuildError> {
+pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options: &Options)
+    -> Result<(String, Option<(String, String, String)>, BufLog), BuildError>
+{
     // 1. Lexer
 
     let lexicon_stream = CharReader::new(Cursor::new(&lexicon));
@@ -58,7 +64,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
     // 2. Parser
 
-    let parser_source = if grammar_opt.is_some() || is_combined {
+    let parser_sources = if grammar_opt.is_some() || is_combined {
         let grammar_stream = if let Some(grammar) = grammar_opt {
             CharReader::new(Cursor::new(grammar))
         } else if let Some(pos_grammar) = pos_grammar_opt {
@@ -95,13 +101,15 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         builder.set_gen_token_enums(options.gen_token_enums);
         builder.set_crate(options.lib_crate.clone());
         builder.set_indent(options.parser_indent);
-        let (parser_log, parser_src) = builder.try_gen_source_code()?;
+        builder.set_types_indent(options.types_indent);
+        builder.set_listener_indent(options.listener_indent);
+        let (parser_log, parser_src, types_src, listener_src) = builder.try_gen_source_code()?;
         log.extend(parser_log);
-        Some(parser_src)
+        Some((parser_src, types_src, listener_src))
     } else {
         None
     };
-    Ok((lexer_source, parser_source, log))
+    Ok((lexer_source, parser_sources, log))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -184,8 +192,8 @@ pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenPar
             if let Some(expected_parser) = options.parser_code.read()
                 .map_err(|e| GenParserError::Source(e, format!("error while reading the expected parser code ({})", options.parser_code.get_type())))?
             {
-                if let Some(parser_source) = parser_source_opt {
-                    match file_utils::simple_diff(&parser_source, &expected_parser) {
+                if let Some((parser_source, ..)) = &parser_source_opt {
+                    match file_utils::simple_diff(parser_source, &expected_parser) {
                         DiffResult::Equal => {}
                         DiffResult::Mismatch { line_num, line1, line2 } => {
                             return Err(GenParserError::Mismatch(
@@ -196,14 +204,60 @@ pub fn try_gen_parser(action: Action, options: Options) -> Result<BufLog, GenPar
                     return Err(GenParserError::InvalidParameter("parser source code verification required but no grammar was provided".to_string()));
                 }
             }
+            if let Some(expected_parser) = options.types_code.read()
+                .map_err(|e| GenParserError::Source(
+                    e,
+                    format!("error while reading the expected template code for user types ({})", options.types_code.get_type())))?
+            {
+                if let Some((_parser_source, types_source, _listener_source)) = &parser_source_opt {
+                    match file_utils::simple_diff(types_source, &expected_parser) {
+                        DiffResult::Equal => {}
+                        DiffResult::Mismatch { line_num, line1, line2 } => {
+                            return Err(GenParserError::Mismatch(
+                                format!("template for user types differ, line {line_num}:\ngenerated: '{line1}'\nreference: '{line2}'")))
+                        }
+                    }
+                } else {
+                    return Err(GenParserError::InvalidParameter(
+                        "verification required for the template of the user types but no grammar was provided".to_string()));
+                }
+            }
+            if let Some(expected_parser) = options.listener_code.read()
+                .map_err(|e| GenParserError::Source(
+                    e,
+                    format!("error while reading the expected template code of the listener implementation ({})", options.listener_code.get_type())))?
+            {
+                if let Some((_parser_source, _types_source, listener_source)) = &parser_source_opt {
+                    match file_utils::simple_diff(listener_source, &expected_parser) {
+                        DiffResult::Equal => {}
+                        DiffResult::Mismatch { line_num, line1, line2 } => {
+                            return Err(GenParserError::Mismatch(
+                                format!("template for user types differ, line {line_num}:\ngenerated: '{line1}'\nreference: '{line2}'")))
+                        }
+                    }
+                } else {
+                    return Err(GenParserError::InvalidParameter(
+                        "verification required for the template code of the listener implementation but no grammar was provided".to_string()));
+                }
+            }
             Ok(log)
         }
         Action::Generate => {
             options.lexer_code.write(&lexer_source)
                 .map_err(|e| GenParserError::Source(e, format!("error while writing the lexer code ({})", options.lexer_code.get_type())))?;
-            if let Some(parser_source) = parser_source_opt {
+            if let Some((parser_source, types_source, listener_source)) = parser_source_opt {
                 options.parser_code.write(&parser_source)
-                    .map_err(|e| GenParserError::Source(e, format!("error while writing the parser code ({})", options.parser_code.get_type())))?;
+                    .map_err(|e| GenParserError::Source(
+                        e,
+                        format!("error while writing the parser code ({})", options.parser_code.get_type())))?;
+                options.types_code.write(&types_source)
+                    .map_err(|e| GenParserError::Source(
+                        e,
+                        format!("error while writing the template for the user types ({})", options.types_code.get_type())))?;
+                options.listener_code.write(&listener_source)
+                    .map_err(|e| GenParserError::Source(
+                        e,
+                        format!("error while writing the template for the listener implementation ({})", options.listener_code.get_type())))?;
             }
             Ok(log)
         }

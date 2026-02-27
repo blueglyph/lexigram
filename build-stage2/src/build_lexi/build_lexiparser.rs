@@ -131,7 +131,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     builder.use_full_lib(true);
     builder.set_gen_span_params(true);
     builder.set_indent(indent);
-    let src = builder.gen_source_code();
+    let (src, ..) = builder.gen_source_code();
     let mut log = builder.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
         log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));

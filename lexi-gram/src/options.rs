@@ -149,6 +149,14 @@ pub struct Options {
     pub lib_crate: LexigramCrate,
     /// Sets the nonterminals that have a value.
     pub nt_value: NTValue,
+    /// Location of the generated template for the user types
+    pub types_code: CodeLocation,
+    /// Indentation of the generated template for the user types
+    pub types_indent: usize,
+    /// Location of the template for the listener implementation
+    pub listener_code: CodeLocation,
+    /// Indentation of the template for the listener implementation
+    pub listener_indent: usize,
 }
 
 impl Options {
@@ -171,6 +179,14 @@ impl Options {
     fn has_parser_code(&self) -> bool {
         self.parser_code != CodeLocation::None
     }
+
+    fn has_types_code(&self) -> bool {
+        self.types_code != CodeLocation::None
+    }
+
+    fn has_listener_code(&self) -> bool {
+        self.listener_code != CodeLocation::None
+    }
 }
 
 impl Default for Options {
@@ -191,12 +207,16 @@ impl Default for Options {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Default,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         }
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum BuilderState { Start, Lexer, Parser, Error }
+enum BuilderState { Start, Lexer, Parser, Types, Skel, Error }
 
 /// Builder of the [Options] object.
 ///
@@ -235,13 +255,19 @@ pub(crate) static ERR_LEXER_CODE_ALREADY_SET: &str = "lexer code location alread
 pub(crate) static ERR_COMBINED_SPEC_GIVEN_TOO_LATE: &str = "combined lexicon/grammar specification set after other lexer/parser options";
 pub(crate) static ERR_COMBINED_SPEC_ALREADY_SET: &str = "combined lexicon/grammar specification already set";
 pub(crate) static ERR_LEXER_AFTER_PARSER: &str = "lexer option set after parser options";
+pub(crate) static ERR_LEXER_AFTER_TEMPLATES: &str = "lexer option set after template options";
 pub(crate) static ERR_LEXER_SPEC_OR_CODE_ALREADY_SET: &str = "lexer code location and/or specification already set";
 pub(crate) static ERR_PARSER_SET_BEFORE_LEXER_NOT_SET: &str = "parser option set before any lexer options has been set";
 pub(crate) static ERR_MISSING_LEXER_OPTION: &str = "lexer is missing option(s)";
 pub(crate) static ERR_PARSER_SPEC_ALREADY_SET: &str = "parser grammar specifications already set";
+pub(crate) static ERR_PARSER_AFTER_TEMPLATES: &str = "parser option set after template options";
 pub(crate) static ERR_PARSER_CODE_ALREADY_SET: &str = "parser code location already set";
 pub(crate) static ERR_PARSER_SPEC_OR_CODE_ALREADY_SET: &str = "parser code location and/or specification already set";
 pub(crate) static ERR_MISSING_PARSER_OPTION: &str = "parser is missing option(s)";
+pub(crate) static ERR_MISSING_PARSER_CODE: &str = "parser code isn't set yet";
+pub(crate) static ERR_TYPES_CODE_ALREADY_SET: &str = "location of template code for types already set";
+pub(crate) static ERR_LISTENER_CODE_ALREADY_SET: &str = "location of template code for listener implementation already set";
+
 
 impl OptionsBuilder {
     /// Creates a builder for [Options]
@@ -283,7 +309,7 @@ impl OptionsBuilder {
                     self.set_error("combined spec: ", ERR_COMBINED_SPEC_ALREADY_SET);
                 }
             }
-            BuilderState::Lexer | BuilderState::Parser => {
+            BuilderState::Lexer | BuilderState::Parser | BuilderState::Types | BuilderState::Skel => {
                 self.set_error("combined spec: ", ERR_COMBINED_SPEC_GIVEN_TOO_LATE);
             }
             BuilderState::Error => {}
@@ -305,6 +331,9 @@ impl OptionsBuilder {
             BuilderState::Parser => {
                 self.set_error("lexer spec: ", ERR_LEXER_AFTER_PARSER);
             }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("lexer spec: ", ERR_LEXER_AFTER_TEMPLATES);
+            }
             BuilderState::Error => {}
         }
         self
@@ -323,6 +352,9 @@ impl OptionsBuilder {
             }
             BuilderState::Parser => {
                 self.set_error("lexer code: ", ERR_LEXER_AFTER_PARSER);
+            }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("lexer code: ", ERR_LEXER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
         }
@@ -343,6 +375,9 @@ impl OptionsBuilder {
             BuilderState::Parser => {
                 self.set_error("lexer: ", ERR_LEXER_AFTER_PARSER);
             }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("lexer: ", ERR_LEXER_AFTER_TEMPLATES);
+            }
             BuilderState::Error => {}
         }
         self
@@ -361,6 +396,9 @@ impl OptionsBuilder {
                 } else {
                     self.set_error("parser spec: ", ERR_PARSER_SPEC_ALREADY_SET);
                 }
+            }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("parser specs: ", ERR_PARSER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
         }
@@ -381,6 +419,9 @@ impl OptionsBuilder {
                     self.set_error("parser code: ", ERR_PARSER_CODE_ALREADY_SET);
                 }
             }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("parser code: ", ERR_PARSER_AFTER_TEMPLATES);
+            }
             BuilderState::Error => {}
         }
         self
@@ -400,6 +441,47 @@ impl OptionsBuilder {
             BuilderState::Lexer | BuilderState::Parser => {
                 self.set_error("parser: ", ERR_PARSER_SPEC_OR_CODE_ALREADY_SET);
             }
+            BuilderState::Types | BuilderState::Skel => {
+                self.set_error("parser: ", ERR_PARSER_AFTER_TEMPLATES);
+            }
+            BuilderState::Error => {}
+        }
+        self
+    }
+
+    /// Sets the location the generated template for the user types (default is none)
+    pub fn types_code(&mut self, types_code: CodeLocation) -> &mut Self {
+        match self.state {
+            BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
+            | BuilderState::Types | BuilderState::Skel => {
+                if !self.options.has_parser_code() {
+                    self.set_error("types code: ", ERR_MISSING_PARSER_CODE);
+                } else if !self.options.has_types_code() {
+                    self.state = BuilderState::Types;
+                    self.options.types_code = types_code;
+                } else {
+                    self.set_error("types code: ", ERR_TYPES_CODE_ALREADY_SET);
+                }
+            }
+            BuilderState::Error => {}
+        }
+        self
+    }
+
+    /// Sets the location the generated template for the listener implementation (default is none)
+    pub fn listener_code(&mut self, listener_code: CodeLocation) -> &mut Self {
+        match self.state {
+            BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
+            | BuilderState::Types | BuilderState::Skel => {
+                if !self.options.has_parser_code() {
+                    self.set_error("listener code: ", ERR_MISSING_PARSER_CODE);
+                } else if !self.options.has_listener_code() {
+                    self.state = BuilderState::Skel;
+                    self.options.listener_code = listener_code;
+                } else {
+                    self.set_error("listener code: ", ERR_LISTENER_CODE_ALREADY_SET);
+                }
+            }
             BuilderState::Error => {}
         }
         self
@@ -411,9 +493,13 @@ impl OptionsBuilder {
             BuilderState::Start => {
                 self.options.lexer_indent = indent;
                 self.options.parser_indent = indent;
+                self.options.types_indent = indent;
+                self.options.listener_indent = indent;
             }
             BuilderState::Lexer => self.options.lexer_indent = indent,
             BuilderState::Parser => self.options.parser_indent = indent,
+            BuilderState::Types => self.options.types_indent = indent,
+            BuilderState::Skel => self.options.listener_indent = indent,
             BuilderState::Error => {}
         }
         self
@@ -432,6 +518,9 @@ impl OptionsBuilder {
             }
             BuilderState::Lexer => self.options.lexer_headers.extend(hdr),
             BuilderState::Parser => self.options.parser_headers.extend(hdr),
+            BuilderState::Types | BuilderState::Skel => {
+                // ignored; no headers in templates
+            }
             BuilderState::Error => {}
         }
         self

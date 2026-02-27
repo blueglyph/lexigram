@@ -14,7 +14,8 @@
 * possibility to regroup the lexicon and the grammar in a single source file/tag. If the keyword `grammar` is found by Lexi when parsing the lexicon, Gram is called to parse the remaining text
 * removed some info from logs and added other results instead.
 * new "info" category in logs for useful information
-* skeleton code for user implementation of the listener given in log
+* template code for the listener implementation in log and optionally written to a file
+* template code for the user types in log and optionally written to a file
 * user types now given in log instead of commented code in the wrapper
 * `SynValue`, a type used internally by the wrapper, has been renamed to `EnumSynValue` to avoid name collisions
 * a few more examples

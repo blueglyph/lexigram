@@ -14,9 +14,10 @@ pub static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
 
 Usage:    lexigram [options]
 
-Main options. Please note that
-- the lexer options must be given before the parser options;
-- generating/verifying the parser is optional, but the lexer is mandatory.
+Main options. Please note:
+- The lexer options must be given before the parser options, and the parser options must
+  be given before the template options (types/listener).
+- Generating/verifying the parser is optional, but the lexer is mandatory.
 
   -l|--lexer <location>     Location of the generated lexer code, where <location> is
                                 <location> = <filename> | <filename> tag <tag> | -
@@ -58,14 +59,20 @@ Main options. Please note that
                             The location of the code generated for the lexer (-l) and the
                             parser (-p) must be specified after, and in that order.
 
-Secondary lexer / parser options. Those options can be set before -l/--lexer and -p/--parser
+  --types <location>        Location of the template for the user types.
+  --listener <location>     Location of the template for the listener implementation.
+
+Secondary lexer / parser / template options. Those options can be set before -l/--lexer and -p/--parser
 if they apply to both, or after either of them if they only apply to the lexer or the parser:
 
   --header <string>         Adds a header in front of the generated code.
+                            There are no headers in the templates, so this options will be
+                            ignored after types and listener.
 
                             Example: --header "#[cfg(feature = \"parser\")]"
 
   --indent <number>         Defines the code indentation in number of spaces (default: 0).
+                            This can also be used for the templates.
 
 Other options related to the generated code:
 
@@ -221,6 +228,12 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "-c" | "--combined" => {
                 builder.combined_spec(get_spec("combined", "lexicon and grammar", &mut args)?);
+            }
+            "--types" => {
+                builder.types_code(get_code("types", &mut args)?);
+            }
+            "--listener" => {
+                builder.listener_code(get_code("listener", &mut args)?);
             }
             "--header" => {
                 let header = take_argument(&mut args, "missing argument after --header")?;

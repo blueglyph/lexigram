@@ -39,7 +39,7 @@ mod gen_integration {
         builder.use_full_lib(true);
         builder.set_gen_wrapper(false);
         builder.set_indent(indent);
-        builder.gen_source_code()
+        builder.gen_source_code().0
     }
 
     fn get_test_data<'a>(id: u32) -> Option<(u32, usize, bool, &'a str, &'a str)> {
@@ -475,7 +475,7 @@ mod parser_source {
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
             builder.set_include_alts(include_alts);
             builder.set_gen_wrapper(false);
-            let src = builder.gen_source_code();
+            let (src, ..) = builder.gen_source_code();
             let alt_present = src.contains("static ALTERNATIVES");
             assert_eq!(alt_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
             let pt = ParserTables::build_from(builder);
@@ -2316,7 +2316,7 @@ mod wrapper_source {
             }
             builder.set_gen_parser(test_source_parser);
             let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
-            let result_src = builder.gen_source_code();
+            let (result_src, ..) = builder.gen_source_code();
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|

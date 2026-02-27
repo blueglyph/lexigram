@@ -195,8 +195,12 @@ pub struct ParserGen {
     gen_parser: bool,
     /// generates the wrapper source code
     gen_wrapper: bool,
-    /// source code indentation, in number of space characters
+    /// source code indentation of the wrapper, in number of space characters
     indent: usize,
+    /// source code indentation of the template for the user types
+    types_indent: usize,
+    /// source code indentation of the template for the listener implementation
+    listener_indent: usize,
     /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
     gen_span_params: bool,
     gen_token_enums: bool,
@@ -256,6 +260,9 @@ impl ParserGen {
             init_opcodes: Vec::new(),
             gen_parser: true,
             gen_wrapper: true,
+            indent: 0,
+            types_indent: 0,
+            listener_indent: 0,
             span_nbrs: Vec::new(),
             span_nbrs_sep_list: HashMap::new(),
             start,
@@ -267,7 +274,6 @@ impl ParserGen {
             log: ll1_rules.log,
             include_alts: false,
             lib_crate: LexigramCrate::Core,
-            indent: 0,
         };
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -422,6 +428,26 @@ impl ParserGen {
     /// Sets the source code indentation. This option is 0 by default.
     pub fn set_indent(&mut self, indent: usize) {
         self.indent = indent;
+    }
+
+    /// Sets the source code indentation of the template for the user types.
+    /// This option is 0 by default.
+    pub fn set_types_indent(&mut self, indent: usize) {
+        self.types_indent = indent;
+    }
+
+    /// Sets the source code indentation of the template for the listener implementation.
+    /// This option is 0 by default.
+    pub fn set_listener_indent(&mut self, indent: usize) {
+        self.listener_indent = indent;
+    }
+
+    /// Sets the source code indentation for the wrapper, the template for the user types and the
+    /// template for the listener implementation.
+    pub fn set_indents(&mut self, wrapper: usize, types: usize, listner: usize) {
+        self.indent = wrapper;
+        self.types_indent = types;
+        self.listener_indent = listner;
     }
 
     /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.
@@ -1554,16 +1580,19 @@ impl ParserGen {
         (nt_name, alt_info, item_info, child_repeat_endpoints)
     }
 
-    // Building the source code as we do below is not the most efficient, but it's done that way to
-    // - be able to build only a part of the parser, and
-    // - get the sources for the validation tests or print them / write them into a file.
-    // The whole code isn't that big, so it's not a major issue.
-
-    pub fn gen_source_code(&mut self) -> String {
+    /// Generates the source code of the wrapper and the accompanying templates. Returns
+    /// * the indented source of the wrapper
+    /// * the indented source of the template for the user types
+    /// * the indented source of the template for the listener implementation
+    pub fn gen_source_code(&mut self) -> (String, String, String) {
         self.log.add_note("generating source code...");
         if !self.log.has_no_errors() {
-            return String::new();
+            return (String::new(), String::new(), String::new());
         }
+        // Building the source code as we do below is not the most efficient, but it's done that way to
+        // - be able to build only a part of the parser, and
+        // - get the sources for the validation tests or print them / write them into a file.
+        // The whole code isn't that big, so it's not a major issue.
         let mut parts = vec![];
         if !self.headers.is_empty() {
             parts.push(self.headers.clone());
@@ -1573,22 +1602,29 @@ impl ParserGen {
         } else {
             vec![]
         };
-        if self.gen_wrapper {
+        let (src_types, src_listener) = if self.gen_wrapper {
             self.make_item_ops();
-            tmp_parts.push(self.source_wrapper());
-        }
+            let (src_wrapper, src_types, src_listener) = self.source_wrapper();
+            tmp_parts.push(src_wrapper);
+            (
+                indent_source(vec![src_types], self.types_indent),
+                indent_source(vec![src_listener], self.listener_indent)
+            )
+        } else {
+            (String::new(), String::new())
+        };
         self.log_nt_info();
         self.log_alt_info();
         parts.push(self.source_use());
         parts.extend(tmp_parts);
         // Create source code:
-        indent_source(parts, self.indent)
+        (indent_source(parts, self.indent), src_types, src_listener)
     }
 
-    pub fn try_gen_source_code(mut self) -> Result<(BufLog, String), BuildError> {
-        let src = self.gen_source_code();
+    pub fn try_gen_source_code(mut self) -> Result<(BufLog, String, String, String), BuildError> {
+        let (src, src_types, src_listener) = self.gen_source_code();
         if self.log.has_no_errors() {
-            Ok((self.give_log(), src))
+            Ok((self.give_log(), src, src_types, src_listener))
         } else {
             Err(BuildError::new(self.give_log(), BuildErrorSource::ParserGen))
         }
@@ -1927,8 +1963,11 @@ impl ParserGen {
         (src_val, val_name)
     }
 
-    /// Generates the wrapper source code.
-    fn source_wrapper(&mut self) -> Vec<String> {
+    /// Generates the wrapper source code and returns
+    /// * the wrapper source code
+    /// * the template for the user-defined types (Syn*)
+    /// * the template for the listener implementation
+    fn source_wrapper(&mut self) -> (Vec<String>, Vec<String>, Vec<String>) {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
@@ -2037,9 +2076,8 @@ impl ParserGen {
 
         // Writes intermediate Syn types
         let mut src_types = vec![
-            String::new(),
             format!("// {:-<80}", ""),
-            "// User-defined types:".to_string(),
+            "// Template for the user-defined types:".to_string(),
         ];
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
@@ -2156,7 +2194,6 @@ impl ParserGen {
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
         let mut src_skel = vec![
-            String::new(),
             format!("// {:-<80}", ""),
             format!("// Template for the user implementation of {}Listener", self.name),
             String::new(),
@@ -2298,7 +2335,7 @@ impl ParserGen {
                                     "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
                                     if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
 
-                                // skeleton
+                                // skeleton (listener template)
                                 let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
                                 src_skel.push(format!(
                                     "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
@@ -2408,7 +2445,7 @@ impl ParserGen {
                         }
                     }
 
-                    // skeleton
+                    // skeleton (listener template)
                     if has_skel_exit {
                         if let Some(alts) = &nt_contexts[fnt] {
                             let mut skel_ctx = vec![];
@@ -2641,13 +2678,12 @@ impl ParserGen {
             }
         }
 
-        // user types and skeleton code
+        // templates
         src_types.extend(vec![
             String::new(),
             format!("// {:-<80}", ""),
-            String::new(),
         ]);
-        self.log.add_info(format!("User types:\n{}", src_types.join("\n")));
+        self.log.add_info(format!("Template for the user types:\n\n{}\n", src_types.join("\n")));
         if let Some(line) = src_skel.last() {
             if line.is_empty() {
                 src_skel.pop();
@@ -2657,9 +2693,8 @@ impl ParserGen {
             "}".to_string(),
             String::new(),
             format!("// {:-<80}", ""),
-            String::new(),
         ]);
-        self.log.add_info(format!("Skeleton implementation of listener:\n{}", src_skel.join("\n")));
+        self.log.add_info(format!("Template for the listener implementation:\n\n{}\n", src_skel.join("\n")));
 
         // Writes the listener trait declaration
         src.add_space();
@@ -2883,7 +2918,7 @@ impl ParserGen {
         src.extend(src_wrapper_impl);
         src.push("}".to_string());
 
-        src
+        (src, src_types, src_skel)
     }
 }
 

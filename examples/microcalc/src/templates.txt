@@ -1,0 +1,165 @@
+================================================================================
+Template for the user types
+================================================================================
+[template_user_types]
+
+// --------------------------------------------------------------------------------
+// Template for the user-defined types:
+
+/// User-defined type for `program`
+#[derive(Debug, PartialEq)]
+pub struct SynProgram();
+
+/// User-defined type for `function`
+#[derive(Debug, PartialEq)]
+pub struct SynFunction();
+
+/// User-defined type for `fun_params`
+#[derive(Debug, PartialEq)]
+pub struct SynFunParams();
+
+/// User-defined type for `block`
+#[derive(Debug, PartialEq)]
+pub struct SynBlock();
+
+/// User-defined type for `instruction`
+#[derive(Debug, PartialEq)]
+pub struct SynInstruction();
+
+/// User-defined type for `expr`
+#[derive(Debug, PartialEq)]
+pub struct SynExpr();
+
+/// User-defined type for `fun_args`
+#[derive(Debug, PartialEq)]
+pub struct SynFunArgs();
+
+// --------------------------------------------------------------------------------
+
+[template_user_types]
+
+================================================================================
+Template for the listener implementation
+================================================================================
+
+[template_listener_impl]
+
+// --------------------------------------------------------------------------------
+// Template for the user implementation of MicroCalcListener
+
+struct Listener {
+    log: BufLog,
+}
+
+#[allow(unused)]
+impl MicroCalcListener for Listener {
+    fn get_mut_log(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_program(&mut self, ctx: CtxProgram) -> SynProgram {
+        // program -> function+
+        let CtxProgram::V1 { plus } = ctx;
+        SynProgram()
+    }
+
+    fn exit_function(&mut self, ctx: CtxFunction) -> SynFunction {
+        // function -> "def" Id "(" fun_params ")" instruction
+        let CtxFunction::V1 { id, fun_params, instruction } = ctx;
+        SynFunction()
+    }
+
+    fn exit_fun_params(&mut self, ctx: CtxFunParams) -> SynFunParams {
+        match ctx {
+            // fun_params -> Id ("," Id)*
+            CtxFunParams::V1 { star } => {}
+            // fun_params -> ε
+            CtxFunParams::V2 => {}
+        }
+        SynFunParams()
+    }
+
+    fn exit_block(&mut self, ctx: CtxBlock) -> SynBlock {
+        // block -> "{" instruction* "}"
+        let CtxBlock::V1 { star } = ctx;
+        SynBlock()
+    }
+
+    fn exit_instruction(&mut self, ctx: CtxInstruction) -> SynInstruction {
+        match ctx {
+            // instruction -> "let" Id "=" expr ";"
+            CtxInstruction::V1 { id, expr } => {}
+            // instruction -> Id "=" expr ";"
+            CtxInstruction::V2 { id, expr } => {}
+            // instruction -> "return" expr ";"
+            CtxInstruction::V3 { expr } => {}
+            // instruction -> "print" expr ";"
+            CtxInstruction::V4 { expr } => {}
+            // instruction -> Id "(" fun_args ")" ";"
+            CtxInstruction::V5 { id, fun_args } => {}
+            // instruction -> "if" expr instruction <G> "else" instruction
+            CtxInstruction::V6 { expr, instruction } => {}
+            // instruction -> "if" expr instruction
+            CtxInstruction::V7 { expr, instruction } => {}
+            // instruction -> "while" expr block
+            CtxInstruction::V8 { expr, block } => {}
+            // instruction -> block
+            CtxInstruction::V9 { block } => {}
+        }
+        SynInstruction()
+    }
+
+    fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr {
+        match ctx {
+            // expr -> "-" expr
+            CtxExpr::V1 { expr } => {}
+            // expr -> expr <R> "^" expr
+            CtxExpr::V2 { expr } => {}
+            // expr -> expr "*" expr
+            CtxExpr::V3 { expr } => {}
+            // expr -> expr <P> "/" expr
+            CtxExpr::V4 { expr } => {}
+            // expr -> expr "+" expr
+            CtxExpr::V5 { expr } => {}
+            // expr -> expr <P> "-" expr
+            CtxExpr::V6 { expr } => {}
+            // expr -> "!" expr
+            CtxExpr::V7 { expr } => {}
+            // expr -> expr "==" expr
+            CtxExpr::V8 { expr } => {}
+            // expr -> expr <P> "!=" expr
+            CtxExpr::V9 { expr } => {}
+            // expr -> expr <P> "<" expr
+            CtxExpr::V10 { expr } => {}
+            // expr -> expr <P> ">" expr
+            CtxExpr::V11 { expr } => {}
+            // expr -> expr <P> "<=" expr
+            CtxExpr::V12 { expr } => {}
+            // expr -> expr <P> ">=" expr
+            CtxExpr::V13 { expr } => {}
+            // expr -> "(" expr ")"
+            CtxExpr::V14 { expr } => {}
+            // expr -> Id "(" fun_args ")"
+            CtxExpr::V15 { id, fun_args } => {}
+            // expr -> Id
+            CtxExpr::V16 { id } => {}
+            // expr -> Num
+            CtxExpr::V17 { num } => {}
+        }
+        SynExpr()
+    }
+
+    fn exit_fun_args(&mut self, ctx: CtxFunArgs) -> SynFunArgs {
+        match ctx {
+            // fun_args -> expr ("," expr)*
+            CtxFunArgs::V1 { star } => {}
+            // fun_args -> ε
+            CtxFunArgs::V2 => {}
+        }
+        SynFunArgs()
+    }
+}
+
+// --------------------------------------------------------------------------------
+
+[template_listener_impl]

@@ -17,8 +17,12 @@ static LEXICON_GRAMMAR_FILENAME: &str = "src/microcalc.lg";
 static SOURCE_FILENAME: &str = "../microcalc/src/main.rs";
 static LEXER_TAG: &str = "microcalc_lexer";
 static PARSER_TAG: &str = "microcalc_parser";
+static SOURCE_TEMPLATES: &str = "../microcalc/src/templates.txt";
+static USERS_TAG: &str = "template_user_types";
+static LISTENER_TAG: &str = "template_listener_impl";
 const LEXER_INDENT: usize = 4;
 const PARSER_INDENT: usize = 4;
+const INDENT_TEMPLATES: usize = 0;
 
 // -------------------------------------------------------------------------
 
@@ -28,6 +32,10 @@ fn gen_source_microcalc_l_g(action: Action) {
         .indent(LEXER_INDENT)
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
+        .types_code(gencode!(filename: SOURCE_TEMPLATES, tag: USERS_TAG))
+        .indent(INDENT_TEMPLATES)
+        .listener_code(gencode!(filename: SOURCE_TEMPLATES, tag: LISTENER_TAG))
+        .indent(INDENT_TEMPLATES)
         .libs(["super::listener_types::*"])
         .build()
         .expect("should have no error");
@@ -49,6 +57,10 @@ fn gen_source_microcalc_lg(action: Action) {
         .indent(LEXER_INDENT)
         .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
+        .types_code(gencode!(filename: SOURCE_TEMPLATES, tag: USERS_TAG))
+        .indent(INDENT_TEMPLATES)
+        .listener_code(gencode!(filename: SOURCE_TEMPLATES, tag: LISTENER_TAG))
+        .indent(INDENT_TEMPLATES)
         .libs(["super::listener_types::*"])
         .build()
         .expect("should have no error");

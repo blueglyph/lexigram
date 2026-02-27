@@ -275,6 +275,7 @@ mod test3 {
 
 mod test4 {
     use lexigram_lib::parsergen::NTValue;
+    use crate::options::CodeLocation;
     use super::*;
 
     // those files and tags needn't exist
@@ -305,6 +306,10 @@ mod test4 {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -348,6 +353,10 @@ mod test4 {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Full,
             nt_value: NTValue::Parents,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -375,6 +384,10 @@ mod test4 {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -391,7 +404,7 @@ mod test4 {
 
 mod failing_tests {
     use lexigram_lib::parsergen::NTValue;
-    use crate::options::{ERR_COMBINED_SPEC_ALREADY_SET, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
+    use crate::options::{CodeLocation, ERR_COMBINED_SPEC_ALREADY_SET, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -417,6 +430,10 @@ mod failing_tests {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Core,
             nt_value: NTValue::Parents,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
@@ -434,6 +451,10 @@ mod failing_tests {
             gen_token_enums: false,
             lib_crate: LexigramCrate::Full,
             nt_value: NTValue::Parents,
+            types_code: CodeLocation::None,
+            types_indent: 0,
+            listener_code: CodeLocation::None,
+            listener_indent: 0,
         };
 
         let tests = vec![
