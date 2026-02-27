@@ -2220,8 +2220,30 @@ mod wrapper_source {
                 16 => (1, symbols![t 1]),               // 16: expr_2 -> Id                  | ◄16 Id!                    | 1    | Id
                 17 => (1, symbols![t 0]),               // 17: expr_2 -> Num                 | ◄17 Num!                   | 1    | Num
             ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9]]),
+
+            // statement -> assign ";" | print ";"
+            // assign -> "let" Id "=" value
+            // print -> "print" value
+            // value -> Id | Num
+            //
+            //   NT    name       val   flags
+            // +------------------------------+
+            // |   0 | statement | y  |       |
+            // |   1 | assign    | y  |       |
+            // |   2 | print     | y  |       |
+            // |   3 | value     | y  |       |
+            // +------------------------------+
+            (904, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (2, symbols![nt 1]),               //  0: statement -> assign ";"      | ◄0 ";" ►assign          | 2 | assign
+                1 => (2, symbols![nt 2]),               //  1: statement -> print ";"       | ◄1 ";" ►print           | 2 | print
+                2 => (4, symbols![t 0, nt 3]),          //  2: assign -> "let" Id "=" value | ◄2 ►value "=" Id! "let" | 4 | Id value
+                3 => (2, symbols![nt 3]),               //  3: print -> "print" value       | ◄3 ►value "print"       | 2 | value
+                4 => (1, symbols![t 0]),                //  4: value -> Id                  | ◄4 Id!                  | 1 | Id
+                5 => (1, symbols![t 1]),                //  5: value -> Num                 | ◄5 Num!                 | 1 | Num
+            ], NTValue::Default, btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3], 3 => vec![4, 5]]),
             /*
-            (, false, false, 0, btreemap![], btreemap![], Default, btreemap![]),
+            (, false, false, 0, btreemap![], btreemap![], NTValue::Default, btreemap![]),
             */
         ];
 
@@ -2231,9 +2253,10 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE_LOG: bool = true;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // override options
         // enable_test_source = true;
@@ -2246,6 +2269,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
+            if !matches!(tr_id, 904) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
@@ -2345,8 +2369,8 @@ mod wrapper_source {
                 println!("*/");
             }
             let builder_has_errors = builder.log.num_errors() > 0;
-            if VERBOSE && builder_has_errors {
-                println!("log:\n{}", builder.get_log().get_messages_str());
+            if VERBOSE && builder_has_errors || VERBOSE_LOG {
+                println!("Log:\n{}", builder.log);
             }
             if VERBOSE_TYPE {
                 if result_is_ambiguous {

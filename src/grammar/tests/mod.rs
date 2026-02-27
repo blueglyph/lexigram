@@ -312,6 +312,15 @@ impl TestRules {
                 r#"         | Id"#,
                 r#"         | Num;"#,
             ],
+            904 => vec![
+                r#"token Id, Num;"#,
+                r#"statement -> assign ";""#,
+                r#"           | print ";";"#,
+                r#"assign ->    "let" Id "=" value;"#,
+                r#"print ->     "print" value;"#,
+                r#"value ->     Id"#,
+                r#"           | Num;"#,
+            ],
             // 1yxx = errors
             // -----------------------------------------------------------------------------
             1000 => vec![r#"a -> a ;"#],
