@@ -89,7 +89,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         builder.set_nt_value(&options.nt_value);
         builder.set_include_alts(options.gen_parser_alts);
         builder.extend_headers(&options.parser_headers);
-        builder.extend_libs(options.extra_libs.clone());
+        builder.extend_libs(options.libs.clone());
         builder.set_gen_wrapper(options.gen_wrapper);
         builder.set_gen_span_params(options.gen_span_params);
         builder.set_gen_token_enums(options.gen_token_enums);

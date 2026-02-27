@@ -124,10 +124,10 @@ pub struct Options {
     pub parser_indent: usize,
     /// Extra headers before the lexer code
     pub lexer_headers: Vec<String>,
-    /// Extra headers before the parser code
+    /// Custom headers to insert before the parser code
     pub parser_headers: Vec<String>,
-    /// Extra `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
-    pub extra_libs: Vec<String>,
+    /// Custom `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
+    pub libs: Vec<String>,
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
     ///
     /// Default: `false`
@@ -184,7 +184,7 @@ impl Default for Options {
             parser_indent: 0,
             lexer_headers: vec![],
             parser_headers: vec![],
-            extra_libs: vec![],
+            libs: vec![],
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
@@ -203,7 +203,7 @@ enum BuilderState { Start, Lexer, Parser, Error }
 /// There are 3 types of options:
 /// * options related to the lexer: [lexer](OptionsBuilder::lexer), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
 /// * options related to the parser: [parser](OptionsBuilder::parser), [indent](OptionsBuilder::indent), [headers](OptionsBuilder::headers)
-/// * general options: [extra_libs](OptionsBuilder::extra_libs), [parser_alts](OptionsBuilder::parser_alts),
+/// * general options: [libs](OptionsBuilder::libs), [parser_alts](OptionsBuilder::parser_alts),
 ///   [wrapper](OptionsBuilder::wrapper), [span_params](OptionsBuilder::span_params)
 ///
 /// Initially, the default option settings corresponds to [Options]'s defaults. The builder offers a convenient way to chain method
@@ -443,8 +443,8 @@ impl OptionsBuilder {
     /// beginning, after the context type definitions).
     ///
     /// This method can be called several times to add more dependencies.
-    pub fn extra_libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) -> &mut Self {
-        self.options.extra_libs.extend(libs.into_iter().map(|s| s.into()));
+    pub fn libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) -> &mut Self {
+        self.options.libs.extend(libs.into_iter().map(|s| s.into()));
         self
     }
 

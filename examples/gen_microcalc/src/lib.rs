@@ -28,7 +28,7 @@ fn gen_source_microcalc_l_g(action: Action) {
         .indent(LEXER_INDENT)
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
-        .extra_libs(["super::listener_types::*"])
+        .libs(["super::listener_types::*"])
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {
@@ -49,7 +49,7 @@ fn gen_source_microcalc_lg(action: Action) {
         .indent(LEXER_INDENT)
         .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
-        .extra_libs(["super::listener_types::*"])
+        .libs(["super::listener_types::*"])
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {

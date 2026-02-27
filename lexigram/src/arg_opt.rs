@@ -69,9 +69,9 @@ if they apply to both, or after either of them if they only apply to the lexer o
 
 Other options related to the generated code:
 
-  --lib <string>            Adds extra libs (crates/modules) to the "use" declarations of the
-                            parser / wrapper / listener code.
-                            This option can be used multiple times.
+  --lib <string>            Adds a custom lib (crates/modules) to the "use" bindings in the
+                            parser / wrapper / listener generated code. This option can be
+                            used multiple times if several custom bindings are required.
 
                             Example: --lib "super::listener_types::*"
 
@@ -237,7 +237,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "--lib" => {
                 let lib = take_argument(&mut args, "missing argument after --lib")?;
-                builder.extra_libs([lib]);
+                builder.libs([lib]);
             }
             "--spans" => {
                 builder.span_params(true);

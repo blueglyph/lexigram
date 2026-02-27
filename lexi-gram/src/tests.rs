@@ -42,7 +42,7 @@ mod test1 {
             .headers(["#![allow(unused)]"])
             .lexer(genspec!(filename: TEST_LEXICON_FILENAME), gencode!(filename: TEST1_LEXER_FILENAME))
             .parser(genspec!(filename: TEST_GRAMMAR_FILENAME), gencode!(filename: TEST1_PARSER_FILENAME))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .span_params(true)
             .use_full_lib(true)
             .set_nt_value(NTValue::Parents)
@@ -112,7 +112,7 @@ mod test2 {
         let options = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_LEXER_TAG))
             .parser(genspec!(string: grammar), gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_PARSER_TAG))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .span_params(true)
             .set_crate(LexigramCrate::Custom("core".to_string()))
             .set_nt_value(NTValue::Parents)
@@ -128,7 +128,7 @@ mod test2 {
             .combined_spec(genspec!(string: combined))
             .lexer_code(gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_LEXER_TAG))
             .parser_code(gencode!(filename: TEST2_TAGS_FILENAME, tag: TEST2_PARSER_TAG))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .span_params(true)
             .set_crate(LexigramCrate::Custom("core".to_string()))
             .set_nt_value(NTValue::Parents)
@@ -213,7 +213,7 @@ mod test3 {
             .parser(
                 genspec!(filename: TEST3_TAGS_FILENAME, tag: TEST3_GRAMMAR_TAG),
                 gencode!(filename: TEST3_TAGS_FILENAME, tag: TEST3_PARSER_TAG))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .span_params(true)
             .set_crate(LexigramCrate::Full)
             .set_nt_value(NTValue::Parents)
@@ -298,7 +298,7 @@ mod test4 {
             parser_indent: 0,
             lexer_headers: vec!["#![allow(unused)]".to_string()],
             parser_headers: vec!["#![allow(unused)]".to_string()],
-            extra_libs: vec!["super::listener_types::test1::*".to_string()],
+            libs: vec!["super::listener_types::test1::*".to_string()],
             gen_parser_alts: true,
             gen_wrapper: true,
             gen_span_params: false,
@@ -311,7 +311,7 @@ mod test4 {
             .headers(["#![allow(unused)]"])
             .lexer(genspec!(filename: TEST_LEXICON_FILENAME), gencode!(filename: TEST4_LEXER_FILENAME))
             .parser(genspec!(filename: TEST_GRAMMAR_FILENAME), gencode!(filename: TEST4_PARSER_FILENAME))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .parser_alts(true)
             .wrapper(true)
             .span_params(false)
@@ -322,7 +322,7 @@ mod test4 {
             .headers(["#![allow(unused)]"])
             .lexer(genspec!(filename: TEST_LEXICON_FILENAME), gencode!(filename: TEST4_LEXER_FILENAME))
             .parser(genspec!(filename: TEST_GRAMMAR_FILENAME), gencode!(filename: TEST4_PARSER_FILENAME))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .parser_alts(true)
             .set_nt_value(NTValue::Parents)
             .build()
@@ -341,7 +341,7 @@ mod test4 {
             parser_indent: 0,
             lexer_headers: Vec::new(),
             parser_headers: Vec::new(),
-            extra_libs: vec!["super::listener_types::test1::*".to_string()],
+            libs: vec!["super::listener_types::test1::*".to_string()],
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
@@ -352,7 +352,7 @@ mod test4 {
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
             .parser(genspec!(string: grammar), gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .set_crate(LexigramCrate::Full)
             .set_nt_value(NTValue::Parents)
             .build()
@@ -368,7 +368,7 @@ mod test4 {
             parser_indent: 0,
             lexer_headers: Vec::new(),
             parser_headers: Vec::new(),
-            extra_libs: vec!["super::listener_types::test1::*".to_string()],
+            libs: vec!["super::listener_types::test1::*".to_string()],
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
@@ -379,7 +379,7 @@ mod test4 {
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
             .parser(genspec!(filename: TEST4_GRAMMAR_FILENAME, tag: TEST4_GRAMMAR_TAG), gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG))
-            .extra_libs(["super::listener_types::test1::*"])
+            .libs(["super::listener_types::test1::*"])
             .set_nt_value(NTValue::Parents)
             .build()
             .expect("should have no error");
@@ -410,7 +410,7 @@ mod failing_tests {
             parser_indent: 0,
             lexer_headers: vec![],
             parser_headers: vec![],
-            extra_libs: vec![],
+            libs: vec![],
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
@@ -427,7 +427,7 @@ mod failing_tests {
             parser_indent: 4,
             lexer_headers: vec![],
             parser_headers: vec![],
-            extra_libs: vec![],
+            libs: vec![],
             gen_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,

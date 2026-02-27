@@ -30,7 +30,7 @@ fn gen_source_terminate(action: Action) {
         .indent(LEXER_INDENT)
         .parser(genspec!(filename: GRAMMAR_FILENAME, tag: GRAMMAR_TAG), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
-        .extra_libs([LIBS])
+        .libs([LIBS])
         .span_params(true)
         .build()
         .expect("should have no error");

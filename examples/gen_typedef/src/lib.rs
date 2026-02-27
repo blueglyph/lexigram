@@ -37,7 +37,7 @@ fn gen_source_typedef(action: Action) {
             .indent(LEXER_INDENT)
             .parser(genspec!(filename: GRAMMAR_FILENAME, tag: grammar_tag), gencode!(filename: source_filename, tag: parser_tag))
             .indent(PARSER_INDENT)
-            .extra_libs([LIBS[i]])
+            .libs([LIBS[i]])
             .span_params(true)
             .set_nt_value(NTValue::SetNames(vec![
                 NTValue::PARENTS.to_string(),

@@ -25,7 +25,7 @@ fn gen_source_rtsgen(action: Action) {
         .indent(LEXER_INDENT)
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
         .indent(PARSER_INDENT)
-        .extra_libs(["super::listener_types::*"])
+        .libs(["super::listener_types::*"])
         .use_full_lib(true)
         .set_nt_value(NTValue::Parents)
         .build()

@@ -35,7 +35,7 @@ fn gen_source_pandemonium(action: Action) {
             .indent(LEXER_INDENT)
             .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: source_filename, tag: PARSER_TAG))
             .indent(PARSER_INDENT)
-            .extra_libs(lib)
+            .libs(lib)
             .span_params(true)
             .set_nt_value(nt_value.clone())
             .build()

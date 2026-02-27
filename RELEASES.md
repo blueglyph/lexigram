@@ -28,6 +28,7 @@
 * `&mut acc` for all `<L>` constructions, instead of having to pop the value, give it to the listener method that returns the new value. Before, this was only done for right-recursive `<L>` rules. Example:
   * before: `fn exit_i(&mut self, ctx: CtxI) -> SynI;`
   * after: `fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI);` (`acc` not in `CtxI` any more)
+* `extra_libs` has been renamed to `libs` in `lexi_gram::Options` (both field and method)
 
 # 0.8.0
 
