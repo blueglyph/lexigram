@@ -1002,7 +1002,7 @@ impl ParserGen {
                 // Default values are taken from opcodes. Loop(nt) is only taken if the parent is l-rec;
                 // we look at the parent's flags instead of the alternative's because left factorization could
                 // displace the Loop(nt) to another non-l-rec child alternative.
-                let mut has_sep_list_child = false;
+                let mut has_sep_list_child_without_value = false;
                 let mut values = self.opcodes[*alt_id as usize].iter().rev()
                     .filter_map(|s| {
                         let sym_maybe = match s {
@@ -1019,8 +1019,8 @@ impl ParserGen {
                             }
                         };
                         sym_maybe.and_then(|s| {
-                            const REP_MASK: u32 = ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS;
-                            const CHILD_STAR: u32 = ruleflag::CHILD_REPEAT;
+                            const REP_MASK: u32 = ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM;
+                            const CHILD_STAR: u32 = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
                             let has_value = self.sym_has_value(&s);
                             if has_value
                                 // for now, leaves child* nonterminals used in another nonterminal (the parent),
@@ -1028,7 +1028,7 @@ impl ParserGen {
                                 || matches!(s, Symbol::NT(v) if v != *var_id && self.parsing_table.flags[v as usize] & REP_MASK == CHILD_STAR)
                             {
                                 if !has_value {
-                                    has_sep_list_child = true;
+                                    has_sep_list_child_without_value = true;
                                 }
                                 Some(s)
                             } else {
@@ -1037,7 +1037,7 @@ impl ParserGen {
                         })
                     }).to_vec();
                 //
-                if has_sep_list_child {
+                if has_sep_list_child_without_value {
                     // there's a child* nonterminal in `values` that has no value and should be removed later
                     alts_to_revisit.insert(*alt_id);
                 }
