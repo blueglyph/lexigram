@@ -1166,11 +1166,15 @@ impl ParserGen {
         //       2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
         //          !=  <----------               !=  <---------- span_nbr = 3 (Id ":" type)
         //
-        //   - if pattern is empty, we have a match
-        //     - find the position of a_1 in items[p_alt]: pos = 3 (Id Id type a_1)
-        //       NOTE: at this stage, a_1 will be in items, regardless of nt_value[c_var];
-        //             it will be removed later if it has no value
-        //     - remove [pos - pattern_len..pos] from items[p_var] -> [3 - 2..3] = [1..3] => [Id a_1] is left
+        //   - if pattern is empty, we have a potential match, but we must still verify if
+        //     all the parents alternatives that use a_1 also include the pattern. For example,
+        //     `a -> Id? ("," Id)*` would be transformed as `a -> Id ("," Id)* | ("," Id)*`, so
+        //     we can't apply sep_list because the child* shouldn't always expect a first Id
+        //     on the stack.
+        //     - find all the positions of a_1 in self.gather(a)
+        //     - check that, for each of the a_1 found, the pattern precedes it: Id [Id type] a_1 => OK
+        //     - for each p_alt and postion (here, p_alt = 0 and pos = 3),
+        //       - remove [pos - pattern_len..pos] from items[p_alt] -> [3 - 2..3] = [1..3] => [Id a_1] is left
         const VERBOSE: bool = false;
         if VERBOSE {
             let log = std::mem::take(&mut self.log);
