@@ -761,6 +761,23 @@ mod wrapper_source {
                 4 => (5, symbols![nt 2, t 0, nt 1]),      //  4: a_2 -> ε                        | ◄4                                | 5 | a_1 Id type
             ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
+            // a -> X B ("," B)* B? Z
+            //
+            //   NT    name   val   flags
+            // +----------------------------------------------------+
+            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
+            // |   1 | . a_1 | y  | child_+_or_*                    |
+            // |   2 | . a_2 |    | child_left_fact                 |
+            // +----------------------------------------------------+
+            (113, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                    //  0: a -> X B a_1 a_2 | ►a_2 ►a_1 B! X! | 0    |
+                1 => (3, symbols![nt 1, t 1]),           //  1: a_1 -> "," B a_1 | ●a_1 ◄1 B! ","  | 3, 1 | a_1 B
+                2 => (1, symbols![nt 1]),                //  2: a_1 -> ε         | ◄2              | 1    | a_1
+                3 => (4, symbols![t 0, nt 1, t 1, t 3]), //  3: a_2 -> B Z       | ◄3 Z! B!        | 4    | X a_1 B Z
+                4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_2 -> Z         | ◄4 Z!           | 3    | X a_1 Z
+            ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+
             // a -> X? B ("," B)* Z
             //
             //   NT    name   val   flags
@@ -771,7 +788,7 @@ mod wrapper_source {
             (114, false, false, 0, btreemap![
             ], btreemap![
                 0 => (3, symbols![t 0, nt 1, t 3]),     //  0: a -> X B a_1 Z   | ◄0 Z! ►a_1 B! X! | 3    | X a_1 Z
-                1 => (3, symbols![nt 1, t 3]),          //  1: a -> B a_1 Z     | ◄1 Z! ►a_1 B!    | 3    | a_1 Z
+                1 => (2, symbols![nt 1, t 3]),          //  1: a -> B a_1 Z     | ◄1 Z! ►a_1 B!    | 2    | a_1 Z
                 2 => (3, symbols![nt 1, t 1]),          //  2: a_1 -> "," B a_1 | ●a_1 ◄2 B! ","   | 3, 1 | a_1 B
                 3 => (1, symbols![nt 1]),               //  3: a_1 -> ε         | ◄3               | 1    | a_1
             ], NTValue::Default, btreemap![0 => vec![0, 1]]),
@@ -790,7 +807,7 @@ mod wrapper_source {
                 1 => (3, symbols![nt 1, t 2]),           //  1: a_1 -> "," B a_1 | ●a_1 ◄1 B! ","   | 3, 1 | a_1 B
                 2 => (1, symbols![nt 1]),                //  2: a_1 -> ε         | ◄2               | 1    | a_1
                 3 => (4, symbols![t 0, t 1, nt 1, t 4]), //  3: a_2 -> Y B a_1 Z | ◄3 Z! ►a_1 B! Y! | 4    | X Y a_1 Z
-                4 => (4, symbols![t 0, nt 1, t 4]),      //  4: a_2 -> B a_1 Z   | ◄4 Z! ►a_1 B!    | 4    | X a_1 Z
+                4 => (3, symbols![t 0, nt 1, t 4]),      //  4: a_2 -> B a_1 Z   | ◄4 Z! ►a_1 B!    | 3    | X a_1 Z
             ], NTValue::Default, btreemap![0 => vec![3, 4]]),
 
             // a -> X B? ("," B)* Z
@@ -806,27 +823,9 @@ mod wrapper_source {
                 0 => (0, symbols![]),                    //  0: a -> X a_2       | ►a_2 X!        | 0    |
                 1 => (3, symbols![nt 1, t 1]),           //  1: a_1 -> "," B a_1 | ●a_1 ◄1 B! "," | 3, 1 | a_1 B
                 2 => (1, symbols![nt 1]),                //  2: a_1 -> ε         | ◄2             | 1    | a_1
-                3 => (3, symbols![t 0, t 1, nt 1, t 3]), //  3: a_2 -> B a_1 Z   | ◄3 Z! ►a_1 B!  | 3    | X B a_1 Z
+                3 => (4, symbols![t 0, t 1, nt 1, t 3]), //  3: a_2 -> B a_1 Z   | ◄3 Z! ►a_1 B!  | 4    | X B a_1 Z
                 4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_2 -> a_1 Z     | ◄4 Z! ►a_1     | 3    | X a_1 Z
             ], NTValue::Default, btreemap![0 => vec![3, 4]]),
-
-            // a -> X B ("," B)* B Z | X B ("," B)* Z
-            //
-            //   NT    name   val   flags
-            // +----------------------------------------------------+
-            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
-            // |   1 | . a_1 | y  | child_+_or_*                    |
-            // |   2 | . a_2 |    | child_left_fact                 |
-            // +----------------------------------------------------+
-            (113, false, false, 0, btreemap![
-            ], btreemap![
-                0 => (0, symbols![]),                    //  0: a -> X B a_1 a_2 | ►a_2 ►a_1 B! X! | 0 |
-                1 => (3, symbols![nt 1, t 1]),           //  1: a_1 -> "," B a_1 | ●a_1 ◄1 B! ","  | 3 | a_1 B
-                2 => (1, symbols![nt 1]),                //  2: a_1 -> ε         | ◄2              | 1 | a_1
-                3 => (5, symbols![t 0, nt 1, t 1, t 3]), //  3: a_2 -> B Z       | ◄3 Z! B!        | 5 | X a_1 B Z
-                4 => (4, symbols![t 0, nt 1, t 3]),      //  4: a_2 -> Z         | ◄4 Z!           | 4 | X a_1 Z
-            ], NTValue::Default, btreemap![0 => vec![3, 4]]),
-
 
             // --------------------------------------------------------------------------- norm+/* alternatives
             // a -> (A | B)*
@@ -1196,6 +1195,128 @@ mod wrapper_source {
                 2 => (1, symbols![nt 1]),               //  2: i -> ε                        | ◄2                              | 1    | i
                 3 => (1, symbols![t 0]),                //  3: type -> Id                    | ◄3 Id!                          | 1    | Id
             ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),
+
+            // a -> Id "(" Id ":" type (<L=i> "," Id ":" type)* ")" | Id "(" ")"
+            // type -> Id
+            //
+            //   NT    name   val   flags
+            // +----------------------------------------------------+
+            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
+            // |   1 | . i   | y  | child_+_or_*, L-form, sep_list  |
+            // |   3 | . a_1 |    | child_left_fact                 |
+            // |   2 | type  | y  |                                 |
+            // +----------------------------------------------------+
+            (213, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                   //  0: a -> Id "(" a_1          | ►a_1 "(" Id!            | 0    |
+                1 => (5, symbols![nt 1, t 0, nt 2]),    //  1: i -> "," Id ":" type i   | ●i ◄1 ►type ":" Id! "," | 5, 3 | i Id type
+                2 => (1, symbols![nt 1]),               //  2: i -> ε                   | ◄2                      | 1    | i
+                3 => (1, symbols![t 0]),                //  3: type -> Id               | ◄3 Id!                  | 1    | Id
+                4 => (4, symbols![t 0, nt 1]),          //  4: a_1 -> Id ":" type i ")" | ◄4 ")" ►i ►type ":" Id! | 4    | Id i
+                5 => (3, symbols![t 0]),                //  5: a_1 -> ")"               | ◄5 ")"                  | 3    | Id
+            ], NTValue::Default, btreemap![0 => vec![4, 5], 2 => vec![3]]),
+
+            // a -> Id "(" Id (<L=i> "," Id)* "/" Id (<L=j> "," Id)* ")"
+            //
+            //   NT    name  val   flags
+            // +--------------------------------------------------+
+            // |   0 | a    | y  | parent_+_or_*                  |
+            // |   1 | . i  | y  | child_+_or_*, L-form, sep_list |
+            // |   2 | . j  | y  | child_+_or_*, L-form, sep_list |
+            // +--------------------------------------------------+
+            (214, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (6, symbols![t 0, nt 1, nt 2]),    //  0: a -> Id "(" Id i "/" Id j ")" | ◄0 ")" ►j Id! "/" ►i Id! "(" Id! | 6    | Id i j
+                1 => (3, symbols![nt 1, t 0]),          //  1: i -> "," Id i                 | ●i ◄1 Id! ","                    | 3, 1 | i Id
+                2 => (1, symbols![nt 1]),               //  2: i -> ε                        | ◄2                               | 1    | i
+                3 => (3, symbols![nt 2, t 0]),          //  3: j -> "," Id j                 | ●j ◄3 Id! ","                    | 3, 1 | j Id
+                4 => (1, symbols![nt 2]),               //  4: j -> ε                        | ◄4                               | 1    | j
+            ], NTValue::Default, btreemap![0 => vec![0]]),
+
+            // a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"
+            // type -> Id
+            //
+            //   NT    name     val   flags
+            // +-------------------------------------------------------------------+
+            // |   0 | a       | y  | parent_+_or_*, plus                          |
+            // |   1 | . i     | y  | child_+_or_*, parent_left_fact, L-form, plus |
+            // |   3 | .   i_1 |    | child_left_fact                              |
+            // |   2 | type    | y  |                                              |
+            // +-------------------------------------------------------------------+
+            (215, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (7, symbols![t 0, t 0, nt 2, nt 1]), //  0: a -> Id "(" Id ":" type i ")" | ◄0 ")" ►i ►type ":" Id! "(" Id! | 7 | Id Id type i
+                1 => (0, symbols![]),                     //  1: i -> "," Id ":" type i_1      | ►i_1 ►type ":" Id! ","          | 0 |
+                2 => (1, symbols![t 0]),                  //  2: type -> Id                    | ◄2 Id!                          | 1 | Id
+                3 => (5, symbols![nt 1, t 0, nt 2]),      //  3: i_1 -> i                      | ●i ◄3                           | 5 | i Id type
+                4 => (5, symbols![nt 1, t 0, nt 2]),      //  4: i_1 -> ε                      | ◄4                              | 5 | i Id type
+            ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![2]]),
+
+            // a -> X B (<L=i> "," B)* B? Z
+            //
+            //   NT    name   val   flags
+            // +----------------------------------------------------+
+            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
+            // |   1 | . i   | y  | child_+_or_*, L-form, sep_list  |
+            // |   2 | . a_1 |    | child_left_fact                 |
+            // +----------------------------------------------------+
+            (216, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                    //  0: a -> X B i a_1 | ►a_1 ►i B! X! | 0    |
+                1 => (3, symbols![nt 1, t 1]),           //  1: i -> "," B i   | ●i ◄1 B! ","  | 3, 1 | i B
+                2 => (1, symbols![nt 1]),                //  2: i -> ε         | ◄2            | 1    | i
+                3 => (4, symbols![t 0, nt 1, t 1, t 3]), //  3: a_1 -> B Z     | ◄3 Z! B!      | 4    | X i B Z
+                4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_1 -> Z       | ◄4 Z!         | 3    | X i Z
+            ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+
+            // a -> X? B (<L=i> "," B)* Z
+            //
+            //   NT    name  val   flags
+            // +--------------------------------------------------+
+            // |   0 | a    | y  | parent_+_or_*                  |
+            // |   1 | . i  | y  | child_+_or_*, L-form, sep_list |
+            // +--------------------------------------------------+
+            (217, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![t 0, nt 1, t 3]),     //  0: a -> X B i Z | ◄0 Z! ►i B! X! | 3    | X i Z
+                1 => (2, symbols![nt 1, t 3]),          //  1: a -> B i Z   | ◄1 Z! ►i B!    | 2    | i Z
+                2 => (3, symbols![nt 1, t 1]),          //  2: i -> "," B i | ●i ◄2 B! ","   | 3, 1 | i B
+                3 => (1, symbols![nt 1]),               //  3: i -> ε       | ◄3             | 1    | i
+            ], NTValue::Default, btreemap![0 => vec![0, 1]]),
+
+            // a -> X Y? B (<L=i> "," B)* Z
+            //
+            //   NT    name   val   flags
+            // +----------------------------------------------------+
+            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
+            // |   1 | . i   | y  | child_+_or_*, L-form, sep_list  |
+            // |   2 | . a_1 |    | child_left_fact                 |
+            // +----------------------------------------------------+
+            (218, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                    //  0: a -> X a_1     | ►a_1 X!        | 0    |
+                1 => (3, symbols![nt 1, t 2]),           //  1: i -> "," B i   | ●i ◄1 B! ","   | 3, 1 | i B
+                2 => (1, symbols![nt 1]),                //  2: i -> ε         | ◄2             | 1    | i
+                3 => (4, symbols![t 0, t 1, nt 1, t 4]), //  3: a_1 -> Y B i Z | ◄3 Z! ►i B! Y! | 4    | X Y i Z
+                4 => (3, symbols![t 0, nt 1, t 4]),      //  4: a_1 -> B i Z   | ◄4 Z! ►i B!    | 3    | X i Z
+            ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+
+            // a -> X B? (<L=i> "," B)* Z
+            //
+            //   NT    name   val   flags
+            // +----------------------------------------------------+
+            // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
+            // |   1 | . i   | y  | child_+_or_*, L-form            |
+            // |   2 | . a_1 |    | child_left_fact                 |
+            // +----------------------------------------------------+
+            (219, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                    //  0: a -> X a_1   | ►a_1 X!      | 0 |
+                1 => (3, symbols![nt 1, t 1]),           //  1: i -> "," B i | ●i ◄1 B! "," | 3 | i B
+                2 => (1, symbols![nt 1]),                //  2: i -> ε       | ◄2           | 1 | i
+                3 => (4, symbols![t 0, t 1, nt 1, t 3]), //  3: a_1 -> B i Z | ◄3 Z! ►i B!  | 4 | X B i Z
+                4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_1 -> i Z   | ◄4 Z! ►i     | 3 | X i Z
+            ], NTValue::Default, btreemap![0 => vec![3, 4]]),
 
             // --------------------------------------------------------------------------- norm+/* <L> alternatives
             // a -> (<L=i> A | B)*
@@ -2361,10 +2482,10 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
-        const VERBOSE_LOG: bool = true;     // always prints the log
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // override options
         // enable_test_source = true;
@@ -2377,7 +2498,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            if !matches!(tr_id, 904) { continue }
+            // if !matches!(tr_id, 216..=219) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }

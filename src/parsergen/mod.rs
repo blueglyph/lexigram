@@ -854,7 +854,7 @@ impl ParserGen {
         ).collect::<Vec<_>>()
     }
 
-    /// Gathers all the alternatives in NT, and if some of them are parent_l_fact, searches the
+    /// Gathers all the alternatives of a nonterminal, and if some of them are parent_l_fact, searches the
     /// terminal child_l_fact instead. The result is the set of contexts that are used to
     /// call self.listener.exit_<NT>(ctx) for a right-rec, a left-rec parent, a left-rec child, ...
     fn gather_alts(&self, nt: VarId) -> Vec<AltId> {
@@ -1172,6 +1172,15 @@ impl ParserGen {
         //             it will be removed later if it has no value
         //     - remove [pos - pattern_len..pos] from items[p_var] -> [3 - 2..3] = [1..3] => [Id a_1] is left
         const VERBOSE: bool = false;
+        if VERBOSE {
+            let log = std::mem::take(&mut self.log);
+            self.item_ops = items.iter().cloned().to_vec();
+            self.log_nt_info();
+            self.log_alt_info();
+            println!("{}", self.log);
+            self.item_ops.clear();
+            self.log = log;
+        }
         self.log.add_note("- determining sep_list nonterminals...");
         if VERBOSE { println!("check_sep_list:"); }
         // takes one group at a time
@@ -1199,16 +1208,16 @@ impl ParserGen {
                         Symbol::NT(c_var).to_str(self.get_symbol_table()),
                         pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
                 if !pattern.is_empty() {
-                    // if has_value { pattern.push(Symbol::NT(c_var)); }
                     let pattern_len = pattern.len();
+                    let pattern_copy = pattern.clone();
                     let c_sym = Symbol::NT(c_var);
                     // finds the parent's alt that includes this child_+*
-                    let (_p_var, p_alt_id, p_alt, mut p_pos) = self.nt_parent[top_nt].iter()
+                    let (p_var, _p_alt_id, p_alt, mut p_pos) = self.nt_parent[top_nt].iter()
                         .flat_map(|&p_var| &self.var_alts[p_var as usize])
                         .filter_map(|&p_alt_id| {
                             let (p_var, p_alt) = &self.parsing_table.alts[p_alt_id as usize];
                             if *p_var != c_var {
-                                p_alt.v.iter().position(|s| s == &c_sym).map(|p_pos| (p_var, p_alt_id as usize, p_alt, p_pos))
+                                p_alt.v.iter().position(|s| s == &c_sym).map(|p_pos| (*p_var, p_alt_id as usize, p_alt, p_pos))
                             } else {
                                 None
                             }
@@ -1238,28 +1247,53 @@ impl ParserGen {
                             }
                         }
                         if pattern.is_empty() {
-                            if VERBOSE {
-                                println!("- match:");
-                                println!("  p: {}    items: {}",
-                                         p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                         items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                                println!("  c: {}    items: {}",
-                                         c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                         items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                            let exit_alts = self.gather_alts(p_var);
+                            // check that all the items that include c_var have the whole pattern to avoid cases like
+                            // a -> V? ("," V) => a -> V ("," V) | ("," V) => a -> V a_1 | a_1
+                            // where one branch doesn't have the initial V
+                            // let mut whole_pattern = items[c_alt_id].iter().skip(skip_loop_nt).cloned().to_vec();
+                            // whole_pattern.push(c_sym);
+                            let mut found_pos = vec![];
+                            let all_match = exit_alts.into_iter().all(|a| {
+                                let a_items = &items[a as usize];
+                                if let Some(p) = a_items.iter().position(|s| *s == c_sym) {
+                                    // c_var is in items, but does it have the pattern too?
+                                    if p >= pattern_len && a_items[p - pattern_len..p] == pattern_copy {
+                                        found_pos.push((a as usize, p));
+                                        true
+                                    } else {
+                                        // c_var is there, but the pattern isn't, we can't do the modification for this child*
+                                        false
+                                    }
+                                } else {
+                                    true
+                                }
+                            });
+                            if all_match {
+                                if VERBOSE {
+                                    println!("- match:");
+                                    println!("  c[{c_alt_id}]: {}    items: {}",
+                                             c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                             items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                                }
+                                for (p_alt_id, pos) in found_pos {
+                                    if VERBOSE {
+                                        println!("  p[{p_alt_id}]: {}    items: {}",
+                                                 p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
+                                                 items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                                        println!(
+                                            "    c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
+                                            pos - pattern_len, pos);
+                                    }
+                                    self.span_nbrs[p_alt_id] -= span_nbr as SpanNbr;
+                                    self.span_nbrs_sep_list.insert(c_alt_id as AltId, span_nbr as SpanNbr);
+                                    items[p_alt_id].drain(pos - pattern_len..pos);
+                                    if VERBOSE {
+                                        println!("    => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
+                                    }
+                                    self.parsing_table.flags[c_var as usize] |= ruleflag::SEP_LIST;
+                                }
                             }
-                            let pos = items[p_alt_id].iter().position(|s| *s == c_sym).unwrap();
-                            if VERBOSE {
-                                println!(
-                                    "  c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
-                                    pos - pattern_len, pos);
-                            }
-                            self.span_nbrs[p_alt_id] -= span_nbr as SpanNbr;
-                            self.span_nbrs_sep_list.insert(c_alt_id as AltId, span_nbr as SpanNbr);
-                            items[p_alt_id].drain(pos - pattern_len..pos);
-                            if VERBOSE {
-                                println!("  => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                            }
-                            self.parsing_table.flags[c_var as usize] |= ruleflag::SEP_LIST;
                         }
                     }
                 }
@@ -2990,7 +3024,7 @@ impl ParserGen {
         for node in tree.iter_pre_depth_simple().skip(1) {
             let depth = node.depth as usize;
             if indent.len() < depth {
-                indent.push((1..depth).map(|i| if i & 1 == 0 { "  " } else { "ˑ " }).join(""));
+                indent.push((1..depth).map(|i| if i & 1 == 0 { "  " } else { ". " }).join(""));
             }
             indented.push((*node, format!("{}{}", &indent[depth - 1], Symbol::NT(*node).to_str(self.get_symbol_table()))));
         }
