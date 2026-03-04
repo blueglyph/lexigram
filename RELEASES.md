@@ -8,6 +8,7 @@
 * `delay_stream_interception` feature in `lexigram-core` to postpone the capture of the next token, effectively reducing the latency between reading the parsed text and calling the `exit` listener methods
 * new `token-enums` command-line option to generate enums of the terminals and nonterminals (could be helpful with hooks and token interception)
 * new `--nt-value` command-line option to specify which nonterminals have a value
+* new `--start-nt` command-line option to specify the start nonterminal (gives warnings in the logs because of the unused nonterminals)
 * new `<G>` greedy attribute to help with parsing table ambiguities
 * optional spans argument in all listener "exit" methods, to locate the position of the text corresponding to terminals and nonterminals
 * new `--spans` command-line option to generate the spans
@@ -30,6 +31,7 @@
   * before: `fn exit_i(&mut self, ctx: CtxI) -> SynI;`
   * after: `fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI);` (`acc` not in `CtxI` any more)
 * `extra_libs` has been renamed to `libs` in `lexi_gram::Options` (both field and method)
+* renamed the name `get_mut_log()` of the listener method to `get_log_mut()`, for the sake of consistency. 
 
 # 0.8.0
 
