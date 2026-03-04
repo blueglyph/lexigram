@@ -28,7 +28,7 @@ pub struct GramListener {
     curr_name: Option<String>,
     curr_nt: Option<VarId>,
     rules: Vec<VecTree<GrNode>>,
-    start_rule: Option<VarId>,
+    start_nt: Option<VarId>,
     symbol_table: SymbolTable,
     /// T symbols pre-defined in the symbol table; the listener adds the NT symbols.
     symbols: HashMap<String, Symbol>,
@@ -62,7 +62,7 @@ impl GramListener {
             curr_name: None,
             curr_nt: None,
             rules: Vec::new(),
-            start_rule: None,
+            start_nt: None,
             symbol_table,
             symbols,
             nt_reserved: HashMap::new(),
@@ -80,7 +80,15 @@ impl GramListener {
     }
 
     pub fn get_start_rule(&self) -> Option<VarId> {
-        self.start_rule
+        self.start_nt
+    }
+
+    pub fn get_symbol_table(&self) -> &SymbolTable {
+        &self.symbol_table
+    }
+
+    pub fn set_start_nt(&mut self, start_nt: VarId) {
+        self.start_nt = Some(start_nt);
     }
 
     fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
@@ -181,7 +189,7 @@ impl From<GramListener> for ProdRuleSet<General> {
         }
         let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
-            prs.set_start(gram_listener.start_rule.unwrap());
+            prs.set_start(gram_listener.start_nt.unwrap());
         }
         prs
     }
@@ -303,9 +311,9 @@ impl GramParserListener for GramListener {
             return SynRuleName(String::new());
         };
         self.curr_nt = Some(nt);
-        if self.start_rule.is_none() {
+        if self.start_nt.is_none() {
             // the start rule is the first to be defined
-            self.start_rule = Some(nt);
+            self.start_nt = Some(nt);
         }
         SynRuleName(name)
     }

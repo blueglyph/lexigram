@@ -26,6 +26,9 @@ dependencies = [
 [[package]]
 name = "config"
 version = "0.1.0"
+dependencies = [
+ "lexigram-core",
+]
 
 [[package]]
 name = "gen_config"

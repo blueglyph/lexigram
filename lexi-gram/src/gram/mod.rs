@@ -22,6 +22,7 @@ pub struct Gram<'a, 'b, R: Read> {
     pub gramlexer: Lexer<'a, R>,
     pub gramparser: Parser<'b>,
     pub wrapper: Wrapper<GramListener>,
+    start_nt: Option<String>,
 }
 
 impl<R: Read> Gram<'_, '_, R> {
@@ -39,7 +40,12 @@ impl<R: Read> Gram<'_, '_, R> {
             gramlexer,
             gramparser: build_parser(),
             wrapper,
+            start_nt: None,
         }
+    }
+
+    pub fn set_start_nt(&mut self, name_opt: Option<String>) {
+        self.start_nt = name_opt;
     }
 
     pub fn get_listener_mut(&mut self) -> &mut GramListener {
@@ -91,8 +97,15 @@ impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
     /// is built with the log detailing the error(s).
     fn build_from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
         let _ = gram.make();
-        let listener = gram.wrapper.give_listener();
+        let mut listener = gram.wrapper.give_listener();
         let name = listener.get_name().to_string();
+        if let Some(name) = gram.start_nt {
+            if let Some(start_nt) = listener.get_symbol_table().find_nt(&name) {
+                listener.set_start_nt(start_nt);
+            } else {
+                listener.get_mut_log().add_error(format!("couldn't find nonterminal '{name}' to set the start rule"))
+            }
+        }
         let mut prs = ProdRuleSet::<General>::from(listener);
         prs.set_name(Some(name));
         prs.build_into()

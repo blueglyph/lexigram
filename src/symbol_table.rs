@@ -174,6 +174,10 @@ impl SymbolTable {
         self.nt[var as usize] = name;
     }
 
+    pub fn find_nt(&self, name: &str) -> Option<VarId> {
+        self.nt.iter().position(|s| s == name).map(|n| n as VarId)
+    }
+
     /// Removes the name assigned to NT `var` and returns it. Internally, the name of the NT is
     /// replaced by another unique string. The NT is expected to be removed later.
     pub fn remove_nt_name(&mut self, var: VarId) -> String {

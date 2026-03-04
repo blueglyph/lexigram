@@ -83,6 +83,12 @@ Other options related to the generated code:
 
                             Example: --lib "super::listener_types::*"
 
+  --start-nt <name>         Defines the start nonterminal. By default, the first nonterminal
+                            defined in the grammar is the start one, but this option can be
+                            used if you want to implement only a subset of the grammar.
+                            Lexigram will give you warnings because it will detect there are
+                            unused terminals in your grammar, but this is fine.
+
   --spans                   Adds parameters to the listener method that give the locations of
                             the terminals and nonterminals of each rule alternative in the
                             parsed text.
@@ -252,6 +258,10 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             "--lib" => {
                 let lib = take_argument(&mut args, "missing argument after --lib")?;
                 builder.libs([lib]);
+            }
+            "--start-nt" => {
+                let name = take_argument(&mut args, "missing nonterminal name after --start-nt")?;
+                builder.start_nt(Some(name));
             }
             "--spans" => {
                 builder.span_params(true);

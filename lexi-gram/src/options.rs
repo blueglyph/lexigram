@@ -128,6 +128,10 @@ pub struct Options {
     pub parser_headers: Vec<String>,
     /// Custom `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
     pub libs: Vec<String>,
+    /// Name of the start nonterminal, which defaults to the first one defined in the grammar.
+    ///
+    /// Default: `None`.
+    pub start_nt: Option<String>,
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
     ///
     /// Default: `false`
@@ -201,6 +205,7 @@ impl Default for Options {
             lexer_headers: vec![],
             parser_headers: vec![],
             libs: vec![],
+            start_nt: None,
             gen_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
@@ -534,6 +539,15 @@ impl OptionsBuilder {
     /// This method can be called several times to add more dependencies.
     pub fn libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) -> &mut Self {
         self.options.libs.extend(libs.into_iter().map(|s| s.into()));
+        self
+    }
+
+    /// Defines the start nonterminal. The default, if `name_opt` is `None` or if this method isn't called,
+    /// is the first one defined in the grammar.
+    ///
+    /// Default: `None`
+    pub fn start_nt<T: Into<String>>(&mut self, name_opt: Option<T>) -> &mut Self {
+        self.options.start_nt = name_opt.map(|s| s.into());
         self
     }
 
