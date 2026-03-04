@@ -58,7 +58,7 @@ mod rules_153_1 {
     }
 
     impl TestListener for ChoiceListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 
@@ -176,7 +176,7 @@ mod rules_580_1 {
     }
 
     impl TestListener for EListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 
@@ -552,7 +552,7 @@ mod rules_640_1 {
     }
 
     impl TestListener for EListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 
@@ -685,7 +685,7 @@ mod rules_641_1 {
     }
 
     impl TestListener for EListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 
@@ -818,7 +818,7 @@ mod rules_642_1 {
     }
 
     impl TestListener for EListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 
@@ -951,7 +951,7 @@ mod rules_862_1 {
     }
 
     impl TestListener for ExprListener {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 

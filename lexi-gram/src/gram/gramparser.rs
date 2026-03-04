@@ -145,7 +145,7 @@ pub trait GramParserListener {
     /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> Terminate { Terminate::None }
-    fn get_mut_log(&mut self) -> &mut impl Logger;
+    fn get_log_mut(&mut self) -> &mut impl Logger;
     #[allow(unused_variables)]
     fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
     #[allow(unused_variables)]
@@ -276,8 +276,8 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
         self.stack_t.clear();
     }
 
-    fn get_mut_log(&mut self) -> &mut impl Logger {
-        self.listener.get_mut_log()
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        self.listener.get_log_mut()
     }
 
     fn push_span(&mut self, span: PosSpan) {

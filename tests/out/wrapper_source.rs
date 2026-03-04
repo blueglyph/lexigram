@@ -49,7 +49,7 @@ pub(crate) mod rules_13_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -126,8 +126,8 @@ pub(crate) mod rules_13_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -263,7 +263,7 @@ pub(crate) mod rules_14_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -342,8 +342,8 @@ pub(crate) mod rules_14_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -472,7 +472,7 @@ pub(crate) mod rules_14_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -552,8 +552,8 @@ pub(crate) mod rules_14_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -678,7 +678,7 @@ pub(crate) mod rules_14_3 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -758,8 +758,8 @@ pub(crate) mod rules_14_3 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -884,7 +884,7 @@ pub(crate) mod rules_14_4 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -965,8 +965,8 @@ pub(crate) mod rules_14_4 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1083,7 +1083,7 @@ pub(crate) mod rules_102_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1159,8 +1159,8 @@ pub(crate) mod rules_102_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1271,7 +1271,7 @@ pub(crate) mod rules_103_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1349,8 +1349,8 @@ pub(crate) mod rules_103_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1472,7 +1472,7 @@ pub(crate) mod rules_104_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1552,8 +1552,8 @@ pub(crate) mod rules_104_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1687,7 +1687,7 @@ pub(crate) mod rules_105_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1769,8 +1769,8 @@ pub(crate) mod rules_105_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1910,7 +1910,7 @@ pub(crate) mod rules_106_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1993,8 +1993,8 @@ pub(crate) mod rules_106_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2135,7 +2135,7 @@ pub(crate) mod rules_106_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2219,8 +2219,8 @@ pub(crate) mod rules_106_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2332,7 +2332,7 @@ pub(crate) mod rules_108_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2408,8 +2408,8 @@ pub(crate) mod rules_108_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2515,7 +2515,7 @@ pub(crate) mod rules_109_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2592,8 +2592,8 @@ pub(crate) mod rules_109_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2731,7 +2731,7 @@ pub(crate) mod rules_110_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2811,8 +2811,8 @@ pub(crate) mod rules_110_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2953,7 +2953,7 @@ pub(crate) mod rules_150_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3030,8 +3030,8 @@ pub(crate) mod rules_150_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3168,7 +3168,7 @@ pub(crate) mod rules_152_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3250,8 +3250,8 @@ pub(crate) mod rules_152_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3439,7 +3439,7 @@ pub(crate) mod rules_153_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3527,8 +3527,8 @@ pub(crate) mod rules_153_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3667,7 +3667,7 @@ pub(crate) mod rules_200_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3747,8 +3747,8 @@ pub(crate) mod rules_200_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3862,7 +3862,7 @@ pub(crate) mod rules_200_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3941,8 +3941,8 @@ pub(crate) mod rules_200_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4046,7 +4046,7 @@ pub(crate) mod rules_201_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4126,8 +4126,8 @@ pub(crate) mod rules_201_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4237,7 +4237,7 @@ pub(crate) mod rules_201_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4318,8 +4318,8 @@ pub(crate) mod rules_201_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4426,7 +4426,7 @@ pub(crate) mod rules_201_3 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4506,8 +4506,8 @@ pub(crate) mod rules_201_3 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4626,7 +4626,7 @@ pub(crate) mod rules_202_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4710,8 +4710,8 @@ pub(crate) mod rules_202_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4848,7 +4848,7 @@ pub(crate) mod rules_206_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4931,8 +4931,8 @@ pub(crate) mod rules_206_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5080,7 +5080,7 @@ pub(crate) mod rules_208_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5171,8 +5171,8 @@ pub(crate) mod rules_208_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5326,7 +5326,7 @@ pub(crate) mod rules_208_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5417,8 +5417,8 @@ pub(crate) mod rules_208_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5556,7 +5556,7 @@ pub(crate) mod rules_208_3 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5646,8 +5646,8 @@ pub(crate) mod rules_208_3 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5771,7 +5771,7 @@ pub(crate) mod rules_208_4 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5861,8 +5861,8 @@ pub(crate) mod rules_208_4 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5977,7 +5977,7 @@ pub(crate) mod rules_210_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6056,8 +6056,8 @@ pub(crate) mod rules_210_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6162,7 +6162,7 @@ pub(crate) mod rules_211_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6245,8 +6245,8 @@ pub(crate) mod rules_211_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6388,7 +6388,7 @@ pub(crate) mod rules_212_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6469,8 +6469,8 @@ pub(crate) mod rules_212_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6603,7 +6603,7 @@ pub(crate) mod rules_250_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6684,8 +6684,8 @@ pub(crate) mod rules_250_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6810,7 +6810,7 @@ pub(crate) mod rules_251_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6893,8 +6893,8 @@ pub(crate) mod rules_251_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7038,7 +7038,7 @@ pub(crate) mod rules_252_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7132,8 +7132,8 @@ pub(crate) mod rules_252_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7318,7 +7318,7 @@ pub(crate) mod rules_253_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7412,8 +7412,8 @@ pub(crate) mod rules_253_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7594,7 +7594,7 @@ pub(crate) mod rules_254_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7687,8 +7687,8 @@ pub(crate) mod rules_254_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7867,7 +7867,7 @@ pub(crate) mod rules_256_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7957,8 +7957,8 @@ pub(crate) mod rules_256_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8116,7 +8116,7 @@ pub(crate) mod rules_258_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8211,8 +8211,8 @@ pub(crate) mod rules_258_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8396,7 +8396,7 @@ pub(crate) mod rules_259_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8497,8 +8497,8 @@ pub(crate) mod rules_259_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8656,7 +8656,7 @@ pub(crate) mod rules_301_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8727,8 +8727,8 @@ pub(crate) mod rules_301_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8826,7 +8826,7 @@ pub(crate) mod rules_301_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8897,8 +8897,8 @@ pub(crate) mod rules_301_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8996,7 +8996,7 @@ pub(crate) mod rules_401_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9070,8 +9070,8 @@ pub(crate) mod rules_401_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9172,7 +9172,7 @@ pub(crate) mod rules_401_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9246,8 +9246,8 @@ pub(crate) mod rules_401_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9351,7 +9351,7 @@ pub(crate) mod rules_502_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9430,8 +9430,8 @@ pub(crate) mod rules_502_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9554,7 +9554,7 @@ pub(crate) mod rules_502_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9631,8 +9631,8 @@ pub(crate) mod rules_502_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9741,7 +9741,7 @@ pub(crate) mod rules_580_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9817,8 +9817,8 @@ pub(crate) mod rules_580_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9932,7 +9932,7 @@ pub(crate) mod rules_600_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10006,8 +10006,8 @@ pub(crate) mod rules_600_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10142,7 +10142,7 @@ pub(crate) mod rules_603_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10221,8 +10221,8 @@ pub(crate) mod rules_603_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10322,7 +10322,7 @@ pub(crate) mod rules_603_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -10434,7 +10434,7 @@ pub(crate) mod rules_604_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10513,8 +10513,8 @@ pub(crate) mod rules_604_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10614,7 +10614,7 @@ pub(crate) mod rules_604_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -10725,7 +10725,7 @@ pub(crate) mod rules_605_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10804,8 +10804,8 @@ pub(crate) mod rules_605_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10905,7 +10905,7 @@ pub(crate) mod rules_605_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -11016,7 +11016,7 @@ pub(crate) mod rules_606_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11095,8 +11095,8 @@ pub(crate) mod rules_606_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11192,7 +11192,7 @@ pub(crate) mod rules_606_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -11303,7 +11303,7 @@ pub(crate) mod rules_607_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11383,8 +11383,8 @@ pub(crate) mod rules_607_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11480,7 +11480,7 @@ pub(crate) mod rules_607_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -11591,7 +11591,7 @@ pub(crate) mod rules_608_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11674,8 +11674,8 @@ pub(crate) mod rules_608_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11771,7 +11771,7 @@ pub(crate) mod rules_608_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -11882,7 +11882,7 @@ pub(crate) mod rules_609_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11961,8 +11961,8 @@ pub(crate) mod rules_609_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12057,7 +12057,7 @@ pub(crate) mod rules_609_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -12168,7 +12168,7 @@ pub(crate) mod rules_610_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12248,8 +12248,8 @@ pub(crate) mod rules_610_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12344,7 +12344,7 @@ pub(crate) mod rules_610_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -12455,7 +12455,7 @@ pub(crate) mod rules_611_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12538,8 +12538,8 @@ pub(crate) mod rules_611_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12634,7 +12634,7 @@ pub(crate) mod rules_611_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -12745,7 +12745,7 @@ pub(crate) mod rules_612_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12828,8 +12828,8 @@ pub(crate) mod rules_612_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12925,7 +12925,7 @@ pub(crate) mod rules_612_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -13036,7 +13036,7 @@ pub(crate) mod rules_613_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13115,8 +13115,8 @@ pub(crate) mod rules_613_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13212,7 +13212,7 @@ pub(crate) mod rules_613_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -13323,7 +13323,7 @@ pub(crate) mod rules_614_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13403,8 +13403,8 @@ pub(crate) mod rules_614_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13500,7 +13500,7 @@ pub(crate) mod rules_614_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -13611,7 +13611,7 @@ pub(crate) mod rules_630_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13687,8 +13687,8 @@ pub(crate) mod rules_630_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13787,7 +13787,7 @@ pub(crate) mod rules_630_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -13898,7 +13898,7 @@ pub(crate) mod rules_631_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13974,8 +13974,8 @@ pub(crate) mod rules_631_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14074,7 +14074,7 @@ pub(crate) mod rules_631_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -14185,7 +14185,7 @@ pub(crate) mod rules_632_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14261,8 +14261,8 @@ pub(crate) mod rules_632_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14361,7 +14361,7 @@ pub(crate) mod rules_632_1 {
         }
 
         impl TestListener for EListener {
-            fn get_mut_log(&mut self) -> &mut impl Logger {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
 
@@ -14459,7 +14459,7 @@ pub(crate) mod rules_640_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14541,8 +14541,8 @@ pub(crate) mod rules_640_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14685,7 +14685,7 @@ pub(crate) mod rules_641_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14767,8 +14767,8 @@ pub(crate) mod rules_641_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14911,7 +14911,7 @@ pub(crate) mod rules_642_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14993,8 +14993,8 @@ pub(crate) mod rules_642_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15123,7 +15123,7 @@ pub(crate) mod rules_650_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15197,8 +15197,8 @@ pub(crate) mod rules_650_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15306,7 +15306,7 @@ pub(crate) mod rules_705_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15383,8 +15383,8 @@ pub(crate) mod rules_705_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15506,7 +15506,7 @@ pub(crate) mod rules_810_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15583,8 +15583,8 @@ pub(crate) mod rules_810_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15706,7 +15706,7 @@ pub(crate) mod rules_811_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15785,8 +15785,8 @@ pub(crate) mod rules_811_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15908,7 +15908,7 @@ pub(crate) mod rules_820_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15989,8 +15989,8 @@ pub(crate) mod rules_820_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16117,7 +16117,7 @@ pub(crate) mod rules_821_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16199,8 +16199,8 @@ pub(crate) mod rules_821_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16332,7 +16332,7 @@ pub(crate) mod rules_835_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16415,8 +16415,8 @@ pub(crate) mod rules_835_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16550,7 +16550,7 @@ pub(crate) mod rules_862_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16626,8 +16626,8 @@ pub(crate) mod rules_862_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16733,7 +16733,7 @@ pub(crate) mod rules_870_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16810,8 +16810,8 @@ pub(crate) mod rules_870_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16929,7 +16929,7 @@ pub(crate) mod rules_871_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -17006,8 +17006,8 @@ pub(crate) mod rules_871_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -17323,7 +17323,7 @@ pub(crate) mod rules_901_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -17511,8 +17511,8 @@ pub(crate) mod rules_901_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -18031,7 +18031,7 @@ pub(crate) mod rules_902_1 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -18146,8 +18146,8 @@ pub(crate) mod rules_902_1 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -18417,7 +18417,7 @@ pub(crate) mod rules_902_2 {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -18535,8 +18535,8 @@ pub(crate) mod rules_902_2 {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn push_span(&mut self, span: PosSpan) {

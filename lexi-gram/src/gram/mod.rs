@@ -61,7 +61,7 @@ impl<R: Read> Gram<'_, '_, R> {
             panic!("unexpected channel {ch} from Gram while parsing a grammar at {pos_span}, \"{text}\"")
         );
         if let Err(e) = self.gramparser.parse_stream(&mut self.wrapper, tokens) {
-            self.get_listener_mut().get_mut_log().add_error(e.to_string());
+            self.get_listener_mut().get_log_mut().add_error(e.to_string());
         }
         let log = self.get_listener().get_log();
         if !log.has_no_errors() {
@@ -103,7 +103,7 @@ impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
             if let Some(start_nt) = listener.get_symbol_table().find_nt(&name) {
                 listener.set_start_nt(start_nt);
             } else {
-                listener.get_mut_log().add_error(format!("couldn't find nonterminal '{name}' to set the start rule"))
+                listener.get_log_mut().add_error(format!("couldn't find nonterminal '{name}' to set the start rule"))
             }
         }
         let mut prs = ProdRuleSet::<General>::from(listener);

@@ -284,7 +284,7 @@ pub trait ListenerWrapper {
     fn abort(&mut self) {}
 
     /// Gets access to the listener's log to report possible errors and information about the parsing.
-    fn get_mut_log(&mut self) -> &mut impl Logger;
+    fn get_log_mut(&mut self) -> &mut impl Logger;
 
     /// Pushes a location span onto the (optional) span stack
     #[allow(unused_variables)]
@@ -549,10 +549,10 @@ impl<'a> Parser<'a> {
                 (_, Symbol::Empty) => {
                     // lexer couldn't recognize the next symbol
                     if VERBOSE { println!("lexer error: {stream_str}"); }
-                    wrapper.get_mut_log().add_error(format!("lexical error: {stream_str}"));
+                    wrapper.get_log_mut().add_error(format!("lexical error: {stream_str}"));
                     nbr_lexer_errors += 1;
                     if nbr_lexer_errors >= Self::MAX_NBR_LEXER_ERRORS {
-                        wrapper.get_mut_log().add_note(format!("too many lexical errors ({nbr_lexer_errors}), giving up"));
+                        wrapper.get_log_mut().add_note(format!("too many lexical errors ({nbr_lexer_errors}), giving up"));
                         wrapper.abort();
                         return Err(ParserError::TooManyErrors);
                     }
@@ -594,16 +594,16 @@ impl<'a> Parser<'a> {
                                           stack_sym.to_str(sym_table),
                                           if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
-                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.get_log_mut().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.get_mut_log().add_note(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.get_log_mut().add_note(format!("too many errors ({nbr_recovers}), giving up"));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
-                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.get_log_mut().add_error(msg);
                             wrapper.abort();
                             return Err(ParserError::SyntaxError);
                         }
@@ -614,7 +614,7 @@ impl<'a> Parser<'a> {
                             if stream_sym == Symbol::End {
                                 let msg = "irrecoverable error, reached end of stream".to_string();
                                 if VERBOSE { println!("(recovering) {msg}"); }
-                                wrapper.get_mut_log().add_note(msg);
+                                wrapper.get_log_mut().add_note(msg);
                                 wrapper.abort();
                                 return Err(ParserError::Irrecoverable);
                             }
@@ -626,7 +626,7 @@ impl<'a> Parser<'a> {
                         } else if alt_id < error_skip_alt_id {
                             recover_mode = false;
                             let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
-                            wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
+                            wrapper.get_log_mut().add_note(format!("resynchronized on '{}'{pos_str}",
                                                                    stream_sym.to_str(self.get_symbol_table())));
                             if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                         } else {
@@ -679,16 +679,16 @@ impl<'a> Parser<'a> {
                             Symbol::T(sk).to_str(sym_table),
                             if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
-                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.get_log_mut().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.get_mut_log().add_note(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.get_log_mut().add_note(format!("too many errors ({nbr_recovers}), giving up"));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
-                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.get_log_mut().add_error(msg);
                             wrapper.abort();
                             return Err(ParserError::SyntaxError);
                         }
@@ -698,7 +698,7 @@ impl<'a> Parser<'a> {
                         if sk == sr {
                             recover_mode = false;
                             let pos_str = if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
-                            wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
+                            wrapper.get_log_mut().add_note(format!("resynchronized on '{}'{pos_str}",
                                                                    stream_sym.to_str(self.get_symbol_table())));
                             if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                         } else {
@@ -723,19 +723,19 @@ impl<'a> Parser<'a> {
                     break;
                 }
                 (OpCode::End, _) => {
-                    wrapper.get_mut_log()
+                    wrapper.get_log_mut()
                         .add_error(format!("syntax error: found extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    wrapper.get_mut_log()
+                    wrapper.get_log_mut()
                         .add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str_name(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
-                    wrapper.get_mut_log()
+                    wrapper.get_log_mut()
                         .add_error(format!(
                             "unexpected syntax error: input '{}' while expecting '{}'{}",
                             stream_sym.to_str(sym_table), stack_sym.to_str_name(sym_table),

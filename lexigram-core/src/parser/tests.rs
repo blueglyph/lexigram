@@ -361,7 +361,7 @@ mod wrapper {
             panic!("abort");
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
         }
 

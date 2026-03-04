@@ -82,7 +82,7 @@ impl MCalc<'_, '_> {
             panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
         );
         if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
-            self.wrapper.get_listener_mut().get_mut_log().add_error(e.to_string());
+            self.wrapper.get_listener_mut().get_log_mut().add_error(e.to_string());
         }
         let log = std::mem::take(&mut self.wrapper.get_listener_mut().log);
         if log.has_no_errors() {
@@ -106,7 +106,7 @@ impl MCalcListener {
 }
 
 impl MicroCalcListener for MCalcListener {
-    fn get_mut_log(&mut self) -> &mut impl Logger {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
     }
 
@@ -533,7 +533,7 @@ pub mod microcalc_parser {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -687,8 +687,8 @@ pub mod microcalc_parser {
             self.stack_t.clear();
         }
 
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
         }
 
         fn is_stack_empty(&self) -> bool {

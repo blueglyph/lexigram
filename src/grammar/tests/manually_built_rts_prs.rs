@@ -421,7 +421,7 @@ fn parser_parse_stream() {
 
     struct Stub(BufLog);
     impl ListenerWrapper for Stub {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.0
         }
     }
@@ -516,7 +516,7 @@ fn parser_parse_stream_id() {
 
     struct Stub(BufLog);
     impl ListenerWrapper for Stub {
-        fn get_mut_log(&mut self) -> &mut impl Logger {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.0
         }
     }

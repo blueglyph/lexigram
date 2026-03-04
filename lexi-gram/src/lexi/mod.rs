@@ -79,7 +79,7 @@ impl<R: Read> Lexi<'_, '_, R> {
             });
             if self.lexiparser.parse_stream(&mut self.wrapper, tokens).is_ok() {
                 for s in self.get_listener_mut().rules_to_vecstrings() {
-                    self.get_listener_mut().get_mut_log().add_note(s);
+                    self.get_listener_mut().get_log_mut().add_note(s);
                 }
             }
         }

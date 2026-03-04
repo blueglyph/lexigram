@@ -273,7 +273,7 @@ pub trait LogReader {
 }
 
 pub trait LogWriter {
-    fn get_mut_log(&mut self) -> &mut impl Logger;
+    fn get_log_mut(&mut self) -> &mut impl Logger;
 }
 
 impl<T: LogReader + Debug> LogStatus for T {
@@ -312,19 +312,19 @@ impl<T: LogReader + Debug> LogStatus for T {
 
 impl<L: LogWriter + Debug> Logger for L {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
-        self.get_mut_log().add_note(msg);
+        self.get_log_mut().add_note(msg);
     }
 
     fn add_info<T: Into<String>>(&mut self, msg: T) {
-        self.get_mut_log().add_info(msg);
+        self.get_log_mut().add_info(msg);
     }
 
     fn add_warning<T: Into<String>>(&mut self, msg: T) {
-        self.get_mut_log().add_warning(msg);
+        self.get_log_mut().add_warning(msg);
     }
 
     fn add_error<T: Into<String>>(&mut self, msg: T) {
-        self.get_mut_log().add_error(msg);
+        self.get_log_mut().add_error(msg);
     }
 }
 

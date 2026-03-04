@@ -2241,7 +2241,7 @@ impl ParserGen {
             String::new(),
             "#[allow(unused)]".to_string(),
             format!("impl {}Listener for Listener {{", self.name),
-            "    fn get_mut_log(&mut self) -> &mut impl Logger {".to_string(),
+            "    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string(),
             "        &mut self.log".to_string(),
             "    }".to_string(),
             String::new(),
@@ -2740,7 +2740,7 @@ impl ParserGen {
         src.push("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from".to_string());
         src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
         src.push("    fn check_abort_request(&self) -> Terminate { Terminate::None }".to_string());
-        src.push("    fn get_mut_log(&mut self) -> &mut impl Logger;".to_string());
+        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger;".to_string());
         let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
@@ -2873,8 +2873,8 @@ impl ParserGen {
         src.push("        self.stack_t.clear();".to_string());
         src.push("    }".to_string());
         src.push(String::new());
-        src.push("    fn get_mut_log(&mut self) -> &mut impl Logger {".to_string());
-        src.push("        self.listener.get_mut_log()".to_string());
+        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string());
+        src.push("        self.listener.get_log_mut()".to_string());
         src.push("    }".to_string());
         if self.gen_span_params {
             src.push(String::new());
