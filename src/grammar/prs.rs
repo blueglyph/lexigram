@@ -99,6 +99,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) name: Option<String>,
     pub(crate) nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
+    pub(crate) disable_warning_unused_nt_t: bool,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -111,6 +112,12 @@ impl<T> ProdRuleSet<T> {
     /// Sets the starting production rule.
     pub fn set_start(&mut self, start: VarId) {
         self.start = Some(start);
+    }
+
+    /// Disables warnings about unused terminals and nonterminals. Can be used together with
+    /// [set_start()](ProdRuleSet::set_start) to avoid expected warnings.
+    pub fn set_disable_warning_unused_nt_t(&mut self, flag: bool) {
+        self.disable_warning_unused_nt_t = flag;
     }
 
     pub fn get_name(&self) -> Option<&String> {
@@ -414,8 +421,14 @@ impl<T> ProdRuleSet<T> {
                 .map(Symbol::NT)
                 .to_vec();
             if !nt_removed.is_empty() {
-                self.log.add_warning(format!("calc_first: unused nonterminals: {}",
-                                             nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", ")));
+                let msg = format!(
+                    "calc_first: unused nonterminals: {}",
+                    nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", "));
+                if !self.disable_warning_unused_nt_t {
+                    self.log.add_warning(msg);
+                } else {
+                    self.log.add_note(msg);
+                }
             }
             self.cleanup_symbols(&mut symbols);
         }
@@ -426,7 +439,12 @@ impl<T> ProdRuleSet<T> {
                 if !symbols.contains(&s) { Some(format!("T({t_id}) = {}", s.to_str(self.get_symbol_table()))) } else { None }
             }).to_vec();
         if !unused_t.is_empty() {
-            self.log.add_warning(format!("calc_first: unused terminals: {}", unused_t.join(", ")))
+            let msg = format!("calc_first: unused terminals: {}", unused_t.join(", "));
+            if !self.disable_warning_unused_nt_t {
+                self.log.add_warning(msg)
+            } else {
+                self.log.add_note(msg);
+            }
         }
 
         let mut first = symbols.into_iter().map(|sym| {
@@ -1039,6 +1057,7 @@ impl ProdRuleSet<General> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
+            disable_warning_unused_nt_t: false,
             _phantom: PhantomData
         }
     }
@@ -1229,6 +1248,7 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    vec![{}],", self.flags.iter().join(", ")));
         source.push(format!("    vec![{}],", self.parent.iter().map(|p_maybe| format!("{p_maybe:?}")).join(", ")));
         source.push(format!("    {:?},", self.start));
+        source.push(format!("    {},", self.disable_warning_unused_nt_t));
         source.push(format!("    hashmap![{}]", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
@@ -1246,6 +1266,7 @@ pub struct ProdRuleSetTables {
     flags: Vec<u32>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
+    disable_warning_unused_nt_t: bool,
     nt_conversion: HashMap<VarId, NTConversion>,
 }
 
@@ -1259,6 +1280,7 @@ impl ProdRuleSetTables {
         flags: Vec<u32>,
         parent: Vec<Option<VarId>>,
         start: Option<VarId>,
+        disable_warning_unused_nt_t: bool,
         nt_conversion: HashMap<VarId, NTConversion>,
     ) -> Self {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
@@ -1266,7 +1288,8 @@ impl ProdRuleSetTables {
         ProdRuleSetTables {
             name: name.map(|s| s.into()),
             prules,
-            origin, t, nt, flags, parent, start, nt_conversion,
+            origin, t, nt, flags, parent, start,
+            disable_warning_unused_nt_t, nt_conversion,
         }
     }
 
@@ -1292,6 +1315,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             name: source.name,
             nt_conversion: source.nt_conversion,
             log: BufLog::new(),
+            disable_warning_unused_nt_t: source.disable_warning_unused_nt_t,
             _phantom: PhantomData,
         }
     }
@@ -1462,6 +1486,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
+            disable_warning_unused_nt_t: rules.disable_warning_unused_nt_t,
             _phantom: PhantomData,
         }
     }
@@ -1486,6 +1511,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
+            disable_warning_unused_nt_t: rules.disable_warning_unused_nt_t,
             _phantom: PhantomData,
         }
     }

@@ -69,6 +69,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         vec![0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)],
         Some(0),
+        false,
         hashmap![]
     );
 

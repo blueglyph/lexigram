@@ -29,6 +29,7 @@ impl<T> ProdRuleSet<T> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
+            disable_warning_unused_nt_t: false,
             _phantom: PhantomData
         }
     }

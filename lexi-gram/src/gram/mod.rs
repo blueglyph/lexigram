@@ -102,6 +102,7 @@ impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
         if let Some(name) = gram.start_nt {
             if let Some(start_nt) = listener.get_symbol_table().find_nt(&name) {
                 listener.set_start_nt(start_nt);
+                listener.set_disable_warning_unused_nt_t(true);
             } else {
                 listener.get_log_mut().add_error(format!("couldn't find nonterminal '{name}' to set the start rule"))
             }

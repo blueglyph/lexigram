@@ -29,6 +29,7 @@ pub struct GramListener {
     curr_nt: Option<VarId>,
     rules: Vec<VecTree<GrNode>>,
     start_nt: Option<VarId>,
+    disable_warning_unused_nt_t: bool,
     symbol_table: SymbolTable,
     /// T symbols pre-defined in the symbol table; the listener adds the NT symbols.
     symbols: HashMap<String, Symbol>,
@@ -63,6 +64,7 @@ impl GramListener {
             curr_nt: None,
             rules: Vec::new(),
             start_nt: None,
+            disable_warning_unused_nt_t: false,
             symbol_table,
             symbols,
             nt_reserved: HashMap::new(),
@@ -81,6 +83,10 @@ impl GramListener {
 
     pub fn get_start_rule(&self) -> Option<VarId> {
         self.start_nt
+    }
+
+    pub fn set_disable_warning_unused_nt_t(&mut self, flag: bool) {
+        self.disable_warning_unused_nt_t = flag;
     }
 
     pub fn get_symbol_table(&self) -> &SymbolTable {
@@ -190,6 +196,7 @@ impl From<GramListener> for ProdRuleSet<General> {
         let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
             prs.set_start(gram_listener.start_nt.unwrap());
+            prs.set_disable_warning_unused_nt_t(gram_listener.disable_warning_unused_nt_t);
         }
         prs
     }
