@@ -221,7 +221,7 @@ impl Default for Options {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum BuilderState { Start, Lexer, Parser, Types, Skel, Error }
+enum BuilderState { Start, Lexer, Parser, Types, Listener, Error }
 
 /// Builder of the [Options] object.
 ///
@@ -314,7 +314,7 @@ impl OptionsBuilder {
                     self.set_error("combined spec: ", ERR_COMBINED_SPEC_ALREADY_SET);
                 }
             }
-            BuilderState::Lexer | BuilderState::Parser | BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Lexer | BuilderState::Parser | BuilderState::Types | BuilderState::Listener => {
                 self.set_error("combined spec: ", ERR_COMBINED_SPEC_GIVEN_TOO_LATE);
             }
             BuilderState::Error => {}
@@ -336,7 +336,7 @@ impl OptionsBuilder {
             BuilderState::Parser => {
                 self.set_error("lexer spec: ", ERR_LEXER_AFTER_PARSER);
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("lexer spec: ", ERR_LEXER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -358,7 +358,7 @@ impl OptionsBuilder {
             BuilderState::Parser => {
                 self.set_error("lexer code: ", ERR_LEXER_AFTER_PARSER);
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("lexer code: ", ERR_LEXER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -380,7 +380,7 @@ impl OptionsBuilder {
             BuilderState::Parser => {
                 self.set_error("lexer: ", ERR_LEXER_AFTER_PARSER);
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("lexer: ", ERR_LEXER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -402,7 +402,7 @@ impl OptionsBuilder {
                     self.set_error("parser spec: ", ERR_PARSER_SPEC_ALREADY_SET);
                 }
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("parser specs: ", ERR_PARSER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -424,7 +424,7 @@ impl OptionsBuilder {
                     self.set_error("parser code: ", ERR_PARSER_CODE_ALREADY_SET);
                 }
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("parser code: ", ERR_PARSER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -446,7 +446,7 @@ impl OptionsBuilder {
             BuilderState::Lexer | BuilderState::Parser => {
                 self.set_error("parser: ", ERR_PARSER_SPEC_OR_CODE_ALREADY_SET);
             }
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 self.set_error("parser: ", ERR_PARSER_AFTER_TEMPLATES);
             }
             BuilderState::Error => {}
@@ -458,7 +458,7 @@ impl OptionsBuilder {
     pub fn types_code(&mut self, types_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
-            | BuilderState::Types | BuilderState::Skel => {
+            | BuilderState::Types | BuilderState::Listener => {
                 if !self.options.has_parser_code() {
                     self.set_error("types code: ", ERR_MISSING_PARSER_CODE);
                 } else if !self.options.has_types_code() {
@@ -477,11 +477,11 @@ impl OptionsBuilder {
     pub fn listener_code(&mut self, listener_code: CodeLocation) -> &mut Self {
         match self.state {
             BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
-            | BuilderState::Types | BuilderState::Skel => {
+            | BuilderState::Types | BuilderState::Listener => {
                 if !self.options.has_parser_code() {
                     self.set_error("listener code: ", ERR_MISSING_PARSER_CODE);
                 } else if !self.options.has_listener_code() {
-                    self.state = BuilderState::Skel;
+                    self.state = BuilderState::Listener;
                     self.options.listener_code = listener_code;
                 } else {
                     self.set_error("listener code: ", ERR_LISTENER_CODE_ALREADY_SET);
@@ -504,7 +504,7 @@ impl OptionsBuilder {
             BuilderState::Lexer => self.options.lexer_indent = indent,
             BuilderState::Parser => self.options.parser_indent = indent,
             BuilderState::Types => self.options.types_indent = indent,
-            BuilderState::Skel => self.options.listener_indent = indent,
+            BuilderState::Listener => self.options.listener_indent = indent,
             BuilderState::Error => {}
         }
         self
@@ -523,7 +523,7 @@ impl OptionsBuilder {
             }
             BuilderState::Lexer => self.options.lexer_headers.extend(hdr),
             BuilderState::Parser => self.options.parser_headers.extend(hdr),
-            BuilderState::Types | BuilderState::Skel => {
+            BuilderState::Types | BuilderState::Listener => {
                 // ignored; no headers in templates
             }
             BuilderState::Error => {}
