@@ -45,7 +45,7 @@ tag_opt:
 ;
 
 global_options:
-    global_option (Comma global_options)*
+     global_option (Comma global_option)*
 ;
 
 global_option:
@@ -64,8 +64,8 @@ value:
 nt_value:
     Default
 |   None
-|   Parent
-|   Lbracket Id (Comma Id)* Rbracket
+|   Parents
+|   Set Lbracket Id (Comma Id)* Rbracket
 ;
 
 // static LEXICON_FILENAME: &str = "src/watcher.lg";
@@ -95,15 +95,15 @@ nt_value:
 // lexer {
 //     combined: "src/watcher.lg",
 //     output: SOURCE_FILENAME ["watcher_lexer"],
-//     indent: 4
+//     indent: 4;
 // }
 // parser {
-//     output: SOURCE_FILENAME ["watcher_parser"],
-//     indent: 4
+//     output: SOURCE_FILENAME ["watcher_parser"];
+//     indent: 4;
 // }
 // options {
-//     nt_value: none,
-//     spans: true
+//     nt_value: none;
+//     spans: true;
 // }
 // 
 // // -------------------------------------------------------------------------
@@ -143,18 +143,18 @@ nt_value:
 // def SOURCE_FILENAME = "../microcalc/src/main.rs";
 // 
 // lexer {
-//     input: LEXICON_GRAMMAR_FILENAME,
-//     output: SOURCE_FILENAME ["microcalc_lexer"],
-//     indent: 4
+//     input: LEXICON_GRAMMAR_FILENAME;
+//     output: SOURCE_FILENAME ["microcalc_lexer"];
+//     indent: 4;
 // }
 // parser {
-//     input: LEXICON_GRAMMAR_FILENAME,
-//     output: SOURCE_FILENAME ["microcalc_parser"],
-//     indent: 4
+//     input: LEXICON_GRAMMAR_FILENAME;
+//     output: SOURCE_FILENAME ["microcalc_parser"];
+//     indent: 4;
 // }
 // options {
-//     libs: { "super::listener_types::*" },
-//     nt_value: default
+//     libs: { "super::listener_types::*" };
+//     nt_value: default;
 // }
 // 
 // // -------------------------------------------------------------------------

@@ -1,7 +1,208 @@
 // -----------------------------------------------------------------------------
 // [template_user_types]
+
+    // --------------------------------------------------------------------------------
+    // Template for the user-defined types:
+
+    /// User-defined type for `config`
+    #[derive(Debug, PartialEq)]
+    pub struct SynConfig();
+
+    /// User-defined type for `item`
+    #[derive(Debug, PartialEq)]
+    pub struct SynItem();
+
+    /// User-defined type for `definition`
+    #[derive(Debug, PartialEq)]
+    pub struct SynDefinition();
+
+    /// User-defined type for `lexer`
+    #[derive(Debug, PartialEq)]
+    pub struct SynLexer();
+
+    /// User-defined type for `parser`
+    #[derive(Debug, PartialEq)]
+    pub struct SynParser();
+
+    /// User-defined type for `options`
+    #[derive(Debug, PartialEq)]
+    pub struct SynOptions();
+
+    /// User-defined type for `io_options`
+    #[derive(Debug, PartialEq)]
+    pub struct SynIoOptions();
+
+    /// User-defined type for `io_option`
+    #[derive(Debug, PartialEq)]
+    pub struct SynIoOption();
+
+    /// User-defined type for `tag_opt`
+    #[derive(Debug, PartialEq)]
+    pub struct SynTagOpt();
+
+    /// User-defined type for `global_options`
+    #[derive(Debug, PartialEq)]
+    pub struct SynGlobalOptions();
+
+    /// User-defined type for `global_option`
+    #[derive(Debug, PartialEq)]
+    pub struct SynGlobalOption();
+
+    /// User-defined type for `value`
+    #[derive(Debug, PartialEq)]
+    pub struct SynValue();
+
+    /// User-defined type for `nt_value`
+    #[derive(Debug, PartialEq)]
+    pub struct SynNtValue();
+
+    // --------------------------------------------------------------------------------
+
 // [template_user_types]
 // -----------------------------------------------------------------------------
 // [template_listener_impl]
+
+    // --------------------------------------------------------------------------------
+    // Template for the user implementation of ConfigListener
+
+    struct Listener {
+        log: BufLog,
+    }
+
+    #[allow(unused)]
+    impl ConfigListener for Listener {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn exit_config(&mut self, ctx: CtxConfig) -> SynConfig {
+            match ctx {
+                // config -> config item
+                CtxConfig::V1 { config, item } => {}
+                // config -> item
+                CtxConfig::V2 { item } => {}
+            }
+            SynConfig()
+        }
+
+        fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
+            match ctx {
+                // item -> definition
+                CtxItem::V1 { definition } => {}
+                // item -> lexer
+                CtxItem::V2 { lexer } => {}
+                // item -> parser
+                CtxItem::V3 { parser } => {}
+                // item -> options
+                CtxItem::V4 { options } => {}
+            }
+            SynItem()
+        }
+
+        fn exit_definition(&mut self, ctx: CtxDefinition) -> SynDefinition {
+            // definition -> "def" Id "=" value ";"
+            let CtxDefinition::V1 { id, value } = ctx;
+            SynDefinition()
+        }
+
+        fn exit_lexer(&mut self, ctx: CtxLexer) -> SynLexer {
+            // lexer -> "lexer" "{" io_options "}"
+            let CtxLexer::V1 { io_options } = ctx;
+            SynLexer()
+        }
+
+        fn exit_parser(&mut self, ctx: CtxParser) -> SynParser {
+            // parser -> "parser" "{" io_options "}"
+            let CtxParser::V1 { io_options } = ctx;
+            SynParser()
+        }
+
+        fn exit_options(&mut self, ctx: CtxOptions) -> SynOptions {
+            // options -> "options" "{" global_options "}"
+            let CtxOptions::V1 { global_options } = ctx;
+            SynOptions()
+        }
+
+        fn exit_io_options(&mut self, ctx: CtxIoOptions) -> SynIoOptions {
+            // io_options -> io_option ("," io_option)*
+            let CtxIoOptions::V1 { star } = ctx;
+            SynIoOptions()
+        }
+
+        fn exit_io_option(&mut self, ctx: CtxIoOption) -> SynIoOption {
+            match ctx {
+                // io_option -> "combined" ":" value tag_opt
+                CtxIoOption::V1 { value, tag_opt } => {}
+                // io_option -> "input" ":" value tag_opt
+                CtxIoOption::V2 { value, tag_opt } => {}
+                // io_option -> "output" ":" value tag_opt
+                CtxIoOption::V3 { value, tag_opt } => {}
+                // io_option -> "indent" ":" value
+                CtxIoOption::V4 { value } => {}
+                // io_option -> "headers" ":" "{" value ("," value)* "}"
+                CtxIoOption::V5 { star } => {}
+            }
+            SynIoOption()
+        }
+
+        fn exit_tag_opt(&mut self, ctx: CtxTagOpt) -> SynTagOpt {
+            match ctx {
+                // tag_opt -> "[" value "]"
+                CtxTagOpt::V1 { value } => {}
+                // tag_opt -> ε
+                CtxTagOpt::V2 => {}
+            }
+            SynTagOpt()
+        }
+
+        fn exit_global_options(&mut self, ctx: CtxGlobalOptions) -> SynGlobalOptions {
+            // global_options -> global_option ("," global_option)*
+            let CtxGlobalOptions::V1 { star } = ctx;
+            SynGlobalOptions()
+        }
+
+        fn exit_global_option(&mut self, ctx: CtxGlobalOption) -> SynGlobalOption {
+            match ctx {
+                // global_option -> "libs" ":" "{" value ("," value)* "}"
+                CtxGlobalOption::V1 { star } => {}
+                // global_option -> "nt_value" ":" nt_value
+                CtxGlobalOption::V2 { nt_value } => {}
+                // global_option -> "spans" ":" value
+                CtxGlobalOption::V3 { value } => {}
+            }
+            SynGlobalOption()
+        }
+
+        fn exit_value(&mut self, ctx: CtxValue) -> SynValue {
+            match ctx {
+                // value -> BoolLiteral
+                CtxValue::V1 { boolliteral } => {}
+                // value -> NumLiteral
+                CtxValue::V2 { numliteral } => {}
+                // value -> StrLiteral
+                CtxValue::V3 { strliteral } => {}
+                // value -> Id
+                CtxValue::V4 { id } => {}
+            }
+            SynValue()
+        }
+
+        fn exit_nt_value(&mut self, ctx: CtxNtValue) -> SynNtValue {
+            match ctx {
+                // nt_value -> "default"
+                CtxNtValue::V1 => {}
+                // nt_value -> "none"
+                CtxNtValue::V2 => {}
+                // nt_value -> "parents"
+                CtxNtValue::V3 => {}
+                // nt_value -> "set" "{" Id ("," Id)* "}"
+                CtxNtValue::V4 { star } => {}
+            }
+            SynNtValue()
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+
 // [template_listener_impl]
 // -----------------------------------------------------------------------------

@@ -13,8 +13,7 @@ use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/config.l";
 static GRAMMAR_FILENAME: &str = "src/config.g";
-static LEXICON_GRAMMAR_FILENAME: &str = "src/config.lg";
-static SOURCE_FILENAME: &str = "../config/src/main.rs";
+static SOURCE_FILENAME: &str = "../config/src/lib.rs";
 static LEXER_TAG: &str = "config_lexer";
 static PARSER_TAG: &str = "config_parser";
 static SOURCE_TEMPLATES: &str = "../config/src/templates.txt";
@@ -22,7 +21,7 @@ static USERS_TAG: &str = "template_user_types";
 static LISTENER_TAG: &str = "template_listener_impl";
 const LEXER_INDENT: usize = 4;
 const PARSER_INDENT: usize = 4;
-const INDENT_TEMPLATES: usize = 0;
+const INDENT_TEMPLATES: usize = 4;
 
 // -------------------------------------------------------------------------
 
@@ -37,6 +36,7 @@ fn gen_source_config_l_g(action: Action) {
         .listener_code(gencode!(filename: SOURCE_TEMPLATES, tag: LISTENER_TAG))
         .indent(INDENT_TEMPLATES)
         .libs(["super::listener_types::*"])
+        // .start_nt(Some("parser".to_string()))
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {
@@ -50,6 +50,29 @@ fn gen_source_config_l_g(action: Action) {
     }
 }
 
+mod tests_l_g {
+    use super::*;
+
+    #[test]
+    fn check_source() {
+        gen_source_config_l_g(Action::Verify);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source() {
+        gen_source_config_l_g(Action::Generate);
+    }
+}
+
+// -------------------------------------------------------------------------
+
+#[allow(unused)]
+static LEXICON_GRAMMAR_FILENAME: &str = "src/config.lg";
+
+// -------------------------------------------------------------------------
+
+#[cfg(any())]
 fn gen_source_config_lg(action: Action) {
     let options = OptionsBuilder::new()
         .combined_spec(genspec!(filename: LEXICON_GRAMMAR_FILENAME))
@@ -75,21 +98,7 @@ fn gen_source_config_lg(action: Action) {
     }
 }
 
-mod tests_l_g {
-    use super::*;
-
-    #[test]
-    fn check_source() {
-        gen_source_config_l_g(Action::Verify);
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source() {
-        gen_source_config_l_g(Action::Generate);
-    }
-}
-
+#[cfg(any())]
 mod test_lg {
     use super::*;
 

@@ -1,8 +1,7 @@
 lexicon Config;
 
-fragment EscChar        : '\\' ([nrt"\\] | UnicodeEsc);
+fragment EscChar        : '\\' [nrt"\\];
 fragment Char           : EscChar | ~[\n\r\t"\\];
-fragment StrLiteral     : '"' Char+ '"';
 
 // punctuation and operators
 Colon                   : ':';
@@ -29,11 +28,12 @@ Options                 : 'options';
 Output                  : 'output';
 Parents                 : 'parents';
 Parser                  : 'parser';
+Set                     : 'set';
 Spans                   : 'spans';
 
 // variable terminals
-Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 BoolLiteral             : 'false' | 'true';
+Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 NumLiteral              : [0-9]+;
 StrLiteral              : '"' Char+ '"';
 
