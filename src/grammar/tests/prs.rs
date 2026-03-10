@@ -370,6 +370,30 @@ fn prs_remove_recursion() {
             r#"e_2 -> "!" e | Num"#,                            // right_rec
         ], vec![1536, 4, 2], vec![None, Some(0), Some(0)]),
 
+        // trailing ε's
+        (550, vec![
+            // a -> a A | ε
+            r#"a -> a_1"#,                                      // parent_left_rec
+            r#"a_1 -> A a_1 | ε"#,                              // child_left_rec
+        ], vec![512, 4], vec![None, Some(0)]),
+        (551, vec![
+            // a -> a A | ε | ε
+            r#"a -> a_1"#,                                      // parent_left_rec
+            r#"a_1 -> A a_1 | ε"#,                              // child_left_rec
+        ], vec![512, 4], vec![None, Some(0)]),
+        (651, vec![
+            // a -> a A a | ε
+            r#"a -> a_2 a_1"#,                                  // parent_left_rec | parent_amb
+            r#"a_1 -> A a_2 a_1 | ε"#,                          // child_left_rec
+            r#"a_2 -> ε"#,                                      //
+        ], vec![1536, 4, 0], vec![None, Some(0), Some(0)]),
+        (652, vec![
+            // a -> a A a | ε | ε
+            r#"a -> a_2 a_1"#,                                  // parent_left_rec | parent_amb
+            r#"a_1 -> A a_2 a_1 | ε"#,                          // child_left_rec
+            r#"a_2 -> ε"#,                                      //
+        ], vec![1536, 4, 0], vec![None, Some(0), Some(0)]),
+
         /* template:
         (1, vec![
         ], vec![], vec![]),

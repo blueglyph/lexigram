@@ -581,8 +581,11 @@ impl<T> ProdRuleSet<T> {
                 self.log.add_note(format!("- modifying: {orig_str}"));
                 if VERBOSE { println!("processing: {orig_str}"); }
 
-                let (indep, mut alts) : (Vec<_>, Vec<_>) = take(prule).into_iter()
+                let (mut indep, mut alts) : (Vec<_>, Vec<_>) = take(prule).into_iter()
                     .partition(|alt| alt.first().unwrap() != &symbol && alt.last().unwrap() != &symbol);
+                for alt in indep.iter_mut() {
+                    alt.retain(|s| !s.is_empty());  // `a -> a α | ε`: we don't need to keep the ε
+                }
                 alts.reverse();
                 let mut prec_eq = alts.iter_mut()
                     .map(|f| {
@@ -597,7 +600,7 @@ impl<T> ProdRuleSet<T> {
                                                Symbol::NT(var).to_str(self.get_symbol_table()),
                                                prule_to_str(prule, self.get_symbol_table())));
                     prule.extend(alts);
-                    prule.extend(indep);
+                    // prule.extend(indep); // (it's empty)
                     continue;
                 }
 
@@ -789,6 +792,11 @@ impl<T> ProdRuleSet<T> {
                         || has_ambig && !prod_indep.is_empty()
                     {
                         self.set_flags(nt_indep, ruleflag::R_RECURSION);
+                    }
+                    for alt in &mut indep {
+                        if alt.v.is_empty() {
+                            alt.v.push(Symbol::Empty);
+                        }
                     }
                     prod_indep.extend(indep);
                     self.set_parent(nt_indep, var);
