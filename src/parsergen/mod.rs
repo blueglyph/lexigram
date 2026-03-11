@@ -3103,6 +3103,7 @@ impl ParserGen {
 
     pub fn log_alt_info(&mut self) {
         let mut txt = self.alt_info_str();
+        txt.push("legend: ►nt = enter nonterminal nt, ◄0 = exit alt, ●nt = loop nonterminal, Xyz! = variable terminal, \"…\" = fixed terminal, ▲ = hook".to_string());
         txt.push(String::new());
         self.log.add_note("rule alternatives:");
         self.log.extend_messages(txt.into_iter().map(LogMsg::Info));
