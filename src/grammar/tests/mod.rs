@@ -86,6 +86,7 @@ impl TestRules {
             114 => vec![r#"a -> X? B ("," B)* Z;"#],
             115 => vec![r#"a -> X Y? B ("," B)* Z;"#],
             116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one
+            117 => vec![r#"a -> X B (B)* Z;"#],
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],

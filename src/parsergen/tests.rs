@@ -827,6 +827,20 @@ mod wrapper_source {
                 4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_2 -> a_1 Z     | ◄4 Z! ►a_1     | 3    | X a_1 Z
             ], NTValue::Default, btreemap![0 => vec![3, 4]]),
 
+            // a -> X B B* Z
+            //
+            //   NT    name   val   flags
+            // +-------------------------------------------+
+            // |   0 | a     | y  | parent_+_or_*          |
+            // |   1 | . a_1 | y  | child_+_or_*, sep_list |
+            // +-------------------------------------------+
+            (117, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![t 0, nt 1, t 2]),     //  0: a -> X B a_1 Z | ◄0 Z! ►a_1 B! X! | 3    | X a_1 Z
+                1 => (2, symbols![nt 1, t 1]),          //  1: a_1 -> B a_1   | ●a_1 ◄1 B!       | 2, 1 | a_1 B
+                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε       | ◄2               | 1    | a_1
+            ], NTValue::Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- norm+/* alternatives
             // a -> (A | B)*
             // NT flags:
