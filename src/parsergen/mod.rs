@@ -2130,7 +2130,7 @@ impl ParserGen {
                 if is_lform {
                     let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
                     src_types.push(String::new());
-                    src_types.push(format!("// {astr}"));
+                    src_types.push(astr.clone());
                     src_types.push(TYPE_DERIVE.to_string());
                     src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
                     let extra_src = vec![
