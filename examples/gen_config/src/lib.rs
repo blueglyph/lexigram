@@ -27,6 +27,7 @@ const INDENT_TEMPLATES: usize = 4;
 
 fn gen_source_config_l_g(action: Action) {
     let options = OptionsBuilder::new()
+        .headers(["use lexi_gram::lexigram_lib::lexigram_core;"])
         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
         .indent(LEXER_INDENT)
         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))

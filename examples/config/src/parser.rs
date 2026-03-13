@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::io::Cursor;
+use lexi_gram::lexigram_lib;
+use lexigram_lib::lexigram_core;
 use listener_types::*;
 use config_lexer::build_lexer;
 use config_parser::*;
@@ -53,11 +55,13 @@ impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
 }
 
 mod listener {
+    use lexi_gram::options::Options;
     use lexigram_core::lexer::PosSpan;
     use lexigram_core::log::Logger;
     use super::*;
 
     pub(super) struct Listener<'ls> {
+        pub options: Options,
         pub log: BufLog,
         lines: Option<Vec<&'ls str>>,
     }
@@ -65,6 +69,7 @@ mod listener {
     impl<'ls> Listener<'ls> {
         pub fn new() -> Self {
             Listener {
+                options: Options::default(),
                 log: BufLog::new(),
                 lines: None,
             }
@@ -289,6 +294,8 @@ mod listener_types {
 #[allow(unused)]
 mod config_lexer {
     // [config_lexer]
+
+    use lexi_gram::lexigram_lib::lexigram_core;
 
     use std::collections::HashMap;
     use std::io::Read;
@@ -565,6 +572,8 @@ mod config_lexer {
 #[allow(unused)]
 mod config_parser {
     // [config_parser]
+
+    use lexi_gram::lexigram_lib::lexigram_core;
 
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_types::*;
