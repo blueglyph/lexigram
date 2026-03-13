@@ -87,9 +87,9 @@ fn test_watcher() {
             vec![],
         ),
     ];
+    let mut parser = WatcherParser::new();
     for (test_id, (txt, expected_messages, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80} {test_id}\n{txt}\n{0:-<80}", ""); }
-        let mut parser = WatcherParser::new();
         match parser.parse(txt) {
             Ok(ParserData { log, messages, trace }) => {
                 if VERBOSE {

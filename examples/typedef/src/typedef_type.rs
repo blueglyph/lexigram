@@ -78,9 +78,9 @@ fn test_type_lexer() {
             vec![],
         ),
     ];
+    let mut parser = TypeParser::new();
     for (test_id, (txt, expected_vars, expected_types, expected_errors, expected_calls)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\n{txt}\n{0:-<80}", ""); }
-        let mut parser = TypeParser::new();
         match parser.parse(txt) {
             Ok(ParserData { vars, types, log, hook_calls }) => {
                 let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
@@ -151,7 +151,7 @@ impl<'l, 'ls: 'l> TypeParser<'l, '_, 'ls> {
     /// * `log`, a `BufLog` object.
     ///
     /// On failure, returns the log with the error messages.
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
+    pub fn parse(&mut self, text: &'ls str) -> Result<ParserData, BufLog> {
         self.wrapper = Some(Wrapper::new(TypeListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);

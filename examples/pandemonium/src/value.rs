@@ -97,7 +97,7 @@ impl<'l, 'ls: 'l> PanDemo<'l, '_, 'ls> {
         PanDemo { lexer, parser, wrapper }
     }
 
-    fn parse(&'ls mut self, text: &'ls str) -> Result<PanDemoResult, BufLog> {
+    fn parse(&mut self, text: &'ls str) -> Result<PanDemoResult, BufLog> {
         let stream = CharReader::new(text.as_bytes());
         self.lexer.attach_stream(stream);
         self.wrapper.get_listener_mut().attach_lines(text.lines().collect());

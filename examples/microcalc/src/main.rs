@@ -44,9 +44,10 @@ def main() {
 "#;
 
 fn main() {
+    let mut p = MCalc::new();
     for txt in &[TXT1, TXT2] {
         println!("{:=<80}\n{txt}\n{0:-<80}", "");
-        match MCalc::parse_text(txt.to_string()) {
+        match p.parse(txt.to_string()) {
             Ok(log) => println!("parsing successful\n{log}"),
             Err(log) => println!("errors during parsing:\n{log}"),
         }
@@ -63,11 +64,6 @@ pub struct MCalc<'l, 'p> {
 }
 
 impl MCalc<'_, '_> {
-    pub fn parse_text(text: String) -> Result<BufLog, BufLog> {
-        let mut mcalc = MCalc::new();
-        mcalc.parse(text)
-    }
-
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();

@@ -74,9 +74,9 @@ fn test_terminate() {
             vec!["the END ID 'D2' doesn't match the expected ID 'D1'"],
         ),
     ];
+    let mut parser = TerminateParser::new();
     for (test_id, (txt, expected_messages, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80} {test_id}\n{txt}\n{0:-<80}", ""); }
-        let mut parser = TerminateParser::new();
         match parser.parse(txt) {
             Ok(ParserData { log, messages }) => {
                 if VERBOSE {
@@ -138,7 +138,7 @@ impl<'l, 'ls: 'l> TerminateParser<'l, '_, 'ls> {
     /// * `log`, a `BufLog` object.
     ///
     /// On failure, returns the log with the error messages.
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, ParserData> {
+    pub fn parse(&mut self, text: &'ls str) -> Result<ParserData, ParserData> {
         self.wrapper = Some(Wrapper::new(Listener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);

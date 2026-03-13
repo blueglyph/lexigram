@@ -155,7 +155,7 @@ impl<'l, 'ls: 'l> MatchParser<'l, '_, 'ls> {
     /// * `log`, a `BufLog` object.
     ///
     /// On failure, returns the log with the error messages.
-    pub fn parse(&'ls mut self, text: &'ls str) -> Result<ParserData, BufLog> {
+    pub fn parse(&mut self, text: &'ls str) -> Result<ParserData, BufLog> {
         self.wrapper = Some(Wrapper::new(MatchListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
