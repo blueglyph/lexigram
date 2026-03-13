@@ -23,13 +23,15 @@ Input                   : 'input';
 Lexer                   : 'lexer';
 Libs                    : 'libs';
 None                    : 'none';
-NTValue                 : 'nt_value';
+NTValue                 : 'nt-value';
 Options                 : 'options';
 Output                  : 'output';
 Parents                 : 'parents';
 Parser                  : 'parser';
 Set                     : 'set';
 Spans                   : 'spans';
+Stdout                  : 'stdout';
+String                  : 'string';
 
 // variable terminals
 BoolLiteral             : 'false' | 'true';

@@ -1,19 +1,14 @@
 grammar Config;
 
 config:
-    config item
-|   item
+    definitions
+    lexer
+    parser
+    options
 ;
 
-item:
-    definition
-|   lexer
-|   parser
-|   options
-;
-
-definition:
-    Def Id Equal value Semicolon    // any type
+definitions:
+    (<L=i_def> Def Id Equal value Semicolon)*   // any type
 ;
 
 lexer:
@@ -21,15 +16,15 @@ lexer:
 ;
 
 parser:
-    Parser Lbracket io_options Rbracket
+    (Parser Lbracket io_options Rbracket)?
 ;
 
 options:
-    Options Lbracket global_options Rbracket
+    (Options Lbracket global_options Rbracket)?
 ;
 
 io_options:
-    io_option (Comma io_option)*
+    io_option (<L=i_io_opt> Comma io_option)*
 ;
 
 io_option:
@@ -49,7 +44,9 @@ global_options:
 ;
 
 global_option:
-    Libs    Colon Lbracket value (Comma value)* Rbracket    // string
+    Headers Colon Lbracket value (Comma value)* Rbracket    // string
+|   Indent  Colon value                                     // num
+|   Libs    Colon Lbracket value (Comma value)* Rbracket    // string
 |   NTValue Colon nt_value
 |   Spans   Colon value                                     // bool
 ;
@@ -59,6 +56,8 @@ value:
 |   NumLiteral
 |   StrLiteral
 |   Id
+|   Stdout
+|   String
 ;
 
 nt_value:

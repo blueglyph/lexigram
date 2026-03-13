@@ -13,10 +13,10 @@ use lexigram_lib::log::LogStatus;
 
 static LEXICON_FILENAME: &str = "src/config.l";
 static GRAMMAR_FILENAME: &str = "src/config.g";
-static SOURCE_FILENAME: &str = "../config/src/lib.rs";
+static SOURCE_FILENAME: &str = "../config/src/parser.rs";
 static LEXER_TAG: &str = "config_lexer";
 static PARSER_TAG: &str = "config_parser";
-static SOURCE_TEMPLATES: &str = "../config/src/templates.txt";
+static SOURCE_TEMPLATES: &str = "../config/templates.txt";
 static USERS_TAG: &str = "template_user_types";
 static LISTENER_TAG: &str = "template_listener_impl";
 const LEXER_INDENT: usize = 4;
@@ -36,7 +36,7 @@ fn gen_source_config_l_g(action: Action) {
         .listener_code(gencode!(filename: SOURCE_TEMPLATES, tag: LISTENER_TAG))
         .indent(INDENT_TEMPLATES)
         .libs(["super::listener_types::*"])
-        // .start_nt(Some("parser".to_string()))
+        .span_params(true)
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {

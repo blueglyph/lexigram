@@ -8,13 +8,13 @@
     #[derive(Debug, PartialEq)]
     pub struct SynConfig();
 
-    /// User-defined type for `item`
+    /// User-defined type for `definitions`
     #[derive(Debug, PartialEq)]
-    pub struct SynItem();
+    pub struct SynDefinitions();
 
-    /// User-defined type for `definition`
+    /// User-defined type for `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
     #[derive(Debug, PartialEq)]
-    pub struct SynDefinition();
+    pub struct SynIDef();
 
     /// User-defined type for `lexer`
     #[derive(Debug, PartialEq)]
@@ -31,6 +31,10 @@
     /// User-defined type for `io_options`
     #[derive(Debug, PartialEq)]
     pub struct SynIoOptions();
+
+    /// User-defined type for `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+    #[derive(Debug, PartialEq)]
+    pub struct SynIIoOpt();
 
     /// User-defined type for `io_option`
     #[derive(Debug, PartialEq)]
@@ -75,61 +79,71 @@
             &mut self.log
         }
 
-        fn exit_config(&mut self, ctx: CtxConfig) -> SynConfig {
-            match ctx {
-                // config -> config item
-                CtxConfig::V1 { config, item } => {}
-                // config -> item
-                CtxConfig::V2 { item } => {}
-            }
+        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig {
+            // config -> definitions lexer parser options
+            let CtxConfig::V1 { definitions, lexer, parser, options } = ctx;
             SynConfig()
         }
 
-        fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
-            match ctx {
-                // item -> definition
-                CtxItem::V1 { definition } => {}
-                // item -> lexer
-                CtxItem::V2 { lexer } => {}
-                // item -> parser
-                CtxItem::V3 { parser } => {}
-                // item -> options
-                CtxItem::V4 { options } => {}
-            }
-            SynItem()
+        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) -> SynDefinitions {
+            // definitions -> (<L> "def" Id "=" value ";")*
+            let CtxDefinitions::V1 { star } = ctx;
+            SynDefinitions()
         }
 
-        fn exit_definition(&mut self, ctx: CtxDefinition) -> SynDefinition {
-            // definition -> "def" Id "=" value ";"
-            let CtxDefinition::V1 { id, value } = ctx;
-            SynDefinition()
+        fn init_i_def(&mut self) -> SynIDef {
+            SynIDef()
         }
 
-        fn exit_lexer(&mut self, ctx: CtxLexer) -> SynLexer {
+        fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>) {
+            // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
+            let CtxIDef::V1 { id, value } = ctx;
+        }
+
+        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer {
             // lexer -> "lexer" "{" io_options "}"
             let CtxLexer::V1 { io_options } = ctx;
             SynLexer()
         }
 
-        fn exit_parser(&mut self, ctx: CtxParser) -> SynParser {
-            // parser -> "parser" "{" io_options "}"
-            let CtxParser::V1 { io_options } = ctx;
+        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) -> SynParser {
+            match ctx {
+                // parser -> "parser" "{" io_options "}"
+                CtxParser::V1 { io_options } => {}
+                // parser -> ε
+                CtxParser::V2 => {}
+            }
             SynParser()
         }
 
-        fn exit_options(&mut self, ctx: CtxOptions) -> SynOptions {
-            // options -> "options" "{" global_options "}"
-            let CtxOptions::V1 { global_options } = ctx;
+        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) -> SynOptions {
+            match ctx {
+                // options -> "options" "{" global_options "}"
+                CtxOptions::V1 { global_options } => {}
+                // options -> ε
+                CtxOptions::V2 => {}
+            }
             SynOptions()
         }
 
-        fn exit_io_options(&mut self, ctx: CtxIoOptions) -> SynIoOptions {
-            // io_options -> io_option ("," io_option)*
+        fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
+            // io_options -> io_option (<L> "," io_option)*
             let CtxIoOptions::V1 { star } = ctx;
             SynIoOptions()
         }
 
-        fn exit_io_option(&mut self, ctx: CtxIoOption) -> SynIoOption {
+        fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
+            // value of `io_option` before `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+            let InitCtxIIoOpt::V1 { io_option } = ctx;
+            SynIIoOpt()
+        }
+
+        fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>) {
+            // `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+            let CtxIIoOpt::V1 { io_option } = ctx;
+        }
+
+        fn exit_io_option(&mut self, ctx: CtxIoOption, spans: Vec<PosSpan>) -> SynIoOption {
             match ctx {
                 // io_option -> "combined" ":" value tag_opt
                 CtxIoOption::V1 { value, tag_opt } => {}
@@ -145,7 +159,7 @@
             SynIoOption()
         }
 
-        fn exit_tag_opt(&mut self, ctx: CtxTagOpt) -> SynTagOpt {
+        fn exit_tag_opt(&mut self, ctx: CtxTagOpt, spans: Vec<PosSpan>) -> SynTagOpt {
             match ctx {
                 // tag_opt -> "[" value "]"
                 CtxTagOpt::V1 { value } => {}
@@ -155,25 +169,29 @@
             SynTagOpt()
         }
 
-        fn exit_global_options(&mut self, ctx: CtxGlobalOptions) -> SynGlobalOptions {
+        fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
             // global_options -> global_option ("," global_option)*
             let CtxGlobalOptions::V1 { star } = ctx;
             SynGlobalOptions()
         }
 
-        fn exit_global_option(&mut self, ctx: CtxGlobalOption) -> SynGlobalOption {
+        fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
-                // global_option -> "libs" ":" "{" value ("," value)* "}"
+                // global_option -> "headers" ":" "{" value ("," value)* "}"
                 CtxGlobalOption::V1 { star } => {}
-                // global_option -> "nt_value" ":" nt_value
-                CtxGlobalOption::V2 { nt_value } => {}
+                // global_option -> "indent" ":" value
+                CtxGlobalOption::V2 { value } => {}
+                // global_option -> "libs" ":" "{" value ("," value)* "}"
+                CtxGlobalOption::V3 { star } => {}
+                // global_option -> "nt-value" ":" nt_value
+                CtxGlobalOption::V4 { nt_value } => {}
                 // global_option -> "spans" ":" value
-                CtxGlobalOption::V3 { value } => {}
+                CtxGlobalOption::V5 { value } => {}
             }
             SynGlobalOption()
         }
 
-        fn exit_value(&mut self, ctx: CtxValue) -> SynValue {
+        fn exit_value(&mut self, ctx: CtxValue, spans: Vec<PosSpan>) -> SynValue {
             match ctx {
                 // value -> BoolLiteral
                 CtxValue::V1 { boolliteral } => {}
@@ -183,11 +201,15 @@
                 CtxValue::V3 { strliteral } => {}
                 // value -> Id
                 CtxValue::V4 { id } => {}
+                // value -> "stdout"
+                CtxValue::V5 => {}
+                // value -> "string"
+                CtxValue::V6 => {}
             }
             SynValue()
         }
 
-        fn exit_nt_value(&mut self, ctx: CtxNtValue) -> SynNtValue {
+        fn exit_nt_value(&mut self, ctx: CtxNtValue, spans: Vec<PosSpan>) -> SynNtValue {
             match ctx {
                 // nt_value -> "default"
                 CtxNtValue::V1 => {}
