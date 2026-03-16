@@ -1,8 +1,7 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::io::Cursor;
-use lexi_gram::lexigram_lib;
-use lexigram_lib::lexigram_core;
+use lexi_gram::lexigram_lib::lexigram_core;
 use listener_types::*;
 use config_lexer::build_lexer;
 use config_parser::*;
@@ -39,14 +38,13 @@ impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
-            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
-        );
-        if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
-            self.wrapper.as_mut().unwrap().get_listener_mut().get_log_mut().add_error(e.to_string());
+        let tokens = self.lexer.tokens().keep_channel0();
+        let result = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens);
+        let Listener { mut log, .. } = self.wrapper.take().unwrap().give_listener();
+        if let Err(e) = result {
+            log.add_error(e.to_string());
         }
-        let Listener { log, .. } = self.wrapper.take().unwrap().give_listener();
-        if log.has_no_errors() {
+         if log.has_no_errors() {
             Ok(log)
         } else {
             Err(log)
@@ -55,15 +53,28 @@ impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
 }
 
 mod listener {
+    use std::collections::HashMap;
+    use std::str::FromStr;
+    use lexi_gram::lexigram_lib::CollectJoin;
     use lexi_gram::options::Options;
     use lexigram_core::lexer::PosSpan;
     use lexigram_core::log::Logger;
     use super::*;
 
+    #[derive(Clone, PartialEq, Debug)]
+    pub(super) enum Value {
+        Bool(bool),
+        Num(u32),
+        Str(String),
+        LocStdout,
+        LocString,
+    }
+
     pub(super) struct Listener<'ls> {
         pub options: Options,
         pub log: BufLog,
         lines: Option<Vec<&'ls str>>,
+        consts: HashMap<String, Value>,
     }
 
     impl<'ls> Listener<'ls> {
@@ -72,6 +83,7 @@ mod listener {
                 options: Options::default(),
                 log: BufLog::new(),
                 lines: None,
+                consts: HashMap::new(),
             }
         }
 
@@ -86,15 +98,23 @@ mod listener {
             &mut self.log
         }
 
+        fn exit(&mut self, config: SynConfig, span: PosSpan) {
+            let mut defs = self.consts.iter()
+                .map(|(k, v)| format!("\n- {k}: {v:?}"))
+                .to_vec();
+            defs.sort();
+            println!("definitions:{}", defs.join(""));
+        }
+
         fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig {
             // config -> definitions lexer parser options
             let CtxConfig::V1 { definitions, lexer, parser, options } = ctx;
             SynConfig()
         }
 
-        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) -> SynDefinitions {
+        fn exit_definitions(&mut self, _ctx: CtxDefinitions, _spans: Vec<PosSpan>) -> SynDefinitions {
             // definitions -> (<L> "def" Id "=" value ";")*
-            let CtxDefinitions::V1 { star } = ctx;
+            // let CtxDefinitions::V1 { star } = ctx;
             SynDefinitions()
         }
 
@@ -105,6 +125,13 @@ mod listener {
         fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>) {
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
+
+            if self.consts.contains_key(&id) {
+                self.log.add_error(format!("at {}, redefinition of {id}", spans[4]));
+            }
+            if let SynValue(Some(val)) = value {
+                self.consts.insert(id, val);
+            }
         }
 
         fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer {
@@ -199,21 +226,36 @@ mod listener {
         }
 
         fn exit_value(&mut self, ctx: CtxValue, spans: Vec<PosSpan>) -> SynValue {
-            match ctx {
+            let val_maybe = match ctx {
                 // value -> BoolLiteral
-                CtxValue::V1 { boolliteral } => {}
+                CtxValue::V1 { boolliteral } => Some(Value::Bool(boolliteral == "true")),
                 // value -> NumLiteral
-                CtxValue::V2 { numliteral } => {}
+                CtxValue::V2 { numliteral } => {
+                    match u32::from_str(&numliteral) {
+                        Ok(v) => Some(Value::Num(v)),
+                        Err(e) => {
+                            self.log.add_error(format!("at {}, {e}", spans[0]));
+                            None
+                        }
+                    }
+                }
                 // value -> StrLiteral
-                CtxValue::V3 { strliteral } => {}
+                CtxValue::V3 { strliteral } => Some(Value::Str(strliteral)),
                 // value -> Id
-                CtxValue::V4 { id } => {}
+                CtxValue::V4 { id } => {
+                    if let Some(v) = self.consts.get(&id) {
+                        Some(v.clone())
+                    } else {
+                        self.log.add_error(format!("at {}, {id} is not defined", spans[0]));
+                        None
+                    }
+                }
                 // value -> "stdout"
-                CtxValue::V5 => {}
+                CtxValue::V5 => Some(Value::LocStdout),
                 // value -> "string"
-                CtxValue::V6 => {}
-            }
-            SynValue()
+                CtxValue::V6 => Some(Value::LocString),
+            };
+            SynValue(val_maybe)
         }
 
         fn exit_nt_value(&mut self, ctx: CtxNtValue, spans: Vec<PosSpan>) -> SynNtValue {
@@ -234,6 +276,8 @@ mod listener {
 
 #[allow(unused)]
 mod listener_types {
+    use super::listener::Value;
+
     /// User-defined type for `config`
     #[derive(Debug, PartialEq)]
     pub struct SynConfig();
@@ -284,7 +328,7 @@ mod listener_types {
 
     /// User-defined type for `value`
     #[derive(Debug, PartialEq)]
-    pub struct SynValue();
+    pub struct SynValue(pub Option<Value>);
 
     /// User-defined type for `nt_value`
     #[derive(Debug, PartialEq)]
