@@ -203,8 +203,6 @@
                 CtxValue::V4 { id } => {}
                 // value -> "stdout"
                 CtxValue::V5 => {}
-                // value -> "string"
-                CtxValue::V6 => {}
             }
             SynValue()
         }

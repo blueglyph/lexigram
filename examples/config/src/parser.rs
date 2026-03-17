@@ -55,26 +55,22 @@ impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
 mod listener {
     use std::collections::HashMap;
     use std::str::FromStr;
+    use lexi_gram::{gencode, genspec};
     use lexi_gram::lexigram_lib::CollectJoin;
-    use lexi_gram::options::Options;
+    use lexi_gram::options::{Options, Specification};
     use lexigram_core::lexer::PosSpan;
     use lexigram_core::log::Logger;
     use super::*;
-
-    #[derive(Clone, PartialEq, Debug)]
-    pub(super) enum Value {
-        Bool(bool),
-        Num(u32),
-        Str(String),
-        LocStdout,
-        LocString,
-    }
 
     pub(super) struct Listener<'ls> {
         pub options: Options,
         pub log: BufLog,
         lines: Option<Vec<&'ls str>>,
-        consts: HashMap<String, Value>,
+        consts: HashMap<String, SynValue>,
+        lexer_indent: Option<usize>,
+        parser_indent: Option<usize>,
+        types_indent: Option<usize>,
+        listener_indent: Option<usize>,
     }
 
     impl<'ls> Listener<'ls> {
@@ -84,6 +80,10 @@ mod listener {
                 log: BufLog::new(),
                 lines: None,
                 consts: HashMap::new(),
+                lexer_indent: None,
+                parser_indent: None,
+                types_indent: None,
+                listener_indent: None,
             }
         }
 
@@ -104,6 +104,11 @@ mod listener {
                 .to_vec();
             defs.sort();
             println!("definitions:{}", defs.join(""));
+            if let Some(indent) = self.lexer_indent { self.options.lexer_indent = indent };
+            if let Some(indent) = self.parser_indent { self.options.parser_indent = indent };
+            if let Some(indent) = self.types_indent { self.options.types_indent = indent };
+            if let Some(indent) = self.listener_indent { self.options.listener_indent = indent };
+            println!("options:\n{:#?}", self.options);
         }
 
         fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig {
@@ -112,9 +117,7 @@ mod listener {
             SynConfig()
         }
 
-        fn exit_definitions(&mut self, _ctx: CtxDefinitions, _spans: Vec<PosSpan>) -> SynDefinitions {
-            // definitions -> (<L> "def" Id "=" value ";")*
-            // let CtxDefinitions::V1 { star } = ctx;
+        fn exit_definitions(&mut self, _: CtxDefinitions, _: Vec<PosSpan>) -> SynDefinitions {
             SynDefinitions()
         }
 
@@ -125,27 +128,54 @@ mod listener {
         fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>) {
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
-
             if self.consts.contains_key(&id) {
                 self.log.add_error(format!("at {}, redefinition of {id}", spans[4]));
-            }
-            if let SynValue(Some(val)) = value {
-                self.consts.insert(id, val);
+            } else if value != SynValue::Error {
+                self.consts.insert(id, value);
             }
         }
 
         fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer {
             // lexer -> "lexer" "{" io_options "}"
-            let CtxLexer::V1 { io_options } = ctx;
+            let CtxLexer::V1 {
+                io_options: SynIoOptions { is_combined, spec, code, indent, headers }
+            } = ctx;
+            if is_combined {
+                self.options.parser_spec = spec.clone();
+            }
+            self.options.lexer_spec = spec;
+            self.options.lexer_code = code;
+            self.options.lexer_headers.extend(headers);
+            self.lexer_indent = indent;
             SynLexer()
         }
 
         fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) -> SynParser {
             match ctx {
                 // parser -> "parser" "{" io_options "}"
-                CtxParser::V1 { io_options } => {}
+                CtxParser::V1 { io_options: SynIoOptions { is_combined, spec, code, indent, headers } } => {
+                    if is_combined {
+                        self.log.add_error(format!("at {}, 'combined' can only be used with the 'lexer' options", spans[2]));
+                    } else {
+                        if spec.is_none() && self.options.parser_spec.is_none() {
+                            self.log.add_error(format!("at {}, undefined grammar location", spans[2]));
+                        } else if !spec.is_none() && !self.options.parser_spec.is_none() {
+                            self.log.add_error(format!("at {}, grammar location defined again (was combined in lexer)", spans[2]));
+                        }
+                    }
+                    if !spec.is_none() {
+                        self.options.parser_spec = spec;
+                    }
+                    self.options.parser_code = code;
+                    self.options.parser_headers.extend(headers);
+                    self.parser_indent = indent;
+                }
                 // parser -> ε
-                CtxParser::V2 => {}
+                CtxParser::V2 => {
+                    if !self.options.parser_spec.is_none() {
+                        self.log.add_error("combined lexicon/grammar, but missing parser code location".to_string());
+                    }
+                }
             }
             SynParser()
         }
@@ -163,44 +193,123 @@ mod listener {
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
             // io_options -> io_option (<L> "," io_option)*
             let CtxIoOptions::V1 { star } = ctx;
-            SynIoOptions()
+            star
         }
 
         fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
             // value of `io_option` before `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
             let InitCtxIIoOpt::V1 { io_option } = ctx;
-            SynIIoOpt()
+            let mut acc = SynIIoOpt::new();
+            acc.fold(io_option);
+            acc
         }
 
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>) {
             // `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
             let CtxIIoOpt::V1 { io_option } = ctx;
+            acc.fold(io_option);
         }
 
         fn exit_io_option(&mut self, ctx: CtxIoOption, spans: Vec<PosSpan>) -> SynIoOption {
+            fn get_spec(value: SynValue, tag_opt: SynTagOpt) -> Result<Specification, &'static str> {
+                match value {
+                    SynValue::Error => Ok(genspec!(none)),
+                    SynValue::Bool(_)
+                    | SynValue::Num(_)
+                    | SynValue::CodeStdout => Err("string"),
+                    SynValue::Str(s) => {
+                        if let Some(tag) = tag_opt {
+                            Ok(genspec!(filename: s, tag: tag))
+                        } else {
+                            Ok(genspec!(filename: s))
+                        }
+                    }
+                }
+            }
+
             match ctx {
                 // io_option -> "combined" ":" value tag_opt
-                CtxIoOption::V1 { value, tag_opt } => {}
+                CtxIoOption::V1 { value, tag_opt } => {
+                    match get_spec(value, tag_opt) {
+                        Ok(spec) => SynIoOption::Combined(spec),
+                        Err(expected) => {
+                            self.log.add_error(format!("at {}, expected {expected}", spans[2]));
+                            SynIoOption::Error
+                        }
+                    }
+                }
                 // io_option -> "input" ":" value tag_opt
-                CtxIoOption::V2 { value, tag_opt } => {}
+                CtxIoOption::V2 { value, tag_opt } => {
+                    match get_spec(value, tag_opt) {
+                        Ok(spec) => SynIoOption::Spec(spec),
+                        Err(expected) => {
+                            self.log.add_error(format!("at {}, expected {expected}", spans[2]));
+                            SynIoOption::Error
+                        }
+                    }
+                }
                 // io_option -> "output" ":" value tag_opt
-                CtxIoOption::V3 { value, tag_opt } => {}
+                CtxIoOption::V3 { value, tag_opt } => {
+                    match value {
+                        SynValue::Error => SynIoOption::Error,
+                        SynValue::Bool(_)
+                        | SynValue::Num(_) => {
+                            self.log.add_error(format!("at {}, expected string or stdout", spans[2]));
+                            SynIoOption::Error
+                        }
+                        SynValue::Str(s) => {
+                            if let Some(tag) = tag_opt {
+                                SynIoOption::Code(gencode!(filename: s, tag: tag))
+                            } else {
+                                SynIoOption::Code(gencode!(filename: s))
+                            }
+                        }
+                        SynValue::CodeStdout => SynIoOption::Code(gencode!(stdout)),
+                    }
+                }
                 // io_option -> "indent" ":" value
-                CtxIoOption::V4 { value } => {}
+                CtxIoOption::V4 { value } => {
+                    if let SynValue::Num(val) = value {
+                        SynIoOption::Indent(val)
+                    } else {
+                        self.log.add_error(format!("at {}, expected number instead of {value:?}", spans[2]));
+                        SynIoOption::Error
+                    }
+                }
                 // io_option -> "headers" ":" "{" value ("," value)* "}"
-                CtxIoOption::V5 { star } => {}
+                CtxIoOption::V5 { star: SynIoOption1(values) } => {
+                    let n1 = values.len();
+                    let vals = values.into_iter().enumerate().filter_map(|(i, v)| {
+                        if let SynValue::Str(s) = v {
+                            Some(s)
+                        } else {
+                            self.log.add_error(format!("at {}, item #{} isn't a string", spans[3], i + 1));
+                            None
+                        }
+                    }).to_vec();
+                    if vals.len() == n1 {
+                        SynIoOption::Headers(vals)
+                    } else {
+                        SynIoOption::Error
+                    }
+                }
             }
-            SynIoOption()
         }
 
         fn exit_tag_opt(&mut self, ctx: CtxTagOpt, spans: Vec<PosSpan>) -> SynTagOpt {
             match ctx {
                 // tag_opt -> "[" value "]"
-                CtxTagOpt::V1 { value } => {}
+                CtxTagOpt::V1 { value } => {
+                    if let SynValue::Str(s) = value {
+                        Some(s)
+                    } else {
+                        self.log.add_error(format!("at {}, expected a string", spans[1]));
+                        None
+                    }
+                }
                 // tag_opt -> ε
-                CtxTagOpt::V2 => {}
+                CtxTagOpt::V2 => None,
             }
-            SynTagOpt()
         }
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
@@ -226,36 +335,33 @@ mod listener {
         }
 
         fn exit_value(&mut self, ctx: CtxValue, spans: Vec<PosSpan>) -> SynValue {
-            let val_maybe = match ctx {
+            match ctx {
                 // value -> BoolLiteral
-                CtxValue::V1 { boolliteral } => Some(Value::Bool(boolliteral == "true")),
+                CtxValue::V1 { boolliteral } => SynValue::Bool(boolliteral == "true"),
                 // value -> NumLiteral
                 CtxValue::V2 { numliteral } => {
-                    match u32::from_str(&numliteral) {
-                        Ok(v) => Some(Value::Num(v)),
+                    match usize::from_str(&numliteral) {
+                        Ok(v) => SynValue::Num(v),
                         Err(e) => {
                             self.log.add_error(format!("at {}, {e}", spans[0]));
-                            None
+                            SynValue::Error
                         }
                     }
                 }
                 // value -> StrLiteral
-                CtxValue::V3 { strliteral } => Some(Value::Str(strliteral)),
+                CtxValue::V3 { strliteral } => SynValue::Str(strliteral),
                 // value -> Id
                 CtxValue::V4 { id } => {
                     if let Some(v) = self.consts.get(&id) {
-                        Some(v.clone())
+                        v.clone()
                     } else {
                         self.log.add_error(format!("at {}, {id} is not defined", spans[0]));
-                        None
+                        SynValue::Error
                     }
                 }
                 // value -> "stdout"
-                CtxValue::V5 => Some(Value::LocStdout),
-                // value -> "string"
-                CtxValue::V6 => Some(Value::LocString),
-            };
-            SynValue(val_maybe)
+                CtxValue::V5 => SynValue::CodeStdout,
+            }
         }
 
         fn exit_nt_value(&mut self, ctx: CtxNtValue, spans: Vec<PosSpan>) -> SynNtValue {
@@ -276,7 +382,7 @@ mod listener {
 
 #[allow(unused)]
 mod listener_types {
-    use super::listener::Value;
+    use lexi_gram::options::{CodeLocation, Specification};
 
     /// User-defined type for `config`
     #[derive(Debug, PartialEq)]
@@ -303,20 +409,88 @@ mod listener_types {
     pub struct SynOptions();
 
     /// User-defined type for `io_options`
-    #[derive(Debug, PartialEq)]
-    pub struct SynIoOptions();
+    #[derive(Clone, PartialEq, Debug)]
+    pub struct SynIoOptions {
+        pub is_combined: bool,
+        pub spec: Specification,
+        pub code: CodeLocation,
+        pub indent: Option<usize>,
+        pub headers: Vec<String>,
+    }
 
-    /// User-defined type for `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
-    #[derive(Debug, PartialEq)]
-    pub struct SynIIoOpt();
+    impl Default for SynIoOptions {
+        fn default() -> Self {
+            SynIoOptions {
+                is_combined: false,
+                spec: Specification::None,
+                code: CodeLocation::None,
+                indent: None,
+                headers: vec![],
+            }
+        }
+    }
+
+    impl SynIoOptions {
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        pub fn fold(&mut self, io_option: SynIoOption) -> Result<(), &str> {
+            match io_option {
+                SynIoOption::Error => {}
+                SynIoOption::Combined(spec) => {
+                    if self.spec.is_none() {
+                        self.is_combined = true;
+                        self.spec = spec;
+                    } else {
+                        return Err("more than one specification");
+                    }
+                }
+                SynIoOption::Spec(spec) => {
+                    if self.spec.is_none() {
+                        self.spec = spec;
+                    } else {
+                        return Err("more than one specification");
+                    }
+                }
+                SynIoOption::Code(code) => {
+                    if self.code.is_none() {
+                        self.code = code;
+                    } else {
+                        return Err("more than one code location");
+                    }
+                }
+                SynIoOption::Indent(indent) => {
+                    if self.indent.is_none() {
+                        self.indent = Some(indent);
+                    } else {
+                        return Err("more than one indentation");
+                    }
+                }
+                SynIoOption::Headers(headers) => {
+                    self.headers.extend(headers);
+                }
+            }
+            Ok(())
+        }
+    }
 
     /// User-defined type for `io_option`
-    #[derive(Debug, PartialEq)]
-    pub struct SynIoOption();
+    #[derive(Clone, PartialEq, Debug)]
+    pub enum SynIoOption {
+        Error,
+        Combined(Specification),
+        Spec(Specification),
+        Code(CodeLocation),
+        Indent(usize),
+        Headers(Vec<String>),
+    }
+
+    /// User-defined type for `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+    pub type SynIIoOpt = SynIoOptions;
 
     /// User-defined type for `tag_opt`
-    #[derive(Debug, PartialEq)]
-    pub struct SynTagOpt();
+    pub type SynTagOpt = Option<String>;
 
     /// User-defined type for `global_options`
     #[derive(Debug, PartialEq)]
@@ -327,8 +501,14 @@ mod listener_types {
     pub struct SynGlobalOption();
 
     /// User-defined type for `value`
-    #[derive(Debug, PartialEq)]
-    pub struct SynValue(pub Option<Value>);
+    #[derive(Clone, PartialEq, Debug)]
+    pub(super) enum SynValue {
+        Error,
+        Bool(bool),
+        Num(usize),
+        Str(String),
+        CodeStdout,
+    }
 
     /// User-defined type for `nt_value`
     #[derive(Debug, PartialEq)]
@@ -346,19 +526,19 @@ mod config_lexer {
     use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 40;
+    const NBR_GROUPS: u32 = 39;
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 12;
-    const NBR_STATES: StateId = 117;
+    const NBR_STATES: StateId = 115;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         37,  37,  37,  37,  37,  37,  37,  37,  37,  24,  39,  37,  37,  39,  37,  37,   // 0-15
+         37,  37,  37,  37,  37,  37,  37,  37,  37,  30,  38,  37,  37,  38,  37,  37,   // 0-15
          37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,   // 16-31
-          0,  37,   1,  37,  37,  37,  37,  37,  37,  37,  25,  37,   2,  33,  37,   3,   // 32-47
+          0,  37,   1,  37,  37,  37,  37,  37,  37,  37,  24,  37,   2,  33,  37,   3,   // 32-47
           4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   5,   6,  37,   7,  37,  37,   // 48-63
          37,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,   // 64-79
-         32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,   9,  26,  10,  37,  27,   // 80-95
-         37,  28,  35,  11,  12,  30,  13,  38,  14,  15,  32,  32,  16,  34,  17,  18,   // 96-111
-         19,  32,  31,  20,  21,  29,   8,  32,  36,  32,  32,  22,  37,  23,  37,  37,   // 112-127
+         32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,   9,  31,  10,  37,  29,   // 80-95
+         37,  25,  35,  11,  12,  27,  13,  32,  14,  15,  32,  32,  16,  34,  17,  18,   // 96-111
+         19,  32,  28,  20,  21,  26,   8,  32,  36,  32,  32,  22,  37,  23,  37,  37,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
@@ -366,232 +546,228 @@ mod config_lexer {
         (Seg(128, 55295), 37),
         (Seg(57344, 1114111), 37),
     ];
-    static TERMINAL_TABLE: [Terminal;105] = [
+    static TERMINAL_TABLE: [Terminal;103] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(1), mode_state: Some(9), pop: false },
         Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(28), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(14), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(20), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(21), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(22), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(24), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(25), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(29), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(20), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(21), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(22), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(24), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(25), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(28), channel: 0, mode: ModeOption::Mode(2), mode_state: Some(11), pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
     ];
-    static STATE_TABLE: [StateId; 4681] = [
-         12,   1,  13,   2,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  12, 117, 117, 117,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18,  12, // state 0
-          8, 117,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 117,   8,   9,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 117, // state 1
-        117, 117, 117, 115, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,  10, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 2
-        117, 117, 117, 117, 117, 117, 117, 117,   4, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 3
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,   5, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 4
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,   6, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 5
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,   7, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 6
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,  72, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 7
-          8, 114,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 117,   8,   9,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 117, // state 8
-        117,   8, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,   8, 117, 117, 117,   8, 117, 117, 117, 117,   8, 117, 117, 117, 117,   8, 117, 117, 117, 117, 117, 117, 117, 117, // state 9
-         10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  11,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10, // state 10
-         10,  10,  10, 116,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  11,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10,  10, // state 11
-         12, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,  12, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117,  12, // state 12 <skip>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 13 <end:1>
-        117, 117, 117, 117,  14, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 14 <end:28>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 15 <end:0>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 16 <end:7>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 17 <end:2>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 18 <end:27>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 19 <end:4>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 20 <end:6>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  34,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 21 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  41,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 22 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18, 108,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 23 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  47,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 24 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  53,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 25 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  62,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  61,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 26 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  68,  18,  18,  69, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 27 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  73,  18,  18, 117, 117, 117, 117, 117,  18,  18,  74,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 28 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  84,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 29 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  94,  18,  95, 117, 117, 117, 117, 117,  18,  18,  18,  93,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 30 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18, 112,  18, 117,  18,  18,  18, 117,  18, 117, // state 31 <end:27>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 32 <end:3>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 33 <end:5>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  35,  18,  18, 117,  18, 117, // state 34 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  36,  18, 117,  18, 117, // state 35 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  37,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 36 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  38,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 37 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  39,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 38 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  40,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 39 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 40 <end:8>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  42,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 41 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  43,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 42 <end:9>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  44,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 43 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  45,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 44 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  46, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 45 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 46 <end:10>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  48,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 47 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  49,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 48 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  50,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 49 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  51,  18, 117,  18,  18,  18, 117,  18, 117, // state 50 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  52,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 51 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 52 <end:11>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  54,  18,  18,  18,  18,  18,  18,  55,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 53 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  56,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 54 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  59,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 55 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  57,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 56 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  58, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 57 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 58 <end:12>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  60, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 59 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 60 <end:13>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  63, 117,  18, 117, // state 61 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  66,  18, 117,  18, 117, // state 62 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  64,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 63 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  65,  18, 117,  18,  18,  18, 117,  18, 117, // state 64 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 65 <end:14>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  67,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 66 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 67 <end:15>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  70,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 68 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18,   3,  18,  18,  18, 117,  18, 117, // state 69 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  71,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 70 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 71 <end:16>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 72 <end:17>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  75, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 73 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  80, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 74 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  76,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 75 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  77,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 76 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  78,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 77 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  79,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 78 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 79 <end:18>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  81,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 80 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  82,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 81 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  83, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 82 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 83 <end:19>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  85,  18, 117,  18,  18,  18, 117,  18, 117, // state 84 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  87,  18, 117, 117, 117, 117, 117,  18,  18,  18,  86,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 85 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  88,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 86 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  91,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 87 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  89, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 88 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  90,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 89 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 90 <end:20>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  92,  18, 117,  18,  18,  18, 117,  18, 117, // state 91 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 92 <end:21>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  96, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 93 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  97,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 94 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18, 100,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18, 101,  18, 117,  18,  18,  18, 117,  18, 117, // state 95 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 96 <end:22>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  98,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 97 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  99,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 98 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 99 <end:23>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18, 102,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 100 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18, 105,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 101 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18, 103,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 102 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 104, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 103 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 104 <end:24>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18, 106,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 105 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117, 107, 117, // state 106 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 107 <end:25>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18, 109,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 108 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18, 110,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 109 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18, 111,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 110 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 111 <end:26>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18, 113,  18,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 112 <end:27>
-        117, 117, 117, 117,  18, 117, 117, 117,  18, 117, 117,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18,  18, 117, 117, 117, 117, 117,  18,  18,  18, 111,  18,  18, 117,  18,  18,  18, 117,  18, 117, // state 113 <end:27>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 114 <end:29>
-        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 117, // state 115 <skip>
-        117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, 117, // state 116 <skip>
-        117 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 4486] = [
+         12,  13,  14,   1,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34, 115,  19,  19,  19,  19, 115,  12, 115,  19, 115,  19,  19,  19, 115,  12, // state 0
+        115, 115, 115, 111, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,   7, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 1
+        115, 115, 115, 115, 115, 115, 115, 115,   3, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 2
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,   4, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 3
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,   5, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 4
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,   6, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 5
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,  73, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 6
+          7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   8,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 7
+          7,   7,   7, 112,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   8,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 8
+        113, 115, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 115,  10, 113, 113, 113, 113, 113, 113, 115, // state 9
+        115, 113, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 113, 115, 115, 115, 113, 115, 115, 115, 115, 115, 115, 113, 115, 115, 113, 115, 115, 115, 115, 115, 115, 115, // state 10
+        115, 114, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 11
+         12, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115,  12, 115, 115, 115, 115, 115, 115, 115,  12, // state 12 <skip>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 13 <skip,mode(1,state 9)>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 14 <end:1>
+        115, 115, 115, 115,  15, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 15 <end:27>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 16 <end:0>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 17 <end:7>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 18 <end:2>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 19 <end:26>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 20 <end:4>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 21 <end:6>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  35,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 22 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  42,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 23 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115, 105,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 24 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  48,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 25 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  54,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 26 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  63,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  62,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 27 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  69,  19,  19,  70, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 28 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  74,  19,  19, 115, 115, 115,  19,  75,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 29 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  85,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 30 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  95,  19,  96, 115, 115, 115,  19,  19,  94,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 31 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19, 109,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 32 <end:26>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 33 <end:3>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 34 <end:5>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  36,  19,  19, 115, 115, // state 35 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  37,  19, 115, 115, // state 36 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  38,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 37 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  39,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 38 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  40,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 39 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  41,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 40 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 41 <end:8>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  43,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 42 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  44,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 43 <end:9>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  45,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 44 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  46,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 45 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  47, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 46 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 47 <end:10>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  49,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 48 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  50,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 49 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  51,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 50 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  52,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 51 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  53,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 52 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 53 <end:11>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  55,  19,  19,  19,  19,  19,  19,  56,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 54 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  57,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 55 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  60,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 56 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  58,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 57 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  59, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 58 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 59 <end:12>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  61, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 60 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 61 <end:13>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  64, 115, 115, // state 62 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  67,  19, 115, 115, // state 63 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  65,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 64 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  66,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 65 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 66 <end:14>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  68,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 67 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 68 <end:15>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  71,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 69 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19,   2,  19,  19,  19, 115, 115, // state 70 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  72,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 71 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 72 <end:16>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 73 <end:17>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  76, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 74 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  81, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 75 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  77,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 76 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  78,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 77 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  79,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 78 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  80,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 79 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 80 <end:18>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  82,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 81 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  83,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 82 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  84, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 83 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 84 <end:19>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  86,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 85 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  88,  19, 115, 115, 115,  19,  19,  87,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 86 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  89,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 87 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  92,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 88 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  90, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 89 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  91,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 90 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 91 <end:20>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  93,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 92 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 93 <end:21>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  97, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 94 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  98,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 95 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19, 101,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 96 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 97 <end:22>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  99,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 98 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19, 100,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 99 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 100 <end:23>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19, 102,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 101 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19, 103,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 102 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 104, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 103 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 104 <end:24>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19, 106,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 105 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19, 107,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 106 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19, 108,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 107 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 108 <end:25>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19, 110,  19,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 109 <end:26>
+        115, 115, 115, 115,  19, 115, 115, 115,  19, 115, 115,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19, 115, 115, 115,  19,  19, 108,  19,  19, 115, 115,  19, 115,  19,  19,  19, 115, 115, // state 110 <end:26>
+        111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 111, 115, // state 111 <skip>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 112 <skip>
+        113, 115, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 115,  10, 113, 113, 113, 113, 113, 113, 115, // state 113 <end:28,mode(2,state 11)>
+        115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, 115, // state 114 <skip,mode(0,state 0)>
+        115 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -622,13 +798,13 @@ mod config_parser {
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_types::*;
 
-    const PARSER_NUM_T: usize = 30;
+    const PARSER_NUM_T: usize = 29;
     const PARSER_NUM_NT: usize = 19;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Comma", Some(",")), ("Equal", Some("=")), ("Lbracket", Some("{")), ("LSbracket", Some("[")), ("Rbracket", Some("}")), ("RSbracket", Some("]")), ("Semicolon", Some(";")), ("Combined", Some("combined")), ("Def", Some("def")), ("Default", Some("default")), ("Headers", Some("headers")), ("Indent", Some("indent")), ("Input", Some("input")), ("Lexer", Some("lexer")), ("Libs", Some("libs")), ("None", Some("none")), ("NTValue", Some("nt-value")), ("Options", Some("options")), ("Output", Some("output")), ("Parents", Some("parents")), ("Parser", Some("parser")), ("Set", Some("set")), ("Spans", Some("spans")), ("Stdout", Some("stdout")), ("String", Some("string")), ("BoolLiteral", None), ("Id", None), ("NumLiteral", None), ("StrLiteral", None)];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Comma", Some(",")), ("Equal", Some("=")), ("Lbracket", Some("{")), ("LSbracket", Some("[")), ("Rbracket", Some("}")), ("RSbracket", Some("]")), ("Semicolon", Some(";")), ("Combined", Some("combined")), ("Def", Some("def")), ("Default", Some("default")), ("Headers", Some("headers")), ("Indent", Some("indent")), ("Input", Some("input")), ("Lexer", Some("lexer")), ("Libs", Some("libs")), ("None", Some("none")), ("NTValue", Some("nt-value")), ("Options", Some("options")), ("Output", Some("output")), ("Parents", Some("parents")), ("Parser", Some("parser")), ("Set", Some("set")), ("Spans", Some("spans")), ("Stdout", Some("stdout")), ("BoolLiteral", None), ("Id", None), ("NumLiteral", None), ("StrLiteral", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["config", "definitions", "i_def", "lexer", "parser", "options", "io_options", "i_io_opt", "io_option", "tag_opt", "global_options", "global_option", "value", "nt_value", "io_option_1", "global_options_1", "global_option_1", "global_option_2", "nt_value_1"];
-    static ALT_VAR: [VarId; 45] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
-    static PARSING_TABLE: [AltId; 589] = [45, 45, 45, 45, 45, 45, 45, 45, 45, 0, 45, 45, 45, 45, 0, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 45, 45, 45, 45, 45, 45, 45, 1, 45, 45, 45, 45, 1, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 2, 45, 45, 45, 45, 3, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 4, 45, 45, 45, 46, 45, 45, 46, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 6, 45, 45, 5, 45, 45, 45, 45, 45, 45, 45, 45, 6, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 7, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 8, 45, 45, 45, 45, 45, 46, 45, 45, 9, 45, 45, 9, 9, 9, 45, 45, 45, 45, 45, 9, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10, 45, 45, 45, 11, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 45, 46, 45, 45, 12, 45, 45, 16, 15, 13, 45, 45, 45, 45, 45, 14, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 18, 45, 45, 17, 18, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 45, 45, 45, 19, 19, 45, 45, 19, 45, 19, 45, 45, 45, 45, 45, 19, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 45, 46, 45, 45, 45, 45, 45, 20, 21, 45, 45, 22, 45, 23, 45, 45, 45, 45, 45, 24, 45, 45, 45, 45, 45, 45, 45, 45, 46, 45, 45, 46, 46, 46, 46, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 29, 30, 25, 28, 26, 27, 45, 45, 46, 45, 45, 45, 46, 45, 45, 45, 45, 31, 45, 45, 45, 45, 45, 32, 45, 45, 45, 33, 45, 34, 45, 45, 45, 45, 45, 45, 45, 45, 45, 35, 45, 45, 45, 36, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 37, 45, 45, 45, 38, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 39, 45, 45, 45, 40, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 41, 45, 45, 45, 42, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 43, 45, 45, 45, 44, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45];
-    static OPCODES: [&[OpCode]; 45] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(12), OpCode::T(2), OpCode::T(27), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(14), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(12), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(15), OpCode::NT(11)], &[OpCode::Exit(20), OpCode::T(5), OpCode::NT(16), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(21), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(17), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(24), OpCode::NT(12), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(25), OpCode::T(26)], &[OpCode::Exit(26), OpCode::T(28)], &[OpCode::Exit(27), OpCode::T(29)], &[OpCode::Exit(28), OpCode::T(27)], &[OpCode::Exit(29), OpCode::T(24)], &[OpCode::Exit(30), OpCode::T(25)], &[OpCode::Exit(31), OpCode::T(10)], &[OpCode::Exit(32), OpCode::T(16)], &[OpCode::Exit(33), OpCode::T(20)], &[OpCode::Exit(34), OpCode::T(5), OpCode::NT(18), OpCode::T(27), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(14), OpCode::Exit(35), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(36)], &[OpCode::Loop(15), OpCode::Exit(37), OpCode::NT(11), OpCode::T(1)], &[OpCode::Exit(38)], &[OpCode::Loop(16), OpCode::Exit(39), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(40)], &[OpCode::Loop(17), OpCode::Exit(41), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(42)], &[OpCode::Loop(18), OpCode::Exit(43), OpCode::T(27), OpCode::T(1)], &[OpCode::Exit(44)]];
+    static ALT_VAR: [VarId; 44] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
+    static PARSING_TABLE: [AltId; 570] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 44, 44, 44, 44, 0, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 44, 44, 44, 44, 1, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 44, 44, 44, 44, 3, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 4, 44, 44, 44, 45, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 5, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 7, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 45, 44, 44, 9, 44, 44, 9, 9, 9, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 10, 44, 44, 44, 11, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 12, 44, 44, 16, 15, 13, 44, 44, 44, 44, 44, 14, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 18, 44, 44, 17, 18, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 19, 19, 44, 44, 19, 44, 19, 44, 44, 44, 44, 44, 19, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 44, 20, 21, 44, 44, 22, 44, 23, 44, 44, 44, 44, 44, 24, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 29, 25, 28, 26, 27, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 30, 44, 44, 44, 44, 44, 31, 44, 44, 44, 32, 44, 33, 44, 44, 44, 44, 44, 44, 44, 44, 34, 44, 44, 44, 35, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 36, 44, 44, 44, 37, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 38, 44, 44, 44, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 44, 44, 44, 41, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 42, 44, 44, 44, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44];
+    static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(12), OpCode::T(2), OpCode::T(26), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(14), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(12), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(15), OpCode::NT(11)], &[OpCode::Exit(20), OpCode::T(5), OpCode::NT(16), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(21), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(17), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(24), OpCode::NT(12), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(25), OpCode::T(25)], &[OpCode::Exit(26), OpCode::T(27)], &[OpCode::Exit(27), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(26)], &[OpCode::Exit(29), OpCode::T(24)], &[OpCode::Exit(30), OpCode::T(10)], &[OpCode::Exit(31), OpCode::T(16)], &[OpCode::Exit(32), OpCode::T(20)], &[OpCode::Exit(33), OpCode::T(5), OpCode::NT(18), OpCode::T(26), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(14), OpCode::Exit(34), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(35)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(11), OpCode::T(1)], &[OpCode::Exit(37)], &[OpCode::Loop(16), OpCode::Exit(38), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(39)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(41)], &[OpCode::Loop(18), OpCode::Exit(42), OpCode::T(26), OpCode::T(1)], &[OpCode::Exit(43)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
@@ -748,8 +924,6 @@ mod config_parser {
         V4 { id: String },
         /// `value -> "stdout"`
         V5,
-        /// `value -> "string"`
-        V6,
     }
     #[derive(Debug)]
     pub enum CtxNtValue {
@@ -952,34 +1126,33 @@ mod config_parser {
                         14 |                                        // io_option -> "output" ":" value tag_opt
                         15 |                                        // io_option -> "indent" ":" value
                         16 => self.exit_io_option(alt_id),          // io_option -> "headers" ":" "{" value io_option_1 "}"
-                        35 => self.exit_io_option1(),               // io_option_1 -> "," value io_option_1
-                        36 => {}                                    // io_option_1 -> ε
+                        34 => self.exit_io_option1(),               // io_option_1 -> "," value io_option_1
+                        35 => {}                                    // io_option_1 -> ε
                         17 |                                        // tag_opt -> "[" value "]"
                         18 => self.exit_tag_opt(alt_id),            // tag_opt -> ε
                         19 => self.exit_global_options(),           // global_options -> global_option global_options_1
-                        37 => self.exit_global_options1(),          // global_options_1 -> "," global_option global_options_1
-                        38 => {}                                    // global_options_1 -> ε
+                        36 => self.exit_global_options1(),          // global_options_1 -> "," global_option global_options_1
+                        37 => {}                                    // global_options_1 -> ε
                         20 |                                        // global_option -> "headers" ":" "{" value global_option_1 "}"
                         21 |                                        // global_option -> "indent" ":" value
                         22 |                                        // global_option -> "libs" ":" "{" value global_option_2 "}"
                         23 |                                        // global_option -> "nt-value" ":" nt_value
                         24 => self.exit_global_option(alt_id),      // global_option -> "spans" ":" value
-                        39 => self.exit_global_option1(),           // global_option_1 -> "," value global_option_1
-                        40 => {}                                    // global_option_1 -> ε
-                        41 => self.exit_global_option2(),           // global_option_2 -> "," value global_option_2
-                        42 => {}                                    // global_option_2 -> ε
+                        38 => self.exit_global_option1(),           // global_option_1 -> "," value global_option_1
+                        39 => {}                                    // global_option_1 -> ε
+                        40 => self.exit_global_option2(),           // global_option_2 -> "," value global_option_2
+                        41 => {}                                    // global_option_2 -> ε
                         25 |                                        // value -> BoolLiteral
                         26 |                                        // value -> NumLiteral
                         27 |                                        // value -> StrLiteral
                         28 |                                        // value -> Id
-                        29 |                                        // value -> "stdout"
-                        30 => self.exit_value(alt_id),              // value -> "string"
-                        31 |                                        // nt_value -> "default"
-                        32 |                                        // nt_value -> "none"
-                        33 |                                        // nt_value -> "parents"
-                        34 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" Id nt_value_1 "}"
-                        43 => self.exit_nt_value1(),                // nt_value_1 -> "," Id nt_value_1
-                        44 => {}                                    // nt_value_1 -> ε
+                        29 => self.exit_value(alt_id),              // value -> "stdout"
+                        30 |                                        // nt_value -> "default"
+                        31 |                                        // nt_value -> "none"
+                        32 |                                        // nt_value -> "parents"
+                        33 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" Id nt_value_1 "}"
+                        42 => self.exit_nt_value1(),                // nt_value_1 -> "," Id nt_value_1
+                        43 => {}                                    // nt_value_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1351,9 +1524,6 @@ mod config_parser {
                 29 => {
                     (1, CtxValue::V5)
                 }
-                30 => {
-                    (1, CtxValue::V6)
-                }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_value")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
@@ -1364,16 +1534,16 @@ mod config_parser {
 
         fn exit_nt_value(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                31 => {
+                30 => {
                     (1, CtxNtValue::V1)
                 }
-                32 => {
+                31 => {
                     (1, CtxNtValue::V2)
                 }
-                33 => {
+                32 => {
                     (1, CtxNtValue::V3)
                 }
-                34 => {
+                33 => {
                     let star = self.stack.pop().unwrap().get_nt_value1();
                     (4, CtxNtValue::V4 { star })
                 }

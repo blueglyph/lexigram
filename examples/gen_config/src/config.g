@@ -57,7 +57,6 @@ value:
 |   StrLiteral
 |   Id
 |   Stdout
-|   String
 ;
 
 nt_value:

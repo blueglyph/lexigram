@@ -31,15 +31,21 @@ Parser                  : 'parser';
 Set                     : 'set';
 Spans                   : 'spans';
 Stdout                  : 'stdout';
-String                  : 'string';
 
 // variable terminals
 BoolLiteral             : 'false' | 'true';
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 NumLiteral              : [0-9]+;
-StrLiteral              : '"' Char+ '"';
+StrLiteral_open         : '"'                       -> skip, mode(STR_MODE);
 
 SComment                : '/*' .*? '*/'             -> skip;
 SLineComment            : '//' ~[\r\n]*             -> skip;
 SWhiteSpace             : [ \n\r\t]+                -> skip;
 
+mode STR_MODE;
+
+StrLiteral              : Char+                     -> mode(STR_CLOSE);
+
+mode STR_CLOSE;
+
+StrLiteral_close        : '"'                       -> skip, mode(DEFAULT_MODE);
