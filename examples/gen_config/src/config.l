@@ -44,8 +44,8 @@ SWhiteSpace             : [ \n\r\t]+                -> skip;
 
 mode STR_MODE;
 
-StrLiteral              : Char+                     -> mode(STR_CLOSE);
+StrLiteral              : Char+                     -> mode(STR_CLOSE_MODE);
 
-mode STR_CLOSE;
+mode STR_CLOSE_MODE;
 
 StrLiteral_close        : '"'                       -> skip, mode(DEFAULT_MODE);
