@@ -230,7 +230,7 @@
                 CtxNtValue::V2 => {}
                 // nt_value -> "parents"
                 CtxNtValue::V3 => {}
-                // nt_value -> "set" "{" Id ("," Id)* "}"
+                // nt_value -> "set" "{" value ("," value)* "}"
                 CtxNtValue::V4 { star } => {}
             }
             SynNtValue()

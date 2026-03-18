@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use crate::parser::ConfigParser;
+use crate::parser::{ConfigParser, ConfigResult};
 
 #[test]
 fn test_run() {
@@ -10,7 +10,7 @@ fn test_run() {
     for (i, src) in [SRC1, SRC2].into_iter().enumerate() {
         println!("source #{i}");
         match p.parse(src) {
-            Ok(log) => println!("success\n{log}"),
+            Ok(ConfigResult { options, log }) => println!("{options:#?}\n\nlog:{log}"),
             Err(log) => panic!("error\n{log}"),
         }
     }
@@ -31,7 +31,8 @@ parser {
     indent: 4
 }
 options {
-    nt-value: none,
+    nt-value: set { "lexer", "parser" },
+    nt-value: set { "options" },
     spans: true
 }
 "#;

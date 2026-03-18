@@ -63,5 +63,5 @@ nt_value:
     Default
 |   None
 |   Parents
-|   Set Lbracket Id (Comma Id)* Rbracket
+|   Set Lbracket value (Comma value)* Rbracket
 ;
