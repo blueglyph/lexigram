@@ -57,6 +57,7 @@ mod listener {
     use std::str::FromStr;
     use lexi_gram::{gencode, genspec};
     use lexi_gram::lexigram_lib::CollectJoin;
+    use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{Options, Specification};
     use lexigram_core::lexer::PosSpan;
     use lexigram_core::log::Logger;
@@ -89,6 +90,23 @@ mod listener {
 
         pub fn attach_lines(&mut self, lines: Vec<&'ls str>) {
             self.lines = Some(lines);
+        }
+
+        fn values_to_strings(&mut self, values: Vec<SynValue>, spans: &PosSpan) -> Result<Vec<String>, ()> {
+            let values_len = values.len();
+            let strings = values.into_iter().enumerate().filter_map(|(i, v)| {
+                if let SynValue::Str(s) = v {
+                    Some(s)
+                } else {
+                    self.log.add_error(format!("at {}, item #{} isn't a string", spans, i + 1));
+                    None
+                }
+            }).to_vec();
+            if strings.len() == values_len {
+                Ok(strings)
+            } else {
+                Err(())
+            }
         }
     }
 
@@ -129,7 +147,7 @@ mod listener {
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
             if self.consts.contains_key(&id) {
-                self.log.add_error(format!("at {}, redefinition of {id}", spans[4]));
+                self.log.add_error(format!("at {}, redefined constant {id}", spans[4]));
             } else if value != SynValue::Error {
                 self.consts.insert(id, value);
             }
@@ -160,7 +178,7 @@ mod listener {
                         if spec.is_none() && self.options.parser_spec.is_none() {
                             self.log.add_error(format!("at {}, undefined grammar location", spans[2]));
                         } else if !spec.is_none() && !self.options.parser_spec.is_none() {
-                            self.log.add_error(format!("at {}, grammar location defined again (was combined in lexer)", spans[2]));
+                            self.log.add_error(format!("at {}, redefined grammar location ('combined' in lexer)", spans[2]));
                         }
                     }
                     if !spec.is_none() {
@@ -183,9 +201,13 @@ mod listener {
         fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) -> SynOptions {
             match ctx {
                 // options -> "options" "{" global_options "}"
-                CtxOptions::V1 { global_options } => {}
+                CtxOptions::V1 { global_options: SynGlobalOptions { headers, indent, libs, nt_value, gen_span_params } } => {
+                    todo!()
+                }
                 // options -> ε
-                CtxOptions::V2 => {}
+                CtxOptions::V2 => {
+                    todo!()
+                }
             }
             SynOptions()
         }
@@ -273,8 +295,8 @@ mod listener {
                 }
                 // io_option -> "indent" ":" value
                 CtxIoOption::V4 { value } => {
-                    if let SynValue::Num(val) = value {
-                        SynIoOption::Indent(val)
+                    if let SynValue::Num(indent) = value {
+                        SynIoOption::Indent(indent)
                     } else {
                         if value != SynValue::Error {
                             self.log.add_error(format!("at {}, expected number instead of {value:?}", spans[2]));
@@ -284,19 +306,9 @@ mod listener {
                 }
                 // io_option -> "headers" ":" "{" value ("," value)* "}"
                 CtxIoOption::V5 { star: SynIoOption1(values) } => {
-                    let n1 = values.len();
-                    let vals = values.into_iter().enumerate().filter_map(|(i, v)| {
-                        if let SynValue::Str(s) = v {
-                            Some(s)
-                        } else {
-                            self.log.add_error(format!("at {}, item #{} isn't a string", spans[3], i + 1));
-                            None
-                        }
-                    }).to_vec();
-                    if vals.len() == n1 {
-                        SynIoOption::Headers(vals)
-                    } else {
-                        SynIoOption::Error
+                    match self.values_to_strings(values, &spans[3]) {
+                        Ok(headers) => SynIoOption::Headers(headers),
+                        Err(()) => SynIoOption::Error,
                     }
                 }
             }
@@ -319,25 +331,66 @@ mod listener {
         }
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
-            // global_options -> global_option ("," global_option)*
+            // global_options -> global_option (<L> "," global_option)*
             let CtxGlobalOptions::V1 { star } = ctx;
-            SynGlobalOptions()
+            star
+        }
+
+        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
+            // value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            let InitCtxIGlobalOpt::V1 { global_option } = ctx;
+            let mut acc = SynGlobalOptions::new();
+            acc.fold(global_option);
+            acc
+        }
+
+        fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>) {
+            // `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            let CtxIGlobalOpt::V1 { global_option } = ctx;
+            if let Err(e) = acc.fold(global_option) {
+                self.log.add_error(format!("at {}, {e}", spans[2]));
+            }
         }
 
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
                 // global_option -> "headers" ":" "{" value ("," value)* "}"
-                CtxGlobalOption::V1 { star } => {}
+                CtxGlobalOption::V1 { star: SynGlobalOption1(values) } => {
+                    match self.values_to_strings(values, &spans[3]) {
+                        Ok(headers) => SynGlobalOption::Headers(headers),
+                        Err(()) => SynGlobalOption::Error,
+                    }
+                }
                 // global_option -> "indent" ":" value
-                CtxGlobalOption::V2 { value } => {}
+                CtxGlobalOption::V2 { value } => {
+                    if let SynValue::Num(indent) = value {
+                        SynGlobalOption::Indent(indent)
+                    } else {
+                        if value != SynValue::Error {
+                            self.log.add_error(format!("at {}, expected number instead of {value:?}", spans[2]));
+                        }
+                        SynGlobalOption::Error
+                    }
+                }
                 // global_option -> "libs" ":" "{" value ("," value)* "}"
-                CtxGlobalOption::V3 { star } => {}
+                CtxGlobalOption::V3 { star: SynGlobalOption2(values) } => {
+                    match self.values_to_strings(values, &spans[3]) {
+                        Ok(libs) => SynGlobalOption::Libs(libs),
+                        Err(()) => SynGlobalOption::Error,
+                    }
+                }
                 // global_option -> "nt-value" ":" nt_value
-                CtxGlobalOption::V4 { nt_value } => {}
+                CtxGlobalOption::V4 { nt_value } => SynGlobalOption::NTValue(nt_value),
                 // global_option -> "spans" ":" value
-                CtxGlobalOption::V5 { value } => {}
+                CtxGlobalOption::V5 { value } => {
+                    if let SynValue::Bool(flag) = value {
+                        SynGlobalOption::Spans(flag)
+                    } else {
+                        self.log.add_error(format!("at {}, expected boolean instead of {value:?}", spans[2]));
+                        SynGlobalOption::Error
+                    }
+                }
             }
-            SynGlobalOption()
         }
 
         fn exit_value(&mut self, ctx: CtxValue, spans: Vec<PosSpan>) -> SynValue {
@@ -377,21 +430,21 @@ mod listener {
         fn exit_nt_value(&mut self, ctx: CtxNtValue, spans: Vec<PosSpan>) -> SynNtValue {
             match ctx {
                 // nt_value -> "default"
-                CtxNtValue::V1 => {}
+                CtxNtValue::V1 => NTValue::Default,
                 // nt_value -> "none"
-                CtxNtValue::V2 => {}
+                CtxNtValue::V2 => NTValue::None,
                 // nt_value -> "parents"
-                CtxNtValue::V3 => {}
+                CtxNtValue::V3 => NTValue::Parents,
                 // nt_value -> "set" "{" Id ("," Id)* "}"
-                CtxNtValue::V4 { star } => {}
+                CtxNtValue::V4 { star: SynNtValue1(names) } => NTValue::SetNames(names),
             }
-            SynNtValue()
         }
     }
 }
 
 #[allow(unused)]
 mod listener_types {
+    use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{CodeLocation, Specification};
 
     /// User-defined type for `config`
@@ -504,15 +557,89 @@ mod listener_types {
 
     /// User-defined type for `global_options`
     #[derive(Debug, PartialEq)]
-    pub struct SynGlobalOptions();
+    pub struct SynGlobalOptions {
+        pub headers: Vec<String>,
+        pub indent: Option<usize>,
+        pub libs: Vec<String>,
+        pub nt_value: Option<NTValue>,
+        pub gen_span_params: Option<bool>,
+    }
+
+    impl Default for SynGlobalOptions {
+        fn default() -> Self {
+            SynGlobalOptions {
+                headers: vec![],
+                indent: None,
+                libs: vec![],
+                nt_value: None,
+                gen_span_params: None,
+            }
+        }
+    }
+
+    impl SynGlobalOptions {
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        pub fn fold(&mut self, global_option: SynGlobalOption) -> Result<(), &str> {
+            match global_option {
+                SynGlobalOption::Error => {}
+                SynGlobalOption::Headers(headers) => {
+                    self.headers.extend(headers);
+                }
+                SynGlobalOption::Indent(indent) => {
+                    if self.indent.is_none() {
+                        self.indent = Some(indent);
+                    } else {
+                        return Err("more than one indentation");
+                    }
+                }
+                SynGlobalOption::Libs(libs) => {
+                    self.libs.extend(libs);
+                }
+                SynGlobalOption::NTValue(nt_value) => {
+                    if self.nt_value.is_none() {
+                        self.nt_value = Some(nt_value);
+                    } else if let Some(current) = self.nt_value.as_mut() {
+                        match (current, nt_value) {
+                            // we allow to grow names
+                            (NTValue::SetNames(names), NTValue::SetNames(new)) => {
+                                names.extend(new);
+                            }
+                            _ => return Err("conflicting nt-value options"),
+                        }
+                    }
+                }
+                SynGlobalOption::Spans(spans) => {
+                    if self.gen_span_params.is_none() {
+                        self.gen_span_params = Some(spans);
+                    } else {
+                        return Err("more than one `spans` option")
+                    }
+                }
+            }
+            Ok(())
+        }
+    }
+
+    /// User-defined type for `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+    pub type SynIGlobalOpt = SynGlobalOptions;
 
     /// User-defined type for `global_option`
     #[derive(Debug, PartialEq)]
-    pub struct SynGlobalOption();
+    pub enum SynGlobalOption {
+        Error,
+        Headers(Vec<String>),
+        Indent(usize),
+        Libs(Vec<String>),
+        NTValue(NTValue),
+        Spans(bool),
+    }
 
     /// User-defined type for `value`
     #[derive(Clone, PartialEq, Debug)]
-    pub(super) enum SynValue {
+    pub enum SynValue {
         Error,
         Bool(bool),
         Num(usize),
@@ -521,8 +648,7 @@ mod listener_types {
     }
 
     /// User-defined type for `nt_value`
-    #[derive(Debug, PartialEq)]
-    pub struct SynNtValue();
+    pub type SynNtValue = NTValue;
 }
 
 #[allow(unused)]
@@ -807,10 +933,10 @@ mod config_parser {
     const PARSER_NUM_T: usize = 29;
     const PARSER_NUM_NT: usize = 19;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Comma", Some(",")), ("Equal", Some("=")), ("Lbracket", Some("{")), ("LSbracket", Some("[")), ("Rbracket", Some("}")), ("RSbracket", Some("]")), ("Semicolon", Some(";")), ("Combined", Some("combined")), ("Def", Some("def")), ("Default", Some("default")), ("Headers", Some("headers")), ("Indent", Some("indent")), ("Input", Some("input")), ("Lexer", Some("lexer")), ("Libs", Some("libs")), ("None", Some("none")), ("NTValue", Some("nt-value")), ("Options", Some("options")), ("Output", Some("output")), ("Parents", Some("parents")), ("Parser", Some("parser")), ("Set", Some("set")), ("Spans", Some("spans")), ("Stdout", Some("stdout")), ("BoolLiteral", None), ("Id", None), ("NumLiteral", None), ("StrLiteral", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["config", "definitions", "i_def", "lexer", "parser", "options", "io_options", "i_io_opt", "io_option", "tag_opt", "global_options", "global_option", "value", "nt_value", "io_option_1", "global_options_1", "global_option_1", "global_option_2", "nt_value_1"];
-    static ALT_VAR: [VarId; 44] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
-    static PARSING_TABLE: [AltId; 570] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 44, 44, 44, 44, 0, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 44, 44, 44, 44, 1, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 44, 44, 44, 44, 3, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 4, 44, 44, 44, 45, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 5, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 7, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 45, 44, 44, 9, 44, 44, 9, 9, 9, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 10, 44, 44, 44, 11, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 12, 44, 44, 16, 15, 13, 44, 44, 44, 44, 44, 14, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 18, 44, 44, 17, 18, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 19, 19, 44, 44, 19, 44, 19, 44, 44, 44, 44, 44, 19, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 44, 20, 21, 44, 44, 22, 44, 23, 44, 44, 44, 44, 44, 24, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 29, 25, 28, 26, 27, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 30, 44, 44, 44, 44, 44, 31, 44, 44, 44, 32, 44, 33, 44, 44, 44, 44, 44, 44, 44, 44, 34, 44, 44, 44, 35, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 36, 44, 44, 44, 37, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 38, 44, 44, 44, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 44, 44, 44, 41, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 42, 44, 44, 44, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44];
-    static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(12), OpCode::T(2), OpCode::T(26), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(12), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(14), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(12), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(15), OpCode::NT(11)], &[OpCode::Exit(20), OpCode::T(5), OpCode::NT(16), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(21), OpCode::NT(12), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(17), OpCode::NT(12), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(24), OpCode::NT(12), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(25), OpCode::T(25)], &[OpCode::Exit(26), OpCode::T(27)], &[OpCode::Exit(27), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(26)], &[OpCode::Exit(29), OpCode::T(24)], &[OpCode::Exit(30), OpCode::T(10)], &[OpCode::Exit(31), OpCode::T(16)], &[OpCode::Exit(32), OpCode::T(20)], &[OpCode::Exit(33), OpCode::T(5), OpCode::NT(18), OpCode::T(26), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(14), OpCode::Exit(34), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(35)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(11), OpCode::T(1)], &[OpCode::Exit(37)], &[OpCode::Loop(16), OpCode::Exit(38), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(39)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(41)], &[OpCode::Loop(18), OpCode::Exit(42), OpCode::T(26), OpCode::T(1)], &[OpCode::Exit(43)]];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["config", "definitions", "i_def", "lexer", "parser", "options", "io_options", "i_io_opt", "io_option", "tag_opt", "global_options", "i_global_opt", "global_option", "value", "nt_value", "io_option_1", "global_option_1", "global_option_2", "nt_value_1"];
+    static ALT_VAR: [VarId; 44] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
+    static PARSING_TABLE: [AltId; 570] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 44, 44, 44, 44, 0, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 44, 44, 44, 44, 1, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 44, 44, 44, 44, 3, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 4, 44, 44, 44, 45, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 5, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 7, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 45, 44, 44, 9, 44, 44, 9, 9, 9, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 10, 44, 44, 44, 11, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 12, 44, 44, 16, 15, 13, 44, 44, 44, 44, 44, 14, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 18, 44, 44, 17, 18, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 19, 19, 44, 44, 19, 44, 19, 44, 44, 44, 44, 44, 19, 44, 44, 44, 44, 44, 44, 44, 20, 44, 44, 44, 21, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 44, 22, 23, 44, 44, 24, 44, 25, 44, 44, 44, 44, 44, 26, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 31, 27, 30, 28, 29, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 32, 44, 44, 44, 44, 44, 33, 44, 44, 44, 34, 44, 35, 44, 44, 44, 44, 44, 44, 44, 44, 36, 44, 44, 44, 37, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 38, 44, 44, 44, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 44, 44, 44, 41, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 42, 44, 44, 44, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44];
+    static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(13), OpCode::T(2), OpCode::T(26), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(15), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(13), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(11), OpCode::NT(12)], &[OpCode::Loop(11), OpCode::Exit(20), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(16), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(24), OpCode::T(5), OpCode::NT(17), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(25), OpCode::NT(14), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(26), OpCode::NT(13), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(27), OpCode::T(25)], &[OpCode::Exit(28), OpCode::T(27)], &[OpCode::Exit(29), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(26)], &[OpCode::Exit(31), OpCode::T(24)], &[OpCode::Exit(32), OpCode::T(10)], &[OpCode::Exit(33), OpCode::T(16)], &[OpCode::Exit(34), OpCode::T(20)], &[OpCode::Exit(35), OpCode::T(5), OpCode::NT(18), OpCode::T(26), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(37)], &[OpCode::Loop(16), OpCode::Exit(38), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(39)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(41)], &[OpCode::Loop(18), OpCode::Exit(42), OpCode::T(26), OpCode::T(1)], &[OpCode::Exit(43)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
@@ -902,8 +1028,18 @@ mod config_parser {
     }
     #[derive(Debug)]
     pub enum CtxGlobalOptions {
-        /// `global_options -> global_option ("," global_option)*`
-        V1 { star: SynGlobalOptions1 },
+        /// `global_options -> global_option (<L> "," global_option)*`
+        V1 { star: SynIGlobalOpt },
+    }
+    #[derive(Debug)]
+    pub enum InitCtxIGlobalOpt {
+        /// value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+        V1 { global_option: SynGlobalOption },
+    }
+    #[derive(Debug)]
+    pub enum CtxIGlobalOpt {
+        /// `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+        V1 { global_option: SynGlobalOption },
     }
     #[derive(Debug)]
     pub enum CtxGlobalOption {
@@ -946,9 +1082,6 @@ mod config_parser {
     /// Computed `("," value)*` array in `io_option -> "combined" ":" value tag_opt | "input" ":" value tag_opt | "output" ":" value tag_opt | "indent" ":" value | "headers" ":" "{" value  ►► ("," value)* ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynIoOption1(pub Vec<SynValue>);
-    /// Computed `("," global_option)*` array in `global_options -> global_option  ►► ("," global_option)* ◄◄ `
-    #[derive(Debug, PartialEq)]
-    pub struct SynGlobalOptions1(pub Vec<SynGlobalOption>);
     /// Computed `("," value)*` array in `global_option -> "headers" ":" "{" value  ►► ("," value)* ◄◄  "}" | "indent" ":" value | "libs" ":" "{" value ("," value)* "}" | "nt-value" ":" nt_value | "spans" ":" value`
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOption1(pub Vec<SynValue>);
@@ -960,7 +1093,7 @@ mod config_parser {
     pub struct SynNtValue1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum EnumSynValue { Config(SynConfig), Definitions(SynDefinitions), IDef(SynIDef), Lexer(SynLexer), Parser(SynParser), Options(SynOptions), IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOptions1(SynGlobalOptions1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
+    enum EnumSynValue { Config(SynConfig), Definitions(SynDefinitions), IDef(SynIDef), Lexer(SynLexer), Parser(SynParser), Options(SynOptions), IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), IGlobalOpt(SynIGlobalOpt), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
 
     impl EnumSynValue {
         fn get_config(self) -> SynConfig {
@@ -996,6 +1129,9 @@ mod config_parser {
         fn get_global_options(self) -> SynGlobalOptions {
             if let EnumSynValue::GlobalOptions(val) = self { val } else { panic!() }
         }
+        fn get_i_global_opt(self) -> SynIGlobalOpt {
+            if let EnumSynValue::IGlobalOpt(val) = self { val } else { panic!() }
+        }
         fn get_global_option(self) -> SynGlobalOption {
             if let EnumSynValue::GlobalOption(val) = self { val } else { panic!() }
         }
@@ -1007,9 +1143,6 @@ mod config_parser {
         }
         fn get_io_option1(self) -> SynIoOption1 {
             if let EnumSynValue::IoOption1(val) = self { val } else { panic!() }
-        }
-        fn get_global_options1(self) -> SynGlobalOptions1 {
-            if let EnumSynValue::GlobalOptions1(val) = self { val } else { panic!() }
         }
         fn get_global_option1(self) -> SynGlobalOption1 {
             if let EnumSynValue::GlobalOption1(val) = self { val } else { panic!() }
@@ -1059,6 +1192,10 @@ mod config_parser {
         fn exit_tag_opt(&mut self, ctx: CtxTagOpt, spans: Vec<PosSpan>) -> SynTagOpt;
         fn init_global_options(&mut self) {}
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions;
+        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt;
+        fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>);
+        #[allow(unused_variables)]
+        fn exitloop_i_global_opt(&mut self, acc: &mut SynIGlobalOpt) {}
         fn init_global_option(&mut self) {}
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption;
         fn init_value(&mut self) {}
@@ -1099,15 +1236,15 @@ mod config_parser {
                         6 => self.listener.init_io_options(),       // io_options
                         7 => self.init_i_io_opt(),                  // i_io_opt
                         8 => self.listener.init_io_option(),        // io_option
-                        14 => self.init_io_option1(),               // io_option_1
+                        15 => self.init_io_option1(),               // io_option_1
                         9 => self.listener.init_tag_opt(),          // tag_opt
                         10 => self.listener.init_global_options(),  // global_options
-                        15 => self.init_global_options1(),          // global_options_1
-                        11 => self.listener.init_global_option(),   // global_option
+                        11 => self.init_i_global_opt(),             // i_global_opt
+                        12 => self.listener.init_global_option(),   // global_option
                         16 => self.init_global_option1(),           // global_option_1
                         17 => self.init_global_option2(),           // global_option_2
-                        12 => self.listener.init_value(),           // value
-                        13 => self.listener.init_nt_value(),        // nt_value
+                        13 => self.listener.init_value(),           // value
+                        14 => self.listener.init_nt_value(),        // nt_value
                         18 => self.init_nt_value1(),                // nt_value_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
@@ -1132,31 +1269,31 @@ mod config_parser {
                         14 |                                        // io_option -> "output" ":" value tag_opt
                         15 |                                        // io_option -> "indent" ":" value
                         16 => self.exit_io_option(alt_id),          // io_option -> "headers" ":" "{" value io_option_1 "}"
-                        34 => self.exit_io_option1(),               // io_option_1 -> "," value io_option_1
-                        35 => {}                                    // io_option_1 -> ε
+                        36 => self.exit_io_option1(),               // io_option_1 -> "," value io_option_1
+                        37 => {}                                    // io_option_1 -> ε
                         17 |                                        // tag_opt -> "[" value "]"
                         18 => self.exit_tag_opt(alt_id),            // tag_opt -> ε
-                        19 => self.exit_global_options(),           // global_options -> global_option global_options_1
-                        36 => self.exit_global_options1(),          // global_options_1 -> "," global_option global_options_1
-                        37 => {}                                    // global_options_1 -> ε
-                        20 |                                        // global_option -> "headers" ":" "{" value global_option_1 "}"
-                        21 |                                        // global_option -> "indent" ":" value
-                        22 |                                        // global_option -> "libs" ":" "{" value global_option_2 "}"
-                        23 |                                        // global_option -> "nt-value" ":" nt_value
-                        24 => self.exit_global_option(alt_id),      // global_option -> "spans" ":" value
+                        19 => self.exit_global_options(),           // global_options -> global_option i_global_opt
+                        20 => self.exit_i_global_opt(),             // i_global_opt -> <L> "," global_option i_global_opt
+                        21 => self.exitloop_i_global_opt(),         // i_global_opt -> <L> ε
+                        22 |                                        // global_option -> "headers" ":" "{" value global_option_1 "}"
+                        23 |                                        // global_option -> "indent" ":" value
+                        24 |                                        // global_option -> "libs" ":" "{" value global_option_2 "}"
+                        25 |                                        // global_option -> "nt-value" ":" nt_value
+                        26 => self.exit_global_option(alt_id),      // global_option -> "spans" ":" value
                         38 => self.exit_global_option1(),           // global_option_1 -> "," value global_option_1
                         39 => {}                                    // global_option_1 -> ε
                         40 => self.exit_global_option2(),           // global_option_2 -> "," value global_option_2
                         41 => {}                                    // global_option_2 -> ε
-                        25 |                                        // value -> BoolLiteral
-                        26 |                                        // value -> NumLiteral
-                        27 |                                        // value -> StrLiteral
-                        28 |                                        // value -> Id
-                        29 => self.exit_value(alt_id),              // value -> "stdout"
-                        30 |                                        // nt_value -> "default"
-                        31 |                                        // nt_value -> "none"
-                        32 |                                        // nt_value -> "parents"
-                        33 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" Id nt_value_1 "}"
+                        27 |                                        // value -> BoolLiteral
+                        28 |                                        // value -> NumLiteral
+                        29 |                                        // value -> StrLiteral
+                        30 |                                        // value -> Id
+                        31 => self.exit_value(alt_id),              // value -> "stdout"
+                        32 |                                        // nt_value -> "default"
+                        33 |                                        // nt_value -> "none"
+                        34 |                                        // nt_value -> "parents"
+                        35 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" Id nt_value_1 "}"
                         42 => self.exit_nt_value1(),                // nt_value_1 -> "," Id nt_value_1
                         43 => {}                                    // nt_value_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
@@ -1420,7 +1557,7 @@ mod config_parser {
         }
 
         fn exit_global_options(&mut self) {
-            let star = self.stack.pop().unwrap().get_global_options1();
+            let star = self.stack.pop().unwrap().get_i_global_opt();
             let ctx = CtxGlobalOptions::V1 { star };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1428,42 +1565,48 @@ mod config_parser {
             self.stack.push(EnumSynValue::GlobalOptions(val));
         }
 
-        fn init_global_options1(&mut self) {
+        fn init_i_global_opt(&mut self) {
+            let global_option = self.stack.pop().unwrap().get_global_option();
+            let ctx = InitCtxIGlobalOpt::V1 { global_option };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let global_option = self.stack.pop().unwrap().get_global_option();
-            self.stack.push(EnumSynValue::GlobalOptions1(SynGlobalOptions1(vec![global_option])));
+            let val = self.listener.init_i_global_opt(ctx, spans);
+            self.stack.push(EnumSynValue::IGlobalOpt(val));
         }
 
-        fn exit_global_options1(&mut self) {
+        fn exit_i_global_opt(&mut self) {
+            let global_option = self.stack.pop().unwrap().get_global_option();
+            let ctx = CtxIGlobalOpt::V1 { global_option };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let global_option = self.stack.pop().unwrap().get_global_option();
-            let Some(EnumSynValue::GlobalOptions1(SynGlobalOptions1(star_acc))) = self.stack.last_mut() else {
-                panic!("expected SynGlobalOptions1 item on wrapper stack");
-            };
-            star_acc.push(global_option);
+            let Some(EnumSynValue::IGlobalOpt(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_i_global_opt(acc, ctx, spans);
+        }
+
+        fn exitloop_i_global_opt(&mut self) {
+            let EnumSynValue::IGlobalOpt(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i_global_opt(acc);
         }
 
         fn exit_global_option(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                20 => {
+                22 => {
                     let star = self.stack.pop().unwrap().get_global_option1();
                     (5, CtxGlobalOption::V1 { star })
                 }
-                21 => {
+                23 => {
                     let value = self.stack.pop().unwrap().get_value();
                     (3, CtxGlobalOption::V2 { value })
                 }
-                22 => {
+                24 => {
                     let star = self.stack.pop().unwrap().get_global_option2();
                     (5, CtxGlobalOption::V3 { star })
                 }
-                23 => {
+                25 => {
                     let nt_value = self.stack.pop().unwrap().get_nt_value();
                     (3, CtxGlobalOption::V4 { nt_value })
                 }
-                24 => {
+                26 => {
                     let value = self.stack.pop().unwrap().get_value();
                     (3, CtxGlobalOption::V5 { value })
                 }
@@ -1511,23 +1654,23 @@ mod config_parser {
 
         fn exit_value(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                25 => {
+                27 => {
                     let boolliteral = self.stack_t.pop().unwrap();
                     (1, CtxValue::V1 { boolliteral })
                 }
-                26 => {
+                28 => {
                     let numliteral = self.stack_t.pop().unwrap();
                     (1, CtxValue::V2 { numliteral })
                 }
-                27 => {
+                29 => {
                     let strliteral = self.stack_t.pop().unwrap();
                     (1, CtxValue::V3 { strliteral })
                 }
-                28 => {
+                30 => {
                     let id = self.stack_t.pop().unwrap();
                     (1, CtxValue::V4 { id })
                 }
-                29 => {
+                31 => {
                     (1, CtxValue::V5)
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_value")
@@ -1540,16 +1683,16 @@ mod config_parser {
 
         fn exit_nt_value(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                30 => {
+                32 => {
                     (1, CtxNtValue::V1)
                 }
-                31 => {
+                33 => {
                     (1, CtxNtValue::V2)
                 }
-                32 => {
+                34 => {
                     (1, CtxNtValue::V3)
                 }
-                33 => {
+                35 => {
                     let star = self.stack.pop().unwrap().get_nt_value1();
                     (4, CtxNtValue::V4 { star })
                 }

@@ -164,6 +164,26 @@ impl NTValue {
     pub const DEFAULT: &str = "<default>";
     /// The top nonterminal parents and the children of `(<L> )+*` have a value (can be used in [NTValue::SetNames])
     pub const PARENTS: &str = "<parents>";
+
+    pub fn is_none(&self) -> bool {
+        matches!(self, NTValue::None)
+    }
+
+    pub fn is_parents(&self) -> bool {
+        matches!(self, NTValue::Parents)
+    }
+
+    pub fn is_default(&self) -> bool {
+        matches!(self, NTValue::Default)
+    }
+
+    pub fn is_ids(&self) -> bool {
+        matches!(self, NTValue::SetIds(_))
+    }
+
+    pub fn is_names(&self) -> bool {
+        matches!(self, NTValue::SetNames(_))
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

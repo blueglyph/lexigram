@@ -48,6 +48,10 @@
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOptions();
 
+    /// User-defined type for `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+    #[derive(Debug, PartialEq)]
+    pub struct SynIGlobalOpt();
+
     /// User-defined type for `global_option`
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOption();
@@ -170,9 +174,20 @@
         }
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
-            // global_options -> global_option ("," global_option)*
+            // global_options -> global_option (<L> "," global_option)*
             let CtxGlobalOptions::V1 { star } = ctx;
             SynGlobalOptions()
+        }
+
+        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
+            // value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            let InitCtxIGlobalOpt::V1 { global_option } = ctx;
+            SynIGlobalOpt()
+        }
+
+        fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>) {
+            // `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            let CtxIGlobalOpt::V1 { global_option } = ctx;
         }
 
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {

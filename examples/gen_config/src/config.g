@@ -40,7 +40,7 @@ tag_opt:
 ;
 
 global_options:
-     global_option (Comma global_option)*
+     global_option (<L=i_global_opt> Comma global_option)*
 ;
 
 global_option:
