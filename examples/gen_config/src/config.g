@@ -8,7 +8,7 @@ config:
 ;
 
 definitions:
-    (<L=i_def> Def Id Equal value Semicolon)*   // any type
+    (<L=i_def> Def Id Equal value Semicolon)*
 ;
 
 lexer:
@@ -28,15 +28,15 @@ io_options:
 ;
 
 io_option:
-    Combined Colon value tag_opt            // string
-|   Input    Colon value tag_opt            // string
-|   Output   Colon value tag_opt            // string
-|   Indent   Colon value                    // num
+    Combined Colon value tag_opt
+|   Input    Colon value tag_opt
+|   Output   Colon value tag_opt
+|   Indent   Colon value
 |   Headers  Colon Lbracket value (Comma value)* Rbracket // string
 ;
 
 tag_opt:
-    (LSbracket value RSbracket)?            // string
+    (LSbracket value RSbracket)?
 ;
 
 global_options:
@@ -44,11 +44,11 @@ global_options:
 ;
 
 global_option:
-    Headers Colon Lbracket value (Comma value)* Rbracket    // string
-|   Indent  Colon value                                     // num
-|   Libs    Colon Lbracket value (Comma value)* Rbracket    // string
+    Headers Colon Lbracket value (Comma value)* Rbracket
+|   Indent  Colon value
+|   Libs    Colon Lbracket value (Comma value)* Rbracket
 |   NTValue Colon nt_value
-|   Spans   Colon value                                     // bool
+|   Spans   Colon value
 ;
 
 value:
