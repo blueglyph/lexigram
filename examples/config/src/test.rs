@@ -31,7 +31,7 @@ parser {
     indent: 4
 }
 options {
-    nt-value: set { "lexer", "parser" },
+    nt-value: set { "<default>", "-lexer", "-parser" },
     nt-value: set { "options" },
     spans: true
 }

@@ -4,30 +4,6 @@
     // --------------------------------------------------------------------------------
     // Template for the user-defined types:
 
-    /// User-defined type for `config`
-    #[derive(Debug, PartialEq)]
-    pub struct SynConfig();
-
-    /// User-defined type for `definitions`
-    #[derive(Debug, PartialEq)]
-    pub struct SynDefinitions();
-
-    /// User-defined type for `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
-    #[derive(Debug, PartialEq)]
-    pub struct SynIDef();
-
-    /// User-defined type for `lexer`
-    #[derive(Debug, PartialEq)]
-    pub struct SynLexer();
-
-    /// User-defined type for `parser`
-    #[derive(Debug, PartialEq)]
-    pub struct SynParser();
-
-    /// User-defined type for `options`
-    #[derive(Debug, PartialEq)]
-    pub struct SynOptions();
-
     /// User-defined type for `io_options`
     #[derive(Debug, PartialEq)]
     pub struct SynIoOptions();
@@ -83,51 +59,42 @@
             &mut self.log
         }
 
-        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig {
+        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {}
             // config -> definitions lexer parser options
-            let CtxConfig::V1 { definitions, lexer, parser, options } = ctx;
-            SynConfig()
+            let CtxConfig::V1 = ctx;
         }
 
-        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) -> SynDefinitions {
+        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) {}
             // definitions -> (<L> "def" Id "=" value ";")*
-            let CtxDefinitions::V1 { star } = ctx;
-            SynDefinitions()
+            let CtxDefinitions::V1 = ctx;
         }
 
-        fn init_i_def(&mut self) -> SynIDef {
-            SynIDef()
-        }
-
-        fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>) {
+        fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {}
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
         }
 
-        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer {
+        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {}
             // lexer -> "lexer" "{" io_options "}"
             let CtxLexer::V1 { io_options } = ctx;
-            SynLexer()
         }
 
-        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) -> SynParser {
+        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {}
             match ctx {
                 // parser -> "parser" "{" io_options "}"
                 CtxParser::V1 { io_options } => {}
                 // parser -> ε
                 CtxParser::V2 => {}
             }
-            SynParser()
         }
 
-        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) -> SynOptions {
+        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {}
             match ctx {
                 // options -> "options" "{" global_options "}"
                 CtxOptions::V1 { global_options } => {}
                 // options -> ε
                 CtxOptions::V2 => {}
             }
-            SynOptions()
         }
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {

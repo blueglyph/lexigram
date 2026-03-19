@@ -123,28 +123,14 @@ mod listener {
             &mut self.log
         }
 
-        fn exit(&mut self, config: SynConfig, span: PosSpan) {
+        fn exit(&mut self, span: PosSpan) {
             if let Some(indent) = self.lexer_indent { self.options.lexer_indent = indent };
             if let Some(indent) = self.parser_indent { self.options.parser_indent = indent };
             // if let Some(indent) = self.types_indent { self.options.types_indent = indent };
             // if let Some(indent) = self.listener_indent { self.options.listener_indent = indent };
         }
 
-        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig {
-            // config -> definitions lexer parser options
-            let CtxConfig::V1 { definitions, lexer, parser, options } = ctx;
-            SynConfig()
-        }
-
-        fn exit_definitions(&mut self, _: CtxDefinitions, _: Vec<PosSpan>) -> SynDefinitions {
-            SynDefinitions()
-        }
-
-        fn init_i_def(&mut self) -> SynIDef {
-            SynIDef()
-        }
-
-        fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>) {
+        fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
             if self.consts.contains_key(&id) {
@@ -154,7 +140,7 @@ mod listener {
             }
         }
 
-        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer {
+        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {
             // lexer -> "lexer" "{" io_options "}"
             let CtxLexer::V1 { io_options } = ctx;
             if io_options.is_combined {
@@ -164,10 +150,9 @@ mod listener {
             self.options.lexer_code = io_options.code;
             self.options.lexer_headers.extend(io_options.headers);
             self.lexer_indent = io_options.indent_opt;
-            SynLexer()
         }
 
-        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) -> SynParser {
+        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {
             match ctx {
                 // parser -> "parser" "{" io_options "}"
                 CtxParser::V1 { io_options } => {
@@ -197,10 +182,9 @@ mod listener {
                     }
                 }
             }
-            SynParser()
         }
 
-        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) -> SynOptions {
+        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {
             match ctx {
                 // options -> "options" "{" global_options "}"
                 CtxOptions::V1 { global_options } => {
@@ -223,7 +207,6 @@ mod listener {
                 // options -> ε
                 CtxOptions::V2 => {}
             }
-            SynOptions()
         }
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
@@ -465,30 +448,6 @@ mod listener {
 mod listener_types {
     use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{CodeLocation, Specification};
-
-    /// User-defined type for `config`
-    #[derive(Debug, PartialEq)]
-    pub struct SynConfig();
-
-    /// User-defined type for `definitions`
-    #[derive(Debug, PartialEq)]
-    pub struct SynDefinitions();
-
-    /// User-defined type for `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
-    #[derive(Debug, PartialEq)]
-    pub struct SynIDef();
-
-    /// User-defined type for `lexer`
-    #[derive(Debug, PartialEq)]
-    pub struct SynLexer();
-
-    /// User-defined type for `parser`
-    #[derive(Debug, PartialEq)]
-    pub struct SynParser();
-
-    /// User-defined type for `options`
-    #[derive(Debug, PartialEq)]
-    pub struct SynOptions();
 
     /// User-defined type for `io_options`
     #[derive(Clone, PartialEq, Debug)]
@@ -979,12 +938,12 @@ mod config_parser {
     #[derive(Debug)]
     pub enum CtxConfig {
         /// `config -> definitions lexer parser options`
-        V1 { definitions: SynDefinitions, lexer: SynLexer, parser: SynParser, options: SynOptions },
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxDefinitions {
         /// `definitions -> (<L> "def" Id "=" value ";")*`
-        V1 { star: SynIDef },
+        V1,
     }
     #[derive(Debug)]
     pub enum CtxIDef {
@@ -1110,29 +1069,14 @@ mod config_parser {
     /// Computed `("," value)*` array in `nt_value -> "default" | "none" | "parents" | "set" "{" value  ►► ("," value)* ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynNtValue1(pub Vec<SynValue>);
+    /// Top non-terminal Config (has no value)
+    #[derive(Debug, PartialEq)]
+    pub struct SynConfig();
 
     #[derive(Debug)]
-    enum EnumSynValue { Config(SynConfig), Definitions(SynDefinitions), IDef(SynIDef), Lexer(SynLexer), Parser(SynParser), Options(SynOptions), IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), IGlobalOpt(SynIGlobalOpt), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
+    enum EnumSynValue { IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), IGlobalOpt(SynIGlobalOpt), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
 
     impl EnumSynValue {
-        fn get_config(self) -> SynConfig {
-            if let EnumSynValue::Config(val) = self { val } else { panic!() }
-        }
-        fn get_definitions(self) -> SynDefinitions {
-            if let EnumSynValue::Definitions(val) = self { val } else { panic!() }
-        }
-        fn get_i_def(self) -> SynIDef {
-            if let EnumSynValue::IDef(val) = self { val } else { panic!() }
-        }
-        fn get_lexer(self) -> SynLexer {
-            if let EnumSynValue::Lexer(val) = self { val } else { panic!() }
-        }
-        fn get_parser(self) -> SynParser {
-            if let EnumSynValue::Parser(val) = self { val } else { panic!() }
-        }
-        fn get_options(self) -> SynOptions {
-            if let EnumSynValue::Options(val) = self { val } else { panic!() }
-        }
         fn get_io_options(self) -> SynIoOptions {
             if let EnumSynValue::IoOptions(val) = self { val } else { panic!() }
         }
@@ -1182,23 +1126,27 @@ mod config_parser {
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
-        fn exit(&mut self, config: SynConfig, span: PosSpan) {}
+        fn exit(&mut self, span: PosSpan) {}
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn init_config(&mut self) {}
-        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) -> SynConfig;
-        fn init_definitions(&mut self) {}
-        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) -> SynDefinitions;
-        fn init_i_def(&mut self) -> SynIDef;
-        fn exit_i_def(&mut self, acc: &mut SynIDef, ctx: CtxIDef, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
-        fn exitloop_i_def(&mut self, acc: &mut SynIDef) {}
+        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {}
+        fn init_definitions(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) {}
+        fn init_i_def(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {}
         fn init_lexer(&mut self) {}
-        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) -> SynLexer;
+        #[allow(unused_variables)]
+        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {}
         fn init_parser(&mut self) {}
-        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) -> SynParser;
+        #[allow(unused_variables)]
+        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {}
         fn init_options(&mut self) {}
-        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) -> SynOptions;
+        #[allow(unused_variables)]
+        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {}
         fn init_io_options(&mut self) {}
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions;
         fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt;
@@ -1248,7 +1196,7 @@ mod config_parser {
                     match nt {
                         0 => self.listener.init_config(),           // config
                         1 => self.listener.init_definitions(),      // definitions
-                        2 => self.init_i_def(),                     // i_def
+                        2 => self.listener.init_i_def(),            // i_def
                         3 => self.listener.init_lexer(),            // lexer
                         4 => self.listener.init_parser(),           // parser
                         5 => self.listener.init_options(),          // options
@@ -1274,7 +1222,7 @@ mod config_parser {
                         0 => self.exit_config(),                    // config -> definitions lexer parser options
                         1 => self.exit_definitions(),               // definitions -> i_def
                         2 => self.exit_i_def(),                     // i_def -> <L> "def" Id "=" value ";" i_def
-                        3 => self.exitloop_i_def(),                 // i_def -> <L> ε
+                        3 => {}                                     // i_def -> <L> ε (not used)
                         4 => self.exit_lexer(),                     // lexer -> "lexer" "{" io_options "}"
                         5 |                                         // parser -> "parser" "{" io_options "}"
                         6 => self.exit_parser(alt_id),              // parser -> ε
@@ -1321,9 +1269,8 @@ mod config_parser {
                 Call::End(terminate) => {
                     match terminate {
                         Terminate::None => {
-                            let val = self.stack.pop().unwrap().get_config();
                             let span = self.stack_span.pop().unwrap();
-                            self.listener.exit(val, span);
+                            self.listener.exit(span);
                         }
                         Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
                     }
@@ -1393,29 +1340,17 @@ mod config_parser {
         }
 
         fn exit_config(&mut self) {
-            let options = self.stack.pop().unwrap().get_options();
-            let parser = self.stack.pop().unwrap().get_parser();
-            let lexer = self.stack.pop().unwrap().get_lexer();
-            let definitions = self.stack.pop().unwrap().get_definitions();
-            let ctx = CtxConfig::V1 { definitions, lexer, parser, options };
+            let ctx = CtxConfig::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_config(ctx, spans);
-            self.stack.push(EnumSynValue::Config(val));
+            self.listener.exit_config(ctx, spans);
         }
 
         fn exit_definitions(&mut self) {
-            let star = self.stack.pop().unwrap().get_i_def();
-            let ctx = CtxDefinitions::V1 { star };
+            let ctx = CtxDefinitions::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_definitions(ctx, spans);
-            self.stack.push(EnumSynValue::Definitions(val));
-        }
-
-        fn init_i_def(&mut self) {
-            let val = self.listener.init_i_def();
-            self.stack.push(EnumSynValue::IDef(val));
+            self.listener.exit_definitions(ctx, spans);
         }
 
         fn exit_i_def(&mut self) {
@@ -1424,13 +1359,7 @@ mod config_parser {
             let ctx = CtxIDef::V1 { id, value };
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let Some(EnumSynValue::IDef(acc)) = self.stack.last_mut() else { panic!() };
-            self.listener.exit_i_def(acc, ctx, spans);
-        }
-
-        fn exitloop_i_def(&mut self) {
-            let EnumSynValue::IDef(acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i_def(acc);
+            self.listener.exit_i_def(ctx, spans);
         }
 
         fn exit_lexer(&mut self) {
@@ -1438,8 +1367,7 @@ mod config_parser {
             let ctx = CtxLexer::V1 { io_options };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_lexer(ctx, spans);
-            self.stack.push(EnumSynValue::Lexer(val));
+            self.listener.exit_lexer(ctx, spans);
         }
 
         fn exit_parser(&mut self, alt_id: AltId) {
@@ -1455,8 +1383,7 @@ mod config_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_parser(ctx, spans);
-            self.stack.push(EnumSynValue::Parser(val));
+            self.listener.exit_parser(ctx, spans);
         }
 
         fn exit_options(&mut self, alt_id: AltId) {
@@ -1472,8 +1399,7 @@ mod config_parser {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.exit_options(ctx, spans);
-            self.stack.push(EnumSynValue::Options(val));
+            self.listener.exit_options(ctx, spans);
         }
 
         fn exit_io_options(&mut self) {

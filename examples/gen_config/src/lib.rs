@@ -7,6 +7,7 @@ use lexi_gram::lexigram_lib;
 
 use lexi_gram::{gencode, genspec};
 use lexi_gram::gen_parser::try_gen_parser;
+use lexi_gram::lexigram_lib::parsergen::NTValue;
 use lexi_gram::options::{Action, OptionsBuilder};
 use lexigram_lib::CollectJoin;
 use lexigram_lib::log::LogStatus;
@@ -22,6 +23,15 @@ static LISTENER_TAG: &str = "template_listener_impl";
 const LEXER_INDENT: usize = 4;
 const PARSER_INDENT: usize = 4;
 const INDENT_TEMPLATES: usize = 4;
+static NT_NAMES: [&str; 7] = [
+        "<default>",
+        "-config",
+        "-definitions",
+        "-i_def",
+        "-lexer",
+        "-parser",
+        "-options",
+];
 
 // -------------------------------------------------------------------------
 
@@ -38,6 +48,7 @@ fn gen_source_config_l_g(action: Action) {
         .indent(INDENT_TEMPLATES)
         .libs(["super::listener_types::*"])
         .span_params(true)
+        .set_nt_value(NTValue::SetNames(NT_NAMES.into_iter().map(|s| s.to_string()).to_vec()))
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {
