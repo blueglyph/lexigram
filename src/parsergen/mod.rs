@@ -382,6 +382,7 @@ impl ParserGen {
     pub fn set_nt_value(&mut self, nt_value: &NTValue) {
         let num_nt = self.get_symbol_table().unwrap().get_num_nt() as VarId;
         let mut stack = vec![nt_value];
+        let mut neg_stack = vec![];
         while let Some(nt_value) = stack.pop() {
             match nt_value {
                 NTValue::None => {}
@@ -410,15 +411,25 @@ impl ParserGen {
                 }
                 NTValue::SetNames(names) => {
                     let name_to_id = self.symbol_table.get_nonterminals().index::<VarId>()
-                        .map(|(v, name)| (name, v))
-                        .collect::<HashMap<&String, VarId>>();
+                        .map(|(v, name)| (name.as_str(), v))
+                        .collect::<HashMap<&str, VarId>>();
                     for name in names {
                         match name.as_str() {
                             NTValue::DEFAULT => stack.push(&NTValue::Default),
                             NTValue::PARENTS => stack.push(&NTValue::Parents),
-                            _ => {
-                                if let Some(v) = name_to_id.get(&name) {
-                                    self.nt_value[*v as usize] = true;
+                            mut nt_name => {
+                                let add = if !nt_name.starts_with('-') {
+                                    true
+                                } else {
+                                    nt_name = &nt_name[1..];
+                                    false
+                                };
+                                if let Some(v) = name_to_id.get(nt_name) {
+                                    if add {
+                                        self.nt_value[*v as usize] = true;
+                                    } else {
+                                        neg_stack.push(*v);
+                                    }
                                 } else {
                                     self.log.add_error(format!("setting value of NT '{name}', which doesn't exist"));
                                 }
@@ -427,6 +438,9 @@ impl ParserGen {
                     }
                 }
             }
+        }
+        for v in neg_stack {
+            self.nt_value[v as usize] = false;
         }
     }
 
