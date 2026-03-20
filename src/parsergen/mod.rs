@@ -2496,7 +2496,7 @@ impl ParserGen {
                         } else {
                             src_listener_decl.push("    #[allow(unused_variables)]".to_string());
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
-                            src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
+                            src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{"));
                         }
                         has_skel_exit = true;
                     }
