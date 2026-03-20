@@ -841,6 +841,20 @@ mod wrapper_source {
                 2 => (1, symbols![nt 1]),               //  2: a_1 -> ε       | ◄2               | 1    | a_1
             ], NTValue::Default, btreemap![0 => vec![0]]),
 
+            // a -> "var" Id ("," Id)* ";"
+            //
+            //   NT    name   val   flags
+            // +-------------------------------------------+
+            // |   0 | a     | y  | parent_+_or_*          |
+            // |   1 | . a_1 | y  | child_+_or_*, sep_list |
+            // +-------------------------------------------+
+            (118, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![nt 1]),               //  0: a -> "var" Id a_1 ";" | ◄0 ";" ►a_1 Id! "var" | 3    | a_1
+                1 => (3, symbols![nt 1, t 1]),          //  1: a_1 -> "," Id a_1     | ●a_1 ◄1 Id! ","       | 3, 1 | a_1 Id
+                2 => (1, symbols![nt 1]),               //  2: a_1 -> ε              | ◄2                    | 1    | a_1
+            ], NTValue::Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- norm+/* alternatives
             // a -> (A | B)*
             // NT flags:
@@ -1331,6 +1345,32 @@ mod wrapper_source {
                 3 => (4, symbols![t 0, t 1, nt 1, t 3]), //  3: a_1 -> B i Z | ◄3 Z! ►i B!  | 4 | X B i Z
                 4 => (3, symbols![t 0, nt 1, t 3]),      //  4: a_1 -> i Z   | ◄4 Z! ►i     | 3 | X i Z
             ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+
+            // a -> "var" Id (<L=i> "," Id)* ";"
+            //
+            //   NT    name  val   flags
+            // +--------------------------------------------------+
+            // |   0 | a    | y  | parent_+_or_*                  |
+            // |   1 | . i  | y  | child_+_or_*, L-form, sep_list |
+            // +--------------------------------------------------+
+            (220, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![nt 1]),               //  0: a -> "var" Id i ";" | ◄0 ";" ►i Id! "var" | 3    | i
+                1 => (3, symbols![nt 1, t 1]),          //  1: i -> "," Id i       | ●i ◄1 Id! ","       | 3, 1 | i Id
+                2 => (1, symbols![nt 1]),               //  2: i -> ε              | ◄2                  | 1    | i
+            ], NTValue::Default, btreemap![0 => vec![0]]),
+            (220, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![]),                   //  0: a -> "var" Id i ";" | ◄0 ";" ►i Id! "var" | 3    |
+                1 => (3, symbols![t 1]),                //  1: i -> "," Id i       | ●i ◄1 Id! ","       | 3, 1 | Id
+                2 => (1, symbols![]),                   //  2: i -> ε              | ◄2                  | 1    |
+            ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
+            (220, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (3, symbols![nt 1]),               //  0: a -> "var" Id i ";" | ◄0 ";" ►i Id! "var" | 3    | i
+                1 => (3, symbols![nt 1, t 1]),          //  1: i -> "," Id i       | ●i ◄1 Id! ","       | 3, 1 | i Id
+                2 => (1, symbols![nt 1]),               //  2: i -> ε              | ◄2                  | 1    | i
+            ], NTValue::SetIds(vec![1]), btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- norm+/* <L> alternatives
             // a -> (<L=i> A | B)*

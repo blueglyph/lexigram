@@ -87,6 +87,7 @@ impl TestRules {
             115 => vec![r#"a -> X Y? B ("," B)* Z;"#],
             116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one
             117 => vec![r#"a -> X B (B)* Z;"#],
+            118 => vec![r#"a -> "var" Id ("," Id)* ";";"#],
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
@@ -122,6 +123,7 @@ impl TestRules {
             217 => vec![r#"a -> X? B (<L=i>"," B)* Z;"#],
             218 => vec![r#"a -> X Y? B (<L=i>"," B)* Z;"#],
             219 => vec![r#"a -> X B? (<L=i>"," B)* Z;"#],   // no sep_list in this one
+            220 => vec![r#"a -> "var" Id (<L=i> "," Id)* ";";"#],
 
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
