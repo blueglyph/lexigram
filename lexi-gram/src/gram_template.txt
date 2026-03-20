@@ -1,0 +1,152 @@
+// [listener]
+
+// --------------------------------------------------------------------------------
+// Template for the user implementation of GramParserListener
+
+struct Listener {
+    log: BufLog,
+}
+
+#[allow(unused)]
+impl GramParserListener for Listener {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_file(&mut self, ctx: CtxFile, spans: Vec<PosSpan>) -> SynFile {
+        // file -> header rules
+        let CtxFile::V1 { header, rules } = ctx;
+        SynFile()
+    }
+
+    fn exit_header(&mut self, ctx: CtxHeader, spans: Vec<PosSpan>) -> SynHeader {
+        // header -> "grammar" Id ";"
+        let CtxHeader::V1 { id } = ctx;
+        SynHeader()
+    }
+
+    fn exit_rules(&mut self, ctx: CtxRules, spans: Vec<PosSpan>) -> SynRules {
+        match ctx {
+            // rules -> rule
+            CtxRules::V1 { rule } => {}
+            // rules -> rules rule
+            CtxRules::V2 { rules, rule } => {}
+        }
+        SynRules()
+    }
+
+    fn exit_rule(&mut self, ctx: CtxRule, spans: Vec<PosSpan>) -> SynRule {
+        match ctx {
+            // rule -> rule_name ":" prod "EOF" ";"
+            CtxRule::V1 { rule_name, prod } => {}
+            // rule -> rule_name ":" prod ";"
+            CtxRule::V2 { rule_name, prod } => {}
+        }
+        SynRule()
+    }
+
+    fn exit_rule_name(&mut self, ctx: CtxRuleName, spans: Vec<PosSpan>) -> SynRuleName {
+        // rule_name -> Id
+        let CtxRuleName::V1 { id } = ctx;
+        SynRuleName()
+    }
+
+    fn exit_prod(&mut self, ctx: CtxProd, spans: Vec<PosSpan>) -> SynProd {
+        match ctx {
+            // prod -> prod_term
+            CtxProd::V1 { prod_term } => {}
+            // prod -> prod "|" prod_term
+            CtxProd::V2 { prod, prod_term } => {}
+        }
+        SynProd()
+    }
+
+    fn exit_prod_term(&mut self, ctx: CtxProdTerm, spans: Vec<PosSpan>) -> SynProdTerm {
+        // prod_term -> prod_factor*
+        let CtxProdTerm::V1 { star } = ctx;
+        SynProdTerm()
+    }
+
+    fn exit_prod_factor(&mut self, ctx: CtxProdFactor, spans: Vec<PosSpan>) -> SynProdFactor {
+        match ctx {
+            // prod_factor -> prod_atom "+"
+            CtxProdFactor::V1 { prod_atom } => {}
+            // prod_factor -> prod_atom "*"
+            CtxProdFactor::V2 { prod_atom } => {}
+            // prod_factor -> prod_atom "?"
+            CtxProdFactor::V3 { prod_atom } => {}
+            // prod_factor -> prod_atom
+            CtxProdFactor::V4 { prod_atom } => {}
+        }
+        SynProdFactor()
+    }
+
+    fn exit_prod_atom(&mut self, ctx: CtxProdAtom, spans: Vec<PosSpan>) -> SynProdAtom {
+        match ctx {
+            // prod_atom -> Id
+            CtxProdAtom::V1 { id } => {}
+            // prod_atom -> Lform
+            CtxProdAtom::V2 { lform } => {}
+            // prod_atom -> "<R>"
+            CtxProdAtom::V3 => {}
+            // prod_atom -> "<P>"
+            CtxProdAtom::V4 => {}
+            // prod_atom -> "<G>"
+            CtxProdAtom::V5 => {}
+            // prod_atom -> "(" prod ")"
+            CtxProdAtom::V6 { prod } => {}
+        }
+        SynProdAtom()
+    }
+}
+
+// --------------------------------------------------------------------------------
+
+// [listener]
+
+// ================================================================================
+
+// [user_types]
+
+// --------------------------------------------------------------------------------
+// Template for the user-defined types:
+
+/// User-defined type for `file`
+#[derive(Debug, PartialEq)]
+pub struct SynFile();
+
+/// User-defined type for `header`
+#[derive(Debug, PartialEq)]
+pub struct SynHeader();
+
+/// User-defined type for `rules`
+#[derive(Debug, PartialEq)]
+pub struct SynRules();
+
+/// User-defined type for `rule`
+#[derive(Debug, PartialEq)]
+pub struct SynRule();
+
+/// User-defined type for `rule_name`
+#[derive(Debug, PartialEq)]
+pub struct SynRuleName();
+
+/// User-defined type for `prod`
+#[derive(Debug, PartialEq)]
+pub struct SynProd();
+
+/// User-defined type for `prod_term`
+#[derive(Debug, PartialEq)]
+pub struct SynProdTerm();
+
+/// User-defined type for `prod_factor`
+#[derive(Debug, PartialEq)]
+pub struct SynProdFactor();
+
+/// User-defined type for `prod_atom`
+#[derive(Debug, PartialEq)]
+pub struct SynProdAtom();
+
+// --------------------------------------------------------------------------------
+
+// [user_types]

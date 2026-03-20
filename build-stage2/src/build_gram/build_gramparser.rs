@@ -9,13 +9,13 @@ use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
-use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
+use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG, GRAM_TPL_FILENAME, TPL_LISTENER_TAG, TPL_TYPES_TAG};
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
 
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
-fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
+fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, String, String), BufLog> {
     // [versions]
 
     // lexigram-lib: 0.9.0
@@ -102,23 +102,27 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     builder.use_full_lib(true);
     builder.set_gen_span_params(true);
     builder.set_indent(indent);
-    let (src, ..) = builder.gen_source_code();
+    let (src, tpl_types, tpl_listener) = builder.gen_source_code();
     let mut log = builder.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
         log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));
         Err(log)
     } else {
-        Ok((log, src))
+        Ok((log, src, tpl_types, tpl_listener))
     }
 }
 
 pub fn write_gramparser_source() {
-    let (log, result_src) = gramparser_source(0, true)
+    let (log, result_src, result_tpl_types, result_tpl_listener) = gramparser_source(0, true)
         .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG, &result_src)
         .expect("parser source replacement failed");
+    replace_tagged_source(GRAM_TPL_FILENAME, TPL_TYPES_TAG, &result_tpl_types)
+        .expect("parser user types template replacement failed");
+    replace_tagged_source(GRAM_TPL_FILENAME, TPL_LISTENER_TAG, &result_tpl_listener)
+        .expect("parser listener template replacement failed");
 }
 
 #[cfg(test)]
@@ -129,13 +133,17 @@ mod tests {
     #[test]
     fn check_source() {
         const VERBOSE: bool = false;
-        let (log, result_src) = gramparser_source(0, VERBOSE)
+        let (log, result_src, result_tpl_types, result_tpl_listener) = gramparser_source(0, VERBOSE)
             .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
             if VERBOSE { println!("Log:\n{log}"); }
             let expected_src = get_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG).unwrap_or(String::new());
+            let expected_types = get_tagged_source(GRAM_TPL_FILENAME, TPL_TYPES_TAG).unwrap_or(String::new());
+            let expected_listener = get_tagged_source(GRAM_TPL_FILENAME, TPL_LISTENER_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);
+            assert_eq!(result_tpl_types, expected_types);
+            assert_eq!(result_tpl_listener, expected_listener);
         }
     }
 

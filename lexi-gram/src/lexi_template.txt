@@ -1,0 +1,290 @@
+// [listener]
+
+// --------------------------------------------------------------------------------
+// Template for the user implementation of LexiParserListener
+
+struct Listener {
+    log: BufLog,
+}
+
+#[allow(unused)]
+impl LexiParserListener for Listener {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_file(&mut self, ctx: CtxFile, spans: Vec<PosSpan>) -> SynFile {
+        match ctx {
+            // file -> header file_item*
+            CtxFile::V1 { header, star } => {}
+            // file -> file_item*
+            CtxFile::V2 { star } => {}
+        }
+        SynFile()
+    }
+
+    fn exit_file_item(&mut self, ctx: CtxFileItem, spans: Vec<PosSpan>) -> SynFileItem {
+        match ctx {
+            // file_item -> option
+            CtxFileItem::V1 { option } => {}
+            // file_item -> declaration
+            CtxFileItem::V2 { declaration } => {}
+            // file_item -> rule
+            CtxFileItem::V3 { rule } => {}
+        }
+        SynFileItem()
+    }
+
+    fn exit_header(&mut self, ctx: CtxHeader, spans: Vec<PosSpan>) -> SynHeader {
+        // header -> "lexicon" Id ";"
+        let CtxHeader::V1 { id } = ctx;
+        SynHeader()
+    }
+
+    fn exit_declaration(&mut self, ctx: CtxDeclaration, spans: Vec<PosSpan>) -> SynDeclaration {
+        // declaration -> "mode" Id ";"
+        let CtxDeclaration::V1 { id } = ctx;
+        SynDeclaration()
+    }
+
+    fn exit_option(&mut self, ctx: CtxOption, spans: Vec<PosSpan>) -> SynOption {
+        // option -> "channels" "{" Id ("," Id)* "}"
+        let CtxOption::V1 { star } = ctx;
+        SynOption()
+    }
+
+    fn exit_rule(&mut self, ctx: CtxRule, spans: Vec<PosSpan>) -> SynRule {
+        match ctx {
+            // rule -> rule_fragment_name ":" match ";"
+            CtxRule::V1 { rule_fragment_name, match1 } => {}
+            // rule -> rule_terminal_name ":" match "->" actions ";"
+            CtxRule::V2 { rule_terminal_name, match1, actions } => {}
+            // rule -> rule_terminal_name ":" match ";"
+            CtxRule::V3 { rule_terminal_name, match1 } => {}
+            // rule -> "(" rule_terminal_name ")" opt_str_lit "->" "hook" ";"
+            CtxRule::V4 { rule_terminal_name, opt_str_lit } => {}
+            // rule -> "(" rule_terminal_name ")" opt_str_lit ";"
+            CtxRule::V5 { rule_terminal_name, opt_str_lit } => {}
+            // rule -> rule_terminal_name Id ";"
+            CtxRule::V6 { rule_terminal_name, id } => {}
+        }
+        SynRule()
+    }
+
+    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit, spans: Vec<PosSpan>) -> SynOptStrLit {
+        match ctx {
+            // opt_str_lit -> ":" StrLit
+            CtxOptStrLit::V1 { strlit } => {}
+            // opt_str_lit -> ε
+            CtxOptStrLit::V2 => {}
+        }
+        SynOptStrLit()
+    }
+
+    fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName, spans: Vec<PosSpan>) -> SynRuleFragmentName {
+        // rule_fragment_name -> "fragment" Id
+        let CtxRuleFragmentName::V1 { id } = ctx;
+        SynRuleFragmentName()
+    }
+
+    fn exit_rule_terminal_name(&mut self, ctx: CtxRuleTerminalName, spans: Vec<PosSpan>) -> SynRuleTerminalName {
+        // rule_terminal_name -> Id
+        let CtxRuleTerminalName::V1 { id } = ctx;
+        SynRuleTerminalName()
+    }
+
+    fn exit_actions(&mut self, ctx: CtxActions, spans: Vec<PosSpan>) -> SynActions {
+        // actions -> action ("," action)*
+        let CtxActions::V1 { star } = ctx;
+        SynActions()
+    }
+
+    fn exit_action(&mut self, ctx: CtxAction, spans: Vec<PosSpan>) -> SynAction {
+        match ctx {
+            // action -> "mode" "(" Id ")"
+            CtxAction::V1 { id } => {}
+            // action -> "push" "(" Id ")"
+            CtxAction::V2 { id } => {}
+            // action -> "pop"
+            CtxAction::V3 => {}
+            // action -> "skip"
+            CtxAction::V4 => {}
+            // action -> "more"
+            CtxAction::V5 => {}
+            // action -> "type" "(" Id ")"
+            CtxAction::V6 { id } => {}
+            // action -> "channel" "(" Id ")"
+            CtxAction::V7 { id } => {}
+            // action -> "hook"
+            CtxAction::V8 => {}
+        }
+        SynAction()
+    }
+
+    fn exit_match(&mut self, ctx: CtxMatch, spans: Vec<PosSpan>) -> SynMatch {
+        // match -> alt_items
+        let CtxMatch::V1 { alt_items } = ctx;
+        SynMatch()
+    }
+
+    fn exit_alt_items(&mut self, ctx: CtxAltItems, spans: Vec<PosSpan>) -> SynAltItems {
+        // alt_items -> alt_item ("|" alt_item)*
+        let CtxAltItems::V1 { star } = ctx;
+        SynAltItems()
+    }
+
+    fn exit_alt_item(&mut self, ctx: CtxAltItem, spans: Vec<PosSpan>) -> SynAltItem {
+        // alt_item -> repeat_item+
+        let CtxAltItem::V1 { plus } = ctx;
+        SynAltItem()
+    }
+
+    fn exit_repeat_item(&mut self, ctx: CtxRepeatItem, spans: Vec<PosSpan>) -> SynRepeatItem {
+        match ctx {
+            // repeat_item -> item "*" "?"
+            CtxRepeatItem::V1 { item } => {}
+            // repeat_item -> item "*"
+            CtxRepeatItem::V2 { item } => {}
+            // repeat_item -> item "+" "?"
+            CtxRepeatItem::V3 { item } => {}
+            // repeat_item -> item "+"
+            CtxRepeatItem::V4 { item } => {}
+            // repeat_item -> item "?"
+            CtxRepeatItem::V5 { item } => {}
+            // repeat_item -> item
+            CtxRepeatItem::V6 { item } => {}
+        }
+        SynRepeatItem()
+    }
+
+    fn exit_item(&mut self, ctx: CtxItem, spans: Vec<PosSpan>) -> SynItem {
+        match ctx {
+            // item -> Id
+            CtxItem::V1 { id } => {}
+            // item -> CharLit ".." CharLit
+            CtxItem::V2 { charlit } => {}
+            // item -> CharLit
+            CtxItem::V3 { charlit } => {}
+            // item -> StrLit
+            CtxItem::V4 { strlit } => {}
+            // item -> char_set
+            CtxItem::V5 { char_set } => {}
+            // item -> "(" alt_items ")"
+            CtxItem::V6 { alt_items } => {}
+            // item -> "~" item
+            CtxItem::V7 { item } => {}
+        }
+        SynItem()
+    }
+
+    fn exit_char_set(&mut self, ctx: CtxCharSet, spans: Vec<PosSpan>) -> SynCharSet {
+        match ctx {
+            // char_set -> "[" char_set_one+ "]"
+            CtxCharSet::V1 { plus } => {}
+            // char_set -> "."
+            CtxCharSet::V2 => {}
+            // char_set -> FixedSet
+            CtxCharSet::V3 { fixedset } => {}
+        }
+        SynCharSet()
+    }
+
+    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne, spans: Vec<PosSpan>) -> SynCharSetOne {
+        match ctx {
+            // char_set_one -> SetChar "-" SetChar
+            CtxCharSetOne::V1 { setchar } => {}
+            // char_set_one -> SetChar
+            CtxCharSetOne::V2 { setchar } => {}
+            // char_set_one -> FixedSet
+            CtxCharSetOne::V3 { fixedset } => {}
+        }
+        SynCharSetOne()
+    }
+}
+
+// --------------------------------------------------------------------------------
+
+// [listener]
+
+// ================================================================================
+
+// [user_types]
+
+// --------------------------------------------------------------------------------
+// Template for the user-defined types:
+
+/// User-defined type for `file`
+#[derive(Debug, PartialEq)]
+pub struct SynFile();
+
+/// User-defined type for `file_item`
+#[derive(Debug, PartialEq)]
+pub struct SynFileItem();
+
+/// User-defined type for `header`
+#[derive(Debug, PartialEq)]
+pub struct SynHeader();
+
+/// User-defined type for `declaration`
+#[derive(Debug, PartialEq)]
+pub struct SynDeclaration();
+
+/// User-defined type for `option`
+#[derive(Debug, PartialEq)]
+pub struct SynOption();
+
+/// User-defined type for `rule`
+#[derive(Debug, PartialEq)]
+pub struct SynRule();
+
+/// User-defined type for `opt_str_lit`
+#[derive(Debug, PartialEq)]
+pub struct SynOptStrLit();
+
+/// User-defined type for `rule_fragment_name`
+#[derive(Debug, PartialEq)]
+pub struct SynRuleFragmentName();
+
+/// User-defined type for `rule_terminal_name`
+#[derive(Debug, PartialEq)]
+pub struct SynRuleTerminalName();
+
+/// User-defined type for `actions`
+#[derive(Debug, PartialEq)]
+pub struct SynActions();
+
+/// User-defined type for `action`
+#[derive(Debug, PartialEq)]
+pub struct SynAction();
+
+/// User-defined type for `match`
+#[derive(Debug, PartialEq)]
+pub struct SynMatch();
+
+/// User-defined type for `alt_items`
+#[derive(Debug, PartialEq)]
+pub struct SynAltItems();
+
+/// User-defined type for `alt_item`
+#[derive(Debug, PartialEq)]
+pub struct SynAltItem();
+
+/// User-defined type for `repeat_item`
+#[derive(Debug, PartialEq)]
+pub struct SynRepeatItem();
+
+/// User-defined type for `item`
+#[derive(Debug, PartialEq)]
+pub struct SynItem();
+
+/// User-defined type for `char_set`
+#[derive(Debug, PartialEq)]
+pub struct SynCharSet();
+
+/// User-defined type for `char_set_one`
+#[derive(Debug, PartialEq)]
+pub struct SynCharSetOne();
+
+// --------------------------------------------------------------------------------
+
+// [user_types]
