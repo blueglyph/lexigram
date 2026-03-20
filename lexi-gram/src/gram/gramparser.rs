@@ -9,7 +9,7 @@ use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer:
 const PARSER_NUM_T: usize = 15;
 const PARSER_NUM_NT: usize = 14;
 static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("Id", None)];
-static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
+static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_alt", "prod_factor", "prod_atom", "prod_alt_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
 static ALT_VAR: [VarId; 26] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
 static PARSING_TABLE: [AltId; 224] = [26, 26, 26, 26, 26, 26, 26, 26, 0, 26, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 1, 26, 26, 26, 26, 26, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 2, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 3, 27, 27, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 4, 26, 26, 5, 5, 26, 26, 5, 5, 26, 26, 5, 5, 5, 5, 5, 5, 26, 26, 6, 6, 26, 26, 6, 6, 26, 26, 6, 6, 6, 6, 6, 6, 26, 26, 7, 27, 26, 26, 27, 27, 26, 26, 27, 7, 7, 7, 7, 7, 26, 26, 13, 27, 27, 27, 27, 27, 27, 26, 27, 9, 10, 11, 12, 8, 26, 26, 14, 15, 26, 26, 15, 15, 26, 26, 15, 14, 14, 14, 14, 14, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 16, 17, 26, 26, 18, 26, 26, 19, 19, 26, 26, 19, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 20, 26, 26, 21, 26, 26, 26, 26, 27, 27, 26, 25, 25, 22, 23, 25, 25, 24, 26, 25, 25, 25, 25, 25, 25, 26];
 static OPCODES: [&[OpCode]; 26] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(14), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(14)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(14)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(13)], &[OpCode::Exit(13), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(14), OpCode::NT(7)], &[OpCode::Exit(15)], &[OpCode::Loop(10), OpCode::Exit(16), OpCode::NT(3)], &[OpCode::Exit(17)], &[OpCode::Loop(11), OpCode::Exit(18), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(19)], &[OpCode::Exit(20), OpCode::T(6)], &[OpCode::Exit(21), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(22), OpCode::T(3)], &[OpCode::Exit(23), OpCode::T(4)], &[OpCode::Exit(24), OpCode::T(7)], &[OpCode::Exit(25)]];
@@ -64,15 +64,15 @@ pub enum CtxRuleName {
 }
 #[derive(Debug)]
 pub enum CtxProd {
-    /// `prod -> prod_term`
-    V1 { prod_term: SynProdTerm },
-    /// `prod -> prod "|" prod_term`
-    V2 { prod: SynProd, prod_term: SynProdTerm },
+    /// `prod -> prod_alt`
+    V1 { prod_alt: SynProdAlt },
+    /// `prod -> prod "|" prod_alt`
+    V2 { prod: SynProd, prod_alt: SynProdAlt },
 }
 #[derive(Debug)]
-pub enum CtxProdTerm {
-    /// `prod_term -> prod_factor*`
-    V1 { star: SynProdTerm1 },
+pub enum CtxProdAlt {
+    /// `prod_alt -> prod_factor*`
+    V1 { star: SynProdAlt1 },
 }
 #[derive(Debug)]
 pub enum CtxProdFactor {
@@ -101,12 +101,12 @@ pub enum CtxProdAtom {
     V6 { prod: SynProd },
 }
 
-/// Computed `prod_factor*` array in `prod_term ->  ►► prod_factor* ◄◄ `
+/// Computed `prod_factor*` array in `prod_alt ->  ►► prod_factor* ◄◄ `
 #[derive(Debug, PartialEq)]
-pub struct SynProdTerm1(pub Vec<SynProdFactor>);
+pub struct SynProdAlt1(pub Vec<SynProdFactor>);
 
 #[derive(Debug)]
-enum EnumSynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdTerm(SynProdTerm), ProdFactor(SynProdFactor), ProdAtom(SynProdAtom), ProdTerm1(SynProdTerm1) }
+enum EnumSynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdAlt(SynProdAlt), ProdFactor(SynProdFactor), ProdAtom(SynProdAtom), ProdAlt1(SynProdAlt1) }
 
 impl EnumSynValue {
     fn get_file(self) -> SynFile {
@@ -127,8 +127,8 @@ impl EnumSynValue {
     fn get_prod(self) -> SynProd {
         if let EnumSynValue::Prod(val) = self { val } else { panic!() }
     }
-    fn get_prod_term(self) -> SynProdTerm {
-        if let EnumSynValue::ProdTerm(val) = self { val } else { panic!() }
+    fn get_prod_alt(self) -> SynProdAlt {
+        if let EnumSynValue::ProdAlt(val) = self { val } else { panic!() }
     }
     fn get_prod_factor(self) -> SynProdFactor {
         if let EnumSynValue::ProdFactor(val) = self { val } else { panic!() }
@@ -136,8 +136,8 @@ impl EnumSynValue {
     fn get_prod_atom(self) -> SynProdAtom {
         if let EnumSynValue::ProdAtom(val) = self { val } else { panic!() }
     }
-    fn get_prod_term1(self) -> SynProdTerm1 {
-        if let EnumSynValue::ProdTerm1(val) = self { val } else { panic!() }
+    fn get_prod_alt1(self) -> SynProdAlt1 {
+        if let EnumSynValue::ProdAlt1(val) = self { val } else { panic!() }
     }
 }
 
@@ -168,8 +168,8 @@ pub trait GramParserListener {
     fn exit_prod(&mut self, ctx: CtxProd, spans: Vec<PosSpan>) -> SynProd;
     #[allow(unused_variables)]
     fn exitloop_prod(&mut self, prod: &mut SynProd) {}
-    fn init_prod_term(&mut self) {}
-    fn exit_prod_term(&mut self, ctx: CtxProdTerm, spans: Vec<PosSpan>) -> SynProdTerm;
+    fn init_prod_alt(&mut self) {}
+    fn exit_prod_alt(&mut self, ctx: CtxProdAlt, spans: Vec<PosSpan>) -> SynProdAlt;
     fn init_prod_factor(&mut self) {}
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor, spans: Vec<PosSpan>) -> SynProdFactor;
     fn init_prod_atom(&mut self) {}
@@ -208,8 +208,8 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     4 => self.listener.init_rule_name(),        // rule_name
                     5 => self.listener.init_prod(),             // prod
                     11 => {}                                    // prod_1
-                    6 => self.listener.init_prod_term(),        // prod_term
-                    9 => self.init_prod_term1(),                // prod_term_1
+                    6 => self.listener.init_prod_alt(),         // prod_alt
+                    9 => self.init_prod_alt1(),                 // prod_alt_1
                     7 => self.listener.init_prod_factor(),      // prod_factor
                     13 => {}                                    // prod_factor_1
                     8 => self.listener.init_prod_atom(),        // prod_atom
@@ -228,12 +228,12 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     21 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
                  /* 3 */                                        // rule -> rule_name ":" prod rule_1 (never called)
                     4 => self.exit_rule_name(),                 // rule_name -> Id
-                    5 => self.inter_prod(),                     // prod -> prod_term prod_1
-                    18 => self.exit_prod1(),                    // prod_1 -> "|" prod_term prod_1
+                    5 => self.inter_prod(),                     // prod -> prod_alt prod_1
+                    18 => self.exit_prod1(),                    // prod_1 -> "|" prod_alt prod_1
                     19 => self.exitloop_prod1(),                // prod_1 -> ε
-                    6 => self.exit_prod_term(),                 // prod_term -> prod_term_1
-                    14 => self.exit_prod_term1(),               // prod_term_1 -> prod_factor prod_term_1
-                    15 => {}                                    // prod_term_1 -> ε
+                    6 => self.exit_prod_alt(),                  // prod_alt -> prod_alt_1
+                    14 => self.exit_prod_alt1(),                // prod_alt_1 -> prod_factor prod_alt_1
+                    15 => {}                                    // prod_alt_1 -> ε
                     22 |                                        // prod_factor_1 -> "+"
                     23 |                                        // prod_factor_1 -> "?"
                     24 |                                        // prod_factor_1 -> "*"
@@ -395,8 +395,8 @@ impl<T: GramParserListener> Wrapper<T> {
     }
 
     fn inter_prod(&mut self) {
-        let prod_term = self.stack.pop().unwrap().get_prod_term();
-        let ctx = CtxProd::V1 { prod_term };
+        let prod_alt = self.stack.pop().unwrap().get_prod_alt();
+        let ctx = CtxProd::V1 { prod_alt };
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
@@ -404,9 +404,9 @@ impl<T: GramParserListener> Wrapper<T> {
     }
 
     fn exit_prod1(&mut self) {
-        let prod_term = self.stack.pop().unwrap().get_prod_term();
+        let prod_alt = self.stack.pop().unwrap().get_prod_alt();
         let prod = self.stack.pop().unwrap().get_prod();
-        let ctx = CtxProd::V2 { prod, prod_term };
+        let ctx = CtxProd::V2 { prod, prod_alt };
         let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let val = self.listener.exit_prod(ctx, spans);
@@ -418,26 +418,26 @@ impl<T: GramParserListener> Wrapper<T> {
         self.listener.exitloop_prod(prod);
     }
 
-    fn exit_prod_term(&mut self) {
-        let star = self.stack.pop().unwrap().get_prod_term1();
-        let ctx = CtxProdTerm::V1 { star };
+    fn exit_prod_alt(&mut self) {
+        let star = self.stack.pop().unwrap().get_prod_alt1();
+        let ctx = CtxProdAlt::V1 { star };
         let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-        let val = self.listener.exit_prod_term(ctx, spans);
-        self.stack.push(EnumSynValue::ProdTerm(val));
+        let val = self.listener.exit_prod_alt(ctx, spans);
+        self.stack.push(EnumSynValue::ProdAlt(val));
     }
 
-    fn init_prod_term1(&mut self) {
-        let val = SynProdTerm1(Vec::new());
-        self.stack.push(EnumSynValue::ProdTerm1(val));
+    fn init_prod_alt1(&mut self) {
+        let val = SynProdAlt1(Vec::new());
+        self.stack.push(EnumSynValue::ProdAlt1(val));
     }
 
-    fn exit_prod_term1(&mut self) {
+    fn exit_prod_alt1(&mut self) {
         let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let Some(EnumSynValue::ProdTerm1(SynProdTerm1(star_acc))) = self.stack.last_mut() else {
-            panic!("expected SynProdTerm1 item on wrapper stack");
+        let Some(EnumSynValue::ProdAlt1(SynProdAlt1(star_acc))) = self.stack.last_mut() else {
+            panic!("expected SynProdAlt1 item on wrapper stack");
         };
         star_acc.push(prod_factor);
     }
@@ -518,7 +518,7 @@ pub(crate) mod gramparser_types {
     /// User-defined type for `prod`
     #[derive(Debug, PartialEq)] pub struct SynProd(pub usize);
     /// User-defined type for `prod_term`
-    #[derive(Debug, PartialEq)] pub struct SynProdTerm(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdAlt(pub usize);
     /// User-defined type for `prod_factor`
     #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
     /// User-defined type for `prod_atom`

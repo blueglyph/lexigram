@@ -20,11 +20,11 @@ rule_name:
 ;
 
 prod:
-    prod_term
-|   prod Or prod_term
+    prod_alt
+|   prod Or prod_alt
 ;
 
-prod_term:
+prod_alt:
     prod_factor*
 ;
 

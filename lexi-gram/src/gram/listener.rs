@@ -233,7 +233,7 @@ impl GramParserListener for GramListener {
     }
 
     // file:
-    //     header rules SymEOF?
+    //     header rules
     // ;
     fn exit_file(&mut self, _ctx: CtxFile, _spans: Vec<PosSpan>) -> SynFile {
         if self.verbose { println!("- exit_file({_ctx:?})"); }
@@ -284,7 +284,7 @@ impl GramParserListener for GramListener {
     }
 
     // rule:
-    //     Id Colon prod Semicolon
+    //     rule_name Colon prod SymEof? Semicolon
     // ;
     fn exit_rule(&mut self, ctx: CtxRule, _spans: Vec<PosSpan>) -> SynRule {
         if self.verbose { println!("exit_rule({ctx:?})"); }
@@ -309,6 +309,9 @@ impl GramParserListener for GramListener {
         SynRule()
     }
 
+    // rule_name:
+    //     Id
+    // ;
     fn exit_rule_name(&mut self, ctx: CtxRuleName, _spans: Vec<PosSpan>) -> SynRuleName {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
         let CtxRuleName::V1 { id: name } = ctx;
@@ -326,46 +329,46 @@ impl GramParserListener for GramListener {
     }
 
     // prod:
-    //     prodTerm
-    // |   prod Or prodTerm
+    //     prod_alt
+    // |   prod Or prod_alt
     // ;
     fn exit_prod(&mut self, ctx: CtxProd, _spans: Vec<PosSpan>) -> SynProd {
         if self.verbose { println!("exit_prod({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
-            CtxProd::V1 { prod_term } => prod_term.0,               // first iteration
-            CtxProd::V2 { prod, prod_term } => {                    // next iterations
+            CtxProd::V1 { prod_alt } => prod_alt.0,               // first iteration
+            CtxProd::V2 { prod, prod_alt } => {                    // next iterations
                 if matches!(tree.get(prod.0), &GrNode::Or) {
                     // if there's already an |, adds another child
-                    tree.attach_child(prod.0, prod_term.0);
+                    tree.attach_child(prod.0, prod_alt.0);
                     prod.0
                 } else {
                     // creates an | with the previous and current alternatives as children
-                    tree.addci_iter(None, GrNode::Or, [prod.0, prod_term.0])
+                    tree.addci_iter(None, GrNode::Or, [prod.0, prod_alt.0])
                 }
             }
         };
         SynProd(id)
     }
 
-    // prodTerm:
-    //     prodFactor*
+    // prod_alt:
+    //     prod_factor*
     // ;
-    fn exit_prod_term(&mut self, ctx: CtxProdTerm, _spans: Vec<PosSpan>) -> SynProdTerm {
-        if self.verbose { println!("exit_prod_term({ctx:?})"); }
+    fn exit_prod_alt(&mut self, ctx: CtxProdAlt, _spans: Vec<PosSpan>) -> SynProdAlt {
+        if self.verbose { println!("exit_prod_alt({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let CtxProdTerm::V1 { star: SynProdTerm1(factors) } = ctx;
+        let CtxProdAlt::V1 { star: SynProdAlt1(factors) } = ctx;
         let pt = factors.into_iter().map(|SynProdFactor(t)| t).to_vec();
         let id = match pt.len() {
             0 => tree.add(None, GrNode::Symbol(Symbol::Empty)),
             1 => pt[0],
             _ => tree.addci_iter(None, GrNode::Concat, pt)
         };
-        SynProdTerm(id)
+        SynProdAlt(id)
     }
 
-    // prodFactor:
-    //     prodAtom (Plus | Star | Question)?
+    // prod_factor:
+    //     prod_atom (Plus | Star | Question)?
     // ;
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor, _spans: Vec<PosSpan>) -> SynProdFactor {
         if self.verbose { println!("exit_prod_factor_rep({ctx:?})"); }
@@ -382,11 +385,12 @@ impl GramParserListener for GramListener {
         SynProdFactor(id)
     }
 
-    // prodAtom:
+    // prod_atom:
     //     Id
     // |   Lform
     // |   Rform
     // |   Pform
+    // |   Greedy
     // |   Lparen prod Rparen
     // ;
     fn exit_prod_atom(&mut self, ctx: CtxProdAtom, _spans: Vec<PosSpan>) -> SynProdAtom {

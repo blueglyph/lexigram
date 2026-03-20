@@ -65,7 +65,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         ],
         origin,
         vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("Id", None)],
-        vec!["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"],
+        vec!["file", "header", "rules", "rule", "rule_name", "prod", "prod_alt", "prod_factor", "prod_atom", "prod_alt_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"],
         vec![0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)],
         Some(0),

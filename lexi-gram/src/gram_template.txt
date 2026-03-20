@@ -53,18 +53,18 @@ impl GramParserListener for Listener {
 
     fn exit_prod(&mut self, ctx: CtxProd, spans: Vec<PosSpan>) -> SynProd {
         match ctx {
-            // prod -> prod_term
-            CtxProd::V1 { prod_term } => {}
-            // prod -> prod "|" prod_term
-            CtxProd::V2 { prod, prod_term } => {}
+            // prod -> prod_alt
+            CtxProd::V1 { prod_alt } => {}
+            // prod -> prod "|" prod_alt
+            CtxProd::V2 { prod, prod_alt } => {}
         }
         SynProd()
     }
 
-    fn exit_prod_term(&mut self, ctx: CtxProdTerm, spans: Vec<PosSpan>) -> SynProdTerm {
-        // prod_term -> prod_factor*
-        let CtxProdTerm::V1 { star } = ctx;
-        SynProdTerm()
+    fn exit_prod_alt(&mut self, ctx: CtxProdAlt, spans: Vec<PosSpan>) -> SynProdAlt {
+        // prod_alt -> prod_factor*
+        let CtxProdAlt::V1 { star } = ctx;
+        SynProdAlt()
     }
 
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor, spans: Vec<PosSpan>) -> SynProdFactor {
@@ -135,9 +135,9 @@ pub struct SynRuleName();
 #[derive(Debug, PartialEq)]
 pub struct SynProd();
 
-/// User-defined type for `prod_term`
+/// User-defined type for `prod_alt`
 #[derive(Debug, PartialEq)]
-pub struct SynProdTerm();
+pub struct SynProdAlt();
 
 /// User-defined type for `prod_factor`
 #[derive(Debug, PartialEq)]
