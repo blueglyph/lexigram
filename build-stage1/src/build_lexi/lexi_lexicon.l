@@ -1,16 +1,16 @@
 lexicon LexiLexer;
 
-fragment BlockComment   : '/*' .*? '*/';
-fragment LineComment    : '//' ~[\r\n]*;
-fragment HexDigit       : [0-9a-fA-F];
-fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
-fragment Char           : EscChar | ~[\n\r\t'\\];
-fragment CharLiteral    : '\'' Char '\'';
-fragment StrLiteral     : '\'' Char Char+ '\'';
+fragment BLOCK_COMMENT  : '/*' .*? '*/';
+fragment LINE_COMMENT   : '//' ~[\r\n]*;
+fragment HEX_DIGIT      : [0-9a-fA-F];
+fragment UNICODE_ESC    : 'u{' HEX_DIGIT+ '}';
+fragment ESC_CHAR       : '\\' ([nrt'\\] | UNICODE_ESC);
+fragment CHAR           : ESC_CHAR | ~[\n\r\t'\\];
+fragment CHAR_LITERAL   : '\'' CHAR '\'';
+fragment STR_LITERAL    : '\'' CHAR CHAR+ '\'';
 
 // Char inside a '[' ']' set
-fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+fragment ESC_SET_CHAR   : '\\' ([nrt\\[\]\-] | UNICODE_ESC);
 
 Arrow           : '->'; /* // first token // */
 Colon           : ':';
@@ -42,22 +42,22 @@ Channel         : 'channel';
 Hook            : 'hook';
 //SymEof          : 'EOF';
 
-SComment        : BlockComment              -> skip;
-SLineComment    : LineComment               -> skip;
+SComment        : BLOCK_COMMENT             -> skip;
+SLineComment    : LINE_COMMENT              -> skip;
 SWhiteSpace     : [ \n\r\t]+                -> skip;
 
 Id              : [a-zA-Z][a-zA-Z_0-9]*;
 
-CharLit         : CharLiteral;
-StrLit          : StrLiteral;
+CharLit         : CHAR_LITERAL;
+StrLit          : STR_LITERAL;
 
 FixedSet        : ('\\w' | '\\d');
 
-LSbracket       : '['                       -> push(MODE_SET_CHAR);
+LSbracket       : '['                       -> push(SET_CHAR_MODE);
 
-mode MODE_SET_CHAR;
+mode SET_CHAR_MODE;
 
 RSbracket       : ']'                       -> pop;
 Minus2          : '-'                       -> type(Minus);
-SetChar         : (EscSetChar | ~[\n\r\t\\\]\-]);
+SetChar         : (ESC_SET_CHAR | ~[\n\r\t\\\]\-]);
 FixedSet2       : ('\\w' | '\\d')           -> type(FixedSet);
