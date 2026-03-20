@@ -1,7 +1,7 @@
 lexicon MicroCalc;
 
-fragment BlockComment   : '/*' .*? '*/';
-fragment LineComment    : '//' ~[\r\n]*;
+fragment BLOCK_COMMENT  : '/*' .*? '*/';
+fragment LINE_COMMENT   : '//' ~[\r\n]*;
 
 Eq                      : '==';
 Ne                      : '!=';
@@ -32,8 +32,8 @@ Print                   : 'print';
 Return                  : 'return';
 While                   : 'while';
 
-SComment                : BlockComment              -> skip;
-SLineComment            : LineComment               -> skip;
+SComment                : BLOCK_COMMENT              -> skip;
+SLineComment            : LINE_COMMENT               -> skip;
 SWhiteSpace             : [ \n\r\t]+                -> skip;
 
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;

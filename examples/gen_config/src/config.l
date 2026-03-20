@@ -1,7 +1,7 @@
 lexicon Config;
 
-fragment EscChar        : '\\' [nrt"\\];
-fragment Char           : EscChar | ~[\n\r\t"\\];
+fragment ESC_CHAR       : '\\' [nrt"\\];
+fragment CHAR           : ESC_CHAR | ~[\n\r\t"\\];
 
 // punctuation and operators
 Colon                   : ':';
@@ -36,7 +36,7 @@ Stdout                  : 'stdout';
 BoolLiteral             : 'false' | 'true';
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
 NumLiteral              : [0-9]+;
-StrLiteral              : '"' Char+ '"';
+StrLiteral              : '"' CHAR+ '"';
 
 SComment                : '/*' .*? '*/'             -> skip;
 SLineComment            : '//' ~[\r\n]*             -> skip;

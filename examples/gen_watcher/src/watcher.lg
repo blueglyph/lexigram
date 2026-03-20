@@ -2,7 +2,7 @@
 
 lexicon Watcher;
 
-fragment ToEndLine  : ~[\n\r]+;
+fragment TO_END_LINE: ~[\n\r]+;
 
 Category            : 'category'                -> mode(SKIP_SPACES);
 RightRecursive      : 'right-recursive'         -> mode(SKIP_SPACES);
@@ -24,7 +24,7 @@ Header              : [a-zA-Z][a-zA-Z_0-9]* ':' [ \t]* -> mode(MSG_MODE);
 
 mode MSG_MODE; // ----------------------------------------------
 
-Message             : ToEndLine                 -> mode(DEFAULT_MODE);
+Message             : TO_END_LINE                 -> mode(DEFAULT_MODE);
 
 mode SKIP_SPACES;
 

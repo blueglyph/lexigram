@@ -2,7 +2,7 @@
 
 lexicon Terminate;
 
-fragment ToEndLine  : ~[\n\r]+;
+fragment TO_END_LINE: ~[\n\r]+;
 
 MsgPrefix           : '##' [ \t]*               -> skip, mode(HEADER_MODE);
 Process             : 'PROCESS' [ \t]*          -> mode(ID_MODE);
@@ -21,7 +21,7 @@ Header              : [a-zA-Z][a-zA-Z_0-9]*     -> mode(MSG_MODE);
 
 mode MSG_MODE; // ----------------------------------------------
 
-Message             : ToEndLine                 -> mode(DEFAULT_MODE);
+Message             : TO_END_LINE                 -> mode(DEFAULT_MODE);
 
 mode ID_MODE; // -----------------------------------------------
 

@@ -1,10 +1,10 @@
 lexicon Pandemonium;
 
-fragment BlockComment   : '/*' .*? '*/';
-fragment LineComment    : '//' ~[\r\n]*;
-fragment DecDigit       : [0-9];
-fragment NZDecDigit     : [1-9];
-fragment DecInteger     : NZDecDigit DecDigit*;
+fragment BLOCK_COMMENT  : '/*' .*? '*/';
+fragment LINE_COMMENT   : '//' ~[\r\n]*;
+fragment DEC_DIGIT      : [0-9];
+fragment NZ_DEC_DIGIT   : [1-9];
+fragment DEC_INTEGER    : NZ_DEC_DIGIT DEC_DIGIT*;
 
 Add                     : '+';
 Div                     : '/';
@@ -38,9 +38,9 @@ L_Plus_A                : 'l-plus-a';
 SepList                 : 'sep-list';
 SepList_Opt             : 'sep-list-opt';
 
-SComment                : BlockComment              -> skip;
-SLineComment            : LineComment               -> skip;
+SComment                : BLOCK_COMMENT              -> skip;
+SLineComment            : LINE_COMMENT               -> skip;
 SWhiteSpace             : [ \n\r\t]+                -> skip;
 
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
-Num                     : DecInteger;
+Num                     : DEC_INTEGER;
