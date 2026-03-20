@@ -59,27 +59,27 @@
             &mut self.log
         }
 
-        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {}
+        fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {
             // config -> definitions lexer parser options
             let CtxConfig::V1 = ctx;
         }
 
-        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) {}
+        fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) {
             // definitions -> (<L> "def" Id "=" value ";")*
             let CtxDefinitions::V1 = ctx;
         }
 
-        fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {}
+        fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {
             // `<L> "def" Id "=" value ";"` iteration in `definitions -> ( ►► <L> "def" Id "=" value ";" ◄◄ )*`
             let CtxIDef::V1 { id, value } = ctx;
         }
 
-        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {}
+        fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {
             // lexer -> "lexer" "{" io_options "}"
             let CtxLexer::V1 { io_options } = ctx;
         }
 
-        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {}
+        fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {
             match ctx {
                 // parser -> "parser" "{" io_options "}"
                 CtxParser::V1 { io_options } => {}
@@ -88,7 +88,7 @@
             }
         }
 
-        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {}
+        fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {
             match ctx {
                 // options -> "options" "{" global_options "}"
                 CtxOptions::V1 { global_options } => {}
