@@ -471,6 +471,51 @@ mod simple {
                 vec![("a\nb\n", vec![(0, 0, "a"), (0, 3, "\n"), (0, 1, "b"), (0, 2, "\n")])],
                 None,
             ),
+            (   // test 7
+                r#" lexicon G;
+                    If: 'if';
+                    Id: [a-z]+;
+                    Space: ' '+;
+                "#,
+                vec![],
+                vec![("If", Some("if")), ("Id", None), ("Space", None)],
+                btreemap![
+                    0 => branch!(' ' => 1, 'a'-'h', 'j'-'z' => 2, 'i' => 3),
+                    1 => branch!(' ' => 1), // <end:2>
+                    2 => branch!('a'-'z' => 2), // <end:1>
+                    3 => branch!('a'-'e', 'g'-'z' => 2, 'f' => 4), // <end:1>
+                    4 => branch!('a'-'z' => 2), // <end:0>
+                ], btreemap![
+                    1 => term!(=2), 2 => term!(=1), 3 => term!(=1), 4 => term!(=0)
+                ],
+                vec![
+                    ("if iff", vec![(0, 0, "if"), (0, 2, " "), (0, 1, "iff")]),
+                ],
+                None,
+            ),
+            (   // test 8
+                r#" lexicon G;
+                    If: 'if';
+                    Id: [a-z]+?;
+                    Space: ' '+;
+                "#,
+                vec![],
+                vec![("If", Some("if")), ("Id", None), ("Space", None)],
+                btreemap![
+                    0 => branch!(' ' => 1, 'a'-'h', 'j'-'z' => 2, 'i' => 3),
+                    1 => branch!(' ' => 1), // <end:2>
+                    2 => branch!('a'-'z' => 2), // <end:1>
+                    3 => branch!('a'-'e', 'g'-'z' => 2, 'f' => 4), // <end:1>
+                    4 => branch!(), // <end:0>
+                ], btreemap![
+                    1 => term!(=2), 2 => term!(=1), 3 => term!(=1), 4 => term!(=0)
+                ],
+                vec![
+                    ("if iff", vec![(0, 0, "if"), (0, 2, " "), (0, 0, "if"), (0, 1, "f")]),
+                ],
+                None,
+            ),
+
         ];
         const VERBOSE: bool = false;
 
