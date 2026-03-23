@@ -177,6 +177,8 @@ pub struct LexiListener {
     abort: Terminate,
     /// Starting position of `"grammar" Id ";"`, if detected
     pos_grammar_opt: Option<Pos>,
+    /// corresponding index in terminals/terminals_literals for a given token
+    token_to_index: Vec<Option<usize>>,
 }
 
 impl LexiListener {
@@ -225,6 +227,7 @@ impl LexiListener {
             log: BufLog::new(),
             abort: Terminate::None,
             pos_grammar_opt: None,
+            token_to_index: Vec::new(),
         }
     }
 
@@ -257,7 +260,11 @@ impl LexiListener {
                 if let RuleType::Terminal(id) = rt {
                     if self.terminal_ret[*id as usize] {
                         let final_token_id = *self.terminal_remap.get(id).unwrap_or(id);
-                        symbols[final_token_id as usize] = (s.clone(), self.terminal_literals[*id as usize].clone())
+                        let token_index = self.token_to_index[final_token_id as usize].unwrap_or(*id as usize);
+                        symbols[final_token_id as usize] = (
+                            s.clone(),
+                            self.terminal_literals[token_index].clone()
+                        )
                     }
                 };
             }
@@ -440,7 +447,7 @@ impl LexiListener {
             bremap.extend(remap.iter().map(|(a, b)| (*a, *b)));
             println!("Remap:{}", bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
         }
-        let mut token_to_index: Vec<Option<usize>> = vec![None; self.terminal_literals.len()];
+        self.token_to_index = vec![None; self.terminal_literals.len()];
         for (index, tree) in self.terminals.iter_mut().enumerate() {
             // changes all the temporary references since that first one
             for mut node in tree.iter_post_depth_simple_mut() {
@@ -453,13 +460,13 @@ impl LexiListener {
                         } else {
                             old_id
                         };
-                        if let Some(other_index) = token_to_index[token as usize] {
+                        if let Some(other_index) = self.token_to_index[token as usize] {
                             if self.terminal_literals[other_index] != self.terminal_literals[index] {
                                 self.terminal_literals[other_index] = None;
                                 self.terminal_literals[index] = None;
                             }
                         }
-                        token_to_index[token as usize] = Some(index);
+                        self.token_to_index[token as usize] = Some(index);
                     }
                 }
             }
