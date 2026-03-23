@@ -440,19 +440,31 @@ impl LexiListener {
             bremap.extend(remap.iter().map(|(a, b)| (*a, *b)));
             println!("Remap:{}", bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
         }
-        for tree in self.terminals.iter_mut() {
+        let mut token_to_index: Vec<Option<usize>> = vec![None; self.terminal_literals.len()];
+        for (index, tree) in self.terminals.iter_mut().enumerate() {
             // changes all the temporary references since that first one
             for mut node in tree.iter_post_depth_simple_mut() {
                 let x: &mut ReType = node.get_mut_type();
                 if let ReType::End(term) = x {
                     if let ActionOption::Token(old_id) = term.action {
-                        if let Some(new_id) = remap.get(&old_id) {
+                        let token = if let Some(new_id) = remap.get(&old_id) {
                             term.action = ActionOption::Token(*new_id);
+                            *new_id
+                        } else {
+                            old_id
+                        };
+                        if let Some(other_index) = token_to_index[token as usize] {
+                            if self.terminal_literals[other_index] != self.terminal_literals[index] {
+                                self.terminal_literals[other_index] = None;
+                                self.terminal_literals[index] = None;
+                            }
                         }
+                        token_to_index[token as usize] = Some(index);
                     }
                 }
             }
         }
+
         // Remaps the hooks
         self.terminal_hooks.iter_mut()
             .for_each(|old| *old = *remap.get(old).unwrap_or(old));

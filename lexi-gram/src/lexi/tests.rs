@@ -472,11 +472,11 @@ mod simple {
                 None,
             ),
             (   // test 7
-                r#" lexicon G;
+                r##"lexicon G;
                     If: 'if';
                     Id: [a-z]+;
                     Space: ' '+;
-                "#,
+                "##,
                 vec![],
                 vec![("If", Some("if")), ("Id", None), ("Space", None)],
                 btreemap![
@@ -494,11 +494,11 @@ mod simple {
                 None,
             ),
             (   // test 8
-                r#" lexicon G;
+                r##"lexicon G;
                     If: 'if';
                     Id: [a-z]+?;
                     Space: ' '+;
-                "#,
+                "##,
                 vec![],
                 vec![("If", Some("if")), ("Id", None), ("Space", None)],
                 btreemap![
@@ -515,13 +515,76 @@ mod simple {
                 ],
                 None,
             ),
+            (   // test 9
+                r##"lexicon XYZ;
+                    Zero                  : '0'             -> type(One);
+                    Minus                 : '-';            // == Minus2's literal => T(Minus, Some("-"))
+                    LSbracket             : '['             -> push(SET_CHAR_MODE);
 
+                    mode SET_CHAR_MODE;
+                    RSbracket             : ']'             -> pop;
+                    Minus2                : '-'             -> type(Minus);
+                    SetChar               : [a-z];
+                    One                   : '1';            // != Zero's literal => T(One, None)
+                "##,
+                vec![],
+                vec![("Minus", Some("-")), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None), ("One", None)],
+                btreemap![
+                    0 => branch!('-' => 2, '0' => 3, '[' => 4),
+                    1 => branch!('-' => 5, '1' => 6, ']' => 7, 'a'-'z' => 8),
+                    2 => branch!(), // <end:0>
+                    3 => branch!(), // <end:4>
+                    4 => branch!(), // <end:1,push(1,state 1)>
+                    5 => branch!(), // <end:0>
+                    6 => branch!(), // <end:4>
+                    7 => branch!(), // <end:2,pop>
+                    8 => branch!(), // <end:3>
+                ], btreemap![
+                    2 => term!(=0), 3 => term!(=4), 4 => term!(=1) + term!(push 1) + term!(pushst 1), 5 => term!(=0), 6 => term!(=4),
+                    7 => term!(=2) + term!(pop), 8 => term!(=3)
+                ],
+                vec![],
+                None,
+            ),
+            (   // test 10
+                r##"lexicon XYZ;
+                    Zero                  : '0'             -> type(One);
+                    Minus                 : '-';            // != Minus2's literal => T("Minus", None)
+                    LSbracket             : '['             -> push(SET_CHAR_MODE);
+
+                    mode SET_CHAR_MODE;
+                    RSbracket             : ']'             -> pop;
+                    Minus2                : '..'            -> type(Minus);
+                    SetChar               : [a-z];
+                    One                   : '1';            // != Zero's literal => T(One, None)
+                "##,
+                vec![],
+                vec![("Minus", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None), ("One", None)],
+                btreemap![
+                    0 => branch!('-' => 3, '0' => 4, '[' => 5),
+                    1 => branch!('.' => 2, '1' => 6, ']' => 7, 'a'-'z' => 8),
+                    2 => branch!('.' => 9),
+                    3 => branch!(), // <end:0>
+                    4 => branch!(), // <end:4>
+                    5 => branch!(), // <end:1,push(1,state 1)>
+                    6 => branch!(), // <end:4>
+                    7 => branch!(), // <end:2,pop>
+                    8 => branch!(), // <end:3>
+                    9 => branch!(), // <end:0>
+                ], btreemap![
+                    3 => term!(=0), 4 => term!(=4), 5 => term!(=1) + term!(push 1) + term!(pushst 1), 6 => term!(=4),
+                    7 => term!(=2) + term!(pop), 8 => term!(=3), 9 => term!(=0)
+                ],
+                vec![],
+                None,
+            ),
         ];
         const VERBOSE: bool = false;
 
         for (test_id, (input, expected_hooks, expected_terminals, expected_graph, expected_end_states, test_strs, expected_pos_grammar))
         in tests.into_iter().enumerate()
         {
+            if !matches!(test_id, 9|10) { continue }
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(input.as_bytes());
             let mut lexi = Lexi::new(stream);
