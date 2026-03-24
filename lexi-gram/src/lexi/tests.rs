@@ -517,6 +517,54 @@ mod simple {
             ),
             (   // test 9
                 r##"lexicon I;
+                    F: 'f';
+                    If: 'if';
+                    Iff: 'iff';
+                    Space: ' '+;
+                "##,
+                vec![],
+                vec![("F", Some("f")), ("If", Some("if")), ("Iff", Some("iff")), ("Space", None)],
+                btreemap![
+                    0 => branch!(' ' => 2, 'f' => 3, 'i' => 1),
+                    1 => branch!('f' => 4),
+                    2 => branch!(' ' => 2), // <end:3>
+                    3 => branch!(), // <end:0>
+                    4 => branch!('f' => 5), // <end:1>
+                    5 => branch!(), // <end:2>
+                ], btreemap![
+                    2 => term!(=3), 3 => term!(=0), 4 => term!(=1), 5 => term!(=2)
+                ],
+                vec![
+                    ("if iff", vec![(0, 1, "if"), (0, 3, " "), (0, 2, "iff")]),
+                ],
+                None,
+            ),
+            (   // test 10
+                r##"lexicon J;
+                    F: 'f';
+                    Iff: 'iff';
+                    If: 'if';
+                    Space: ' '+;
+                "##,
+                vec![],
+                vec![("F", Some("f")), ("Iff", Some("iff")), ("If", Some("if")), ("Space", None)],
+                btreemap![
+                    0 => branch!(' ' => 2, 'f' => 3, 'i' => 1),
+                    1 => branch!('f' => 4),
+                    2 => branch!(' ' => 2), // <end:3>
+                    3 => branch!(), // <end:0>
+                    4 => branch!('f' => 5), // <end:2>
+                    5 => branch!(), // <end:1>
+                ], btreemap![
+                    2 => term!(=3), 3 => term!(=0), 4 => term!(=2), 5 => term!(=1)
+                ],
+                vec![
+                    ("if iff", vec![(0, 2, "if"), (0, 3, " "), (0, 1, "iff")]),
+                ],
+                None,
+            ),
+            (   // test 11
+                r##"lexicon K;
                     Zero                  : '0'             -> type(One);
                     Minus                 : '-';            // == Minus2's literal => T(Minus, Some("-"))
                     LSbracket             : '['             -> push(SET_CHAR_MODE);
@@ -546,8 +594,8 @@ mod simple {
                 vec![],
                 None,
             ),
-            (   // test 10
-                r##"lexicon J;
+            (   // test 12
+                r##"lexicon L;
                     Zero                  : '0'             -> type(One);
                     Minus                 : '-';            // != Minus2's literal => T("Minus", None)
                     LSbracket             : '['             -> push(SET_CHAR_MODE);
@@ -578,8 +626,8 @@ mod simple {
                 vec![],
                 None,
             ),
-            (   // test 11
-                r##"lexicon K;
+            (   // test 13
+                r##"lexicon M;
                     A0 : 'a' -> type(A);
                     A  : 'A' -> skip;
                 "##,
