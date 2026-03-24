@@ -536,7 +536,7 @@ impl DfaBuilder {
                 .to_vec();
             if !related.is_empty() {
                 self.log.add_error(format!(
-                    "{missing_t} is never selected, but it was in conflict(s); check if re-ordering definitions solves the problem{}",
+                    "{missing_t} is never selected, but it was in conflict with (an)other token(s); check if re-ordering definitions solves the problem{}",
                     related.join("")));
             } else {
                 self.log.add_error(format!("{missing_t} is never selected"));
