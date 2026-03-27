@@ -14,7 +14,7 @@ If you're looking for the command-line executable, you'll find it in the [`lexig
 
 # The `lexi-gram` Crate
 
-The [`lexi-gram`](https://crates.io/crates/lexi-gram) crate contains the source code of Lexi and Gram, the two parsers for the lexicon and grammar files read by Lexigram.
+The [`lexi-gram`](https://crates.io/crates/lexi-gram) crate contains the source code of Lexi and Gram, the two parsers for the lexicon and grammar files read by Lexigram. It also provides an API to easily generate the parser source programmatically.
 
 Additional information can be found in the corresponding section of the [Lexigram book](https://www.unscript.net/lexigram-book/crates.html#lexi-gram).
 
