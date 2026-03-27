@@ -8,9 +8,9 @@
 
 This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) project, a lexer / parser generator.
 
-You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
+You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
 
-If you're looking for the command-line executable, you'll find it in the [`lexigram`](https://crates.io/crates/lexigram) crate. You'll also find a quick overview there.
+If you're looking for the command-line executable, you'll find it in the [`lexigram`](https://crates.io/crates/lexigram) crate, along with a quick overview.
 
 # The `lexigram-lib` Crate
 
