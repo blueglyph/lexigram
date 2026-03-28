@@ -6,7 +6,7 @@
 
 # Lexigram
 
-This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) project, a lexer / parser generator.
+This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) project, a lexer/parser generator.
 
 You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
 
@@ -22,9 +22,15 @@ It's normally not meant to be used for other purposes than a dependency of the f
 
 # Status
 
-This project is still under development and shouldn't be considered fully stable yet (hence the 0.x version).
+This project is still under development and shouldn't be considered fully stable yet (hence the 0.x version). The main upcoming changes required before a stable version are:
+* for the **tools**
+  * check robustness in corner cases, in particular by detecting problematic syntactic and lexical rules
+  * improve error messages
+  * refactor big methods
+* for the **generated code**
+  * improve performances
 
-The code and the documentation were entirely written by a human.
+_The code and the documentation were entirely written by a human._
 
 # Releases
 

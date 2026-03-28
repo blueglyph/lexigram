@@ -195,9 +195,9 @@ Lexigram itself uses a couple of lexers/parsers (that it generated itself) to pa
 
 # Status
 
-This project is still under development and shouldn't be considered fully stable yet (hence the 0.x version).
+This project is still under development and shouldn't be considered fully stable yet (hence the 0.x version). See the main project's [README](https://github.com/blueglyph/lexigram/blob/master/README.md).
 
-The code and the documentation were entirely written by a human.
+_The code and the documentation were entirely written by a human._
 
 # Releases
 

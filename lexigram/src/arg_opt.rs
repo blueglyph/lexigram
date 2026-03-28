@@ -131,13 +131,14 @@ Other options related to the generated code:
                             - set <list>: explicit list of nonterminal names; "<default>"
                                 and "<parents>" can be included to set an entire
                                 predefined class.
+                                A "-" can be put in front of individual nonterminals in the
+                                list indicate they don't hold a value.
 
                             By default, "default" is used, which is usually a good strategy.
 
-                            Example if rules include (<L=id_i> Id)* and (<L=decl_i> decl)+
-                            and each Id and decl must update a loop value:
-
+                            Examples:
                                 --nt-value set "<parents>,id_i,decl_i"
+                                --nt_value set "<default>,-inst,-decl"
 
 General options:
 

@@ -145,6 +145,7 @@ impl TryBuildFrom<ParserGen> for ParserTables {
 /// * [`SetIds(Vec<VarId>)`](NTValue::SetIds): The nonterminals that have a value is set explicitly by ID
 /// * [`SetNames(Vec<String>)`](NTValue::SetNames): The nonterminals that have a value is set explicitly by name.
 ///   The names "`<default>`" and "`<parents>`" can be used to set all the nonterminals of the corresponding class.
+///   Individual nonterminals can be preceded by a "-" to indicate they don't hold a value.
 #[derive(Clone, PartialEq, Debug)]
 pub enum NTValue {
     /// No nonterminal has a value
@@ -155,7 +156,7 @@ pub enum NTValue {
     Default,
     /// The set of nonterminals that have a value is set explicitly by ID
     SetIds(Vec<VarId>),
-    /// The set of nonterminals that have a value is set explicitly by name
+    /// The set of nonterminals that have a value is set explicitly by name. Individual names preceded by a "-" don't have a value.
     SetNames(Vec<String>),
 }
 
