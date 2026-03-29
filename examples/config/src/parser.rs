@@ -64,6 +64,7 @@ mod listener {
     use std::str::FromStr;
     use lexi_gram::{gencode, genspec};
     use lexi_gram::lexigram_lib::CollectJoin;
+    use lexi_gram::lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
     use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{Options, Specification};
     use lexigram_core::lexer::PosSpan;
@@ -114,6 +115,12 @@ mod listener {
             } else {
                 Err(())
             }
+        }
+    }
+
+    impl<'ls> GetLine for Listener<'ls> {
+        fn get_line(&self, n: usize) -> &str {
+            self.lines.as_ref().unwrap()[n - 1]
         }
     }
 
@@ -415,7 +422,9 @@ mod listener {
                     if let Some(v) = self.consts.get(&id) {
                         v.clone()
                     } else {
-                        self.log.add_error(format!("at {}, {id} is not defined", spans[0]));
+                        // self.log.add_error(format!("at {}, {id} is not defined", spans[0]));
+                        let text = self.annotate_text(&spans[0]);
+                        self.log.add_error(format!("{id} is not defined:\n\n{text}\n"));
                         SynValue::Error
                     }
                 }
