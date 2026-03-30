@@ -88,7 +88,7 @@ impl Default for LLParsingTable {
 
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
-    pub(super) prules: Vec<ProdRule>,
+    pub(super) prules: Option<Vec<ProdRule>>,
     pub(crate) origin: Origin<VarId, FromPRS>,
     pub(super) num_nt: usize,
     pub(super) num_t: usize,
@@ -130,20 +130,20 @@ impl<T> ProdRuleSet<T> {
 
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_available_var(&self) -> VarId {
-        self.prules.len() as VarId   // we don't use self.num_nt for safety reason
+        self.prules.as_ref().unwrap().len() as VarId   // we don't use self.num_nt for safety reason
     }
 
     /// Returns all the non-empty prules
     pub fn get_prules_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
-        self.prules.iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
+        self.prules.as_ref().unwrap().iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
     }
 
     pub fn get_prules_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
-        self.prules.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+        self.prules.as_mut().unwrap().iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
     }
 
     pub fn get_alts(&self) -> impl Iterator<Item=(VarId, &Alternative)> {
-        self.prules.iter().enumerate()
+        self.prules.as_ref().unwrap().iter().enumerate()
             .flat_map(|(v, p)| p.iter().map(move |alt| (v as VarId, alt)))
     }
 
@@ -216,8 +216,8 @@ impl<T> ProdRuleSet<T> {
     ///   the lexer.
     /// - `num_nt` is simply the number of production rules.
     pub(super) fn calc_num_symbols(&mut self) {
-        self.num_nt = self.prules.len();
-        self.num_t = self.prules.iter().map(|p|
+        self.num_nt = self.prules.as_ref().unwrap().len();
+        self.num_t = self.prules.as_ref().unwrap().iter().map(|p|
             p.iter().map(|f|
                 f.iter().filter_map(|s|
                     if let Symbol::T(v) = s { Some(*v + 1) } else { None }
@@ -233,7 +233,7 @@ impl<T> ProdRuleSet<T> {
 
     /// Simplifies the productions by removing unnecessary empty symbols.
     pub(super) fn simplify(&mut self) {
-        for p in &mut self.prules {
+        for p in self.prules.as_mut().unwrap() {
             let mut has_empty = false;
             let mut i = 0;
             while i < p.len() {
@@ -262,7 +262,7 @@ impl<T> ProdRuleSet<T> {
 
     fn check_num_nt_coherency(&mut self) {
         if let Some(n) = self.symbol_table.as_ref().map(|table| table.get_num_nt()) {
-            let num_nt = self.prules.len();
+            let num_nt = self.prules.as_ref().unwrap().len();
             if n != num_nt {
                 self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} nonterminal symbols: dropping the table"));
                 self.symbol_table = None;
@@ -285,7 +285,7 @@ impl<T> ProdRuleSet<T> {
         }
         if VERBOSE {
             println!("Removing unused nonterminals:");
-            let mut all_h = self.prules.iter().flat_map(|p| p.iter().flat_map(|x| &x.v)).cloned().collect::<HashSet<_>>();
+            let mut all_h = self.prules.as_ref().unwrap().iter().flat_map(|p| p.iter().flat_map(|x| &x.v)).cloned().collect::<HashSet<_>>();
             all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
@@ -318,7 +318,7 @@ impl<T> ProdRuleSet<T> {
                     self.nt_conversion.insert(v, Removed);
                 }
                 nt_content.remove(i);
-                self.prules.remove(i);
+                self.prules.as_mut().unwrap().remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
                 if let Some(t) = self.symbol_table.as_mut() { t.remove_nonterminal(v) };
                 self.flags.remove(i);
@@ -333,7 +333,7 @@ impl<T> ProdRuleSet<T> {
                 if VERBOSE { println!("- {symbol:?} -> {:?}", Symbol::NT(new_v)); }
             }
         }
-        for p in &mut self.prules {
+        for p in self.prules.as_mut().unwrap() {
             for f in p {
                 for s in &mut f.v {
                     if let Symbol::NT(s_var) = s {
@@ -410,7 +410,7 @@ impl<T> ProdRuleSet<T> {
             if !symbols.contains(&sym) {
                 symbols.insert(sym);
                 if let Symbol::NT(v) = sym {
-                    stack.extend(self.prules[v as usize].iter().flat_map(|x| &x.v));
+                    stack.extend(self.prules.as_ref().unwrap()[v as usize].iter().flat_map(|x| &x.v));
                 }
             }
         }
@@ -460,7 +460,7 @@ impl<T> ProdRuleSet<T> {
         while change {
             change = false;
             for i in &rules {
-                let prule = &self.prules[*i as usize];
+                let prule = &self.prules.as_ref().unwrap()[*i as usize];
                 let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
                 let num_items = first[&symbol].len();
@@ -505,7 +505,7 @@ impl<T> ProdRuleSet<T> {
         while change {
             change = false;
             for i in &rules {
-                let prule = &self.prules[*i as usize];
+                let prule = &self.prules.as_ref().unwrap()[*i as usize];
                 let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
                 for alt in prule {
@@ -568,7 +568,7 @@ impl<T> ProdRuleSet<T> {
         let next_avail_var = self.get_next_available_var() as usize;
         let mut var_new = next_avail_var;
         // we must take prules out because of the borrow checker and other &mut borrows we need later...
-        let mut prules = take(&mut self.prules);
+        let mut prules = self.prules.take().unwrap();
         let mut ambig_alt_id = 0;
         for var in 0..next_avail_var {
             let prule = prules.get_mut(var).unwrap();
@@ -829,8 +829,8 @@ impl<T> ProdRuleSet<T> {
                 println!("table: {} ({})", table.get_nonterminals().join(", "), table.get_num_nt());
             }
         }
-        self.prules = prules;
-        self.num_nt = self.prules.len();
+        self.num_nt = prules.len();
+        self.prules = Some(prules);
         if VERBOSE {
             println!("FINAL:");
             self.print_rules(false, false);
@@ -867,7 +867,7 @@ impl<T> ProdRuleSet<T> {
         self.log.add_note("removing left factorization...");
         let mut new_var = self.get_next_available_var();
         // we must take prules out because of the borrow checker and other &mut borrows we need later...
-        let mut prules = take(&mut self.prules);
+        let mut prules = self.prules.take().unwrap();
         let mut i = 0;
         while i < prules.len() {
             let prule = &mut prules[i];
@@ -950,8 +950,8 @@ impl<T> ProdRuleSet<T> {
                 prules.extend(extra);
             }
         }
-        self.prules = prules;
-        self.num_nt = self.prules.len();
+        self.num_nt = prules.len();
+        self.prules = Some(prules);
     }
 
     pub(crate) fn remove_ambiguity(&self) {
@@ -963,7 +963,7 @@ impl<T> ProdRuleSet<T> {
         // add other flags here if necessary:
         const FLAG_MASK: u32 = ruleflag::L_FORM;
 
-        for (v, prule) in self.prules.iter_mut().enumerate() {
+        for (v, prule) in self.prules.as_mut().unwrap().iter_mut().enumerate() {
             let flags = prule.iter().fold(0, |acc, alt| acc | alt.flags) & FLAG_MASK;
             self.flags[v] |= flags;
             for alt in prule.iter_mut() {
@@ -1054,7 +1054,7 @@ impl<T> HasBuildErrorSource for ProdRuleSet<T> {
 impl ProdRuleSet<General> {
     fn with_capacity(capacity: usize) -> Self {
         Self {
-            prules: Vec::with_capacity(capacity),
+            prules: Some(Vec::with_capacity(capacity)),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
@@ -1106,7 +1106,7 @@ impl ProdRuleSet<LL1> {
             p_hash_hash("first:", self.get_symbol_table(), first);
             p_hash_hash("follow:", self.get_symbol_table(), follow);
         }
-        let mut alts = self.prules.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
+        let mut alts = self.prules.as_ref().unwrap().iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone()))).to_vec();
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
         let error_pop = error_skip + 1;         // table entry for syntactic error; recovery by popping T or NT from stack
@@ -1248,7 +1248,7 @@ impl ProdRuleSet<LL1> {
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
         source.push(format!("    {:?},", self.name));
         source.push("    vec![".to_string());
-        source.extend(self.prules.iter().map(|prule| format!("        {},", prule_to_macro(prule))));
+        source.extend(self.prules.as_ref().unwrap().iter().map(|prule| format!("        {},", prule_to_macro(prule))));
         source.push("    ],".to_string());
         source.push("    origin,".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
@@ -1312,7 +1312,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
         symbol_table.extend_terminals(source.t);
         symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
-            prules: source.prules,
+            prules: Some(source.prules),
             origin: source.origin,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
@@ -1445,9 +1445,9 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         prules.origin.add(var, (v, index));
                     }
                 }
-                prules.prules.push(prule);
+                prules.prules.as_mut().unwrap().push(prule);
             } else {
-                prules.prules.push(ProdRule::new()); // empty
+                prules.prules.as_mut().unwrap().push(ProdRule::new()); // empty
             }
         }
         prules.calc_num_symbols();
