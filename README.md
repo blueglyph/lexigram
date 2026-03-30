@@ -8,6 +8,14 @@
 
 This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) project, a lexer/parser generator.
 
+Distinctive features:
+* Predictive, non-recursive LL(1) parser.
+* Automatic transformation of left-recursive and ambiguous rules, with automatic left factorization.
+* Grammar-driven listener pattern for better flexibility and to avoid mixing grammar with Rust source code.
+* Listener methods called directly during parsing, rather than after reconstructing a concrete syntax tree.
+* Low-latency variants for right-recursive rules and `*`/`+` repetitions.
+* Able to parse continuous input streams.
+
 You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
 
 If you're looking for the command-line executable, you'll find it in the [`lexigram`](https://crates.io/crates/lexigram) crate, along with a quick overview.

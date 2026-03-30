@@ -10,4 +10,4 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-lexi-gram = { path = "../../lexi-gram", version = "0.9.0" }
+lexi-gram = { path = "../../lexi-gram", version = "0.9.1" }

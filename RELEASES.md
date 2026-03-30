@@ -1,3 +1,7 @@
+# 0.9.1
+
+* minor doc update
+
 # 0.9.0
 
 * token interception with new listener method `intercept_token(...) -> TokenId`. This method is called on each new terminal scanned by the lexer, so it might be more time-consumming.
@@ -38,7 +42,7 @@
 * split lexigram full library into two crates:
   * `lexigram-core`: minimum required by generated lexer/parser code
   * `lexigram-lib`: required by lexer/parser generator
-* rename crates to get a more convenient binary name:
+* renamed crates to get a more convenient binary name:
   * `lexigram` -> `lexi-gram`
   * `lexigram-bin` -> `lexigram`
 * added publishing details to toml files; there are 4 crates to publish:
@@ -53,5 +57,5 @@
 
 # 0.6.0
 
-* add optional span information in listener for each parsed terminal / nonterminal
+* added optional span information in listener for each parsed terminal / nonterminal
 
