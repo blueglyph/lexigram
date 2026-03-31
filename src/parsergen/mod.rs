@@ -198,6 +198,27 @@ fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
     count.try_into().unwrap_or_else(|_| panic!("# span = {count} > {}", SpanNbr::MAX))
 }
 
+struct SourceInputContext<'a> {
+    parent_has_value        : bool,
+    parent_nt               : usize,
+    pinfo                   : &'a LLParsingTable,
+    syns                    : &'a Vec<VarId>,
+    ambig_op_alts           : &'a BTreeMap<AltId, Vec<AltId>>,
+}
+
+struct SourceOutputContext<'a> {
+    init_nt_done            : &'a mut HashSet<VarId>,
+    span_init               : &'a mut HashSet<VarId>,
+    nt_contexts             : &'a mut Vec<Option<Vec<AltId>>>,
+    exit_alt_done           : &'a mut HashSet<VarId>,
+    exit_fixer              : &'a mut NameFixer,
+    src_listener_decl       : &'a mut Vec<String>,
+    src_skel                : &'a mut Vec<String>,
+    src_init                : &'a mut Vec<Vec<String>>,
+    src_exit                : &'a mut Vec<Vec<String>>,
+    src_wrapper_impl        : &'a mut Vec<String>,
+}
+
 #[derive(Debug)]
 pub struct ParserGen {
     parsing_table: LLParsingTable,
@@ -212,6 +233,10 @@ pub struct ParserGen {
     item_ops: Vec<Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     init_opcodes: Vec<OpCode>,
+    nt_name: Vec<(String, String, String)>,
+    alt_info: Vec<Option<(VarId, String)>>,
+    item_info: Vec<Vec<ItemInfo>>,
+    child_repeat_endpoints: HashMap<VarId, Vec<AltId>>,
     /// generates the parser source code
     gen_parser: bool,
     /// generates the wrapper source code
@@ -279,6 +304,10 @@ impl ParserGen {
             item_ops: Vec::new(),
             opcodes: Vec::new(),
             init_opcodes: Vec::new(),
+            nt_name: Vec::new(),
+            alt_info: Vec::new(),
+            item_info: Vec::new(),
+            child_repeat_endpoints: HashMap::new(),
             gen_parser: true,
             gen_wrapper: true,
             indent: 0,
@@ -1426,12 +1455,7 @@ impl ParserGen {
     ///      ItemInfo { name: "e", sym: T(3), owner: 2, index: Some(1) }]
     /// child_repeat_endpoints: {2: [4, 6, 7]}
     /// ```
-    fn get_type_info(&mut self) -> (
-        Vec<(String, String, String)>,
-        Vec<Option<(VarId, String)>>,
-        Vec<Vec<ItemInfo>>,
-        HashMap<VarId, Vec<AltId>>
-    ) {
+    fn get_type_info(&mut self) {
         const VERBOSE: bool = false;
 
         self.log.add_note("- determining item_info...");
@@ -1473,7 +1497,6 @@ impl ParserGen {
                         endpoints = endpoints.chunks(2).map(|slice| slice[0]).to_vec();
                     } else {
                         // with *, the endpoint corresponding to the exit has no data
-                        //endpoints.retain(|e| self.item_ops[e].len() > 1);
                         endpoints.retain(|e| !pinfo.alts[*e as usize].1.is_sym_empty());
                     }
                     assert!(!endpoints.is_empty());
@@ -1551,8 +1574,6 @@ impl ParserGen {
                     // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
                     let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
                         is_alt_sym_empty;
-                    // let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
-                    //     alt_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
 
                     let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
                         || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
@@ -1650,7 +1671,10 @@ impl ParserGen {
             println!("item_info: {item_info:?}");
             println!("child_repeat_endpoints: {child_repeat_endpoints:?}");
         }
-        (nt_name, alt_info, item_info, child_repeat_endpoints)
+        self.nt_name = nt_name;
+        self.alt_info = alt_info;
+        self.item_info = item_info;
+        self.child_repeat_endpoints = child_repeat_endpoints;
     }
 
     /// Generates the source code of the wrapper and the accompanying templates. Returns
@@ -2059,25 +2083,26 @@ impl ParserGen {
             self.used_libs.add(format!("{}::lexer::PosSpan", self.lib_crate));
         }
 
-        let (nt_name, alt_info, item_info, child_repeat_endpoints) = self.get_type_info();
+        self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
 
         // Defines missing type names
-        for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+        for (v, name) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             self.nt_type.entry(v).or_insert_with(|| format!("Syn{}", name.0));
         }
 
-        let mut nt_contexts = vec![None; self.parsing_table.num_nt];
         // Writes contexts
+
+        let mut nt_contexts = vec![None; self.parsing_table.num_nt];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
             // fetches the NT that have alt data
             for nt in group {
                 for &alt_id in &self.var_alts[*nt as usize] {
-                    if let Some((owner, _name)) = &alt_info[alt_id as usize] {
+                    if let Some((owner, _name)) = &self.alt_info[alt_id as usize] {
                         group_names.entry(*owner)
                             .and_modify(|v| v.push(alt_id))
                             .or_insert_with(|| vec![alt_id]);
@@ -2102,16 +2127,16 @@ impl ParserGen {
                     }
                     if flags & (ruleflag::SEP_LIST | ruleflag::L_FORM) == ruleflag::SEP_LIST | ruleflag::L_FORM {
                         src.push("#[derive(Debug)]".to_string());
-                        src.push(format!("pub enum InitCtx{} {{", nt_name[nt as usize].0));
+                        src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
                         let a_id = self.var_alts[nt as usize][0];
                         let comment = format!(
                             "value of `{}` before {}",
                             self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                             self.full_alt_components(a_id, None).1
                         );
-                        let ctx_content = self.source_infos(&item_info[a_id as usize], false, true);
+                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
                         src.push(format!("    /// {comment}"));
-                        let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
+                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
                             if VERBOSE { println!("      {a_name},"); }
                             format!("    {a_name},", )
@@ -2123,16 +2148,16 @@ impl ParserGen {
                         src.push("}".to_string());
                     }
                     src.push("#[derive(Debug)]".to_string());
-                    src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
-                    if VERBOSE { println!("  context Ctx{}:", nt_name[nt as usize].0); }
+                    src.push(format!("pub enum Ctx{} {{", self.nt_name[nt as usize].0));
+                    if VERBOSE { println!("  context Ctx{}:", self.nt_name[nt as usize].0); }
                     let alts = self.sort_alt_ids(group[0], alts);
                     nt_contexts[nt as usize] = Some(alts.clone());
                     for a_id in alts {
                         let comment = self.full_alt_str(a_id, None, true);
                         src.push(format!("    /// {comment}"));
                         if VERBOSE { println!("      /// {comment}"); }
-                        let ctx_content = self.source_infos(&item_info[a_id as usize], false, true);
-                        let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
+                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
+                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
                         let ctx_item = if ctx_content.is_empty() {
                             if VERBOSE { println!("      {a_name},"); }
                             format!("    {a_name},", )
@@ -2148,13 +2173,14 @@ impl ParserGen {
         }
 
         // Writes intermediate Syn types
+
         let mut src_types = vec![
             format!("// {:-<80}", ""),
             "// Template for the user-defined types:".to_string(),
         ];
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
-        for (v, names) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+        for (v, names) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             let (nu, _nl, _npl) = names;
             let nt_type = self.get_nt_type(v);
@@ -2181,7 +2207,7 @@ impl ParserGen {
                                      Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                      grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
                     ));
-                    let endpoints = child_repeat_endpoints.get(&v).unwrap();
+                    let endpoints = self.child_repeat_endpoints.get(&v).unwrap();
                     if endpoints.len() > 1 {
                         // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
                         src.push("#[derive(Debug, PartialEq)]".to_string());
@@ -2190,13 +2216,13 @@ impl ParserGen {
                         src.push(format!("pub enum Syn{nu}Item {{"));
                         for (i, &a_id) in endpoints.iter().index_start(1) {
                             src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&item_info[a_id as usize], false, true)));
+                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&self.item_info[a_id as usize], false, true)));
                         }
                         src.push("}".to_string());
                     } else {
                         // single possibility; for ex. a -> (A B)+  => struct
                         let a_id = endpoints[0];
-                        let infos = &item_info[a_id as usize];
+                        let infos = &self.item_info[a_id as usize];
                         if infos.len() == 1 {
                             // single repeat item; for ex. A -> B+  => type directly as Vec<type>
                             let type_name = self.get_info_type(infos, &infos[0]);
@@ -2227,7 +2253,7 @@ impl ParserGen {
             syns.push(v);
         }
         if !self.nt_value[self.start as usize] {
-            let nu = &nt_name[self.start as usize].0;
+            let nu = &self.nt_name[self.start as usize].0;
             src.push(format!("/// Top non-terminal {nu} (has no value)"));
             src.push("#[derive(Debug, PartialEq)]".to_string());
             src.push(format!("pub struct Syn{nu}();"))
@@ -2239,13 +2265,13 @@ impl ParserGen {
         // EnumSynValue type
         src.push("#[derive(Debug)]".to_string());
         src.push(format!("enum EnumSynValue {{ {} }}",
-                         syns.iter().map(|v| format!("{}({})", nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
+                         syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
         if !syns.is_empty() {
             // EnumSynValue getters
             src.add_space();
             src.push("impl EnumSynValue {".to_string());
             for v in &syns {
-                let (nu, _, npl) = &nt_name[*v as usize];
+                let (nu, _, npl) = &self.nt_name[*v as usize];
                 let nt_type = self.get_nt_type(*v);
                 src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
                 if syns.len() == 1 {
@@ -2310,412 +2336,58 @@ impl ParserGen {
                 println!("- ambig children vars: {}", ambig_children.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "));
                 println!("  ambig op alts: {ambig_op_alts:?}");
             }
+
+            // contexts used in source_wrapper_init and source_wrapper_exit methods:
+            let in_ctx = SourceInputContext {
+                parent_has_value,
+                parent_nt,
+                pinfo,
+                syns: &syns,
+                ambig_op_alts: &ambig_op_alts,
+            };
+            let mut out_ctx = SourceOutputContext {
+                init_nt_done: &mut init_nt_done,
+                span_init: &mut span_init,
+                nt_contexts: &mut nt_contexts,
+                exit_alt_done: &mut exit_alt_done,
+                exit_fixer: &mut exit_fixer,
+                src_listener_decl: &mut src_listener_decl,
+                src_skel: &mut src_skel,
+                src_init: &mut src_init,
+                src_exit: &mut src_exit,
+                src_wrapper_impl: &mut src_wrapper_impl,
+            };
+
             for var in group {
-                let sym_nt = Symbol::NT(*var);
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
-                let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
                 // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
                 let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && ambig_children.first() == Some(var);
                 // we only process the first variable of the left recursion; below we gather the alts of
                 // the other variables of the same type (in ambiguous rules, they repeat the same operators)
                 let is_ambig_redundant = is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child;
                 let has_value = self.nt_value[nt];
-                let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
-                let is_parent = nt == parent_nt;
-                let is_child_repeat_lform = self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT_LFORM);
-                let is_sep_list = flags & ruleflag::SEP_LIST != 0;
-                let is_lform = flags & ruleflag::L_FORM != 0;
-                let is_rrec_lform = is_lform && flags & ruleflag::R_RECURSION != 0;
-                let (nu, nl, npl) = &nt_name[nt];
-                if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
-                                      sym_nt.to_str(self.get_symbol_table()),
-                                      if has_value { "" } else { "no " },
-                                      ruleflag::to_string(flags).join(" | ")); }
 
                 // Call::Enter
-
-                let mut has_skel_init = false;
-                let init_fn_name = format!("init_{npl}");
-                if self.parsing_table.parent[nt].is_none() {
-                    init_nt_done.insert(*var);
-                    if is_rrec_lform {
-                        span_init.insert(*var);
-                    }
-                    if is_rrec_lform && has_value {
-                        src_wrapper_impl.push(String::new());
-                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
-                        src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
-                        has_skel_init = true;
-                        src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                        src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
-                        src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                        src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
-                        src_wrapper_impl.push("    }".to_string());
-                    } else {
-                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
-                        src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
-                    }
-                } else if flags & ruleflag::CHILD_REPEAT != 0 {
-                    if !is_sep_list {
-                        span_init.insert(*var);
-                    }
-                    if has_value || is_sep_list {
-                        init_nt_done.insert(*var);
-                        src_wrapper_impl.push(String::new());
-                        src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
-                        src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
-                        if is_lform {
-                            if is_sep_list {
-                                let all_exit_alts = if is_ambig_1st_child {
-                                    ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
-                                } else {
-                                    self.gather_alts(nt as VarId)
-                                };
-                                let exit_alts = all_exit_alts.into_iter()
-                                    .filter(|f|
-                                        (flags & ruleflag::CHILD_L_RECURSION == 0
-                                            && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) != ruleflag::CHILD_REPEAT_LFORM)
-                                        || !self.is_alt_sym_empty(*f)
-                                    );
-                                let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
-                                    .partition(|i| alt_info[*i as usize].is_none());
-                                let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
-                                let a = exit_info_alts[0];
-                                let indent = "        ";
-                                let (src_let, ctx_params) = Self::source_lets(&item_info[a as usize], &nt_name, indent, last_alt_id_maybe);
-                                src_wrapper_impl.extend(src_let);
-                                let ctx = if ctx_params.is_empty() {
-                                    format!("InitCtx{nu}::{}", alt_info[a as usize].as_ref().unwrap().1)
-                                } else {
-                                    format!("InitCtx{nu}::{} {{ {ctx_params} }}", alt_info[a as usize].as_ref().unwrap().1)
-                                };
-                                src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                                if self.gen_span_params {
-                                    src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
-                                }
-                                src_wrapper_impl.push(format!(
-                                    "        {}self.listener.{init_fn_name}(ctx{});",
-                                    if has_value { "let val = " } else { "" },
-                                    if self.gen_span_params { ", spans" } else { "" }));
-                                let ret = if has_value {
-                                    format!("-> {};", self.get_nt_type(nt as VarId))
-                                } else {
-                                    src_listener_decl.push("    #[allow(unused_variables)]".to_string());
-                                    "{}".to_string()
-                                };
-                                src_listener_decl.push(format!(
-                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
-                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
-
-                                // skeleton (listener template)
-                                let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
-                                src_skel.push(format!(
-                                    "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
-                                    if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
-                                let a_id = self.var_alts[nt][0];
-                                let a_info = &item_info[a_id as usize];
-                                if !a_info.is_empty() {
-                                    let comment = format!(
-                                        "value of `{}` before {}",
-                                        self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                                        self.full_alt_components(a_id, None).1
-                                    );
-                                    let ctx_content = a_info.iter().map(|i| i.name.clone()).join(", ");
-                                    let a_name = &alt_info[a_id as usize].as_ref().unwrap().1;
-                                    src_skel.push(format!("        // {comment}"));
-                                    src_skel.push(format!("        let InitCtx{nu}::{a_name} {{ {ctx_content} }} = ctx;"));
-                                }
-                                has_skel_init = true;
-                            } else {
-                                src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
-                                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
-                                src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
-                                has_skel_init = true;
-                            }
-                            if has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
-                            }
-                        } else if is_sep_list {
-                            // fetch values from stack to init the list with the first value that was outside the repetition:
-                            // first α in α (β α)*
-                            let endpoints = child_repeat_endpoints.get(var).unwrap();
-                            let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &init_fn_name, nu, true);
-                            src_wrapper_impl.extend(src_val);
-                            src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
-                        } else {
-                            src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
-                            src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
-                        }
-                        src_wrapper_impl.push("    }".to_string());
-                    } else if is_lform {
-                        init_nt_done.insert(*var);
-                        src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
-                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
-                    } else {
-                        // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
-                    }
-                } else {
-                    // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
-                }
-                if has_skel_init {
-                    if has_value {
-                        src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
-                    }
-                    src_skel.push("    }".to_string());
-                    src_skel.push(String::new());
-                }
+                self.source_wrapper_init::<VERBOSE>(
+                    &in_ctx,
+                    *var,
+                    flags,
+                    has_value,
+                    is_ambig_1st_child,
+                    &mut out_ctx
+                );
 
                 // Call::Exit
-
-                // handles most rules except children of left factorization (already taken by self.gather_alts)
-                if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
-                    let mut has_skel_exit = false;
-                    let mut has_skel_exit_return = false;
-                    // let (nu, _nl, npl) = &nt_name[nt];
-                    let (pnu, _pnl, pnpl) = &nt_name[parent_nt];
-                    if VERBOSE { println!("    {nu} (parent {pnu})"); }
-                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
-                    let is_rrec_lform = self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM);
-                    let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
-                        (pnpl, pnu, parent_nt, parent_has_value)    // parent_nt doesn't come through this code, so we must do it now
-                    } else {
-                        (npl, nu, nt, has_value)
-                    };
-                    if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
-                        let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
-                        if f_valued {
-                            let nt_type = self.get_nt_type(fnt as VarId);
-                            if is_rrec_lform || (is_child_repeat_lform) {
-                                src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
-                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param}) {{"));
-                            } else {
-                                src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
-                                src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type} {{"));
-                                has_skel_exit_return = true;
-                            }
-                        } else {
-                            src_listener_decl.push("    #[allow(unused_variables)]".to_string());
-                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
-                            src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{"));
-                        }
-                        has_skel_exit = true;
-                    }
-                    let all_exit_alts = if is_ambig_1st_child {
-                        ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
-                    } else {
-                        self.gather_alts(nt as VarId)
-                    };
-                    let (last_it_alts, exit_alts) = all_exit_alts.into_iter()
-                        .partition::<Vec<_>, _>(|f|
-                            (flags & ruleflag::CHILD_L_RECURSION != 0
-                                || flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT_LFORM)
-                            && self.is_alt_sym_empty(*f));
-                    if VERBOSE {
-                        println!("    no_method: {no_method}, exit alts: {}", exit_alts.iter().join(", "));
-                        if !last_it_alts.is_empty() {
-                            println!("    last_it_alts: {}", last_it_alts.iter().join(", "));
-                        }
-                    }
-
-                    // skeleton (listener template)
-                    if has_skel_exit {
-                        if let Some(alts) = &nt_contexts[fnt] {
-                            let mut skel_ctx = vec![];
-                            for &a_id in alts {
-                                if let Some((_, variant)) = alt_info[a_id as usize].as_ref() {
-                                    let comment = self.full_alt_str(a_id, None, false);
-                                    let fields = self.source_infos(&item_info[a_id as usize], false, false);
-                                    let ctx_content = if fields.is_empty() {
-                                        String::new()
-                                    } else {
-                                        format!(" {{ {fields} }}")
-                                    };
-                                    skel_ctx.push((comment, variant, ctx_content));
-                                }
-                            }
-                            match skel_ctx.len() {
-                                0 => {}
-                                1 => {
-                                    let (comment, variant, ctx_content) = skel_ctx.pop().unwrap();
-                                    src_skel.push(format!("        // {comment}"));
-                                    src_skel.push(format!("        let Ctx{fnu}::{variant}{ctx_content} = ctx;"));
-                                }
-                                _ => {
-                                    src_skel.push("        match ctx {".to_string());
-                                    for (comment, variant, ctx_content) in skel_ctx {
-                                        src_skel.push(format!("            // {comment}"));
-                                        src_skel.push(format!("            Ctx{fnu}::{variant}{ctx_content} => {{}}"));
-                                    }
-                                    src_skel.push("        }".to_string());
-                                }
-                            }
-                            if has_skel_exit_return {
-                                src_skel.push(format!("        {}()", self.get_nt_type(fnt as VarId)));
-                            }
-                            src_skel.push("    }".to_string());
-                            src_skel.push(String::new());
-                        } else {
-                            panic!("no alts for NT {fnpl} [{fnt}]");
-                        }
-                    }
-
-                    for f in &exit_alts {
-                        exit_alt_done.insert(*f);
-                    }
-                    let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
-                    let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
-                    let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, flags, no_method, None);
-                    if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
-                    let comments = exit_alts.iter().map(|f| {
-                        let (v, pf) = &self.parsing_table.alts[*f as usize];
-                        if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
-                            format!("// {}", self.full_alt_str(*f, None, false))
-                        } else {
-                            format!("// {}", pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize]))
-                        }
-                    }).to_vec();
-                    src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                    if is_ambig_1st_child {
-                        for (a_id, dup_alts) in ambig_op_alts.values().rev().filter_map(|v| if v.len() > 1 { v.split_first() } else { None }) {
-                            // note: is_alt_id must be true because we wouldn't get duplicate alternatives otherwise in an ambiguous rule
-                            //       (it's duplicated to manage the priority between several alternatives, which are all in the first NT)
-                            let (_, choices) = self.make_match_choices(dup_alts, &fn_name, 0, no_method, Some(*a_id));
-                            let comments = dup_alts.iter()
-                                .map(|a| {
-                                    let (v, alt) = &pinfo.alts[*a as usize];
-                                    format!("// {} (duplicate of {a_id})", alt.to_rule_str(*v, self.get_symbol_table(), 0))
-                                }).to_vec();
-                            src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                            for a in dup_alts {
-                                exit_alt_done.insert(*a);
-                            }
-                        }
-                    }
-                    if !no_method {
-                        src_wrapper_impl.push(String::new());
-                        src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { ", alt_id: AltId" } else { "" }));
-                    }
-                    if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
-                        if has_value {
-                            let endpoints = child_repeat_endpoints.get(var).unwrap();
-                            let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &item_info, is_plus, &nt_name, &fn_name, nu, false);
-                            src_wrapper_impl.extend(src_val);
-                            let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
-                            src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
-                            src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
-                            src_wrapper_impl.push("        };".to_string());
-                            src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
-                        }
-                    } else {
-                        assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
-                        let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
-                            .partition(|i| alt_info[*i as usize].is_none());
-                        let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other alternatives use the parent
-                        let fnpl = if is_child_repeat_lform { npl } else { pnpl }; // +* <L> use the loop variable, the other alternatives use the parent
-                        let a_has_value = if is_child_repeat_lform { has_value } else { parent_has_value };
-                        let is_single = exit_info_alts.len() == 1;
-                        let indent = if is_single { "        " } else { "                " };
-                        if !is_single {
-                            if self.gen_span_params {
-                                src_wrapper_impl.push("        let (n, ctx) = match alt_id {".to_string());
-                            } else {
-                                src_wrapper_impl.push("        let ctx = match alt_id {".to_string());
-                            }
-                        }
-                        if VERBOSE { println!("    exit_alts -> {exit_info_alts:?}, last_alt_id -> {last_alt_ids:?}"); }
-                        let spans_param = if self.gen_span_params { ", spans" } else { "" };
-                        for a in exit_info_alts {
-                            if VERBOSE {
-                                println!("    - ALTERNATIVE {a}: {} -> {}",
-                                         Symbol::NT(*var).to_str(self.get_symbol_table()),
-                                         self.parsing_table.alts[a as usize].1.to_str(self.get_symbol_table()));
-                            }
-                            let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
-                            if !is_single {
-                                let last_alt_choice = if let Some(last_alt_id) = last_alt_id_maybe { format!(" | {last_alt_id}") } else { String::new() };
-                                src_wrapper_impl.push(format!("            {a}{last_alt_choice} => {{", ));
-                            }
-                            let (src_let, ctx_params) = Self::source_lets(&item_info[a as usize], &nt_name, indent, last_alt_id_maybe);
-                            src_wrapper_impl.extend(src_let);
-                            let ctx = if ctx_params.is_empty() {
-                                format!("Ctx{fnu}::{}", alt_info[a as usize].as_ref().unwrap().1)
-                            } else {
-                                format!("Ctx{fnu}::{} {{ {ctx_params} }}", alt_info[a as usize].as_ref().unwrap().1)
-                            };
-                            if is_single {
-                                src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                                if self.gen_span_params {
-                                    src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
-
-                                }
-                            } else {
-                                let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string());
-                                src_wrapper_impl.push(format!("{indent}{ctx_value}"));
-                                src_wrapper_impl.push("            }".to_string());
-                            }
-                        }
-                        if !is_single {
-                            src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\")"));
-                            src_wrapper_impl.push("        };".to_string());
-                            if self.gen_span_params {
-                                src_wrapper_impl.extend(Self::source_update_span("n"));
-                            }
-                        }
-                        if (is_rrec_lform | is_child_repeat_lform) && f_valued {
-                            src_wrapper_impl.push(
-                                format!("        let Some(EnumSynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
-                            src_wrapper_impl.push(
-                                format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
-                        } else {
-                            src_wrapper_impl.push(format!(
-                                "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
-                                if a_has_value { "let val = " } else { "" }));
-                            if a_has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{fnu}(val));"));
-                            }
-                        }
-                    }
-                    if !no_method {
-                        src_wrapper_impl.push("    }".to_string());
-                    }
-                    for a in last_it_alts {
-                        assert_eq!(flags, pinfo.flags[nt]);
-                        // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
-                        // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
-                        let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
-                            Some(*var)
-                        } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                            pinfo.parent[nt]
-                        } else {
-                            None
-                        };
-                        if let Some(owner) = owner_maybe {
-                            if self.nt_value[owner as usize] {
-                                let (variant, _, fnname) = &nt_name[owner as usize];
-                                let typ = self.get_nt_type(owner);
-                                let varname = if is_child_repeat_lform { "acc" } else { fnname };
-                                if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
-                                src_listener_decl.push("    #[allow(unused_variables)]".to_string());
-                                src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
-                                let (v, pf) = &self.parsing_table.alts[a as usize];
-                                let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
-                                    self.full_alt_str(a, None, false)
-                                } else {
-                                    pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
-                                };
-                                src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
-                                exit_alt_done.insert(a);
-                                src_wrapper_impl.push(String::new());
-                                src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
-                                src_wrapper_impl.push(format!("        let EnumSynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
-                                                              if syns.len() > 1 { " else { panic!() }" } else { "" }));
-                                src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
-                                src_wrapper_impl.push("    }".to_string());
-                            }
-                        }
-                    }
-                }
+                self.source_wrapper_exit::<VERBOSE>(
+                    &in_ctx,
+                    *var,
+                    flags,
+                    has_value,
+                    is_ambig_1st_child,
+                    is_ambig_redundant,
+                    &mut out_ctx
+                );
             }
             for a in group.iter().flat_map(|v| &self.var_alts[*v as usize]).filter(|a| !exit_alt_done.contains(a)) {
                 let is_called = self.opcodes[*a as usize].contains(&OpCode::Exit(*a));
@@ -2788,7 +2460,7 @@ impl ParserGen {
             src.push("    #[allow(unused_variables)]".to_string());
         }
         if self.nt_value[self.start as usize] {
-            src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", nt_name[self.start as usize].2, self.get_nt_type(self.start)));
+            src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", self.nt_name[self.start as usize].2, self.get_nt_type(self.start)));
         } else {
             src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
         }
@@ -2874,7 +2546,7 @@ impl ParserGen {
         src.push("                match terminate {".to_string());
         src.push("                    Terminate::None => {".to_string());
         let mut args = vec![];
-        let (_nu, _nl, npl) = &nt_name[self.start as usize];
+        let (_nu, _nl, npl) = &self.nt_name[self.start as usize];
         if self.nt_value[self.start as usize] {
             src.push(format!("                        let val = self.stack.pop().unwrap().get_{npl}();"));
             args.push("val");
@@ -2992,6 +2664,439 @@ impl ParserGen {
         src.push("}".to_string());
 
         (src, src_types, src_skel)
+    }
+
+    /// Adds the wrapper source code related to Call::Enter
+    fn source_wrapper_init<const VERBOSE: bool>(
+        &self,
+        ctx                 : &SourceInputContext,
+        var                 : VarId,
+        flags               : u32,
+        has_value           : bool,
+        is_ambig_1st_child  : bool,
+        out_ctx             : &mut SourceOutputContext
+    ) {
+        let &SourceInputContext { ambig_op_alts, .. } = ctx;
+        let SourceOutputContext {
+            init_nt_done, span_init, src_listener_decl, src_skel, src_init, src_wrapper_impl, ..
+        } = out_ctx;
+        let nt = var as usize;
+        let sym_nt = Symbol::NT(var);
+        let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
+        let is_sep_list = flags & ruleflag::SEP_LIST != 0;
+        let is_lform = flags & ruleflag::L_FORM != 0;
+        let is_rrec_lform = is_lform && flags & ruleflag::R_RECURSION != 0;
+        let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+        let (nu, nl, npl) = &self.nt_name[nt];
+        if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
+                              sym_nt.to_str(self.get_symbol_table()),
+                              if has_value { "" } else { "no " },
+                              ruleflag::to_string(flags).join(" | ")); }
+
+        let mut has_skel_init = false;
+        let init_fn_name = format!("init_{npl}");
+        if self.parsing_table.parent[nt].is_none() {
+            init_nt_done.insert(var);
+            if is_rrec_lform {
+                span_init.insert(var);
+            }
+            if is_rrec_lform && has_value {
+                src_wrapper_impl.push(String::new());
+                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                has_skel_init = true;
+                src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
+                src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
+                src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
+                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                src_wrapper_impl.push("    }".to_string());
+            } else {
+                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+            }
+        } else if flags & ruleflag::CHILD_REPEAT != 0 {
+            if !is_sep_list {
+                span_init.insert(var);
+            }
+            if has_value || is_sep_list {
+                init_nt_done.insert(var);
+                src_wrapper_impl.push(String::new());
+                src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
+                src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
+                if is_lform {
+                    if is_sep_list {
+                        let all_exit_alts = if is_ambig_1st_child {
+                            ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
+                        } else {
+                            self.gather_alts(nt as VarId)
+                        };
+                        let exit_alts = all_exit_alts.into_iter()
+                            .filter(|f|
+                                (flags & ruleflag::CHILD_L_RECURSION == 0
+                                    && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) != ruleflag::CHILD_REPEAT_LFORM)
+                                || !self.is_alt_sym_empty(*f)
+                            );
+                        let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
+                            .partition(|i| self.alt_info[*i as usize].is_none());
+                        let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
+                        let a = exit_info_alts[0];
+                        let indent = "        ";
+                        let (src_let, ctx_params) = Self::source_lets(&self.item_info[a as usize], &self.nt_name, indent, last_alt_id_maybe);
+                        src_wrapper_impl.extend(src_let);
+                        let ctx = if ctx_params.is_empty() {
+                            format!("InitCtx{nu}::{}", self.alt_info[a as usize].as_ref().unwrap().1)
+                        } else {
+                            format!("InitCtx{nu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
+                        };
+                        src_wrapper_impl.push(format!("        let ctx = {ctx};"));
+                        if self.gen_span_params {
+                            src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
+                        }
+                        src_wrapper_impl.push(format!(
+                            "        {}self.listener.{init_fn_name}(ctx{});",
+                            if has_value { "let val = " } else { "" },
+                            if self.gen_span_params { ", spans" } else { "" }));
+                        let ret = if has_value {
+                            format!("-> {};", self.get_nt_type(nt as VarId))
+                        } else {
+                            src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                            "{}".to_string()
+                        };
+                        src_listener_decl.push(format!(
+                            "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
+                            if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+
+                        // skeleton (listener template)
+                        let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
+                        src_skel.push(format!(
+                            "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
+                            if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+                        let a_id = self.var_alts[nt][0];
+                        let a_info = &self.item_info[a_id as usize];
+                        if !a_info.is_empty() {
+                            let comment = format!(
+                                "value of `{}` before {}",
+                                self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                self.full_alt_components(a_id, None).1
+                            );
+                            let ctx_content = a_info.iter().map(|i| i.name.clone()).join(", ");
+                            let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
+                            src_skel.push(format!("        // {comment}"));
+                            src_skel.push(format!("        let InitCtx{nu}::{a_name} {{ {ctx_content} }} = ctx;"));
+                        }
+                        has_skel_init = true;
+                    } else {
+                        src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
+                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                        src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                        has_skel_init = true;
+                    }
+                    if has_value {
+                        src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                    }
+                } else if is_sep_list {
+                    // fetch values from stack to init the list with the first value that was outside the repetition:
+                    // first α in α (β α)*
+                    let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
+                    let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &init_fn_name, nu, true);
+                    src_wrapper_impl.extend(src_val);
+                    src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
+                } else {
+                    src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
+                    src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                }
+                src_wrapper_impl.push("    }".to_string());
+            } else if is_lform {
+                init_nt_done.insert(var);
+                src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+            } else {
+                // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
+            }
+        } else {
+            // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
+        }
+        if has_skel_init {
+            if has_value {
+                src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
+            }
+            src_skel.push("    }".to_string());
+            src_skel.push(String::new());
+        }
+    }
+
+    /// Adds the wrapper source code related to Call::Exit
+    fn source_wrapper_exit<const VERBOSE: bool>(
+        &self,
+        ctx                 : &SourceInputContext,
+        var                 : VarId,
+        flags               : u32,
+        has_value           : bool,
+        is_ambig_1st_child  : bool,
+        is_ambig_redundant  : bool,
+        out_ctx             : &mut SourceOutputContext
+    ) {
+        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
+
+        let &SourceInputContext {
+            parent_has_value, parent_nt, pinfo, syns, ambig_op_alts
+        } = ctx;
+        let SourceOutputContext {
+            nt_contexts, exit_alt_done, exit_fixer, src_listener_decl, src_skel, src_exit, src_wrapper_impl, ..
+        } = out_ctx;
+        let nt = var as usize;
+        let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+        let is_parent = nt == parent_nt;
+        let is_child_repeat_lform = self.nt_has_all_flags(var, ruleflag::CHILD_REPEAT_LFORM);
+        let (nu, _nl, npl) = &self.nt_name[nt];
+
+        // handles most rules except children of left factorization (already taken by self.gather_alts)
+        if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
+            let mut has_skel_exit = false;
+            let mut has_skel_exit_return = false;
+            let (pnu, _pnl, pnpl) = &self.nt_name[parent_nt];
+            if VERBOSE { println!("    {nu} (parent {pnu})"); }
+            let no_method = !has_value && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
+            let is_rrec_lform = self.nt_has_all_flags(var, ruleflag::R_RECURSION | ruleflag::L_FORM);
+            let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
+                (pnpl, pnu, parent_nt, parent_has_value)    // parent_nt doesn't come through this code, so we must do it now
+            } else {
+                (npl, nu, nt, has_value)
+            };
+            if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
+                let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
+                if f_valued {
+                    let nt_type = self.get_nt_type(fnt as VarId);
+                    if is_rrec_lform || (is_child_repeat_lform) {
+                        src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param});"));
+                        src_skel.push(format!("    fn exit_{fnpl}(&mut self, acc: &mut {nt_type}, ctx: Ctx{fnu}{extra_param}) {{"));
+                    } else {
+                        src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type};"));
+                        src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) -> {nt_type} {{"));
+                        has_skel_exit_return = true;
+                    }
+                } else {
+                    src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                    src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{}}"));
+                    src_skel.push(format!("    fn exit_{fnpl}(&mut self, ctx: Ctx{fnu}{extra_param}) {{"));
+                }
+                has_skel_exit = true;
+            }
+            let all_exit_alts = if is_ambig_1st_child {
+                ambig_op_alts.values().rev().map(|v| v[0]).to_vec()
+            } else {
+                self.gather_alts(nt as VarId)
+            };
+            let (last_it_alts, exit_alts) = all_exit_alts.into_iter()
+                .partition::<Vec<_>, _>(|f|
+                    (flags & ruleflag::CHILD_L_RECURSION != 0
+                        || flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT_LFORM)
+                    && self.is_alt_sym_empty(*f));
+            if VERBOSE {
+                println!("    no_method: {no_method}, exit alts: {}", exit_alts.iter().join(", "));
+                if !last_it_alts.is_empty() {
+                    println!("    last_it_alts: {}", last_it_alts.iter().join(", "));
+                }
+            }
+
+            // skeleton (listener template)
+            if has_skel_exit {
+                if let Some(alts) = &nt_contexts[fnt] {
+                    let mut skel_ctx = vec![];
+                    for &a_id in alts {
+                        if let Some((_, variant)) = self.alt_info[a_id as usize].as_ref() {
+                            let comment = self.full_alt_str(a_id, None, false);
+                            let fields = self.source_infos(&self.item_info[a_id as usize], false, false);
+                            let ctx_content = if fields.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" {{ {fields} }}")
+                            };
+                            skel_ctx.push((comment, variant, ctx_content));
+                        }
+                    }
+                    match skel_ctx.len() {
+                        0 => {}
+                        1 => {
+                            let (comment, variant, ctx_content) = skel_ctx.pop().unwrap();
+                            src_skel.push(format!("        // {comment}"));
+                            src_skel.push(format!("        let Ctx{fnu}::{variant}{ctx_content} = ctx;"));
+                        }
+                        _ => {
+                            src_skel.push("        match ctx {".to_string());
+                            for (comment, variant, ctx_content) in skel_ctx {
+                                src_skel.push(format!("            // {comment}"));
+                                src_skel.push(format!("            Ctx{fnu}::{variant}{ctx_content} => {{}}"));
+                            }
+                            src_skel.push("        }".to_string());
+                        }
+                    }
+                    if has_skel_exit_return {
+                        src_skel.push(format!("        {}()", self.get_nt_type(fnt as VarId)));
+                    }
+                    src_skel.push("    }".to_string());
+                    src_skel.push(String::new());
+                } else {
+                    panic!("no alts for NT {fnpl} [{fnt}]");
+                }
+            }
+
+            for f in &exit_alts {
+                exit_alt_done.insert(*f);
+            }
+            let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
+            let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
+            let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, flags, no_method, None);
+            if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
+            let comments = exit_alts.iter().map(|f| {
+                let (v, pf) = &self.parsing_table.alts[*f as usize];
+                if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
+                    format!("// {}", self.full_alt_str(*f, None, false))
+                } else {
+                    format!("// {}", pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize]))
+                }
+            }).to_vec();
+            src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+            if is_ambig_1st_child {
+                for (a_id, dup_alts) in ambig_op_alts.values().rev().filter_map(|v| if v.len() > 1 { v.split_first() } else { None }) {
+                    // note: is_alt_id must be true because we wouldn't get duplicate alternatives otherwise in an ambiguous rule
+                    //       (it's duplicated to manage the priority between several alternatives, which are all in the first NT)
+                    let (_, choices) = self.make_match_choices(dup_alts, &fn_name, 0, no_method, Some(*a_id));
+                    let comments = dup_alts.iter()
+                        .map(|a| {
+                            let (v, alt) = &pinfo.alts[*a as usize];
+                            format!("// {} (duplicate of {a_id})", alt.to_rule_str(*v, self.get_symbol_table(), 0))
+                        }).to_vec();
+                    src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+                    for a in dup_alts {
+                        exit_alt_done.insert(*a);
+                    }
+                }
+            }
+            if !no_method {
+                src_wrapper_impl.push(String::new());
+                src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { ", alt_id: AltId" } else { "" }));
+            }
+            if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
+                if has_value {
+                    let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
+                    let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false);
+                    src_wrapper_impl.extend(src_val);
+                    let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
+                    src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
+                    src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
+                    src_wrapper_impl.push("        };".to_string());
+                    src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
+                }
+            } else {
+                assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
+                let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
+                    .partition(|i| self.alt_info[*i as usize].is_none());
+                let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other alternatives use the parent
+                let fnpl = if is_child_repeat_lform { npl } else { pnpl }; // +* <L> use the loop variable, the other alternatives use the parent
+                let a_has_value = if is_child_repeat_lform { has_value } else { parent_has_value };
+                let is_single = exit_info_alts.len() == 1;
+                let indent = if is_single { "        " } else { "                " };
+                if !is_single {
+                    if self.gen_span_params {
+                        src_wrapper_impl.push("        let (n, ctx) = match alt_id {".to_string());
+                    } else {
+                        src_wrapper_impl.push("        let ctx = match alt_id {".to_string());
+                    }
+                }
+                if VERBOSE { println!("    exit_alts -> {exit_info_alts:?}, last_alt_id -> {last_alt_ids:?}"); }
+                let spans_param = if self.gen_span_params { ", spans" } else { "" };
+                for a in exit_info_alts {
+                    if VERBOSE {
+                        println!("    - ALTERNATIVE {a}: {} -> {}",
+                                 Symbol::NT(var).to_str(self.get_symbol_table()),
+                                 self.parsing_table.alts[a as usize].1.to_str(self.get_symbol_table()));
+                    }
+                    let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
+                    if !is_single {
+                        let last_alt_choice = if let Some(last_alt_id) = last_alt_id_maybe { format!(" | {last_alt_id}") } else { String::new() };
+                        src_wrapper_impl.push(format!("            {a}{last_alt_choice} => {{", ));
+                    }
+                    let (src_let, ctx_params) = Self::source_lets(&self.item_info[a as usize], &self.nt_name, indent, last_alt_id_maybe);
+                    src_wrapper_impl.extend(src_let);
+                    let ctx = if ctx_params.is_empty() {
+                        format!("Ctx{fnu}::{}", self.alt_info[a as usize].as_ref().unwrap().1)
+                    } else {
+                        format!("Ctx{fnu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
+                    };
+                    if is_single {
+                        src_wrapper_impl.push(format!("        let ctx = {ctx};"));
+                        if self.gen_span_params {
+                            src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
+
+                        }
+                    } else {
+                        let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string());
+                        src_wrapper_impl.push(format!("{indent}{ctx_value}"));
+                        src_wrapper_impl.push("            }".to_string());
+                    }
+                }
+                if !is_single {
+                    src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\")"));
+                    src_wrapper_impl.push("        };".to_string());
+                    if self.gen_span_params {
+                        src_wrapper_impl.extend(Self::source_update_span("n"));
+                    }
+                }
+                if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                    src_wrapper_impl.push(
+                        format!("        let Some(EnumSynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
+                    src_wrapper_impl.push(
+                        format!("        self.listener.exit_{fnpl}(acc, ctx{spans_param});"));
+                } else {
+                    src_wrapper_impl.push(format!(
+                        "        {}self.listener.exit_{fnpl}(ctx{spans_param});",
+                        if a_has_value { "let val = " } else { "" }));
+                    if a_has_value {
+                        src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{fnu}(val));"));
+                    }
+                }
+            }
+            if !no_method {
+                src_wrapper_impl.push("    }".to_string());
+            }
+            for a in last_it_alts {
+                assert_eq!(flags, pinfo.flags[nt]);
+                // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
+                // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
+                let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
+                    Some(var)
+                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                    pinfo.parent[nt]
+                } else {
+                    None
+                };
+                if let Some(owner) = owner_maybe {
+                    if self.nt_value[owner as usize] {
+                        let (variant, _, fnname) = &self.nt_name[owner as usize];
+                        let typ = self.get_nt_type(owner);
+                        let varname = if is_child_repeat_lform { "acc" } else { fnname };
+                        if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
+                        src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                        src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
+                        let (v, pf) = &self.parsing_table.alts[a as usize];
+                        let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
+                            self.full_alt_str(a, None, false)
+                        } else {
+                            pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
+                        };
+                        src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
+                        exit_alt_done.insert(a);
+                        src_wrapper_impl.push(String::new());
+                        src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
+                        src_wrapper_impl.push(format!("        let EnumSynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
+                                                      if syns.len() > 1 { " else { panic!() }" } else { "" }));
+                        src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
+                        src_wrapper_impl.push("    }".to_string());
+                    }
+                }
+            }
+        }
     }
 }
 
