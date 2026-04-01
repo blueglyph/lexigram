@@ -206,17 +206,22 @@ struct SourceInputContext<'a> {
     ambig_op_alts           : &'a BTreeMap<AltId, Vec<AltId>>,
 }
 
-struct SourceOutputContext<'a> {
+struct SourceState<'a> {
     init_nt_done            : &'a mut HashSet<VarId>,
     span_init               : &'a mut HashSet<VarId>,
     nt_contexts             : &'a mut Vec<Option<Vec<AltId>>>,
     exit_alt_done           : &'a mut HashSet<VarId>,
     exit_fixer              : &'a mut NameFixer,
-    src_listener_decl       : &'a mut Vec<String>,
-    src_skel                : &'a mut Vec<String>,
-    src_init                : &'a mut Vec<Vec<String>>,
-    src_exit                : &'a mut Vec<Vec<String>>,
-    src_wrapper_impl        : &'a mut Vec<String>,
+}
+
+struct WrapperSources {
+    src                     : Vec<String>,
+    src_listener_decl       : Vec<String>,
+    src_skel                : Vec<String>,
+    src_types               : Vec<String>,
+    src_init                : Vec<Vec<String>>,
+    src_exit                : Vec<Vec<String>>,
+    src_wrapper_impl        : Vec<String>,
 }
 
 #[derive(Debug)]
@@ -2096,81 +2101,7 @@ impl ParserGen {
 
         // Writes contexts
 
-        let mut nt_contexts = vec![None; self.parsing_table.num_nt];
-        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
-            let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
-            // fetches the NT that have alt data
-            for nt in group {
-                for &alt_id in &self.var_alts[*nt as usize] {
-                    if let Some((owner, _name)) = &self.alt_info[alt_id as usize] {
-                        group_names.entry(*owner)
-                            .and_modify(|v| v.push(alt_id))
-                            .or_insert_with(|| vec![alt_id]);
-                    }
-                }
-            }
-            if VERBOSE {
-                println!("group {}", group.iter().map(|nt| Symbol::NT(*nt).to_str(self.get_symbol_table())).join(" "));
-            }
-            for &nt in group {
-                if let Some(alts) = group_names.get(&nt) {
-                    let flags = self.parsing_table.flags[nt as usize];
-                    if VERBOSE {
-                        print!("- {}: flags {}", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(flags).join(" "));
-                        if let Some(gn) = group_names.get(&nt) {
-                            println!(", alts = {}", gn.iter().map(|a| a.to_string()).join(", "));
-                            let sorted = self.sort_alt_ids(group[0], gn);
-                            println!("     sorted alts: {sorted:?}");
-                        } else {
-                            println!();
-                        }
-                    }
-                    if flags & (ruleflag::SEP_LIST | ruleflag::L_FORM) == ruleflag::SEP_LIST | ruleflag::L_FORM {
-                        src.push("#[derive(Debug)]".to_string());
-                        src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
-                        let a_id = self.var_alts[nt as usize][0];
-                        let comment = format!(
-                            "value of `{}` before {}",
-                            self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                            self.full_alt_components(a_id, None).1
-                        );
-                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
-                        src.push(format!("    /// {comment}"));
-                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
-                        let ctx_item = if ctx_content.is_empty() {
-                            if VERBOSE { println!("      {a_name},"); }
-                            format!("    {a_name},", )
-                        } else {
-                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
-                            format!("    {a_name} {{ {ctx_content} }},", )
-                        };
-                        src.push(ctx_item);
-                        src.push("}".to_string());
-                    }
-                    src.push("#[derive(Debug)]".to_string());
-                    src.push(format!("pub enum Ctx{} {{", self.nt_name[nt as usize].0));
-                    if VERBOSE { println!("  context Ctx{}:", self.nt_name[nt as usize].0); }
-                    let alts = self.sort_alt_ids(group[0], alts);
-                    nt_contexts[nt as usize] = Some(alts.clone());
-                    for a_id in alts {
-                        let comment = self.full_alt_str(a_id, None, true);
-                        src.push(format!("    /// {comment}"));
-                        if VERBOSE { println!("      /// {comment}"); }
-                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
-                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
-                        let ctx_item = if ctx_content.is_empty() {
-                            if VERBOSE { println!("      {a_name},"); }
-                            format!("    {a_name},", )
-                        } else {
-                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
-                            format!("    {a_name} {{ {ctx_content} }},", )
-                        };
-                        src.push(ctx_item);
-                    }
-                    src.push("}".to_string());
-                }
-            }
-        }
+        let mut nt_contexts = self.source_wrapper_ctx::<VERBOSE>(&mut src);
 
         // Writes intermediate Syn types
 
@@ -2286,13 +2217,9 @@ impl ParserGen {
         }
 
         // Prepares the data for the following sections
-        let mut src_init = Vec::<Vec<String>>::new();
-        let mut src_exit = Vec::<Vec<String>>::new();
-        let mut src_listener_decl = Vec::<String>::new();
-        let mut src_wrapper_impl = Vec::<String>::new();
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
-        let mut src_skel = vec![
+        let src_skel = vec![
             format!("// {:-<80}", ""),
             format!("// Template for the user implementation of {}Listener", self.name),
             String::new(),
@@ -2307,6 +2234,16 @@ impl ParserGen {
             "    }".to_string(),
             String::new(),
         ];
+
+        let mut sources = WrapperSources {
+            src,
+            src_listener_decl: vec![],
+            src_skel,
+            src_types,
+            src_init: vec![],
+            src_exit: vec![],
+            src_wrapper_impl: vec![],
+        };
 
         // we proceed by var parent, then all alts in each parent/children group
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
@@ -2345,17 +2282,12 @@ impl ParserGen {
                 syns: &syns,
                 ambig_op_alts: &ambig_op_alts,
             };
-            let mut out_ctx = SourceOutputContext {
+            let mut state = SourceState {
                 init_nt_done: &mut init_nt_done,
                 span_init: &mut span_init,
                 nt_contexts: &mut nt_contexts,
                 exit_alt_done: &mut exit_alt_done,
                 exit_fixer: &mut exit_fixer,
-                src_listener_decl: &mut src_listener_decl,
-                src_skel: &mut src_skel,
-                src_init: &mut src_init,
-                src_exit: &mut src_exit,
-                src_wrapper_impl: &mut src_wrapper_impl,
             };
 
             for var in group {
@@ -2375,7 +2307,8 @@ impl ParserGen {
                     flags,
                     has_value,
                     is_ambig_1st_child,
-                    &mut out_ctx
+                    &mut state,
+                    &mut sources
                 );
 
                 // Call::Exit
@@ -2386,7 +2319,8 @@ impl ParserGen {
                     has_value,
                     is_ambig_1st_child,
                     is_ambig_redundant,
-                    &mut out_ctx
+                    &mut state,
+                    &mut sources
                 );
             }
             for a in group.iter().flat_map(|v| &self.var_alts[*v as usize]).filter(|a| !exit_alt_done.contains(a)) {
@@ -2399,9 +2333,9 @@ impl ParserGen {
                 };
                 let comment = format!("// {alt_str} ({})", if is_called { "not used" } else { "never called" });
                 if is_called {
-                    src_exit.push(vec![format!("                    {a} => {{}}"), comment]);
+                    sources.src_exit.push(vec![format!("                    {a} => {{}}"), comment]);
                 } else {
-                    src_exit.push(vec![format!("                 /* {a} */"), comment]);
+                    sources.src_exit.push(vec![format!("                 /* {a} */"), comment]);
                 }
             }
             // adds unused init calls, using Segments to regroup them
@@ -2413,9 +2347,9 @@ impl ParserGen {
             for seg in seg_init {
                 let Seg(a, b) = seg;
                 if a == b {
-                    src_init.push(vec![format!("                    {a} => {{}}"), format!("// {}", Symbol::NT(a as VarId).to_str(self.get_symbol_table()))]);
+                    sources.src_init.push(vec![format!("                    {a} => {{}}"), format!("// {}", Symbol::NT(a as VarId).to_str(self.get_symbol_table()))]);
                 } else {
-                    src_init.push(vec![
+                    sources.src_init.push(vec![
                         format!("                    {a}{}{b} => {{}}", if b == a + 1 { " | " } else { " ..= " }),
                         format!("// {}", (a..=b).map(|v| Symbol::NT(v as VarId).to_str(self.get_symbol_table())).join(", "))
                     ]);
@@ -2423,247 +2357,87 @@ impl ParserGen {
             }
         }
 
-        // templates
-        src_types.extend(vec![
-            String::new(),
-            format!("// {:-<80}", ""),
-        ]);
-        self.log.add_info(format!("Template for the user types:\n\n{}\n", src_types.join("\n")));
-        if let Some(line) = src_skel.last() {
-            if line.is_empty() {
-                src_skel.pop();
-            }
-        }
-        src_skel.extend(vec![
-            "}".to_string(),
-            String::new(),
-            format!("// {:-<80}", ""),
-        ]);
-        self.log.add_info(format!("Template for the listener implementation:\n\n{}\n", src_skel.join("\n")));
+        self.source_wrapper_finalize(span_init, sources)
+    }
 
-        // Writes the listener trait declaration
-        src.add_space();
-        src.push(format!("pub trait {}Listener {{", self.name));
-        src.push("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from".to_string());
-        src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
-        src.push("    fn check_abort_request(&self) -> Terminate { Terminate::None }".to_string());
-        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger;".to_string());
-        let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
-        let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
-        if !self.terminal_hooks.is_empty() {
-            src.push("    #[allow(unused_variables)]".to_string());
-            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
-        }
-        src.push("    #[allow(unused_variables)]".to_string());
-        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
-        if self.nt_value[self.start as usize] || self.gen_span_params {
-            src.push("    #[allow(unused_variables)]".to_string());
-        }
-        if self.nt_value[self.start as usize] {
-            src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", self.nt_name[self.start as usize].2, self.get_nt_type(self.start)));
-        } else {
-            src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
-        }
-        src.push("    #[allow(unused_variables)]".to_string());
-        src.push("    fn abort(&mut self, terminate: Terminate) {}".to_string());
-        /*
-                              fn init_a(&mut self) {}
-                              fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-                              fn init_a_iter(&mut self) -> SynAIter;
-                              #[allow(unused_variables)]
-                              fn exit_a_iter(&mut self, ctx: CtxAIter) -> SynAIter {};
-        */
-        src.extend(src_listener_decl);
-        src.push("}".to_string());
-
-        // Writes the switch() function
-        src.add_space();
-        src.push("pub struct Wrapper<T> {".to_string());
-        src.push("    verbose: bool,".to_string());
-        src.push("    listener: T,".to_string());
-        src.push("    stack: Vec<EnumSynValue>,".to_string());
-        src.push("    max_stack: usize,".to_string());
-        src.push("    stack_t: Vec<String>,".to_string());
-        if self.gen_span_params {
-            src.push("    stack_span: Vec<PosSpan>,".to_string());
-        }
-        src.push("}".to_string());
-        src.push(String::new());
-        src.push(format!("impl<T: {}Listener> ListenerWrapper for Wrapper<T> {{", self.name));
-        src.push("    fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {".to_string());
-        src.push("        if self.verbose {".to_string());
-        src.push("            println!(\"switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}\");".to_string());
-        src.push("        }".to_string());
-        src.push("        if let Some(mut t_data) = t_data {".to_string());
-        src.push("            self.stack_t.append(&mut t_data);".to_string());
-        src.push("        }".to_string());
-        src.push("        match call {".to_string());
-        src.push("            Call::Enter => {".to_string());
-        if self.gen_span_params {
-            // adds span accumulator inits, using Segments to regroup them
-            let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
-            seg_span.normalize();
-            let pattern = seg_span.into_iter().map(|Seg(a, b)| {
-                if a == b {
-                    a.to_string()
-                } else if b == a + 1 {
-                    format!("{a} | {b}")
-                } else {
-                    format!("{a} ..= {b}")
+    /// Adds the wrapper source code related to the Ctx types
+    fn source_wrapper_ctx<const VERBOSE: bool>(&self, src: &mut Vec<String>) -> Vec<Option<Vec<AltId>>> {
+        let mut nt_contexts: Vec<Option<Vec<AltId>>> = vec![None; self.parsing_table.num_nt];
+        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
+            // fetches the NT that have alt data
+            for nt in group {
+                for &alt_id in &self.var_alts[*nt as usize] {
+                    if let Some((owner, _name)) = &self.alt_info[alt_id as usize] {
+                        group_names.entry(*owner)
+                            .and_modify(|v| v.push(alt_id))
+                            .or_insert_with(|| vec![alt_id]);
+                    }
                 }
-            }).join(" | ");
-            if !pattern.is_empty() {
-                src.push(format!("                if matches!(nt, {pattern}) {{"));
-                src.push("                    self.stack_span.push(PosSpan::empty());".to_string());
-                src.push("                }".to_string());
+            }
+            if VERBOSE {
+                println!("group {}", group.iter().map(|nt| Symbol::NT(*nt).to_str(self.get_symbol_table())).join(" "));
+            }
+            for &nt in group {
+                if let Some(alts) = group_names.get(&nt) {
+                    let flags = self.parsing_table.flags[nt as usize];
+                    if VERBOSE {
+                        print!("- {}: flags {}", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(flags).join(" "));
+                        if let Some(gn) = group_names.get(&nt) {
+                            println!(", alts = {}", gn.iter().map(|a| a.to_string()).join(", "));
+                            let sorted = self.sort_alt_ids(group[0], gn);
+                            println!("     sorted alts: {sorted:?}");
+                        } else {
+                            println!();
+                        }
+                    }
+                    if flags & (ruleflag::SEP_LIST | ruleflag::L_FORM) == ruleflag::SEP_LIST | ruleflag::L_FORM {
+                        src.push("#[derive(Debug)]".to_string());
+                        src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
+                        let a_id = self.var_alts[nt as usize][0];
+                        let comment = format!(
+                            "value of `{}` before {}",
+                            self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                            self.full_alt_components(a_id, None).1
+                        );
+                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
+                        src.push(format!("    /// {comment}"));
+                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
+                        let ctx_item = if ctx_content.is_empty() {
+                            if VERBOSE { println!("      {a_name},"); }
+                            format!("    {a_name},", )
+                        } else {
+                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
+                            format!("    {a_name} {{ {ctx_content} }},", )
+                        };
+                        src.push(ctx_item);
+                        src.push("}".to_string());
+                    }
+                    src.push("#[derive(Debug)]".to_string());
+                    src.push(format!("pub enum Ctx{} {{", self.nt_name[nt as usize].0));
+                    if VERBOSE { println!("  context Ctx{}:", self.nt_name[nt as usize].0); }
+                    let alts = self.sort_alt_ids(group[0], alts);
+                    nt_contexts[nt as usize] = Some(alts.clone());
+                    for a_id in alts {
+                        let comment = self.full_alt_str(a_id, None, true);
+                        src.push(format!("    /// {comment}"));
+                        if VERBOSE { println!("      /// {comment}"); }
+                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
+                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
+                        let ctx_item = if ctx_content.is_empty() {
+                            if VERBOSE { println!("      {a_name},"); }
+                            format!("    {a_name},", )
+                        } else {
+                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
+                            format!("    {a_name} {{ {ctx_content} }},", )
+                        };
+                        src.push(ctx_item);
+                    }
+                    src.push("}".to_string());
+                }
             }
         }
-        src.push("                match nt {".to_string());
-        /*
-                                              0 => self.listener.init_a(),                // A
-                                              1 => self.init_a_iter(),                    // AIter1
-                                              2 => {}                                     // A_1
-        */
-        src.extend(columns_to_str(src_init, Some(vec![64, 0])));
-        src.push("                    _ => panic!(\"unexpected enter nonterminal id: {nt}\")".to_string());
-        src.push("                }".to_string());
-        src.push("            }".to_string());
-        src.push("            Call::Loop => {}".to_string());
-        src.push("            Call::Exit => {".to_string());
-        src.push("                match alt_id {".to_string());
-        /*
-                                              3 |                                         // A -> a a (b <L>)* c
-                                              4 => self.exit_a(alt_id),                   // A -> a c (b <L>)* c
-                                              1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
-                                              2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
-                                           /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
-        */
-        src.extend(columns_to_str(src_exit, Some(vec![64, 0])));
-        src.push("                    _ => panic!(\"unexpected exit alternative id: {alt_id}\")".to_string());
-        src.push("                }".to_string());
-        src.push("            }".to_string());
-        src.push("            Call::End(terminate) => {".to_string());
-        src.push("                match terminate {".to_string());
-        src.push("                    Terminate::None => {".to_string());
-        let mut args = vec![];
-        let (_nu, _nl, npl) = &self.nt_name[self.start as usize];
-        if self.nt_value[self.start as usize] {
-            src.push(format!("                        let val = self.stack.pop().unwrap().get_{npl}();"));
-            args.push("val");
-        }
-        if self.gen_span_params {
-            src.push("                        let span = self.stack_span.pop().unwrap();".to_string());
-            args.push("span");
-        }
-        src.push(format!("                        self.listener.exit({});", args.join(", ")));
-        src.push("                    }".to_string());
-        src.push("                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),".to_string());
-        src.push("                }".to_string());
-        src.push("            }".to_string());
-        src.push("        }".to_string());
-        src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
-        src.push("        if self.verbose {".to_string());
-        src.push("            println!(\"> stack_t:   {}\", self.stack_t.join(\", \"));".to_string());
-        src.push("            println!(\"> stack:     {}\", self.stack.iter().map(|it| format!(\"{it:?}\")).collect::<Vec<_>>().join(\", \"));".to_string());
-        src.push("        }".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    fn check_abort_request(&self) -> Terminate {".to_string());
-        src.push("        self.listener.check_abort_request()".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    fn abort(&mut self) {".to_string());
-        src.push("        self.stack.clear();".to_string());
-        if self.gen_span_params {
-            src.push("        self.stack_span.clear();".to_string());
-        }
-        src.push("        self.stack_t.clear();".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string());
-        src.push("        self.listener.get_log_mut()".to_string());
-        src.push("    }".to_string());
-        if self.gen_span_params {
-            src.push(String::new());
-            src.push("    fn push_span(&mut self, span: PosSpan) {".to_string());
-            src.push("        self.stack_span.push(span);".to_string());
-            src.push("    }".to_string());
-        }
-        src.push(String::new());
-        src.push("    fn is_stack_empty(&self) -> bool {".to_string());
-        src.push("        self.stack.is_empty()".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    fn is_stack_t_empty(&self) -> bool {".to_string());
-        src.push("        self.stack_t.is_empty()".to_string());
-        src.push("    }".to_string());
-        if self.gen_span_params {
-            src.add_space();
-            src.push("    fn is_stack_span_empty(&self) -> bool {".to_string());
-            src.push("        self.stack_span.is_empty()".to_string());
-            src.push("    }".to_string());
-        }
-        let unused_span = if self.gen_span_params { "" } else { "_" };
-        let extra_span_arg = if self.gen_span_params { ", span" } else { "" };
-        if !self.terminal_hooks.is_empty() {
-            src.add_space();
-            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
-            src.push(format!("        self.listener.hook(token, text{extra_span_arg})"));
-            src.push("    }".to_string());
-        }
-        src.add_space();
-        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
-        src.push(format!("        self.listener.intercept_token(token, text{extra_span_arg})"));
-        src.push("    }".to_string());
-        src.push("}".to_string());
-
-        src.add_space();
-        src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
-        src.push("    pub fn new(listener: T, verbose: bool) -> Self {".to_string());
-        src.push(format!(
-            "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){} }}",
-            if self.gen_span_params { ", stack_span: Vec::new()" } else { "" }
-        ));
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    pub fn get_listener(&self) -> &T {".to_string());
-        src.push("        &self.listener".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    pub fn get_listener_mut(&mut self) -> &mut T {".to_string());
-        src.push("        &mut self.listener".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    pub fn give_listener(self) -> T {".to_string());
-        src.push("        self.listener".to_string());
-        src.push("    }".to_string());
-        src.push(String::new());
-        src.push("    pub fn set_verbose(&mut self, verbose: bool) {".to_string());
-        src.push("        self.verbose = verbose;".to_string());
-        src.push("    }".to_string());
-/*
-                              impl<T: TestListener> ListenerWrapper<T> {
-                                  fn exit(&mut self) {
-                                      let a = self.stack.pop().unwrap().get_a();
-                                      self.listener.exit(Ctx::A { a });
-                                  }
-                                  fn init_a_iter(&mut self) {
-                                      let val = self.listener.init_a_iter();
-                                      self.stack.push(EnumSynValue::AIter(val));
-                                  }
-                                  fn exit_a_iter(&mut self) {
-                                      let b = self.stack_t.pop().unwrap();
-                                      let star_acc = self.stack.pop().unwrap().get_a_iter();
-                                      let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_acc, b });
-                                      self.stack.push(EnumSynValue::AIter(val));
-                                  }
-                                  // ...
-                              }
-*/
-        src.extend(src_wrapper_impl);
-        src.push("}".to_string());
-
-        (src, src_types, src_skel)
+        nt_contexts
     }
 
     /// Adds the wrapper source code related to Call::Enter
@@ -2674,12 +2448,12 @@ impl ParserGen {
         flags               : u32,
         has_value           : bool,
         is_ambig_1st_child  : bool,
-        out_ctx             : &mut SourceOutputContext
+        state               : &mut SourceState,
+        sources             : &mut WrapperSources
     ) {
         let &SourceInputContext { ambig_op_alts, .. } = ctx;
-        let SourceOutputContext {
-            init_nt_done, span_init, src_listener_decl, src_skel, src_init, src_wrapper_impl, ..
-        } = out_ctx;
+        let SourceState { init_nt_done, span_init, .. } = state;
+        let WrapperSources { src_listener_decl, src_skel, src_init, src_wrapper_impl, .. } = sources;
         let nt = var as usize;
         let sym_nt = Symbol::NT(var);
         let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
@@ -2834,16 +2608,16 @@ impl ParserGen {
         has_value           : bool,
         is_ambig_1st_child  : bool,
         is_ambig_redundant  : bool,
-        out_ctx             : &mut SourceOutputContext
+        state               : &mut SourceState,
+        sources             : &mut WrapperSources
     ) {
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
         let &SourceInputContext {
             parent_has_value, parent_nt, pinfo, syns, ambig_op_alts
         } = ctx;
-        let SourceOutputContext {
-            nt_contexts, exit_alt_done, exit_fixer, src_listener_decl, src_skel, src_exit, src_wrapper_impl, ..
-        } = out_ctx;
+        let SourceState { nt_contexts, exit_alt_done, exit_fixer, .. } = state;
+        let WrapperSources { src_listener_decl, src_skel, src_exit, src_wrapper_impl, .. } = sources;
         let nt = var as usize;
         let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
         let is_parent = nt == parent_nt;
@@ -3097,6 +2871,252 @@ impl ParserGen {
                 }
             }
         }
+    }
+
+    fn source_wrapper_finalize(&mut self, span_init: HashSet<VarId>, sources: WrapperSources) -> (Vec<String>, Vec<String>, Vec<String>) {
+        let WrapperSources { mut src, src_listener_decl, mut src_skel, mut src_types, src_init, src_exit, src_wrapper_impl } = sources;
+
+        // Writes the listener trait declaration
+        src.add_space();
+        src.push(format!("pub trait {}Listener {{", self.name));
+        src.push("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from".to_string());
+        src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
+        src.push("    fn check_abort_request(&self) -> Terminate { Terminate::None }".to_string());
+        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger;".to_string());
+        let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
+        let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
+        if !self.terminal_hooks.is_empty() {
+            src.push("    #[allow(unused_variables)]".to_string());
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
+        }
+        src.push("    #[allow(unused_variables)]".to_string());
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
+        if self.nt_value[self.start as usize] || self.gen_span_params {
+            src.push("    #[allow(unused_variables)]".to_string());
+        }
+        if self.nt_value[self.start as usize] {
+            src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", self.nt_name[self.start as usize].2, self.get_nt_type(self.start)));
+        } else {
+            src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
+        }
+        src.push("    #[allow(unused_variables)]".to_string());
+        src.push("    fn abort(&mut self, terminate: Terminate) {}".to_string());
+        /*
+                              fn init_a(&mut self) {}
+                              fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+                              fn init_a_iter(&mut self) -> SynAIter;
+                              #[allow(unused_variables)]
+                              fn exit_a_iter(&mut self, ctx: CtxAIter) -> SynAIter {};
+        */
+        src.extend(src_listener_decl);
+        src.push("}".to_string());
+
+        // Writes the switch() function
+        src.add_space();
+        src.push("pub struct Wrapper<T> {".to_string());
+        src.push("    verbose: bool,".to_string());
+        src.push("    listener: T,".to_string());
+        src.push("    stack: Vec<EnumSynValue>,".to_string());
+        src.push("    max_stack: usize,".to_string());
+        src.push("    stack_t: Vec<String>,".to_string());
+        if self.gen_span_params {
+            src.push("    stack_span: Vec<PosSpan>,".to_string());
+        }
+        src.push("}".to_string());
+        src.push(String::new());
+        src.push(format!("impl<T: {}Listener> ListenerWrapper for Wrapper<T> {{", self.name));
+        src.push("    fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {".to_string());
+        src.push("        if self.verbose {".to_string());
+        src.push("            println!(\"switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}\");".to_string());
+        src.push("        }".to_string());
+        src.push("        if let Some(mut t_data) = t_data {".to_string());
+        src.push("            self.stack_t.append(&mut t_data);".to_string());
+        src.push("        }".to_string());
+        src.push("        match call {".to_string());
+        src.push("            Call::Enter => {".to_string());
+        if self.gen_span_params {
+            // adds span accumulator inits, using Segments to regroup them
+            let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
+            seg_span.normalize();
+            let pattern = seg_span.into_iter().map(|Seg(a, b)| {
+                if a == b {
+                    a.to_string()
+                } else if b == a + 1 {
+                    format!("{a} | {b}")
+                } else {
+                    format!("{a} ..= {b}")
+                }
+            }).join(" | ");
+            if !pattern.is_empty() {
+                src.push(format!("                if matches!(nt, {pattern}) {{"));
+                src.push("                    self.stack_span.push(PosSpan::empty());".to_string());
+                src.push("                }".to_string());
+            }
+        }
+        src.push("                match nt {".to_string());
+        /*
+                                              0 => self.listener.init_a(),                // A
+                                              1 => self.init_a_iter(),                    // AIter1
+                                              2 => {}                                     // A_1
+        */
+        src.extend(columns_to_str(src_init, Some(vec![64, 0])));
+        src.push("                    _ => panic!(\"unexpected enter nonterminal id: {nt}\")".to_string());
+        src.push("                }".to_string());
+        src.push("            }".to_string());
+        src.push("            Call::Loop => {}".to_string());
+        src.push("            Call::Exit => {".to_string());
+        src.push("                match alt_id {".to_string());
+        /*
+                                              3 |                                         // A -> a a (b <L>)* c
+                                              4 => self.exit_a(alt_id),                   // A -> a c (b <L>)* c
+                                              1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
+                                              2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
+                                           /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
+        */
+        src.extend(columns_to_str(src_exit, Some(vec![64, 0])));
+        src.push("                    _ => panic!(\"unexpected exit alternative id: {alt_id}\")".to_string());
+        src.push("                }".to_string());
+        src.push("            }".to_string());
+        src.push("            Call::End(terminate) => {".to_string());
+        src.push("                match terminate {".to_string());
+        src.push("                    Terminate::None => {".to_string());
+        let mut args = vec![];
+        let (_nu, _nl, npl) = &self.nt_name[self.start as usize];
+        if self.nt_value[self.start as usize] {
+            src.push(format!("                        let val = self.stack.pop().unwrap().get_{npl}();"));
+            args.push("val");
+        }
+        if self.gen_span_params {
+            src.push("                        let span = self.stack_span.pop().unwrap();".to_string());
+            args.push("span");
+        }
+        src.push(format!("                        self.listener.exit({});", args.join(", ")));
+        src.push("                    }".to_string());
+        src.push("                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),".to_string());
+        src.push("                }".to_string());
+        src.push("            }".to_string());
+        src.push("        }".to_string());
+        src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
+        src.push("        if self.verbose {".to_string());
+        src.push("            println!(\"> stack_t:   {}\", self.stack_t.join(\", \"));".to_string());
+        src.push("            println!(\"> stack:     {}\", self.stack.iter().map(|it| format!(\"{it:?}\")).collect::<Vec<_>>().join(\", \"));".to_string());
+        src.push("        }".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    fn check_abort_request(&self) -> Terminate {".to_string());
+        src.push("        self.listener.check_abort_request()".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    fn abort(&mut self) {".to_string());
+        src.push("        self.stack.clear();".to_string());
+        if self.gen_span_params {
+            src.push("        self.stack_span.clear();".to_string());
+        }
+        src.push("        self.stack_t.clear();".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string());
+        src.push("        self.listener.get_log_mut()".to_string());
+        src.push("    }".to_string());
+        if self.gen_span_params {
+            src.push(String::new());
+            src.push("    fn push_span(&mut self, span: PosSpan) {".to_string());
+            src.push("        self.stack_span.push(span);".to_string());
+            src.push("    }".to_string());
+        }
+        src.push(String::new());
+        src.push("    fn is_stack_empty(&self) -> bool {".to_string());
+        src.push("        self.stack.is_empty()".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    fn is_stack_t_empty(&self) -> bool {".to_string());
+        src.push("        self.stack_t.is_empty()".to_string());
+        src.push("    }".to_string());
+        if self.gen_span_params {
+            src.add_space();
+            src.push("    fn is_stack_span_empty(&self) -> bool {".to_string());
+            src.push("        self.stack_span.is_empty()".to_string());
+            src.push("    }".to_string());
+        }
+        let unused_span = if self.gen_span_params { "" } else { "_" };
+        let extra_span_arg = if self.gen_span_params { ", span" } else { "" };
+        if !self.terminal_hooks.is_empty() {
+            src.add_space();
+            src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
+            src.push(format!("        self.listener.hook(token, text{extra_span_arg})"));
+            src.push("    }".to_string());
+        }
+        src.add_space();
+        src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
+        src.push(format!("        self.listener.intercept_token(token, text{extra_span_arg})"));
+        src.push("    }".to_string());
+        src.push("}".to_string());
+
+        src.add_space();
+        src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
+        src.push("    pub fn new(listener: T, verbose: bool) -> Self {".to_string());
+        src.push(format!(
+            "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){} }}",
+            if self.gen_span_params { ", stack_span: Vec::new()" } else { "" }
+        ));
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    pub fn get_listener(&self) -> &T {".to_string());
+        src.push("        &self.listener".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    pub fn get_listener_mut(&mut self) -> &mut T {".to_string());
+        src.push("        &mut self.listener".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    pub fn give_listener(self) -> T {".to_string());
+        src.push("        self.listener".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    pub fn set_verbose(&mut self, verbose: bool) {".to_string());
+        src.push("        self.verbose = verbose;".to_string());
+        src.push("    }".to_string());
+/*
+                              impl<T: TestListener> ListenerWrapper<T> {
+                                  fn exit(&mut self) {
+                                      let a = self.stack.pop().unwrap().get_a();
+                                      self.listener.exit(Ctx::A { a });
+                                  }
+                                  fn init_a_iter(&mut self) {
+                                      let val = self.listener.init_a_iter();
+                                      self.stack.push(EnumSynValue::AIter(val));
+                                  }
+                                  fn exit_a_iter(&mut self) {
+                                      let b = self.stack_t.pop().unwrap();
+                                      let star_acc = self.stack.pop().unwrap().get_a_iter();
+                                      let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_acc, b });
+                                      self.stack.push(EnumSynValue::AIter(val));
+                                  }
+                                  // ...
+                              }
+*/
+        src.extend(src_wrapper_impl);
+        src.push("}".to_string());
+
+        // templates
+        src_types.extend(vec![
+            String::new(),
+            format!("// {:-<80}", ""),
+        ]);
+        if let Some(line) = src_skel.last() {
+            if line.is_empty() {
+                src_skel.pop();
+            }
+        }
+        src_skel.extend(vec![
+            "}".to_string(),
+            String::new(),
+            format!("// {:-<80}", ""),
+        ]);
+        self.log.add_info(format!("Template for the user types:\n\n{}\n", src_types.join("\n")));
+        self.log.add_info(format!("Template for the listener implementation:\n\n{}\n", src_skel.join("\n")));
+
+        (src, src_types, src_skel)
     }
 }
 
