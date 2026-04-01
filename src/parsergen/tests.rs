@@ -2661,17 +2661,6 @@ mod wrapper_source {
                 }
                 if builder_has_errors {
                     println!("builder couldn't generate the source");
-                } else {
-                    println!("pub(crate) mod code_{rule_name} {{");
-                    println!("    // {0:-<60}\n    // {test_name}", "");
-                    let st: &crate::SymbolTable = builder.get_symbol_table().unwrap();
-                    for v in 0..(st.get_num_nt() as VarId) {
-                        if let Some((_s, src)) = builder.get_nt_extra_info(v) {
-                            println!();
-                            println!("{}", src.into_iter().map(|line| format!("    {line}")).join("\n"));
-                        }
-                    }
-                    println!("}}\n");
                 }
             }
             if PRINT_SOURCE && !builder_has_errors {

@@ -263,7 +263,6 @@ pub struct ParserGen {
     headers: Vec<String>,
     used_libs: StructLibs,
     nt_type: HashMap<VarId, String>,
-    nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
     log: BufLog,
     include_alts: bool,
     lib_crate: LexigramCrate,
@@ -325,7 +324,6 @@ impl ParserGen {
             headers: Vec::new(),
             used_libs: StructLibs::new(),
             nt_type: HashMap::new(),
-            nt_extra_info: HashMap::new(),
             log: ll1_rules.log,
             include_alts: false,
             lib_crate: LexigramCrate::Core,
@@ -393,24 +391,6 @@ impl ParserGen {
     #[inline]
     pub fn get_nt_type(&self, v: VarId) -> &str {
         self.nt_type.get(&v).unwrap().as_str()
-    }
-
-    #[inline]
-    /// NT source type and source code including doc comment and empty template type definition.
-    ///
-    /// ## Example:
-    /// ```ignore
-    /// let (type_src, src) = parger_gen.get_nt_extra_info(var_id);
-    /// ```
-    /// * `type_src` = "SynHeader"
-    /// * `src` =
-    ///     ```ignore
-    ///     /// User-defined type for `header`
-    ///     #[derive(Debug, PartialEq)]
-    ///     pub struct SynHeader();
-    ///     ```
-    pub fn get_nt_extra_info(&self, nt: VarId) -> Option<&(String, Vec<String>)> {
-        self.nt_extra_info.get(&nt)
     }
 
     /// Sets which nonterminals have a value, from [nt_value](NTValue).
@@ -2073,14 +2053,11 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
-        static TYPE_DERIVE: &str = "#[derive(Debug, PartialEq)]";
         static PARSER_LIBS: [&str; 8] = [
             "::VarId", "::parser::Call", "::parser::ListenerWrapper",
             "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan",
             "::parser::Terminate"
         ];
-
-        // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
 
         self.log.add_note("generating wrapper source...");
         self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
@@ -2091,132 +2068,21 @@ impl ParserGen {
         self.get_type_info();
         let pinfo = &self.parsing_table;
 
-        let mut src = vec![];
-
-        // Defines missing type names
+        // defines missing type names
         for (v, name) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             self.nt_type.entry(v).or_insert_with(|| format!("Syn{}", name.0));
         }
 
-        // Writes contexts
+        let mut src = vec![];
 
+        // writes contexts
         let mut nt_contexts = self.source_wrapper_ctx::<VERBOSE>(&mut src);
 
-        // Writes intermediate Syn types
+        // writes intermediate Syn types
+        let (src_types, syns) = self.source_wrapper_types::<VERBOSE>(&mut src);
 
-        let mut src_types = vec![
-            format!("// {:-<80}", ""),
-            "// Template for the user-defined types:".to_string(),
-        ];
-        src.add_space();
-        let mut syns = Vec::<VarId>::new(); // list of valuable NTs
-        for (v, names) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
-            let v = v as VarId;
-            let (nu, _nl, _npl) = names;
-            let nt_type = self.get_nt_type(v);
-            if self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT) {
-                let is_lform = self.nt_has_all_flags(v, ruleflag::L_FORM);
-                let first_alt = self.var_alts[v as usize][0];
-                let (t, var_oid) = self.origin.get(v).unwrap();
-                if is_lform {
-                    let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
-                    src_types.push(String::new());
-                    src_types.push(astr.clone());
-                    src_types.push(TYPE_DERIVE.to_string());
-                    src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
-                    let extra_src = vec![
-                        astr,
-                        TYPE_DERIVE.to_string(),
-                        format!("pub struct {nt_type}();"),
-                    ];
-                    self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
-                } else {
-                    let top_parent = self.parsing_table.get_top_parent(v);
-                    src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                     grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
-                                     Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                     grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
-                    ));
-                    let endpoints = self.child_repeat_endpoints.get(&v).unwrap();
-                    if endpoints.len() > 1 {
-                        // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
-                        src.push("#[derive(Debug, PartialEq)]".to_string());
-                        src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
-                        src.push("#[derive(Debug, PartialEq)]".to_string());
-                        src.push(format!("pub enum Syn{nu}Item {{"));
-                        for (i, &a_id) in endpoints.iter().index_start(1) {
-                            src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
-                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&self.item_info[a_id as usize], false, true)));
-                        }
-                        src.push("}".to_string());
-                    } else {
-                        // single possibility; for ex. a -> (A B)+  => struct
-                        let a_id = endpoints[0];
-                        let infos = &self.item_info[a_id as usize];
-                        if infos.len() == 1 {
-                            // single repeat item; for ex. A -> B+  => type directly as Vec<type>
-                            let type_name = self.get_info_type(infos, &infos[0]);
-                            src.push("#[derive(Debug, PartialEq)]".to_string());
-                            src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
-                        } else {
-                            // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
-                            src.push("#[derive(Debug, PartialEq)]".to_string());
-                            src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
-                            src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
-                            src.push("#[derive(Debug, PartialEq)]".to_string());
-                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(infos, true, true)));
-                        }
-                    }
-                }
-            } else {
-                src_types.push(String::new());
-                src_types.push(format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())));
-                src_types.push(TYPE_DERIVE.to_string());
-                src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
-                let extra_src = vec![
-                    format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
-                    "#[derive(Debug, PartialEq)]".to_string(),
-                    format!("pub struct {}();", self.get_nt_type(v)),
-                ];
-                self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
-            }
-            syns.push(v);
-        }
-        if !self.nt_value[self.start as usize] {
-            let nu = &self.nt_name[self.start as usize].0;
-            src.push(format!("/// Top non-terminal {nu} (has no value)"));
-            src.push("#[derive(Debug, PartialEq)]".to_string());
-            src.push(format!("pub struct Syn{nu}();"))
-        }
-
-        // Writes EnumSynValue type and implementation
-        if VERBOSE { println!("syns = {syns:?}"); }
-        src.add_space();
-        // EnumSynValue type
-        src.push("#[derive(Debug)]".to_string());
-        src.push(format!("enum EnumSynValue {{ {} }}",
-                         syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
-        if !syns.is_empty() {
-            // EnumSynValue getters
-            src.add_space();
-            src.push("impl EnumSynValue {".to_string());
-            for v in &syns {
-                let (nu, _, npl) = &self.nt_name[*v as usize];
-                let nt_type = self.get_nt_type(*v);
-                src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
-                if syns.len() == 1 {
-                    src.push(format!("        let EnumSynValue::{nu}(val) = self;"));
-                    src.push("        val".to_string());
-                } else {
-                    src.push(format!("        if let EnumSynValue::{nu}(val) = self {{ val }} else {{ panic!() }}"));
-                }
-                src.push("    }".to_string());
-            }
-            src.push("}".to_string());
-        }
-
-        // Prepares the data for the following sections
+        // prepares the data for the following sections
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
         let src_skel = vec![
@@ -2234,7 +2100,6 @@ impl ParserGen {
             "    }".to_string(),
             String::new(),
         ];
-
         let mut sources = WrapperSources {
             src,
             src_listener_decl: vec![],
@@ -2323,6 +2188,8 @@ impl ParserGen {
                     &mut sources
                 );
             }
+
+            // completes the unused nt entries in the match's Call::Exit => { ... }
             for a in group.iter().flat_map(|v| &self.var_alts[*v as usize]).filter(|a| !exit_alt_done.contains(a)) {
                 let is_called = self.opcodes[*a as usize].contains(&OpCode::Exit(*a));
                 let (v, alt) = &self.parsing_table.alts[*a as usize];
@@ -2438,6 +2305,111 @@ impl ParserGen {
             }
         }
         nt_contexts
+    }
+
+    /// Adds the wrapper source code related to the user types
+    fn source_wrapper_types<const VERBOSE: bool>(&self, src: &mut Vec<String>) -> (Vec<String>, Vec<VarId>) {
+        static TYPE_DERIVE: &str = "#[derive(Debug, PartialEq)]";
+
+        let mut src_types = vec![
+            format!("// {:-<80}", ""),
+            "// Template for the user-defined types:".to_string(),
+        ];
+        src.add_space();
+        let mut syns = Vec::<VarId>::new(); // list of valuable NTs
+        for (v, names) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+            let v = v as VarId;
+            let (nu, _nl, _npl) = names;
+            let nt_type = self.get_nt_type(v);
+            if self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT) {
+                let is_lform = self.nt_has_all_flags(v, ruleflag::L_FORM);
+                let first_alt = self.var_alts[v as usize][0];
+                let (t, var_oid) = self.origin.get(v).unwrap();
+                if is_lform {
+                    let astr = format!("/// User-defined type for {}", self.full_alt_str(first_alt, None, true));
+                    src_types.push(String::new());
+                    src_types.push(astr.clone());
+                    src_types.push(TYPE_DERIVE.to_string());
+                    src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
+                } else {
+                    let top_parent = self.parsing_table.get_top_parent(v);
+                    src.push(format!("/// Computed `{}` array in `{} -> {}`",
+                                     grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
+                                     Symbol::NT(top_parent).to_str(self.get_symbol_table()),
+                                     grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
+                    ));
+                    let endpoints = self.child_repeat_endpoints.get(&v).unwrap();
+                    if endpoints.len() > 1 {
+                        // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
+                        src.push("#[derive(Debug, PartialEq)]".to_string());
+                        src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                        src.push("#[derive(Debug, PartialEq)]".to_string());
+                        src.push(format!("pub enum Syn{nu}Item {{"));
+                        for (i, &a_id) in endpoints.iter().index_start(1) {
+                            src.push(format!("    /// {}", self.full_alt_str(a_id, None, true)));
+                            src.push(format!("    V{i} {{ {} }},", self.source_infos(&self.item_info[a_id as usize], false, true)));
+                        }
+                        src.push("}".to_string());
+                    } else {
+                        // single possibility; for ex. a -> (A B)+  => struct
+                        let a_id = endpoints[0];
+                        let infos = &self.item_info[a_id as usize];
+                        if infos.len() == 1 {
+                            // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                            let type_name = self.get_info_type(infos, &infos[0]);
+                            src.push("#[derive(Debug, PartialEq)]".to_string());
+                            src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
+                        } else {
+                            // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
+                            src.push("#[derive(Debug, PartialEq)]".to_string());
+                            src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                            src.push(format!("/// {}", self.full_alt_str(first_alt, None, false)));
+                            src.push("#[derive(Debug, PartialEq)]".to_string());
+                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(infos, true, true)));
+                        }
+                    }
+                }
+            } else {
+                src_types.push(String::new());
+                src_types.push(format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())));
+                src_types.push(TYPE_DERIVE.to_string());
+                src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
+            }
+            syns.push(v);
+        }
+        if !self.nt_value[self.start as usize] {
+            let nu = &self.nt_name[self.start as usize].0;
+            src.push(format!("/// Top non-terminal {nu} (has no value)"));
+            src.push("#[derive(Debug, PartialEq)]".to_string());
+            src.push(format!("pub struct Syn{nu}();"))
+        }
+
+        // Writes EnumSynValue type and implementation
+        if VERBOSE { println!("syns = {syns:?}"); }
+        src.add_space();
+        // EnumSynValue type
+        src.push("#[derive(Debug)]".to_string());
+        src.push(format!("enum EnumSynValue {{ {} }}",
+                         syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
+        if !syns.is_empty() {
+            // EnumSynValue getters
+            src.add_space();
+            src.push("impl EnumSynValue {".to_string());
+            for v in &syns {
+                let (nu, _, npl) = &self.nt_name[*v as usize];
+                let nt_type = self.get_nt_type(*v);
+                src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
+                if syns.len() == 1 {
+                    src.push(format!("        let EnumSynValue::{nu}(val) = self;"));
+                    src.push("        val".to_string());
+                } else {
+                    src.push(format!("        if let EnumSynValue::{nu}(val) = self {{ val }} else {{ panic!() }}"));
+                }
+                src.push("    }".to_string());
+            }
+            src.push("}".to_string());
+        }
+        (src_types, syns)
     }
 
     /// Adds the wrapper source code related to Call::Enter
