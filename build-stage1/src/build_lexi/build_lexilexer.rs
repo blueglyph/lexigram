@@ -1,12 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::fs::File;
-use std::io::BufReader;
+use std::io::Read;
 use lexi_gram::{lexigram_lib, Lexi};
-use lexigram_lib::build::BuildInto;
 use lexi_gram::lexi::SymbolicDfa;
+use lexigram_lib::build::BuildInto;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
-use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::file_utils::replace_tagged_source;
 use crate::gen_hooks_source_code;
 use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_HOOKS_TAG};
@@ -15,10 +14,14 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 
 /// Generates Lexi's lexer source code from the lexicon file.
 fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String, String), BufLog> {
-    let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
-    let reader = BufReader::new(file);
-    let stream = CharReader::new(reader);
-    let lexi = Lexi::new(stream);
+    let mut file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
+    let mut lexicon = String::new();
+    if let Err(e) = file.read_to_string(&mut lexicon) {
+        let mut log = BufLog::new();
+        log.add_error(e.to_string());
+        return Err(log)
+    };
+    let lexi = Lexi::new(lexicon.as_str());
     let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.build_into();
     assert_eq!(pos_grammar_opt, None, "grammar detected in Lexi's lexicon at {}", pos_grammar_opt.unwrap());
     if !dfa.get_log().has_no_errors() || dfa.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
