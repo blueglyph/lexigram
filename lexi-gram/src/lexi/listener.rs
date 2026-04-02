@@ -145,7 +145,7 @@ pub enum RuleType {
 
 pub struct LexiListener<'ls> {
     verbose: bool,
-    lines: Option<Vec<&'ls str>>,
+    lines: Vec<&'ls str>,
     name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
@@ -209,7 +209,7 @@ impl<'ls> LexiListener<'ls> {
     pub fn new(lexicon: &'ls str) -> Self {
         LexiListener {
             verbose: false,
-            lines: Some(lexicon.lines().collect()),
+            lines: lexicon.lines().collect(),
             name: String::new(),
             curr: None,
             curr_mode: 0,
@@ -236,10 +236,6 @@ impl<'ls> LexiListener<'ls> {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
-    }
-
-    pub fn attach_lines(&mut self, lines: Vec<&'ls str>) {
-        self.lines = Some(lines);
     }
 
     pub fn get_name(&self) -> &str {
@@ -414,6 +410,11 @@ impl<'ls> LexiListener<'ls> {
         }
     }
 
+    fn log_error(&mut self, span: &PosSpan, message: &str) {
+        let text = self.annotate_text(span);
+        self.log.add_error(format!("at {span}, {message}:\n\n{text}\n"));
+    }
+
     fn post_process(&mut self) {
         if self.verbose {
             println!("post_process: terminal_reserved = {:?}", self.terminal_reserved);
@@ -524,7 +525,7 @@ impl LogReader for LexiListener<'_> {
 
 impl GetLine for LexiListener<'_> {
     fn get_line(&self, n: usize) -> &str {
-        self.lines.as_ref().unwrap()[n - 1]
+        &self.lines[n - 1]
     }
 }
 
@@ -650,9 +651,7 @@ impl LexiParserListener for LexiListener<'_> {
         let CtxOption::V1 { star } = ctx;       // option -> "channels" "{" Id ("," Id)* "}"
         for ch in star.0 {
             if self.channels.contains_key(&ch) {
-                // self.log.add_error(format!("channel '{ch}' already defined"));
-                let text = self.annotate_text(&spans[0]);
-                self.log.add_error(format!("channel '{ch}' already defined:\n\n{text}\n"));
+                self.log_error(&spans[2], &format!("channel '{ch}' is defined several times"));
             } else {
                 self.channels.insert(ch, self.channels.len() as ChannelId);
             }
@@ -662,36 +661,36 @@ impl LexiParserListener for LexiListener<'_> {
 
     fn exit_rule(&mut self, ctx: CtxRule, spans: Vec<PosSpan>) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
-        let (id, rule_type, action_maybe, const_literal, reserve_only) = match ctx {
-            // `rule -> rule_fragment_name ":" match ";"`
+        let (id, span_id, rule_type, action_maybe, const_literal, reserve_only) = match ctx {
+            // rule -> rule_fragment_name ":" match ";"
             CtxRule::V1 { rule_fragment_name: SynRuleFragmentName(id), match1 } => {
                 let rule_id = self.add_fragment_or_abort();
-                (id, RuleType::Fragment(rule_id), None, match1.0, false)
+                (id, &spans[0], RuleType::Fragment(rule_id), None, match1.0, false)
             }
-            // `rule -> rule_terminal_name ":" match "->" actions ";"`
+            // rule -> rule_terminal_name ":" match "->" actions ";"
             CtxRule::V2 { rule_terminal_name: SynRuleTerminalName(id), match1, actions } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), Some(actions.0), match1.0, false)
+                (id, &spans[0], RuleType::Terminal(rule_id), Some(actions.0), match1.0, false)
             }
-            // `rule -> rule_terminal_name ":" match ";"`
+            // rule -> rule_terminal_name ":" match ";"
             CtxRule::V3 { rule_terminal_name: SynRuleTerminalName(id), match1 } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), None, match1.0, false)
+                (id, &spans[0], RuleType::Terminal(rule_id), None, match1.0, false)
             }
-            // `rule -> "(" rule_terminal_name ")" opt_str_lit "->" "hook" ";"`
+            // rule -> "(" rule_terminal_name ")" opt_str_lit "->" "hook" ";"
             CtxRule::V4 { rule_terminal_name: SynRuleTerminalName(id), opt_str_lit: SynOptStrLit(opt_str) } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), Some(action!(hook)), opt_str, true)
+                (id, &spans[1], RuleType::Terminal(rule_id), Some(action!(hook)), opt_str, true)
             }
-            // `rule -> "(" rule_terminal_name ")" opt_str_lit ";"`
+            // rule -> "(" rule_terminal_name ")" opt_str_lit ";"
             CtxRule::V5 { rule_terminal_name: SynRuleTerminalName(id), opt_str_lit: SynOptStrLit(opt_str) } => {
                 let rule_id = self.add_terminal_or_abort();
-                (id, RuleType::Terminal(rule_id), None, opt_str, true)
+                (id, &spans[1], RuleType::Terminal(rule_id), None, opt_str, true)
             }
+            // rule -> rule_terminal_name Id ";"
             CtxRule::V6 { rule_terminal_name: SynRuleTerminalName(token), id } => {
                 if token != "grammar" {
-                    let PosSpan { first: Pos(line, col), .. } = &spans[1];
-                    self.log.add_error(format!("syntax error: found input '{id}' instead of ':', line {line}, col {col}", ))
+                    self.log_error(&spans[1], &format!("syntax error: found input '{id}' instead of ':'"))
                 } else {
                     let PosSpan { first, .. } = &spans[0];
                     self.log.add_note(format!("detected grammar beginning at line {}, col {}", first.0, first.1));
@@ -718,7 +717,7 @@ impl LexiParserListener for LexiListener<'_> {
             false       // fragment or doesn't exist yet
         };
         if !was_reserved && self.rules.contains_key(&id) {
-            self.log.add_error(format!("rule {}: symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
+            self.log_error(span_id, &format!("symbol '{id}' is already defined"));
             self.abort = Terminate::Abort;
         } else {
             let rule_maybe = self.curr.take();
@@ -763,11 +762,12 @@ impl LexiParserListener for LexiListener<'_> {
         SynRule()
     }
 
-    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit, _spans: Vec<PosSpan>) -> SynOptStrLit {
+    fn exit_opt_str_lit(&mut self, ctx: CtxOptStrLit, spans: Vec<PosSpan>) -> SynOptStrLit {
         SynOptStrLit(match ctx {
+            // opt_str_lit -> ":" StrLit
             CtxOptStrLit::V1 { strlit } => {
                 let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the string literal {strlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    self.log_error(&spans[1], &format!("cannot decode the string literal {strlit}: {e}"));
                     format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
                 });
                 Some(s)
@@ -788,20 +788,22 @@ impl LexiParserListener for LexiListener<'_> {
         SynRuleTerminalName(id)
     }
 
-    fn exit_actions(&mut self, ctx: CtxActions, _spans: Vec<PosSpan>) -> SynActions {
+    fn exit_actions(&mut self, ctx: CtxActions, spans: Vec<PosSpan>) -> SynActions {
+        // actions -> action ("," action)*
         let CtxActions::V1 { star } = ctx;
         let action = star.0.into_iter().fold(LexAction::default(), |acc, SynAction(a)| {
             acc.try_add(a).unwrap_or_else(|(_msg, left, right)| {
-                self.log.add_error(format!("can't add actions '{}' and '{}'",
-                                           left.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode)),
-                                           right.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode))));
+                self.log_error(&spans[0], &format!(
+                    "can't add actions '{}' and '{}'",
+                    left.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode)),
+                    right.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode))));
                 left
             })
         });
         SynActions(action)
     }
 
-    fn exit_action(&mut self, ctx: CtxAction, _spans: Vec<PosSpan>) -> SynAction {
+    fn exit_action(&mut self, ctx: CtxAction, spans: Vec<PosSpan>) -> SynAction {
         let action = match ctx {
             CtxAction::V1 { id } => {               // action -> "mode" "(" Id ")"
                 let id_val = self.get_add_mode_or_abort(id);
@@ -834,7 +836,7 @@ impl LexiParserListener for LexiListener<'_> {
                             self.terminal_ret[*token as usize] = true;
                             *token as TokenId
                         } else {
-                            self.log.add_error(format!("action in rule {}: '{id}' is not a terminal; it's a fragment", self.curr_name.as_ref().unwrap()));
+                            self.log_error(&spans[2], &format!("action 'type' must have a terminal; '{id}' is a fragment"));
                             return SynAction(action!(nop));
                         }
                     }
@@ -843,10 +845,12 @@ impl LexiParserListener for LexiListener<'_> {
             }
             CtxAction::V7 { id } => {               // action -> "channel" "(" Id ")"
                 // we don't allow to define new channels here on the fly because typos would induce annoying errors
-                let channel = *self.channels.get(&id).unwrap_or_else(|| {
-                    self.log.add_error(format!("action in rule {}: channel '{id}' undefined", self.curr_name.as_ref().unwrap()));
-                    &0
-                });
+                let channel = if let Some(ch) = self.channels.get(&id) {
+                    *ch
+                } else {
+                    self.log_error(&spans[2], &format!("undefined channel '{id}'"));
+                    0
+                };
                 action!(# channel)
             }
             CtxAction::V8 => {                      // action -> "hook"
@@ -930,9 +934,10 @@ impl LexiParserListener for LexiListener<'_> {
         SynRepeatItem((id, const_literal))
     }
 
-    fn exit_item(&mut self, ctx: CtxItem, _spans: Vec<PosSpan>) -> SynItem {
+    fn exit_item(&mut self, ctx: CtxItem, spans: Vec<PosSpan>) -> SynItem {
         if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
+        let mut errors = vec![];
         let (id, const_literal) = match ctx {
             CtxItem::V1 { id } => {              // item -> Id
                 if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
@@ -940,32 +945,33 @@ impl LexiParserListener for LexiListener<'_> {
                     let const_literal = self.fragment_literals.get(*f as usize).unwrap().clone();
                     (tree.add_from_tree(None, subtree, None), const_literal)
                 } else {
-                    self.log.add_error(format!("rule {}: unknown fragment '{id}'", self.curr_name.as_ref().unwrap()));
+                    errors.push((&spans[0], format!("unknown fragment '{id}'")));
                     let fake = format!("♫{id}♫"); // we make up the result to leave a chance to the parser to continue
                     (tree.add(None, ReNode::string(&fake)), Some(fake))
                 }
             }
-            CtxItem::V2 { charlit } => {         // item -> CharLit ".." CharLit
-                let [first, last] = charlit.map(|clit| {
-                    decode_char(&clit[1..clit.len() - 1]).unwrap_or_else(|e| {
-                        self.log.add_error(format!("rule {}: cannot decode the character literal '{clit}': {e}", self.curr_name.as_ref().unwrap()));
-                        '♫' // we make up the result to leave a chance to the parser to continue
-                    })
-                });
+            CtxItem::V2 { charlit: [a, b] } => {         // item -> CharLit ".." CharLit
+                let [first, last] = [(0, a), (1, b)]
+                    .map(|(i, lit)| {
+                        decode_char(&lit[1..lit.len() - 1]).unwrap_or_else(|e| {
+                            errors.push((&spans[2 * i], format!("cannot decode character literal '{lit}': {e}")));
+                            '♫' // we make up the result to leave a chance to parser to continue
+                        })
+                    });
                 (tree.add(None, ReNode::char_range(Segments::from((first, last)))), None)
             }
             CtxItem::V3 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
                 let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character literal {charlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    errors.push((&spans[0], format!("cannot decode character literal {charlit}: {e}")));
                     '♫' // we make up the result to leave a chance to the parser to continue
                 });
                 (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
             }
             CtxItem::V4 { strlit } => {          // item -> StrLit
                 let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the string literal {strlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    errors.push((&spans[0], format!("cannot decode string literal {strlit}: {e}")));
                     format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
                 });
                 (tree.add(None, ReNode::string(&s)), Some(s))
@@ -981,16 +987,21 @@ impl LexiParserListener for LexiListener<'_> {
                 if let ReType::CharRange(range) = node.get_mut_type() {
                     **range = range.not();
                 } else {
-                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to {}", self.curr_name.as_ref().unwrap(), node.get_type()));
+                    errors.push((
+                        &spans[1],
+                        format!("~ can only be applied to a char set, not to {}", node.get_type())));
                 }
                 (item.0.0, None)
             }
         };
         if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        for (span, msg) in errors {
+            self.log_error(span, &msg);
+        }
         SynItem((id, const_literal))
     }
 
-    fn exit_char_set(&mut self, ctx: CtxCharSet, _spans: Vec<PosSpan>) -> SynCharSet {
+    fn exit_char_set(&mut self, ctx: CtxCharSet, spans: Vec<PosSpan>) -> SynCharSet {
         // char_set:
         //     LSBRACKET (char_set_one)+ RSBRACKET
         // |   DOT
@@ -1005,7 +1016,7 @@ impl LexiParserListener for LexiListener<'_> {
             }
             CtxCharSet::V3 { fixedset } => {          // char_set -> FixedSet
                 decode_fixed_set(&fixedset).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
+                    self.log_error(&spans[0], &format!("cannot decode character set [{fixedset}]: {e}"));
                     segments!('♫') // we make up the result to leave a chance to the parser to continue
                 })
             }
@@ -1014,17 +1025,18 @@ impl LexiParserListener for LexiListener<'_> {
         SynCharSet(seg)
     }
 
-    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne, _spans: Vec<PosSpan>) -> SynCharSetOne {
+    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne, spans: Vec<PosSpan>) -> SynCharSetOne {
         // char_set_one:
         //     SET_CHAR MINUS SET_CHAR
         // |   SET_CHAR
         // |   FIXED_SET;
         if self.verbose { print!("- exit_char_set_one({ctx:?})"); }
+        let mut errors = vec![];
         let seg = match ctx {
-            CtxCharSetOne::V1 { setchar } => {     // char_set_one -> SetChar "-" SetChar
-                let [first, last] = setchar.map(|sc| {
+            CtxCharSetOne::V1 { setchar: [a, b] } => {     // char_set_one -> SetChar "-" SetChar
+                let [first, last] = [(0, a), (1, b)].map(|(i, sc)| {
                     decode_set_char(&sc).unwrap_or_else(|e| {
-                        self.log.add_error(format!("rule {}: cannot decode the character '{sc}': {e}", self.curr_name.as_ref().unwrap()));
+                        errors.push((&spans[2 * i], format!("cannot decode character {sc}: {e}")));
                         '♫' // we make up the result to leave a chance to the parser to continue
                     })
                 });
@@ -1032,19 +1044,22 @@ impl LexiParserListener for LexiListener<'_> {
             }
             CtxCharSetOne::V2 { setchar } => {     // char_set_one -> SetChar
                 let single = decode_set_char(&setchar).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character '{setchar}': {e}", self.curr_name.as_ref().unwrap()));
+                    errors.push((&spans[0], format!("cannot decode character {setchar}: {e}")));
                     '♫' // we make up the result to leave a chance to the parser to continue
                 });
                 Segments::from(single)
             }
             CtxCharSetOne::V3 { fixedset } => {    // char_set_one -> FixedSet
                 decode_fixed_set(&fixedset).unwrap_or_else(|e| {
-                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
+                    errors.push((&spans[0], format!("cannot decode character set [{fixedset}]: {e}")));
                     segments!('♫') // we make up the result to leave a chance to the parser to continue
                 })
             }
         };
         if self.verbose { println!(" -> {seg}"); }
+        for (span, msg) in errors {
+            self.log_error(span, &msg);
+        }
         SynCharSetOne(seg)
     }
 }
@@ -1139,7 +1154,7 @@ fn decode_set_char(setchar: &str) -> Result<char, String> {
                 if bytes[2] != b'{' || !matches!(setchar.chars().last(), Some('}')) {
                     return Err(format!("malformed unicode literal '{setchar}'"));
                 }
-                let hex = &setchar[3..setchar.len()];
+                let hex = &setchar[3..setchar.len() - 1];
                 let code = u32::from_str_radix(hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
                 let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
                 Ok(u)

@@ -911,7 +911,7 @@ mod lexicon {
         let tests: Vec<(&str, Vec<&str>, Vec<&str>)> = vec![
             (
                 r#"lexicon test0; channels { CH1, CH1 }"#,
-                vec!["channel 'CH1' is already defined"],
+                vec!["channel 'CH1' is defined several times"],
                 vec![],
             ),
             (
@@ -952,33 +952,33 @@ mod lexicon {
             ),
             (
                 r"lexicon test5; fragment A: 'a'; B: 'b' -> type(A);",
-                vec!["rule B: 'A' is not a terminal; it's a fragment"],
+                vec!["action 'type' must have a terminal; 'A' is a fragment"],
                 vec![],
             ),
             (
                 r"lexicon test6; channels { CH1 } A: 'a' -> channel(CH2);",
-                vec!["rule A: channel 'CH2' undefined"],
+                vec!["undefined channel 'CH2'"],
                 vec![],
             ),
             (
                 r"lexicon test7; A: ~'abc'; B: ~('ab'|'cd');",
                 vec![
-                    "rule A: ~ can only be applied to a char set, not to 'abc'",
-                    "rule B: ~ can only be applied to a char set, not to |", // not a great message...
+                    "~ can only be applied to a char set, not to 'abc'",
+                    "~ can only be applied to a char set, not to |", // not a great message...
                 ],
                 vec![],
             ),
             (
                 r"lexicon test8; fragment A: B;",
-                vec!["rule A: unknown fragment 'B'"],
+                vec!["unknown fragment 'B'"],
                 vec![],
             ),
             (
                 r#"lexicon test9; A: ':\u{d800}'; B: '\u{110000}'; C: 'a'..'\u{d800}';"#,
                 vec![
-                    "rule A: cannot decode the string literal ':\\u{d800}': 'd800' isn't a valid unicode",
-                    "rule B: cannot decode the character literal '\\u{110000}': '110000' isn't a valid unicode",
-                    "rule C: cannot decode the character literal ''\\u{d800}'': 'd800' isn't a valid unicode",
+                    "cannot decode string literal ':\\u{d800}': 'd800' isn't a valid unicode",
+                    "cannot decode character literal '\\u{110000}': '110000' isn't a valid unicode",
+                    "cannot decode character literal ''\\u{d800}'': 'd800' isn't a valid unicode",
                 ],
                 vec![],
             ),
@@ -1014,6 +1014,22 @@ mod lexicon {
                 vec![],
                 vec!["mode 'B_MODE' is defined but not used"],
             ),
+            (
+                r#"lexicon test15;
+                A: 'a';
+                B C;
+                "#,
+                vec!["syntax error: found input 'C' instead of ':'"],
+                vec![],
+            ),
+            (
+                r#"lexicon test16;
+                A: [\u{d800}];
+                B: [\u{d801}-\u{d802}];
+                "#,
+                vec!["cannot decode character \\u{d800}", "cannot decode character \\u{d801}", "cannot decode character \\u{d802}"],
+                vec![],
+            ),
             /* template:
             (
                 r#""#,
@@ -1022,7 +1038,7 @@ mod lexicon {
             ),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         for (test_id, (lexicon, mut expected_errors, mut expected_warnings)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
