@@ -5,7 +5,6 @@
 use iter_index::IndexerIterator;
 use lexigram_lib::{CollectJoin, SymbolTable, VarId};
 use lexigram_lib::build::{BuildFrom, BuildInto};
-use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexergen::{LexerGen, LexerTables};
 use lexigram_lib::log::{LogReader, LogStatus};
 use crate::Lexi;
@@ -67,8 +66,7 @@ fn make_lexer_tables(lexicon: &str) -> (LexerTables, SymbolTable) {
     const VERBOSE: bool = false;
 
     // parses the test lexicon
-    let lexicon_stream = CharReader::new(lexicon.as_bytes());
-    let lexi = Lexi::new(lexicon_stream);
+    let lexi = Lexi::new(lexicon);
     let symbolic_dfa: SymbolicDfa = lexi.build_into();
     let SymbolicDfa { dfa, symbol_table, .. } = symbolic_dfa;
     let msg = dfa.get_log().get_messages_str();

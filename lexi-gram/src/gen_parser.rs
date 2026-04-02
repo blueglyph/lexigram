@@ -38,8 +38,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 {
     // 1. Lexer
 
-    let lexicon_stream = CharReader::new(Cursor::new(&lexicon));
-    let lexi = Lexi::new(lexicon_stream);
+    let lexi = Lexi::new(lexicon.as_str());
     let lexi_tab_width = lexi.get_tab_width();
 
     // - reads the lexicon and builds the DFA

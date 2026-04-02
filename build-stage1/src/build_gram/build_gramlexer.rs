@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use lexi_gram::{lexigram_lib, Lexi};
 use lexi_gram::lexi::SymbolicDfa;
 use lexigram_lib::build::BuildInto;
@@ -16,9 +16,13 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 /// Generates Gram's lexer source code from the lexicon file.
 fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String, String), BufLog> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
-    let reader = BufReader::new(file);
-    let stream = CharReader::new(reader);
-    let lexi = Lexi::new(stream);
+    let mut lexicon: String;
+    file.read_to_string(&mut lexicon).map_err(|e| {
+        let mut log = BufLog::new();
+        log.add_error("{e}");
+        Err(log)
+    })?;
+    let lexi = Lexi::new(lexicon.as_str());
     let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.build_into();
     assert_eq!(pos_grammar_opt, None, "grammar detected in Gram's lexicon at {}", pos_grammar_opt.unwrap());
     if !dfa.get_log().has_no_errors() {

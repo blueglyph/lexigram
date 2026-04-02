@@ -12,6 +12,7 @@ use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
 use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Pos, PosSpan, Terminal};
+use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
 use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
 use crate::lexi::lexiparser::*;
@@ -142,8 +143,9 @@ pub enum RuleType {
     Terminal(TokenId)
 }
 
-pub struct LexiListener {
+pub struct LexiListener<'ls> {
     verbose: bool,
+    lines: Option<Vec<&'ls str>>,
     name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
@@ -181,7 +183,7 @@ pub struct LexiListener {
     token_to_index: Vec<Option<usize>>,
 }
 
-impl LexiListener {
+impl<'ls> LexiListener<'ls> {
     // WARNING: this method isn't efficient; it's only used for error messages or test results. Don't use
     //          it when performances are required.
     fn token_to_string(&self, token: TokenId) -> (String, bool) {
@@ -204,9 +206,10 @@ impl LexiListener {
         format!("{mode}?")
     }
 
-    pub fn new() -> Self {
+    pub fn new(lexicon: &'ls str) -> Self {
         LexiListener {
             verbose: false,
+            lines: Some(lexicon.lines().collect()),
             name: String::new(),
             curr: None,
             curr_mode: 0,
@@ -233,6 +236,10 @@ impl LexiListener {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
+    }
+
+    pub fn attach_lines(&mut self, lines: Vec<&'ls str>) {
+        self.lines = Some(lines);
     }
 
     pub fn get_name(&self) -> &str {
@@ -503,7 +510,7 @@ impl LexiListener {
     }
 }
 
-impl LogReader for LexiListener {
+impl LogReader for LexiListener<'_> {
     type Item = BufLog;
 
     fn get_log(&self) -> &BufLog {
@@ -515,7 +522,13 @@ impl LogReader for LexiListener {
     }
 }
 
-impl BuildFrom<LexiListener> for Dfa<Normalized> {
+impl GetLine for LexiListener<'_> {
+    fn get_line(&self, n: usize) -> &str {
+        self.lines.as_ref().unwrap()[n - 1]
+    }
+}
+
+impl BuildFrom<LexiListener<'_>> for Dfa<Normalized> {
     /// Makes and optimizes the DFA
     fn build_from(source: LexiListener) -> Self {
         const VERBOSE: bool = false;
@@ -559,7 +572,7 @@ impl BuildFrom<LexiListener> for Dfa<Normalized> {
     }
 }
 
-impl Debug for LexiListener {
+impl Debug for LexiListener<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "LexiListener {{")?;
         writeln!(f, "  name = {}", self.name)?;
@@ -583,7 +596,7 @@ impl Debug for LexiListener {
     }
 }
 
-impl LexiParserListener for LexiListener {
+impl LexiParserListener for LexiListener<'_> {
     fn check_abort_request(&self) -> Terminate {
         self.abort
     }
@@ -632,12 +645,14 @@ impl LexiParserListener for LexiListener {
         SynDeclaration()
     }
 
-    fn exit_option(&mut self, ctx: CtxOption, _spans: Vec<PosSpan>) -> SynOption {
+    fn exit_option(&mut self, ctx: CtxOption, spans: Vec<PosSpan>) -> SynOption {
         if self.verbose { println!("- exit_option({ctx:?})"); }
         let CtxOption::V1 { star } = ctx;       // option -> "channels" "{" Id ("," Id)* "}"
         for ch in star.0 {
             if self.channels.contains_key(&ch) {
-                self.log.add_error(format!("channel '{ch}' defined twice"));
+                // self.log.add_error(format!("channel '{ch}' already defined"));
+                let text = self.annotate_text(&spans[0]);
+                self.log.add_error(format!("channel '{ch}' already defined:\n\n{text}\n"));
             } else {
                 self.channels.insert(ch, self.channels.len() as ChannelId);
             }

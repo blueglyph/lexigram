@@ -651,8 +651,7 @@ mod simple {
         in tests.into_iter().enumerate()
         {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-            let stream = CharReader::new(input.as_bytes());
-            let mut lexi = Lexi::new(stream);
+            let mut lexi = Lexi::new(input);
             lexi.make();
             let listener = lexi.get_listener();
             let result_pos_grammar = listener.get_pos_grammar();
@@ -767,8 +766,7 @@ mod simple {
         for (test_id, (lexicon, inputs)) in tests.into_iter().enumerate() {
             if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
-            let stream = CharReader::new(lexicon.as_bytes());
-            let mut lexi = Lexi::new(stream);
+            let mut lexi = Lexi::new(lexicon);
             lexi.make();
             let listener = lexi.get_listener();
             let result_is_ok = listener.get_log().has_no_errors();
@@ -860,8 +858,7 @@ mod simple {
 
         for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-            let stream = CharReader::new(input.as_bytes());
-            let mut lexi = Lexi::new(stream);
+            let mut lexi = Lexi::new(input);
             lexi.make();
             let listener = lexi.get_listener();
             let result_is_ok = listener.get_log().has_no_errors();
@@ -906,7 +903,6 @@ mod simple {
 
 mod lexicon {
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::log::{LogReader, LogStatus};
     use crate::Lexi;
 
@@ -915,7 +911,7 @@ mod lexicon {
         let tests: Vec<(&str, Vec<&str>, Vec<&str>)> = vec![
             (
                 r#"lexicon test0; channels { CH1, CH1 }"#,
-                vec!["channel 'CH1' defined twice"],
+                vec!["channel 'CH1' is already defined"],
                 vec![],
             ),
             (
@@ -1026,12 +1022,11 @@ mod lexicon {
             ),
             */
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         for (test_id, (lexicon, mut expected_errors, mut expected_warnings)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
-            let stream = CharReader::new(lexicon.as_bytes());
-            let mut lexi = Lexi::new(stream);
+            let mut lexi = Lexi::new(lexicon);
             let _result = lexi.make();
             let listener = lexi.wrapper.give_listener();
             let text = format!("test {test_id} failed");

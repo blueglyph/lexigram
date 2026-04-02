@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::io::Read;
+use std::io::Cursor;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{CaretCol, Lexer, Pos, TokenSpliterator};
@@ -26,26 +26,26 @@ pub struct SymbolicDfa {
     pub pos_grammar_opt: Option<Pos>,
 }
 
-pub struct Lexi<'a, 'b, R: Read> {
-    pub lexilexer: Lexer<'a, R>,
-    pub lexiparser: Parser<'b>,
-    wrapper: Wrapper<LexiListener>,
+pub struct Lexi<'l, 'p, 'ls> {
+    pub lexilexer: Lexer<'l, Cursor<&'l str>>,
+    pub lexiparser: Parser<'p>,
+    wrapper: Wrapper<LexiListener<'ls>>,
     is_built: bool
 }
 
-impl<R: Read> Lexi<'_, '_, R> {
+impl<'l, 'ls: 'l> Lexi<'l, '_, 'ls> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
     pub const TAB_WIDTH: CaretCol = 4;
 
-    pub fn new(lexicon: CharReader<R>) -> Self {
-        let listener = LexiListener::new();
+    pub fn new(lexicon: &'ls str) -> Self {
+        let listener = LexiListener::new(lexicon);
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
         lexilexer.set_tab_width(Self::TAB_WIDTH);
-        lexilexer.attach_stream(lexicon);
+        lexilexer.attach_stream(CharReader::new(Cursor::new(lexicon)));
         Lexi {
             lexilexer,
             lexiparser: build_parser(),
@@ -54,11 +54,11 @@ impl<R: Read> Lexi<'_, '_, R> {
         }
     }
 
-    pub fn get_listener_mut(&mut self) -> &mut LexiListener {
+    pub fn get_listener_mut(&mut self) -> &mut LexiListener<'ls> {
         self.wrapper.get_listener_mut()
     }
 
-    pub fn get_listener(&self) -> &LexiListener {
+    pub fn get_listener(&self) -> &LexiListener<'ls> {
         self.wrapper.get_listener()
     }
 
@@ -78,15 +78,15 @@ impl<R: Read> Lexi<'_, '_, R> {
                 }
             });
             if self.lexiparser.parse_stream(&mut self.wrapper, tokens).is_ok() {
-                for s in self.get_listener_mut().rules_to_vecstrings() {
-                    self.get_listener_mut().get_log_mut().add_note(s);
+                for s in self.wrapper.get_listener_mut().rules_to_vecstrings() {
+                    self.wrapper.get_listener_mut().get_log_mut().add_note(s);
                 }
             }
         }
     }
 }
 
-impl<R: Read> LogReader for Lexi<'_, '_, R> {
+impl LogReader for Lexi<'_, '_, '_> {
     type Item = BufLog;
 
     fn get_log(&self) -> &Self::Item {
@@ -99,12 +99,12 @@ impl<R: Read> LogReader for Lexi<'_, '_, R> {
     }
 }
 
-impl<R: Read> HasBuildErrorSource for Lexi<'_, '_, R> {
+impl HasBuildErrorSource for Lexi<'_, '_, '_> {
     const SOURCE: BuildErrorSource = BuildErrorSource::Lexi;
 }
 
-impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
-    fn build_from(mut lexi: Lexi<R>) -> Self {
+impl<'l, 'p, 'ls: 'l> BuildFrom<Lexi<'l, 'p, 'ls>> for SymbolicDfa {
+    fn build_from(mut lexi: Lexi<'l, 'p, 'ls>) -> Self {
         lexi.make();
         let listener = lexi.wrapper.give_listener();
         let symbol_table = listener.make_symbol_table();
@@ -119,10 +119,10 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     }
 }
 
-impl<R: Read> TryBuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
+impl TryBuildFrom<Lexi<'_, '_, '_>> for SymbolicDfa {
     type Error = BuildError;
 
-    fn try_build_from(source: Lexi<'_, '_, R>) -> Result<Self, Self::Error> {
+    fn try_build_from(source: Lexi<'_, '_, '_>) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
             let symbolic_dfa = SymbolicDfa::build_from(source);
             if symbolic_dfa.dfa.get_log().has_no_errors() {
