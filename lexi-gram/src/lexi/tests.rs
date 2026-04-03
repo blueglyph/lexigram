@@ -937,7 +937,8 @@ mod lexicon {
                     B: 'b' -> skip, type(R);
                     C: 'c' -> skip, more, push(A_MODE);
                     D: 'd' -> type(R), more, pop;
-                    E: 'e' -> mode(X_MODE), mode(Y_MODE), skip;"#,
+                    E: 'e' -> mode(X_MODE), mode(Y_MODE), skip;
+                    F: 'f' -> mode(X_MODE);"#,
                 vec![
                     "can't add actions 'type(R)' and 'type(S)'",
                     "can't add actions 'skip' and 'type(R)'",

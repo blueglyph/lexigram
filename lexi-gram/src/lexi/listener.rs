@@ -175,6 +175,8 @@ pub struct LexiListener<'ls> {
     referenced_modes: HashSet<ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Option<Range<TokenId>>>,
+    mode_defs: HashMap<String, PosSpan>,
+    mode_refs: HashMap<String, Vec<PosSpan>>,
     log: BufLog,
     abort: Terminate,
     /// Starting position of `"grammar" Id ";"`, if detected
@@ -227,6 +229,8 @@ impl<'ls> LexiListener<'ls> {
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             referenced_modes: hashset!(0),
             mode_terminals: vec![Some(0..0)],
+            mode_defs: HashMap::new(),
+            mode_refs: HashMap::new(),
             log: BufLog::new(),
             abort: Terminate::None,
             pos_grammar_opt: None,
@@ -489,24 +493,35 @@ impl<'ls> LexiListener<'ls> {
         if self.verbose { println!("\nModes: "); }
         let mut mode_errors = vec![];
         let mut mode_warnings = vec![];
+        let empty_vec = vec![];
         for (mode_id, mode) in self.get_sorted_modes() {
             if !self.referenced_modes.contains(&mode_id) {
-                mode_warnings.push(format!("mode '{mode}' is defined but not used"));
+                mode_warnings.push((self.mode_defs.get(mode), format!("mode '{mode}' is defined but not used")));
             }
             let terminals = match self.mode_terminals.get(mode_id as usize) {
                 Some(Some(range)) => format!("{range:?}"),
                 _ => {
-                    mode_errors.push(format!("mode '{mode}' referenced but not defined"));
+                    mode_errors.push((self.mode_refs.get(mode).unwrap_or_else(|| &empty_vec), format!("mode '{mode}' referenced but not defined")));
                     "## ERROR: undefined".to_string()
                 }
             };
             if self.verbose { println!("- {mode_id} - {mode}: terminals = {terminals}"); }
         }
-        for err in mode_errors {
-            self.log.add_error(err);
+        for (spans, err) in mode_errors {
+            if !spans.is_empty() {
+                let text = spans.into_iter().map(|s| self.annotate_text(s)).join("\n");
+                self.log.add_error(format!("at {}, {err}:\n\n{text}\n", spans.into_iter().map(|s| s.to_string()).join(", ")));
+            } else {
+                self.log.add_error(err);
+            }
         }
-        for warn in mode_warnings {
-            self.log.add_warning(warn);
+        for (span_opt, warn) in mode_warnings {
+            if let Some(span) = span_opt {
+                let text = self.annotate_text(span);
+                self.log.add_warning(format!("at {span}, {warn}:\n\n{text}\n"));
+            } else {
+                self.log.add_warning(warn);
+            }
         }
     }
 }
@@ -630,9 +645,10 @@ impl LexiParserListener for LexiListener<'_> {
         SynHeader()
     }
 
-    fn exit_declaration(&mut self, ctx: CtxDeclaration, _spans: Vec<PosSpan>) -> SynDeclaration {
+    fn exit_declaration(&mut self, ctx: CtxDeclaration, spans: Vec<PosSpan>) -> SynDeclaration {
         if self.verbose { print!("- exit_declaration({ctx:?}), modes: {:?}", self.modes); }
         let CtxDeclaration::V1 { id: mode_name } = ctx;    // declaration -> mode Id ;
+        self.mode_defs.insert(mode_name.clone(), spans[1].clone());
         let mode_id = self.get_add_mode_or_abort(mode_name);
         if self.abort == Terminate::None {
             self.curr_mode = mode_id;
@@ -806,11 +822,17 @@ impl LexiParserListener for LexiListener<'_> {
     fn exit_action(&mut self, ctx: CtxAction, spans: Vec<PosSpan>) -> SynAction {
         let action = match ctx {
             CtxAction::V1 { id } => {               // action -> "mode" "(" Id ")"
+                self.mode_refs.entry(id.clone())
+                    .and_modify(|v| v.push(spans[2].clone()))
+                    .or_insert_with(||vec![spans[2].clone()]);
                 let id_val = self.get_add_mode_or_abort(id);
                 self.referenced_modes.insert(id_val);
                 action!(mode id_val)
             }
             CtxAction::V2 { id } => {               // action -> "push" "(" Id ")"
+                self.mode_refs.entry(id.clone())
+                    .and_modify(|v| v.push(spans[2].clone()))
+                    .or_insert_with(||vec![spans[2].clone()]);
                 let id_val = self.get_add_mode_or_abort(id);
                 self.referenced_modes.insert(id_val);
                 action!(push id_val)
