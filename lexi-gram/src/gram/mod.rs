@@ -10,7 +10,7 @@ use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{General, SymbolTable, LL1};
-use std::io::Read;
+use std::io::Cursor;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 
 mod gramlexer;
@@ -18,24 +18,24 @@ mod gramparser;
 mod listener;
 mod tests;
 
-pub struct Gram<'a, 'b, R: Read> {
-    pub gramlexer: Lexer<'a, R>,
-    pub gramparser: Parser<'b>,
-    pub wrapper: Wrapper<GramListener>,
+pub struct Gram<'l, 'p, 'ls> {
+    pub gramlexer: Lexer<'l, Cursor<&'l str>>,
+    pub gramparser: Parser<'p>,
+    pub wrapper: Wrapper<GramListener<'ls>>,
     start_nt: Option<String>,
 }
 
-impl<R: Read> Gram<'_, '_, R> {
+impl<'l, 'ls: 'l> Gram<'l, '_, 'ls> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_LISTENER: bool = false;
 
-    pub fn new(symbol_table: SymbolTable, grammar: CharReader<R>) -> Self {
-        let listener = GramListener::new(symbol_table);
+    pub fn new(symbol_table: SymbolTable, grammar: &'ls str) -> Self {
+        let listener = GramListener::new(symbol_table, grammar);
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut gramlexer = build_lexer();
         gramlexer.set_tab_width(4);
-        gramlexer.attach_stream(grammar);
+        gramlexer.attach_stream(CharReader::new(Cursor::new(grammar)));
         Gram {
             gramlexer,
             gramparser: build_parser(),
@@ -48,11 +48,11 @@ impl<R: Read> Gram<'_, '_, R> {
         self.start_nt = name_opt;
     }
 
-    pub fn get_listener_mut(&mut self) -> &mut GramListener {
+    pub fn get_listener_mut(&mut self) -> &mut GramListener<'ls> {
         self.wrapper.get_listener_mut()
     }
 
-    pub fn get_listener(&self) -> &GramListener {
+    pub fn get_listener(&self) -> &GramListener<'ls> {
         self.wrapper.get_listener()
     }
 
@@ -72,7 +72,7 @@ impl<R: Read> Gram<'_, '_, R> {
     }
 }
 
-impl<R: Read> LogReader for Gram<'_, '_, R> {
+impl LogReader for Gram<'_, '_, '_> {
     type Item = BufLog;
 
     fn get_log(&self) -> &Self::Item {
@@ -85,17 +85,17 @@ impl<R: Read> LogReader for Gram<'_, '_, R> {
     }
 }
 
-impl<R: Read> HasBuildErrorSource for Gram<'_, '_, R> {
+impl HasBuildErrorSource for Gram<'_, '_, '_> {
     const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
 }
 
-impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
+impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
     /// Produces a [`ProdRuleSet<LL1>`] from a [`Gram`], by parsing the grammar
     /// and creating the rule set, then transforming the result if necessary for an LL1 grammar.
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn build_from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
+    fn build_from(mut gram: Gram<'l, 'p, 'ls>) -> ProdRuleSet<LL1> {
         let _ = gram.make();
         let mut listener = gram.wrapper.give_listener();
         let name = listener.get_name().to_string();

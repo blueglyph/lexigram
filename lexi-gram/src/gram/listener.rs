@@ -3,7 +3,7 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
+use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
@@ -14,13 +14,15 @@ use vectree::VecTree;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 use lexigram_lib::lexer::PosSpan;
+use lexigram_lib::lexigram_core::text_span::GetLine;
 
 enum PostCheck {
-    RepeatChildLform { node: usize, var: VarId }
+    RepeatChildLform { node: usize, var: VarId, span: PosSpan }
 }
 
-pub struct GramListener {
+pub struct GramListener<'ls> {
     verbose: bool,
+    lines: Vec<&'ls str>,
     name: String,
     log: BufLog,
     abort: Terminate,
@@ -43,11 +45,11 @@ pub struct GramListener {
     num_nt: usize,
 }
 
-impl GramListener {
+impl<'ls> GramListener<'ls> {
     /// Gram listener used for parsing grammar files.
     ///
     /// `symbol_table` must contain the terminal symbols from the lexicon corresponding to the grammar.
-    pub fn new(symbol_table: SymbolTable) -> Self {
+    pub fn new(symbol_table: SymbolTable, grammar: &'ls str) -> Self {
         // copies the NT and T from the symbol table
         let symbols = symbol_table.get_terminals()
             .index::<VarId>()
@@ -56,6 +58,7 @@ impl GramListener {
         assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain nonterminals");
         GramListener {
             verbose: false,
+            lines: grammar.lines().collect(),
             name: String::new(),
             abort: Terminate::None,
             log: BufLog::new(),
@@ -162,7 +165,7 @@ impl GramListener {
     }
 }
 
-impl LogReader for GramListener {
+impl LogReader for GramListener<'_> {
     type Item = BufLog;
 
     fn get_log(&self) -> &BufLog {
@@ -174,11 +177,17 @@ impl LogReader for GramListener {
     }
 }
 
-impl HasBuildErrorSource for GramListener {
+impl GetLine for GramListener<'_> {
+    fn get_line(&self, n: usize) -> &str {
+        self.lines[n - 1]
+    }
+}
+
+impl HasBuildErrorSource for GramListener<'_> {
     const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
 }
 
-impl From<GramListener> for ProdRuleSet<General> {
+impl From<GramListener<'_>> for ProdRuleSet<General> {
     /// Builds a [`ProdRuleSet<General>`] from a [`GramListener`].
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
@@ -202,7 +211,7 @@ impl From<GramListener> for ProdRuleSet<General> {
     }
 }
 
-impl Debug for GramListener {
+impl Debug for GramListener<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "GramListener {{")?;
         writeln!(f, "  name = {}", self.name)?;
@@ -223,7 +232,7 @@ impl Debug for GramListener {
     }
 }
 
-impl GramParserListener for GramListener {
+impl GramParserListener for GramListener<'_> {
     fn check_abort_request(&self) -> Terminate {
         self.abort
     }

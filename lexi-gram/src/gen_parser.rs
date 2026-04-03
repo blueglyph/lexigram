@@ -64,28 +64,28 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     // 2. Parser
 
     let parser_sources = if grammar_opt.is_some() || is_combined {
-        let grammar_stream = if let Some(grammar) = grammar_opt {
-            CharReader::new(Cursor::new(grammar))
-        } else if let Some(pos_grammar) = pos_grammar_opt {
-            // if we carried the absolute position to the listener, we could avoid
-            // seeking the cursor position again, but we have the line/col only:
-            let mut cr = CharReader::new(Cursor::new(lexicon));
-            let mut pos = Pos(1, 1);
-            let mut char_opt = None;
-            while pos != pos_grammar {
-                char_opt = Some(cr.get_char().expect("cannot find the position of the grammar in the lexicon"));
-                pos.update_pos(char_opt.unwrap(), lexi_tab_width);
-            }
-            if let Some(ch) = char_opt {
-                cr.rewind(ch).expect("couldn't rewind the first character of the grammar");
-            }
-            cr
-        } else {
-            panic!("shouldn't happen");
-        };
+        let grammar = grammar_opt.as_ref().map(|s| s.as_str()).unwrap_or_else(|| {
+            if let Some(pos_grammar) = pos_grammar_opt {
+                // if we carried the absolute position to the listener, we could avoid
+                // seeking the cursor position again, but we have the line/col only:
+                let mut cr = CharReader::new(Cursor::new(&lexicon));
+                let mut pos = Pos(1, 1);
+                let mut char_opt = None;
+                while pos != pos_grammar {
+                    char_opt = Some(cr.get_char().expect("cannot find the position of the grammar in the lexicon"));
+                    pos.update_pos(char_opt.unwrap(), lexi_tab_width);
+                }
+                if let Some(ch) = char_opt {
+                    cr.rewind(ch).expect("couldn't rewind the first character of the grammar");
+                }
+                let offset = cr.get_offset() as usize;
+                &lexicon[offset..]
+            } else {
+                panic!("shouldn't happen");
+            }});
 
         // - parses the grammar
-        let mut gram = Gram::new(symbol_table, grammar_stream);
+        let mut gram = Gram::new(symbol_table, grammar);
         gram.set_start_nt(options.start_nt.clone());
         let ll1 = ProdRuleSet::<LL1>::try_build_from(gram)?;
 

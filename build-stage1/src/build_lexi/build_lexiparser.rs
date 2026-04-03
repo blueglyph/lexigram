@@ -1,13 +1,12 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::fs::File;
-use std::io::BufReader;
+use std::io::Read;
 use lexi_gram::{lexigram_lib, Gram};
 use lexigram_lib::build::BuildInto;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::{LL1, SymbolTable};
-use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::file_utils::replace_tagged_source;
 use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, VERSIONS_TAG};
 
@@ -62,12 +61,16 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, _verbose: bool) -> 
     // - builds initial symbol table from symbols above extracted by lexi (in build_lexilexer, which updated this source file)
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
-    let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
-    let reader = BufReader::new(file);
-    let grammar_stream = CharReader::new(reader);
+    let mut file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
+    let mut grammar = String::new();
+    if let Err(e) = file.read_to_string(&mut grammar) {
+        let mut log = BufLog::new();
+        log.add_error(e.to_string());
+        return Err(log)
+    };
 
     // - parses the grammar
-    let gram = Gram::new(symbol_table, grammar_stream);
+    let gram = Gram::new(symbol_table, grammar.as_str());
     let ll1: ProdRuleSet<LL1> = gram.build_into();
     if !ll1.get_log().has_no_errors() || ll1.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
         let mut log = ll1.give_log();

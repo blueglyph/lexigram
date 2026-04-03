@@ -209,8 +209,7 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let grammar_stream = CharReader::new(grammar.as_bytes());
-            let gram = Gram::new(symbol_table.clone(), grammar_stream);
+            let gram = Gram::new(symbol_table.clone(), grammar);
             let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages_str();
             let should_succeed = expected_grammar_errors.is_empty();
