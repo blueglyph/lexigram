@@ -504,6 +504,7 @@ impl<T: GramParserListener> Wrapper<T> {
 // -------------------------------------------------------------------------
 
 pub(crate) mod gramparser_types {
+    use lexigram_lib::VarId;
 
     /// User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
@@ -516,11 +517,11 @@ pub(crate) mod gramparser_types {
     /// User-defined type for `rule_name`
     #[derive(Debug, PartialEq)] pub struct SynRuleName(pub String);
     /// User-defined type for `prod`
-    #[derive(Debug, PartialEq)] pub struct SynProd(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynProd(pub usize, pub Option<VarId>);
     /// User-defined type for `prod_term`
-    #[derive(Debug, PartialEq)] pub struct SynProdAlt(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdAlt(pub usize, pub Option<VarId>);
     /// User-defined type for `prod_factor`
-    #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize, pub Option<VarId>);
     /// User-defined type for `prod_atom`
-    #[derive(Debug, PartialEq)] pub struct SynProdAtom(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdAtom(pub usize, pub Option<VarId>);
 }

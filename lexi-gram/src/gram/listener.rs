@@ -14,11 +14,11 @@ use vectree::VecTree;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 use lexigram_lib::lexer::PosSpan;
-use lexigram_lib::lexigram_core::text_span::GetLine;
+use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
 
-enum PostCheck {
-    RepeatChildLform { node: usize, var: VarId, span: PosSpan }
-}
+// enum PostCheck {
+//     RepeatChildLform { node: usize, var: VarId, span: PosSpan }
+// }
 
 pub struct GramListener<'ls> {
     verbose: bool,
@@ -29,6 +29,7 @@ pub struct GramListener<'ls> {
     curr: Option<GrTree>,
     curr_name: Option<String>,
     curr_nt: Option<VarId>,
+    stack_lform: Vec<PosSpan>,
     rules: Vec<VecTree<GrNode>>,
     start_nt: Option<VarId>,
     disable_warning_unused_nt_t: bool,
@@ -41,7 +42,7 @@ pub struct GramListener<'ls> {
     /// OPTIMIZE: because of this 1-pass system that preserves the ID order of the grammar file,
     /// we use more space in the VarId range: |defined| + |reserved| instead of |defined|.
     nt_reserved: HashMap<String, VarId>,
-    post_check: Vec<PostCheck>,
+    // post_check: Vec<PostCheck>,
     num_nt: usize,
 }
 
@@ -65,13 +66,14 @@ impl<'ls> GramListener<'ls> {
             curr: None,
             curr_name: None,
             curr_nt: None,
+            stack_lform: Vec::new(),
             rules: Vec::new(),
             start_nt: None,
             disable_warning_unused_nt_t: false,
             symbol_table,
             symbols,
             nt_reserved: HashMap::new(),
-            post_check: Vec::new(),
+            // post_check: Vec::new(),
             num_nt: 0,
         }
     }
@@ -145,23 +147,26 @@ impl<'ls> GramListener<'ls> {
         }
     }
 
+    fn log_error(&mut self, span: &PosSpan, message: &str) {
+        let text = self.annotate_text(span);
+        self.log.add_error(format!("at {span}, {message}:\n\n{text}\n"));
+    }
+
     fn do_post_checks(&mut self) {
-        if self.log.has_no_errors() {
-            for check in &self.post_check {
-                match check {
-                    PostCheck::RepeatChildLform { node, var } => {
-                        let tree = &self.rules[*var as usize];
-                        if tree.iter_post_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
-                            let symtab = Some(&self.symbol_table);
-                            self.log.add_error(
-                                format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
-                                        Symbol::NT(*var).to_str(symtab),
-                                        grtree_to_str(tree, Some(*node), None, Some(*var), symtab, false)));
-                        }
-                    }
-                }
-            }
-        }
+    //     if self.log.has_no_errors() {
+    //         for check in &self.post_check {
+    //             match check {
+    //                 PostCheck::RepeatChildLform { node, var, span } => {
+    //                     let tree = &self.rules[*var as usize];
+    //                     if tree.iter_post_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
+    //                         let text = self.annotate_text(span);
+    //                         self.log.add_error(
+    //                             format!("at {span}: <L> points to the same nonterminal. It must be a new one, created for the loop:\n\n{text}\n"));
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
     }
 }
 
@@ -299,16 +304,19 @@ impl GramParserListener for GramListener<'_> {
         if self.verbose { println!("exit_rule({ctx:?})"); }
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         let curr_nt = self.curr_nt.take().unwrap();
-        let id = match ctx {
-            CtxRule::V1 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
+        let (id, lform) = match ctx {
+            CtxRule::V1 { prod: SynProd(id, lform), .. } => {        // rule -> rule_name : prod EOF ;
                 if curr_nt > 0 {
                     self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_name.as_ref().unwrap()));
                 }
                 // we don't add Symbol::End to the tree because it's not necessary nor, in fact, even allowed)
-                id
+                (id, lform)
             }
-            CtxRule::V2 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
+            CtxRule::V2 { prod: SynProd(id, lform), .. } => (id, lform),      // rule -> rule_name : prod ;
         };
+        if lform.is_some() {
+            self.stack_lform.pop();
+        }
         tree.set_root(id);
         if self.rules.len() < curr_nt as usize {
             self.rules.resize(curr_nt as usize, VecTree::new());
@@ -344,20 +352,33 @@ impl GramParserListener for GramListener<'_> {
     fn exit_prod(&mut self, ctx: CtxProd, _spans: Vec<PosSpan>) -> SynProd {
         if self.verbose { println!("exit_prod({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let id = match ctx {
-            CtxProd::V1 { prod_alt } => prod_alt.0,               // first iteration
-            CtxProd::V2 { prod, prod_alt } => {                    // next iterations
-                if matches!(tree.get(prod.0), &GrNode::Or) {
+        let (id, lform) = match ctx {
+            CtxProd::V1 { prod_alt: SynProdAlt(id, lform) } => (id, lform),           // first iteration
+            CtxProd::V2 { prod: SynProd(ip, lp), prod_alt: SynProdAlt(i, l) } => {  // next iterations
+                let id = if matches!(tree.get(ip), &GrNode::Or) {
                     // if there's already an |, adds another child
-                    tree.attach_child(prod.0, prod_alt.0);
-                    prod.0
+                    tree.attach_child(ip, i);
+                    ip
                 } else {
                     // creates an | with the previous and current alternatives as children
-                    tree.addci_iter(None, GrNode::Or, [prod.0, prod_alt.0])
-                }
+                    tree.addci_iter(None, GrNode::Or, [ip, i])
+                };
+                let lform = if let Some(lp_var) = lp {
+                    if let Some(l_var) = l {
+                        let span = self.stack_lform.pop().unwrap();
+                        self.log_error(&span, &format!(
+                            "extra <L={}>, <L={}> was already declared in this scope",
+                            Symbol::NT(l_var).to_str(Some(self.get_symbol_table())),
+                            Symbol::NT(lp_var).to_str(Some(self.get_symbol_table()))));
+                    }
+                    lp
+                } else {
+                    l
+                };
+                (id, lform)
             }
         };
-        SynProd(id)
+        SynProd(id, lform)
     }
 
     // prod_alt:
@@ -367,13 +388,34 @@ impl GramParserListener for GramListener<'_> {
         if self.verbose { println!("exit_prod_alt({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let CtxProdAlt::V1 { star: SynProdAlt1(factors) } = ctx;
-        let pt = factors.into_iter().map(|SynProdFactor(t)| t).to_vec();
+        let mut lforms = vec![];
+        let pt = factors.into_iter().map(|SynProdFactor(t, lform)| {
+            if let Some(lf_var) = lform { lforms.push(lf_var) }
+            t
+        }).to_vec();
         let id = match pt.len() {
             0 => tree.add(None, GrNode::Symbol(Symbol::Empty)),
             1 => pt[0],
             _ => tree.addci_iter(None, GrNode::Concat, pt)
         };
-        SynProdAlt(id)
+        let lform = match lforms.len() {
+            0 | 1 => lforms.pop(),
+            nl => {
+                // self.stack_lform has 5 items, (<L=i1> <L=i2> <L=i3> A)* -> n = 5, nl = 3
+                // we take last two => (n + 1 - nl = 3)..
+                let n = self.stack_lform.len();
+                let lform_var = lforms.remove(0);
+                let lform_spans = self.stack_lform.drain((n + 1 - nl)..).to_vec();
+                let at_text = lform_spans.iter().map(|s| s.to_string()).join(", ");
+                let annot_text = lform_spans.into_iter().map(|s| self.annotate_text(&s)).join("\n");
+                self.log.add_error(format!(
+                    "at {at_text}, extra <L>: <L={}> was already declared in this scope:\n\n{annot_text}\n",
+                    Symbol::NT(lform_var).to_str(Some(self.get_symbol_table()))
+                ));
+                Some(lform_var)
+            }
+        };
+        SynProdAlt(id, lform)
     }
 
     // prod_factor:
@@ -382,16 +424,23 @@ impl GramParserListener for GramListener<'_> {
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor, _spans: Vec<PosSpan>) -> SynProdFactor {
         if self.verbose { println!("exit_prod_factor_rep({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let (id, l_check) = match ctx {
-            CtxProdFactor::V1 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Plus, factor_item), true),   // prodAtom +
-            CtxProdFactor::V2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
-            CtxProdFactor::V3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
-            CtxProdFactor::V4 { prod_atom: SynProdAtom(factor_item) } => (factor_item, false),                                  // prodAtom
+        let (id, l_check, mut lform) = match ctx {
+            CtxProdFactor::V1 { prod_atom: SynProdAtom(factor_item, lform) } => (tree.addci(None, GrNode::Plus, factor_item), true, lform),   // prodAtom +
+            CtxProdFactor::V2 { prod_atom: SynProdAtom(factor_item, lform) } => (tree.addci(None, GrNode::Star, factor_item), true, lform),   // prodAtom *
+            CtxProdFactor::V3 { prod_atom: SynProdAtom(factor_item, lform) } => (tree.addci(None, GrNode::Maybe, factor_item), false, lform), // prodAtom ?
+            CtxProdFactor::V4 { prod_atom: SynProdAtom(factor_item, lform) } => (factor_item, false, lform),                                  // prodAtom
         };
         if l_check {
-            self.post_check.push(PostCheck::RepeatChildLform { node: id, var: self.curr_nt.unwrap() });
+            if let Some(lform_var) = lform {
+                let span = self.stack_lform.pop().unwrap();
+                if lform_var == self.curr_nt.unwrap() {
+                    self.log_error(&span, &format!("<L={}> uses the rule nonterminal instead of a new one for the loop", self.curr_name.as_ref().unwrap()));
+                }
+            }
+            //self.post_check.push(PostCheck::RepeatChildLform { node: id, var: self.curr_nt.unwrap(), span: spans[0].clone() });
+            lform = None;
         }
-        SynProdFactor(id)
+        SynProdFactor(id, lform)
     }
 
     // prod_atom:
@@ -402,22 +451,22 @@ impl GramParserListener for GramListener<'_> {
     // |   Greedy
     // |   Lparen prod Rparen
     // ;
-    fn exit_prod_atom(&mut self, ctx: CtxProdAtom, _spans: Vec<PosSpan>) -> SynProdAtom {
+    fn exit_prod_atom(&mut self, ctx: CtxProdAtom, spans: Vec<PosSpan>) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
-        let id = match ctx {
+        let (id, lform) = match ctx {
             CtxProdAtom::V1 { id } => {                  // prod_atom -> Id
                 match self.symbols.get(&id) {
                     Some(s @ Symbol::NT(_)) |
-                    Some(s @ Symbol::T(_)) => self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)),
+                    Some(s @ Symbol::T(_)) => (self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)), None),
                     Some(unexpected) => panic!("unexpected symbol: {unexpected:?}"),
                     None => {
                         // reserve new NT
                         if let Some(nt) = self.reserve_nt_symbol(id) {
-                            self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
+                            (self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt))), None)
                         } else {
                             // failure
                             self.abort = Terminate::Abort;
-                            return SynProdAtom(0 /* don't care */);
+                            return SynProdAtom(0, None /* don't care */);
                         }
                     }
                 }
@@ -442,38 +491,39 @@ impl GramParserListener for GramListener<'_> {
                         self.log.add_error(format!("rule {}: the rule name in <L={name}> is already defined as {}terminal",
                                                    self.curr_name.as_ref().unwrap(), if sym.is_nt() { "non-" } else { "" }));
                         self.abort = Terminate::Abort;
-                        return SynProdAtom(0 /* don't care */);
+                        return SynProdAtom(0, None /* don't care */);
                     } else if self.nt_reserved.contains_key(&name) {
                         self.log.add_error(format!("rule {}: the rule name in <L={name}> has already been used as non-terminal in a rule",
                                                    self.curr_name.as_ref().unwrap()));
                         self.abort = Terminate::Abort;
-                        return SynProdAtom(0 /* don't care */);
+                        return SynProdAtom(0, None /* don't care */);
                     }
                     match self.add_nt_symbol(&name) {
                         Some(nt) => nt,
                         None => {
                             self.abort = Terminate::Abort;
-                            return SynProdAtom(0 /* don't care */)
+                            return SynProdAtom(0, None /* don't care */)
                         }
                     }
                 } else {
                     // this form is used with right-recursive rules, so it points to the current rule
                     self.curr_nt.expect("curr_nt must be defined")
                 };
-                self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt))
+                self.stack_lform.push(spans[0].clone());
+                (self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt)), Some(nt))
             }
             CtxProdAtom::V3 => {                         // prod_atom -> <R>
-                self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
+                (self.curr.as_mut().unwrap().add(None, GrNode::RAssoc), None)
             }
             CtxProdAtom::V4 => {                         // prod_atom -> <P>
-                self.curr.as_mut().unwrap().add(None, GrNode::PrecEq)
+                (self.curr.as_mut().unwrap().add(None, GrNode::PrecEq), None)
             }
             CtxProdAtom::V5 => {                        // prod_atom -> "<G>"
-                self.curr.as_mut().unwrap().add(None, GrNode::Greedy)
+                (self.curr.as_mut().unwrap().add(None, GrNode::Greedy), None)
             }
-            CtxProdAtom::V6 { prod } => prod.0,          // prod_atom -> ( prod )
+            CtxProdAtom::V6 { prod: SynProd(id, lform) } => (id, lform),  // prod_atom -> ( prod )
         };
-        SynProdAtom(id)
+        SynProdAtom(id, lform)
     }
 }
 

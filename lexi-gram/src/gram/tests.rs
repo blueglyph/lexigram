@@ -156,46 +156,77 @@ mod listener {
                 ]
             ),
             (
-                "grammar C; a: <L=Id> Id;           // error: [<L=Id>] with Id of terminal",
+                "grammar T2; a: <L=Id> Id;           // error: [<L=Id>] with Id of terminal",
                 vec!["rule name in <L=Id> is already defined as terminal", "abort request"], false,
                 vec![]
             ),
             (
-                "grammar D; a: b;                   // error: undefined symbol",
+                "grammar T3; a: b;                   // error: undefined symbol",
                 vec!["has been used but is not defined, neither as terminal or non-terminal"], false,
                 vec![]
             ),
             (
-                "grammar E; Id: Int Plus Int;       // error: terminal used as rule name",
+                "grammar T4; Id: Int Plus Int;       // error: terminal used as rule name",
                 vec!["is a terminal and cannot be used as a rule name"], false,
                 vec![]
             ),
             (
-                "grammar F; a: Int; a: Plus Int;    // error: non-terminal already defined",
+                "grammar T5; a: Int; a: Plus Int;    // error: non-terminal already defined",
                 vec!["non-terminal 'a' already defined"], false,
                 vec![]
             ),
             (
-                "grammar G; EOF: Plus Int;          // EOF as rule name, should be interesting",
+                "grammar T6; EOF: Plus Int;          // EOF as rule name, should be interesting",
                 vec!["found input 'EOF' instead of 'Id'", "found input 'Id' instead of ':'"], false,
                 vec![]
             ),
             (
-                "grammar H; a: b* EOF; b: Id ( Equal Int )? Semicolon;",
+                "grammar T7; a: b* EOF; b: Id ( Equal Int )? Semicolon;",
                 vec![], true,
                 vec![
                     ("a; b = 1; c = 2;", true, true),
                 ]
             ),
             (
-                "grammar I; a: b*; b: Id EOF;       // EOF can only be in the first rule",
+                "grammar T8; a: b*; b: Id EOF;       // EOF can only be in the first rule",
                 vec!["EOF can only be put in the top rule"], false,
                 vec![]
             ),
             (
-                "grammar J; a: Add | b | ; b: c | Equal d; c: |; d:;",
+                "grammar T9; a: Add | b | ; b: c | Equal d; c: |; d:;",
                 vec![], true,
                 vec![(" + ", true, true), (" = ", true, true)]
+            ),
+            (
+                r#"grammar T10;
+                a: Lparen (<L=a> Id)* Rparen;
+                "#,
+                vec!["<L=a> uses the rule nonterminal instead of a new one for the loop"], false,
+                vec![]
+            ),
+            (
+                r#"grammar T11;
+                a: Lparen (<L=i1> <L=i2> Id <L=i3>)* Rparen;
+                "#,
+                vec!["extra <L>: <L=i1> was already declared in this scope"], false,
+                vec![]
+            ),
+            (
+                r#"grammar T12;
+                a: Lparen (<L=i1> Int | <L=i2> Id | <L=i3> Add)* Rparen;
+                "#,
+                vec![
+                    "extra <L=i2>, <L=i1> was already declared in this scope",
+                    "extra <L=i3>, <L=i1> was already declared in this scope"
+                ], false,
+                vec![]
+            ),
+            (
+                r#"grammar T13;
+                a: Lparen (<L=i> Id)* Rparen;
+                "#,
+                vec![], true,
+                vec![]
             ),
         ];
         const VERBOSE: bool = false;
@@ -280,8 +311,7 @@ mod listener {
             let _text = format!("test {test_id} failed");
 
             // grammar parser
-            let grammar_stream = CharReader::new(grammar.as_bytes());
-            let gram = Gram::new(symbol_table.clone(), grammar_stream);
+            let gram = Gram::new(symbol_table.clone(), grammar);
             let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages_str();
             println!("{msg}");
