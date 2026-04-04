@@ -1,3 +1,8 @@
+# 0.9.2
+
+* fix Gram: crashes when `<L>` repetition in last rule
+* add annotated input in error messages, both in Lexi and Gram
+
 # 0.9.1
 
 * minor doc update
