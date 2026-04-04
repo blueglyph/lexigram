@@ -3,7 +3,7 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
@@ -15,10 +15,6 @@ use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 use lexigram_lib::lexer::PosSpan;
 use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
-
-// enum PostCheck {
-//     RepeatChildLform { node: usize, var: VarId, span: PosSpan }
-// }
 
 pub struct GramListener<'ls> {
     verbose: bool,
@@ -151,23 +147,6 @@ impl<'ls> GramListener<'ls> {
         let text = self.annotate_text(span);
         self.log.add_error(format!("at {span}, {message}:\n\n{text}\n"));
     }
-
-    fn do_post_checks(&mut self) {
-    //     if self.log.has_no_errors() {
-    //         for check in &self.post_check {
-    //             match check {
-    //                 PostCheck::RepeatChildLform { node, var, span } => {
-    //                     let tree = &self.rules[*var as usize];
-    //                     if tree.iter_post_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
-    //                         let text = self.annotate_text(span);
-    //                         self.log.add_error(
-    //                             format!("at {span}: <L> points to the same nonterminal. It must be a new one, created for the loop:\n\n{text}\n"));
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    }
 }
 
 impl LogReader for GramListener<'_> {
@@ -197,8 +176,9 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(mut gram_listener: GramListener) -> ProdRuleSet<General> {
-        gram_listener.do_post_checks();
+    fn from(gram_listener: GramListener) -> ProdRuleSet<General> {
+        const VERBOSE: bool = false;
+        if VERBOSE { println!("{gram_listener:?}"); }
         let mut rts = RuleTreeSet::<General>::with_log(gram_listener.log);
         let no_error = rts.get_log().has_no_errors();
         if no_error {
@@ -219,11 +199,15 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
 impl Debug for GramListener<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "GramListener {{")?;
+        writeln!(f, "  abort = {:?}", self.abort)?;
         writeln!(f, "  name = {}", self.name)?;
+        writeln!(f, "  curr_name = {:?}", self.curr_name)?;
+        writeln!(f, "  curr_nt = {:?}", self.curr_nt)?;
+        writeln!(f, "  stack_lform = {}", self.stack_lform.iter().map(|s| s.to_string()).join(", "))?;
         writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
-        writeln!(f, "  curr: {} -> {}",
-                 if let Some(nm) = &self.curr_name { nm } else { "?" },
-                 if let Some(t) = &self.curr { format!("{t:?}") } else { "none".to_string() })?;
+        writeln!(f, "  curr: {} ", if let Some(t) = &self.curr {
+            grtree_to_str(t, self.start_nt.map(|nt| nt as usize), None, self.curr_nt, Some(&self.symbol_table), false)
+        } else { "none".to_string() })?;
         let symb_nt = self.symbols.iter().filter_map(|(name, s)| if let Symbol::NT(nt) = s { Some((nt, name)) } else { None }).collect::<BTreeMap<_, _>>();
         let symb_t = self.symbols.iter().filter_map(|(name, s)| if let Symbol::T(t) = s { Some((t, name)) } else { None }).collect::<BTreeMap<_, _>>();
         writeln!(f, "  rules:{}",
@@ -232,7 +216,10 @@ impl Debug for GramListener<'_> {
                  ).join(""))?;
         writeln!(f, "  symbols:\n  - NT: {}\n  - T : {}",
                  symb_nt.into_iter().map(|(nt, s)| format!("{nt}={s}")).join(", "), symb_t.into_iter().map(|(t, s)| format!("{t}={s}")).join(", "))?;
+        writeln!(f, "  start_nt: {:?}", self.start_nt)?;
+        writeln!(f, "  num_nt: {}", self.num_nt)?;
         writeln!(f, "  nt_reserved: {}", self.nt_reserved.iter().map(|(n, v)| format!("{n}={v}")).join(", "))?;
+        writeln!(f, "  symbol_table:\n{}", self.symbol_table.dump_str())?;
         writeln!(f, "}}")
     }
 }
@@ -437,7 +424,6 @@ impl GramParserListener for GramListener<'_> {
                     self.log_error(&span, &format!("<L={}> uses the rule nonterminal instead of a new one for the loop", self.curr_name.as_ref().unwrap()));
                 }
             }
-            //self.post_check.push(PostCheck::RepeatChildLform { node: id, var: self.curr_nt.unwrap(), span: spans[0].clone() });
             lform = None;
         }
         SynProdFactor(id, lform)

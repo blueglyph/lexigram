@@ -6,7 +6,6 @@ use crate::{NameFixer, indent_source};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::{TokenId, VarId};
 use crate::parser::Symbol;
-#[cfg(test)]
 use lexigram_core::CollectJoin;
 
 // NOTE: nonterminal-to-ID functionality currently disabled by #[cfg(any())]
@@ -225,20 +224,23 @@ impl SymbolTable {
 
     // -------------------------------------------------------------------------
 
-    #[cfg(test)]
+    pub fn dump_str(&self) -> String {
+        let mut str = format!(
+            "  - nonterminals:\n{}\n",
+            self.get_nonterminals().enumerate().map(|(v, s)| format!("    - NT[{v}]: {s}")).join("\n"));
+        str.push_str(&format!(
+            "  - terminals:\n{}",
+            self.get_terminals().enumerate()
+                .map(|(t, (n, v_maybe))| format!("    - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() }))
+                .join("\n")));
+        str
+    }
+
     pub fn dump(&self, title: &str) {
         if !title.is_empty() {
             println!("{title}");
         }
-        println!(
-            "- nonterminals:\n{}",
-            self.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
-        println!(
-            "- terminals:\n{}",
-            self.get_terminals().enumerate()
-                .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() }))
-                .join("\n"));
-
+        println!("{}", self.dump_str());
     }
 }
 
