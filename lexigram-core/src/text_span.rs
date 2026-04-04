@@ -58,22 +58,27 @@ pub trait GetTextSpan: GetLine {
     }
 
     fn annotate_text_ascii(&self, span: &PosSpan) -> String {
+        const UNDERLINE_INTER: bool = false;
         if span.is_empty() { return String::new() }
         let &PosSpan { first: Pos(l1, c1), last: Pos(l2, c2) } = span;
         let (mut l1, c1, l2, c2) = (l1 as usize, c1 as usize - 1, l2 as usize, c2 as usize - 1);
         let line = self.get_line(l1);
         let l1s = l1.to_string();
         if l1 == l2 {
-            format!("{l1s:4}: {line}\n{:w1$}  {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=c2 + 1 - c1)
+            format!("|{l1s:4}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=c2 + 1 - c1)
         } else {
-            let mut result = format!("{l1:4}: {line}\n{:w1$}  {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=line.charlen() - c1);
+            let mut result = format!("|{l1:4}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=line.charlen() - c1);
             while l1 + 1 < l2 {
                 l1 += 1;
                 let l1s = l1.to_string();
-                result.push_str(&format!("\n{l1:4}: {}\n{:w1$}  {:^<w3$}", self.get_line(l1), "", "", w1=4.max(l1s.len()), w3=line.charlen()));
+                if UNDERLINE_INTER {
+                    result.push_str(&format!("\n|{l1:4}| {}\n|{:w1$}| {:^<w3$}", self.get_line(l1), "", "", w1 = 4.max(l1s.len()), w3 = line.charlen()));
+                } else {
+                    result.push_str(&format!("\n|{l1:4}> {}", self.get_line(l1)));
+                }
             }
             let l2s = l2.to_string();
-            result.push_str(&format!("\n{l2:4}: {}\n{:w1$}  {:^<w2$}", self.get_line(l2), "", "", w1=4.max(l2s.len()), w2=c2 + 1));
+            result.push_str(&format!("\n|{l2:4}| {}\n|{:w1$}| {:^<w2$}", self.get_line(l2), "", "", w1=4.max(l2s.len()), w2=c2 + 1));
             result
         }
     }
@@ -173,43 +178,43 @@ mod tests {
         let tests = vec![
             (
                 1, 1, 1, 3,
-                "1   : α1234567890β\n      ^^^",
+                "|1   | α1234567890β\n|    | ^^^",
             ),
             (
                 1, 3, 1, 5,
-                "1   : α1234567890β\n        ^^^",
+                "|1   | α1234567890β\n|    |   ^^^",
             ),
             (
                 1, 5, 2, 5,
-                "   1: α1234567890β\n          ^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^",
+                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^",
             ),
             (
                 1, 5, 2, 12,
-                "   1: α1234567890β\n          ^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^",
+                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^^^^^^^^",
             ),
             (
                 1, 1, 2, 5,
-                "   1: α1234567890β\n      ^^^^^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^",
+                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^",
             ),
             (
                 1, 1, 2, 12,
-                "   1: α1234567890β\n      ^^^^^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^",
+                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^^^^^^^^",
             ),
             (
                 1, 5, 3, 5,
-                "   1: α1234567890β\n          ^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^\n   3: αklmnopqrstβ\n      ^^^^^",
+                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^",
             ),
             (
                 1, 5, 3, 12,
-                "   1: α1234567890β\n          ^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^\n   3: αklmnopqrstβ\n      ^^^^^^^^^^^^",
+                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^^^^^^^^",
             ),
             (
                 1, 1, 3, 5,
-                "   1: α1234567890β\n      ^^^^^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^\n   3: αklmnopqrstβ\n      ^^^^^",
+                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^",
             ),
             (
                 1, 1, 3, 12,
-                "   1: α1234567890β\n      ^^^^^^^^^^^^\n   2: αabcdefghijβ\n      ^^^^^^^^^^^^\n   3: αklmnopqrstβ\n      ^^^^^^^^^^^^",
+                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^^^^^^^^",
             ),
         ];
         const VERBOSE: bool = false;
