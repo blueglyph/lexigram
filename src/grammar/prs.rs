@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use super::*;
-use crate::{columns_to_str, AltId, CharLen, SymbolTable, VarId};
+use crate::{columns_to_str, AltId, SymbolTable, VarId};
 use lexigram_core::alt::{alt_to_rule_str, Alternative};
-use lexigram_core::CollectJoin;
+use lexigram_core::{CharLen, CollectJoin};
 use lexigram_core::log::LogMsg;
 
 /// Stores a normalized production rule, where each alternative (e.g. `B C`) is stored in

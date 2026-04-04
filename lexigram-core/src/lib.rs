@@ -20,6 +20,20 @@ pub type VarId = u16;
 /// ID of a rule alternative. We use the same type as [VarId] because they're very similar quantities.
 pub type AltId = VarId;
 
+// ---------------------------------------------------------------------------------------------
+// General helper traits
+
+pub trait CharLen {
+    /// Returns the length in characters (not bytes).
+    fn charlen(&self) -> usize;
+}
+
+impl<T: AsRef<str>> CharLen for T {
+    fn charlen(&self) -> usize {
+        self.as_ref().chars().count()
+    }
+}
+
 /// This trait provides a shortcut for two commonly used iterator adapters.
 ///
 /// * [join(...)](CollectJoin::join): joins [ToString] items into a `Vec::<String>` by inserting a separator between them.

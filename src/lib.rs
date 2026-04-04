@@ -12,6 +12,7 @@ pub use lexigram_core::alt;
 pub use lexigram_core::fixed_sym_table;
 pub use lexigram_core::log;
 pub use lexigram_core::char_reader;
+use lexigram_core::CharLen;
 pub use lexigram_core::segmap;
 pub use lexigram_core::seg;
 pub use lexigram_core::lexer;
@@ -145,20 +146,6 @@ pub fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// General helper traits
-
-pub trait CharLen {
-    /// Returns the length in characters (not bytes).
-    fn charlen(&self) -> usize;
-}
-
-impl<T: AsRef<str>> CharLen for T {
-    fn charlen(&self) -> usize {
-        self.as_ref().chars().count()
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
 // Source generation helper traits and types
 
 /// Adds empty lines between blocks of text
@@ -256,6 +243,7 @@ impl StructLibs {
 
 #[cfg(test)]
 mod libtests {
+    use lexigram_core::CharLen;
     use super::*;
     use lexigram_core::log::{BufLog, Logger};
     use crate::build::{BuildError, BuildErrorSource};
