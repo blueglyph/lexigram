@@ -318,10 +318,10 @@ impl GramParserListener for GramListener<'_> {
             self.stack_lform.pop();
         }
         tree.set_root(id);
-        if self.rules.len() < curr_nt as usize {
-            self.rules.resize(curr_nt as usize, VecTree::new());
-        }
         self.rules.push(tree);
+        if self.rules.len() < self.num_nt {
+            self.rules.resize(self.num_nt, VecTree::new());
+        }
         self.curr_name = None;
         SynRule()
     }
