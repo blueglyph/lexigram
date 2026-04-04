@@ -31,6 +31,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enable-ansi-support"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea7457668b3da8a4b702f3d79e131aa3e81cd7e81cc95fb2d54fce9f182ecc77"
+dependencies = [
+ "windows-sys",
+]
+
+[[package]]
 name = "gen_config"
 version = "0.1.0"
 dependencies = [
@@ -91,6 +100,7 @@ dependencies = [
 name = "lexigram"
 version = "0.9.2"
 dependencies = [
+ "enable-ansi-support",
  "lexi-gram",
 ]
 
@@ -146,4 +156,19 @@ name = "watcher"
 version = "0.1.0"
 dependencies = [
  "lexigram-core",
+]
+
+[[package]]
+name = "windows-link"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
+
+[[package]]
+name = "windows-sys"
+version = "0.61.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
+dependencies = [
+ "windows-link",
 ]

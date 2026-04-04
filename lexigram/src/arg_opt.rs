@@ -142,6 +142,9 @@ Other options related to the generated code:
 
 General options:
 
+  --ansi <yes/no>           Enables or disables ANSI startup. Disabled by default; try
+                            "--ansi yes" if your console doesn't display colours correctly.
+
   -v|--verify               Verifies that the generated code matches what is already in the
                             lexer and parser locations. The files must already exist and
                             aren't modified.
@@ -161,6 +164,7 @@ Example:
 pub(crate) struct ArgOptions {
     pub gen_options: Options,
     pub show_log: bool,
+    pub ansi: bool,
 }
 
 fn take_argument<'a, I: Iterator<Item=&'a str>, S: Into<String>>(args: &mut I, error_message: S) -> Result<&'a str, ExeError> {
@@ -216,6 +220,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
     let mut builder = OptionsBuilder::new();
     let mut action = Action::Generate;
     let mut show_log = false;
+    let mut ansi = false;
     let mut args = all_args.iter().map(|s| s.as_str()).peekable();
     while let Some(arg) = args.next() {
         match arg {
@@ -252,6 +257,14 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
                 let indent_value = usize::from_str(indent)
                     .map_err(|e| ExeError::Option(format!("error while parsing --indent {indent}: {e}")))?;
                 builder.indent(indent_value);
+            }
+            "--ansi" => {
+                let ansi_str = take_argument(&mut args, "missing argument after --ansi")?.to_ascii_lowercase();
+                ansi = match ansi_str.as_str() {
+                    "yes" => true,
+                    "no" => false,
+                    s => return Err(ExeError::Option(format!("ERROR: unexpected argument '{s}'"))),
+                };
             }
             "-v" | "--verify" => {
                 action = Action::Verify;
@@ -313,6 +326,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
     let arg_options = ArgOptions {
         gen_options,
         show_log,
+        ansi,
     } ;
     Ok((action, arg_options))
 }

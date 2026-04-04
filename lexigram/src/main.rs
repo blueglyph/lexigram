@@ -30,6 +30,8 @@ pub enum ExeError {
     ///
     /// The `show_log` field determines whether the "log" option was desired or not.
     GenParser { source: GenParserError, show_log: bool },
+    /// A general message should be displayed.
+    Message(String),
 }
 
 fn main() {
@@ -70,6 +72,10 @@ fn main() {
                     }
                     3
                 }
+                ExeError::Message(s) => {
+                    eprintln!("{s}");
+                    4
+                }
             }
         }
     };
@@ -79,7 +85,13 @@ fn main() {
 /// Parses the command-line arguments in `all_args` and executes the corresponding actions.
 pub fn execute(all_args: Vec<String>) -> Result<Option<String>, ExeError> {
     let (action, arg_options) = parse_args(all_args)?;
-    let ArgOptions { gen_options, show_log } = arg_options;
+    let ArgOptions { gen_options, show_log, ansi } = arg_options;
+    if ansi {
+        match enable_ansi_support::enable_ansi_support() {
+            Ok(()) => {}
+            Err(e) => return Err(ExeError::Message(format!("ERROR: this console doesn't support ANSI output:\n{e}"))),
+        }
+    }
     match try_gen_parser(action, gen_options) {
         Ok(log) => {
             Ok(if show_log {
