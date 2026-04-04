@@ -501,7 +501,7 @@ impl<'ls> LexiListener<'ls> {
             let terminals = match self.mode_terminals.get(mode_id as usize) {
                 Some(Some(range)) => format!("{range:?}"),
                 _ => {
-                    mode_errors.push((self.mode_refs.get(mode).unwrap_or_else(|| &empty_vec), format!("mode '{mode}' referenced but not defined")));
+                    mode_errors.push((self.mode_refs.get(mode).unwrap_or(&empty_vec), format!("mode '{mode}' referenced but not defined")));
                     "## ERROR: undefined".to_string()
                 }
             };
@@ -509,8 +509,8 @@ impl<'ls> LexiListener<'ls> {
         }
         for (spans, err) in mode_errors {
             if !spans.is_empty() {
-                let text = spans.into_iter().map(|s| self.annotate_text(s)).join("\n");
-                self.log.add_error(format!("at {}, {err}:\n\n{text}\n", spans.into_iter().map(|s| s.to_string()).join(", ")));
+                let text = spans.iter().map(|s| self.annotate_text(s)).join("\n");
+                self.log.add_error(format!("at {}, {err}:\n\n{text}\n", spans.iter().map(|s| s.to_string()).join(", ")));
             } else {
                 self.log.add_error(err);
             }
@@ -540,7 +540,7 @@ impl LogReader for LexiListener<'_> {
 
 impl GetLine for LexiListener<'_> {
     fn get_line(&self, n: usize) -> &str {
-        &self.lines[n - 1]
+        self.lines[n - 1]
     }
 }
 

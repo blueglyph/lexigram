@@ -64,7 +64,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     // 2. Parser
 
     let parser_sources = if grammar_opt.is_some() || is_combined {
-        let grammar = grammar_opt.as_ref().map(|s| s.as_str()).unwrap_or_else(|| {
+        let grammar = grammar_opt.as_deref().unwrap_or_else(|| {
             if let Some(pos_grammar) = pos_grammar_opt {
                 // if we carried the absolute position to the listener, we could avoid
                 // seeking the cursor position again, but we have the line/col only:
