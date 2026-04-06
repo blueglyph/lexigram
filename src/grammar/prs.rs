@@ -1428,10 +1428,6 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     // - A -> <L> (b)+ A | c
                     //   - has an l-form right recursion
                     //   - doesn't have an l-form repetition of b
-                    //
-                    // while let Some(parent) = prules.get_parent(nt) {
-                    //     nt = parent;
-                    // }
                     prules.set_flags(var, ruleflag::L_FORM);
                     // not really necessary, but cleaner:
                     for a in prule.iter_mut() {

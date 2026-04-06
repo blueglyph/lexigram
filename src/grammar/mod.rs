@@ -1114,7 +1114,6 @@ impl RuleTreeSet<General> {
                             Symbol::NT(var).to_str(self.get_symbol_table()),
                             grtree_to_str(orig_new, Some(orig_rep), None, Some(var), self.get_symbol_table(), false)));
             } else {
-                // self.nt_conversion.insert(v, MovedTo(qvar));
                 for mut node in qtree.iter_post_depth_simple_mut() {
                     if let GrNode::LForm(v2) = node.deref_mut() {
                         if *v2 == v { *v2 = qvar; }
@@ -1337,13 +1336,9 @@ pub mod macros {
         ($($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { alt!(#$f, $($a $($b)?),+) };
         (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
-        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
-        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-        //     => {$crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
             => { $crate::alt::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
-        // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
             => { alt!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
@@ -1388,7 +1383,6 @@ pub mod macros {
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#$f,)? $($a $($b)?),+]),*]};
         ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $(%($v, $id),)? $($a $($b)?),+);+] };
         ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#$f,)? $(%($v, $id),)? $($a $($b)?),+]),*]};
-        // TODO: change "#" part below
         ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#($f, $o),)? $(%($v, $id),)? $($a $($b)?),+);+] };
         ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#($f,$o),)? $(%($v, $id),)? $($a $($b)?),+]),*]};
     }
