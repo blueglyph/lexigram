@@ -71,9 +71,9 @@ pub const LIB_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Debug)]
 pub struct General;
 
-/// - `ProdRuleSet<LR>` have no ambiguity.
+/// - `ProdRuleSet<LALR>` have no ambiguity.
 #[derive(Clone, Debug)]
-pub struct LR;
+pub struct LALR;
 
 /// - `ProdRuleSet<LL>` aren't left-recursive and are left-factorized.
 #[derive(Clone, Debug)]

@@ -1496,14 +1496,14 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     }
 }
 
-impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LALR> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_ambiguity();
             rules.transfer_alt_flags();
             rules.check_flags();
         }
-        ProdRuleSet::<LR> {
+        ProdRuleSet::<LALR> {
             prules: rules.prules,
             origin: rules.origin,
             num_nt: rules.num_nt,
