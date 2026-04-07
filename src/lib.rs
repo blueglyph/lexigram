@@ -165,14 +165,14 @@ impl SourceSpacer for Vec<String> {
     }
 }
 
-#[derive(Debug)]
-struct StructLibs {
+#[derive(Clone, Debug, Default)]
+pub struct StructLibs {
     libs: BTreeSet<String>
 }
 
 impl StructLibs {
     pub fn new() -> Self {
-        StructLibs { libs: BTreeSet::new() }
+        StructLibs::default()
     }
 
     pub fn add<T: Into<String>>(&mut self, lib: T) {

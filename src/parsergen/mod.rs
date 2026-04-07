@@ -118,7 +118,7 @@ impl BuildFrom<ParserGen> for ParserTables {
             parser_gen.opcodes,
             parser_gen.init_opcodes,
             parser_gen.start,
-            parser_gen.include_alts
+            parser_gen.options.include_alts
         )
     }
 }
@@ -146,13 +146,14 @@ impl TryBuildFrom<ParserGen> for ParserTables {
 /// * [`SetNames(Vec<String>)`](NTValue::SetNames): The nonterminals that have a value is set explicitly by name.
 ///   The names "`<default>`" and "`<parents>`" can be used to set all the nonterminals of the corresponding class.
 ///   Individual nonterminals can be preceded by a "-" to indicate they don't hold a value.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Default, Debug)]
 pub enum NTValue {
     /// No nonterminal has a value
     None,
     /// Only the top nonterminal parents have a value
     Parents,
     /// The top nonterminal parents and the children of `(<L> )+*` have a value
+    #[default]
     Default,
     /// The set of nonterminals that have a value is set explicitly by ID
     SetIds(Vec<VarId>),
@@ -224,13 +225,34 @@ struct WrapperSources {
     src_wrapper_impl        : Vec<String>,
 }
 
+#[derive(Clone, Debug)]
+pub struct ParserGenOptions {
+    pub nt_value: NTValue,
+    pub include_alts: bool,
+    pub headers: Vec<String>,
+    pub used_libs: StructLibs,
+    /// generates the wrapper source code
+    pub gen_wrapper: bool,
+    /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
+    pub gen_span_params: bool,
+    pub gen_token_enums: bool,
+    pub lib_crate: LexigramCrate,
+    /// source code indentation of the wrapper, in number of space characters
+    pub indent: usize,
+    /// source code indentation of the template for the user types
+    pub types_indent: usize,
+    /// source code indentation of the template for the listener implementation
+    pub listener_indent: usize,
+}
+
 #[derive(Debug)]
 pub struct ParserGen {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
     terminal_hooks: Vec<TokenId>,
     name: String,
-    nt_value: Vec<bool>,
+    options: ParserGenOptions,
+    nt_values: Vec<bool>,
     /// `nt_parent[v]` is the vector of all variables having `v` has top parent (including `v` itself)
     nt_parent: Vec<Vec<VarId>>,
     var_alts: Vec<Vec<AltId>>,
@@ -244,28 +266,13 @@ pub struct ParserGen {
     child_repeat_endpoints: HashMap<VarId, Vec<AltId>>,
     /// generates the parser source code
     gen_parser: bool,
-    /// generates the wrapper source code
-    gen_wrapper: bool,
-    /// source code indentation of the wrapper, in number of space characters
-    indent: usize,
-    /// source code indentation of the template for the user types
-    types_indent: usize,
-    /// source code indentation of the template for the listener implementation
-    listener_indent: usize,
-    /// generates code to give the location of nonterminals and tokens as extra parameters of listener methods
-    gen_span_params: bool,
-    gen_token_enums: bool,
     span_nbrs: Vec<SpanNbr>,
     /// Number of span values taken from a PARENT_REPEAT in init() to extract the first item of a SEP_LIST
     span_nbrs_sep_list: HashMap<AltId, SpanNbr>,
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
-    headers: Vec<String>,
-    used_libs: StructLibs,
     nt_type: HashMap<VarId, String>,
     log: BufLog,
-    include_alts: bool,
-    lib_crate: LexigramCrate,
 }
 
 impl ParserGen {
@@ -297,10 +304,9 @@ impl ParserGen {
         let mut builder = ParserGen {
             parsing_table,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
-            gen_span_params: false,
-            gen_token_enums: false,
             name,
-            nt_value: vec![false; num_nt],
+            options: ParserGenOptions::default(),
+            nt_values: vec![false; num_nt],
             nt_parent,
             var_alts,
             origin,
@@ -313,24 +319,27 @@ impl ParserGen {
             item_info: Vec::new(),
             child_repeat_endpoints: HashMap::new(),
             gen_parser: true,
-            gen_wrapper: true,
-            indent: 0,
-            types_indent: 0,
-            listener_indent: 0,
             span_nbrs: Vec::new(),
             span_nbrs_sep_list: HashMap::new(),
             start,
             nt_conversion,
-            headers: Vec::new(),
-            used_libs: StructLibs::new(),
             nt_type: HashMap::new(),
             log: ll1_rules.log,
-            include_alts: false,
-            lib_crate: LexigramCrate::Core,
         };
+        builder.apply_options();
         builder.make_opcodes();
         builder.make_span_nbrs();
         builder
+    }
+
+    pub fn set_options(&mut self, options: ParserGenOptions) {
+        self.options = options;
+        self.apply_options();
+    }
+
+    /// Sets internal values accordingly to the options
+    fn apply_options(&mut self) {
+        self.apply_nt_value();
     }
 
     pub fn set_name(&mut self, name: String) {
@@ -354,7 +363,7 @@ impl ParserGen {
     #[inline]
     pub fn set_terminal_hooks(&mut self, terminal_hooks: Vec<TokenId>) {
         if !terminal_hooks.is_empty() {
-            self.gen_token_enums = true;
+            self.options.gen_token_enums = true;
         }
         self.terminal_hooks = terminal_hooks;
         self.add_opcode_hooks();
@@ -362,22 +371,22 @@ impl ParserGen {
 
     #[inline]
     pub fn add_header<T: Into<String>>(&mut self, header: T) {
-        self.headers.push(header.into());
+        self.options.headers.push(header.into());
     }
 
     #[inline]
     pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
-        self.headers.extend(headers.into_iter().map(|s| s.into()));
+        self.options.headers.extend(headers.into_iter().map(|s| s.into()));
     }
 
     #[inline]
     pub fn add_lib<T: Into<String>>(&mut self, lib:T) {
-        self.used_libs.add(lib);
+        self.options.used_libs.add(lib);
     }
 
     #[inline]
     pub fn extend_libs<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, libs: I) {
-        self.used_libs.extend(libs);
+        self.options.used_libs.extend(libs);
     }
 
     #[inline]
@@ -394,31 +403,37 @@ impl ParserGen {
     }
 
     /// Sets which nonterminals have a value, from [nt_value](NTValue).
-    pub fn set_nt_value(&mut self, nt_value: &NTValue) {
+    pub fn set_nt_value(&mut self, nt_value: NTValue) {
+        self.options.nt_value = nt_value;
+        self.apply_nt_value();
+    }
+
+    fn apply_nt_value(&mut self) {
         let num_nt = self.get_symbol_table().unwrap().get_num_nt() as VarId;
-        let mut stack = vec![nt_value];
+        let mut stack = vec![&self.options.nt_value];
         let mut neg_stack = vec![];
+        self.nt_values.fill(false);
         while let Some(nt_value) = stack.pop() {
             match nt_value {
                 NTValue::None => {}
                 NTValue::Parents => {
                     for v in 0..num_nt {
                         if self.get_nt_parent(v).is_none() {
-                            self.nt_value[v as usize] = true;
+                            self.nt_values[v as usize] = true;
                         }
                     }
                 }
                 NTValue::Default => {
                     for v in 0..num_nt {
                         if self.get_nt_parent(v).is_none() || self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
-                            self.nt_value[v as usize] = true;
+                            self.nt_values[v as usize] = true;
                         }
                     }
                 }
                 NTValue::SetIds(ids) => {
                     for v in ids {
                         if *v < num_nt {
-                            self.nt_value[*v as usize] = true;
+                            self.nt_values[*v as usize] = true;
                         } else {
                             self.log.add_error(format!("setting value of NT #{v}, which doesn't exist"));
                         }
@@ -441,7 +456,7 @@ impl ParserGen {
                                 };
                                 if let Some(v) = name_to_id.get(nt_name) {
                                     if add {
-                                        self.nt_value[*v as usize] = true;
+                                        self.nt_values[*v as usize] = true;
                                     } else {
                                         neg_stack.push(*v);
                                     }
@@ -455,13 +470,13 @@ impl ParserGen {
             }
         }
         for v in neg_stack {
-            self.nt_value[v as usize] = false;
+            self.nt_values[v as usize] = false;
         }
     }
 
     #[inline]
     pub fn set_nt_has_value(&mut self, v: VarId, has_value: bool) {
-        self.nt_value[v as usize] = has_value;
+        self.nt_values[v as usize] = has_value;
     }
 
     /// Generates the parser source code if `gen_parser` is `true`. This option is `true` by default.
@@ -471,37 +486,37 @@ impl ParserGen {
 
     /// Generates the wrapper source code if `gen_parser` is `true`. This option is `true` by default.
     pub fn set_gen_wrapper(&mut self, gen_wrapper: bool) {
-        self.gen_wrapper = gen_wrapper;
+        self.options.gen_wrapper = gen_wrapper;
     }
 
     /// Sets the source code indentation. This option is 0 by default.
     pub fn set_indent(&mut self, indent: usize) {
-        self.indent = indent;
+        self.options.indent = indent;
     }
 
     /// Sets the source code indentation of the template for the user types.
     /// This option is 0 by default.
     pub fn set_types_indent(&mut self, indent: usize) {
-        self.types_indent = indent;
+        self.options.types_indent = indent;
     }
 
     /// Sets the source code indentation of the template for the listener implementation.
     /// This option is 0 by default.
     pub fn set_listener_indent(&mut self, indent: usize) {
-        self.listener_indent = indent;
+        self.options.listener_indent = indent;
     }
 
     /// Sets the source code indentation for the wrapper, the template for the user types and the
     /// template for the listener implementation.
     pub fn set_indents(&mut self, wrapper: usize, types: usize, listner: usize) {
-        self.indent = wrapper;
-        self.types_indent = types;
-        self.listener_indent = listner;
+        self.options.indent = wrapper;
+        self.options.types_indent = types;
+        self.options.listener_indent = listner;
     }
 
     /// Generates code to give the location of nonterminals and tokens as extra parameters of listener methods.
     pub fn set_gen_span_params(&mut self, gen_span_params: bool) {
-        self.gen_span_params = gen_span_params;
+        self.options.gen_span_params = gen_span_params;
     }
 
     /// Generates enums for the terminal and nonterminal values. They may be helpful in the optional
@@ -525,7 +540,7 @@ impl ParserGen {
     /// }
     /// ```
     pub fn set_gen_token_enums(&mut self, gen_token_enums: bool) {
-        self.gen_token_enums = gen_token_enums;
+        self.options.gen_token_enums = gen_token_enums;
     }
 
     #[inline]
@@ -536,17 +551,17 @@ impl ParserGen {
     /// Include the definitions of the alternatives in the parser, for debugging purposes:
     /// allows to print out the alternatives in VERBOSE mode.
     pub fn set_include_alts(&mut self, include_alts: bool) {
-        self.include_alts = include_alts;
+        self.options.include_alts = include_alts;
     }
 
     #[inline]
     pub fn use_full_lib(&mut self, use_full_lib: bool) {
-        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
+        self.options.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
     }
 
     #[inline]
     pub fn set_crate(&mut self, lcrate: LexigramCrate) {
-        self.lib_crate = lcrate;
+        self.options.lib_crate = lcrate;
     }
 
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
@@ -593,7 +608,7 @@ impl ParserGen {
     fn sym_has_value(&self, symbol: &Symbol) -> bool {
         match symbol {
             Symbol::T(t) => self.symbol_table.is_token_data(*t),
-            Symbol::NT(nt) => self.nt_value[*nt as usize],
+            Symbol::NT(nt) => self.nt_values[*nt as usize],
             _ => false
         }
     }
@@ -950,7 +965,7 @@ impl ParserGen {
                     println!("parent: {}, NT with value: {}",
                              Symbol::NT(g[0]).to_str(self.get_symbol_table()),
                              ids.into_iter().filter_map(|v|
-                                 if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
+                                 if self.nt_values[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                              ).join(", "));
                 }
                 for (var_id, alt_id) in &group {
@@ -965,7 +980,7 @@ impl ParserGen {
                                     && !self.nt_has_any_flags(*nt, ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_REPEAT);
                                 let var = if is_ambig_top { g_top } else { *nt };
                                 nt_used.insert(var);
-                                has_value |= self.nt_value[var as usize]
+                                has_value |= self.nt_values[var as usize]
                             },
                             _ => {}
                         }
@@ -984,14 +999,14 @@ impl ParserGen {
                         // +* non-lform children have the same value as their parent, but +* lform
                         // children's value is independent of their parent's
                         if self.parsing_table.flags[child_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                            if VERBOSE && !self.nt_value[child_nt] {
+                            if VERBOSE && !self.nt_values[child_nt] {
                                 print!(" | {} is now valued {}",
                                        Symbol::NT(child_nt as VarId).to_str(self.get_symbol_table()),
                                        if nt_used.contains(&(child_nt as VarId)) { "and was used before" } else { "but wasn't used before" }
                                 );
                             }
-                            re_evaluate |= !self.nt_value[child_nt] && nt_used.contains(&(child_nt as VarId));
-                            self.nt_value[child_nt] = true;
+                            re_evaluate |= !self.nt_values[child_nt] && nt_used.contains(&(child_nt as VarId));
+                            self.nt_values[child_nt] = true;
                         }
                     }
                 }
@@ -1029,10 +1044,10 @@ impl ParserGen {
                 println!("parent: {}, NT with value: {}",
                          Symbol::NT(g[0]).to_str(self.get_symbol_table()),
                          ids.into_iter().filter_map(|v|
-                             if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
+                             if self.nt_values[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                          ).join(", "));
             }
-            let g_top_has_value = self.nt_value[g_top as usize];
+            let g_top_has_value = self.nt_values[g_top as usize];
             for (var_id, alt_id) in &group {
                 let ambig_loop_value = g_top_has_value && is_ambig && self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_RECURSION);
                 items[*alt_id as usize] = if ambig_loop_value { vec![Symbol::NT(g_top)] } else { vec![] };
@@ -1099,7 +1114,7 @@ impl ParserGen {
                         items[*alt_id as usize].insert(0, Symbol::NT(g[0]));
                     }
                 } else {
-                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_value[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
+                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_values[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
                         Some(Symbol::NT(*var_id))
                     } else if !is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 {
                         let parent = info.parent[*var_id as usize].unwrap();
@@ -1177,7 +1192,7 @@ impl ParserGen {
         self.log.add_note(
             format!(
                 "NT with value: {}",
-                self.nt_value.iter().index()
+                self.nt_values.iter().index()
                     .filter(|&(_, val)| *val)
                     .map(|(var, _)| Symbol::NT(var).to_str(self.get_symbol_table()))
                     .join(", ")));
@@ -1252,7 +1267,7 @@ impl ParserGen {
                 })
                 .to_vec();  // to avoid borrow checker issue with &mut self later
             for &(c_var, c_alt_id, _c_flags) in &candidate_children {
-                let has_value = self.nt_value[c_var as usize];
+                let has_value = self.nt_values[c_var as usize];
                 let skip_loop_nt = if has_value { 1 } else { 0 }; // the loop NT that's put in front when it has a value
                 let mut pattern = items[c_alt_id].iter().skip(skip_loop_nt).cloned().to_vec();
                 if VERBOSE {
@@ -1573,7 +1588,7 @@ impl ParserGen {
                             .and_modify(|v| v.push(alt_id))
                             .or_insert_with(|| vec![alt_id]);
                     }
-                    let has_owner_value = self.nt_value[owner as usize];
+                    let has_owner_value = self.nt_values[owner as usize];
                     item_info[i] = if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                         // we put here the return context for the final exit of left recursive rule
                         if has_owner_value {
@@ -1676,21 +1691,21 @@ impl ParserGen {
         // - get the sources for the validation tests or print them / write them into a file.
         // The whole code isn't that big, so it's not a major issue.
         let mut parts = vec![];
-        if !self.headers.is_empty() {
-            parts.push(self.headers.clone());
+        if !self.options.headers.is_empty() {
+            parts.push(self.options.headers.clone());
         }
         let mut tmp_parts = if self.gen_parser {
             vec![self.source_build_parser()]
         } else {
             vec![]
         };
-        let (src_types, src_listener) = if self.gen_wrapper {
+        let (src_types, src_listener) = if self.options.gen_wrapper {
             self.make_item_ops();
             let (src_wrapper, src_types, src_listener) = self.source_wrapper();
             tmp_parts.push(src_wrapper);
             (
-                indent_source(vec![src_types], self.types_indent),
-                indent_source(vec![src_listener], self.listener_indent)
+                indent_source(vec![src_types], self.options.types_indent),
+                indent_source(vec![src_listener], self.options.listener_indent)
             )
         } else {
             (String::new(), String::new())
@@ -1700,7 +1715,7 @@ impl ParserGen {
         parts.push(self.source_use());
         parts.extend(tmp_parts);
         // Create source code:
-        (indent_source(parts, self.indent), src_types, src_listener)
+        (indent_source(parts, self.options.indent), src_types, src_listener)
     }
 
     pub fn try_gen_source_code(mut self) -> Result<(BufLog, String, String, String), BuildError> {
@@ -1713,7 +1728,7 @@ impl ParserGen {
     }
 
     fn source_use(&self) -> Vec<String> {
-        self.used_libs.gen_source_code()
+        self.options.used_libs.gen_source_code()
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
@@ -1732,7 +1747,7 @@ impl ParserGen {
         self.log.add_note("generating build_parser source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
-        self.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
+        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
         self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
@@ -1746,8 +1761,8 @@ impl ParserGen {
                     self.parsing_table.alts.len(),
                     self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
-        if self.include_alts {
-            self.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
+        if self.options.include_alts {
+            self.options.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
                              self.parsing_table.alts.len(),
                              self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(symbol_to_code).join(", "))).join(", ")));
@@ -1768,7 +1783,7 @@ impl ParserGen {
                 self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
         ]);
-        if self.gen_token_enums {
+        if self.options.gen_token_enums {
             src.add_space();
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
@@ -1811,7 +1826,7 @@ impl ParserGen {
             "    Parser::new(".to_string(),
             "        PARSER_NUM_NT, PARSER_NUM_T + 1,".to_string(),
             "        &ALT_VAR,".to_string(),
-            if self.include_alts {
+            if self.options.include_alts {
                 "        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),".to_string()
             } else {
                 "        Vec::new(),".to_string()
@@ -1911,7 +1926,7 @@ impl ParserGen {
     /// created by the closure. We use a closure because it's executed only if necessary, which
     /// avoids accessing data that might not be available when the span code is not generated.
     fn gen_match_item<F: FnOnce() -> String>(&self, common: String, span_only: F) -> String {
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             let span_code = span_only();
             format!("({span_code}, {common})")
         } else {
@@ -2015,14 +2030,14 @@ impl ParserGen {
             }
             src_val.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\"),"));
             src_val.push("        };".to_string());
-            if self.gen_span_params {
+            if self.options.gen_span_params {
                 src_val.extend(Self::source_update_span("n"));
             }
             "val".to_string()
         } else {
             // single possibility; for ex. a -> (A B)+  => struct
             let a_id = endpoints[0];
-            if self.gen_span_params {
+            if self.options.gen_span_params {
                 let span_nbr = if is_init {
                     *self.span_nbrs_sep_list.get(&a_id).unwrap()
                 } else {
@@ -2060,16 +2075,16 @@ impl ParserGen {
         ];
 
         self.log.add_note("generating wrapper source...");
-        self.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.lib_crate)));
-        if self.gen_span_params {
-            self.used_libs.add(format!("{}::lexer::PosSpan", self.lib_crate));
+        self.options.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        if self.options.gen_span_params {
+            self.options.used_libs.add(format!("{}::lexer::PosSpan", self.options.lib_crate));
         }
 
         self.get_type_info();
         let pinfo = &self.parsing_table;
 
         // defines missing type names
-        for (v, name) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+        for (v, name) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_values[*v]) {
             let v = v as VarId;
             self.nt_type.entry(v).or_insert_with(|| format!("Syn{}", name.0));
         }
@@ -2114,7 +2129,7 @@ impl ParserGen {
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let parent_nt = group[0] as usize;
             let parent_flags = self.parsing_table.flags[parent_nt];
-            let parent_has_value = self.nt_value[parent_nt];
+            let parent_has_value = self.nt_values[parent_nt];
             let mut exit_alt_done = HashSet::<VarId>::new();
             let mut init_nt_done = HashSet::<VarId>::new();
             if VERBOSE { println!("- GROUP {}, parent has {}value, parent flags: {}",
@@ -2163,7 +2178,7 @@ impl ParserGen {
                 // we only process the first variable of the left recursion; below we gather the alts of
                 // the other variables of the same type (in ambiguous rules, they repeat the same operators)
                 let is_ambig_redundant = is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child;
-                let has_value = self.nt_value[nt];
+                let has_value = self.nt_values[nt];
 
                 // Call::Enter
                 self.source_wrapper_init::<VERBOSE>(
@@ -2317,7 +2332,7 @@ impl ParserGen {
         ];
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
-        for (v, names) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+        for (v, names) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_values[*v]) {
             let v = v as VarId;
             let (nu, _nl, _npl) = names;
             let nt_type = self.get_nt_type(v);
@@ -2377,7 +2392,7 @@ impl ParserGen {
             }
             syns.push(v);
         }
-        if !self.nt_value[self.start as usize] {
+        if !self.nt_values[self.start as usize] {
             let nu = &self.nt_name[self.start as usize].0;
             src.push(format!("/// Top non-terminal {nu} (has no value)"));
             src.push("#[derive(Debug, PartialEq)]".to_string());
@@ -2495,13 +2510,13 @@ impl ParserGen {
                             format!("InitCtx{nu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
                         };
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if self.gen_span_params {
+                        if self.options.gen_span_params {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
                         }
                         src_wrapper_impl.push(format!(
                             "        {}self.listener.{init_fn_name}(ctx{});",
                             if has_value { "let val = " } else { "" },
-                            if self.gen_span_params { ", spans" } else { "" }));
+                            if self.options.gen_span_params { ", spans" } else { "" }));
                         let ret = if has_value {
                             format!("-> {};", self.get_nt_type(nt as VarId))
                         } else {
@@ -2510,13 +2525,13 @@ impl ParserGen {
                         };
                         src_listener_decl.push(format!(
                             "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
-                            if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+                            if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
 
                         // skeleton (listener template)
                         let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
                         src_skel.push(format!(
                             "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
-                            if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+                            if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
                         let a_id = self.var_alts[nt][0];
                         let a_info = &self.item_info[a_id as usize];
                         if !a_info.is_empty() {
@@ -2610,7 +2625,7 @@ impl ParserGen {
                 (npl, nu, nt, has_value)
             };
             if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
-                let extra_param = if self.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
+                let extra_param = if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
                 if f_valued {
                     let nt_type = self.get_nt_type(fnt as VarId);
                     if is_rrec_lform || (is_child_repeat_lform) {
@@ -2744,14 +2759,14 @@ impl ParserGen {
                 let is_single = exit_info_alts.len() == 1;
                 let indent = if is_single { "        " } else { "                " };
                 if !is_single {
-                    if self.gen_span_params {
+                    if self.options.gen_span_params {
                         src_wrapper_impl.push("        let (n, ctx) = match alt_id {".to_string());
                     } else {
                         src_wrapper_impl.push("        let ctx = match alt_id {".to_string());
                     }
                 }
                 if VERBOSE { println!("    exit_alts -> {exit_info_alts:?}, last_alt_id -> {last_alt_ids:?}"); }
-                let spans_param = if self.gen_span_params { ", spans" } else { "" };
+                let spans_param = if self.options.gen_span_params { ", spans" } else { "" };
                 for a in exit_info_alts {
                     if VERBOSE {
                         println!("    - ALTERNATIVE {a}: {} -> {}",
@@ -2772,7 +2787,7 @@ impl ParserGen {
                     };
                     if is_single {
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if self.gen_span_params {
+                        if self.options.gen_span_params {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
 
                         }
@@ -2785,7 +2800,7 @@ impl ParserGen {
                 if !is_single {
                     src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{alt_id}} in fn {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
-                    if self.gen_span_params {
+                    if self.options.gen_span_params {
                         src_wrapper_impl.extend(Self::source_update_span("n"));
                     }
                 }
@@ -2818,7 +2833,7 @@ impl ParserGen {
                     None
                 };
                 if let Some(owner) = owner_maybe {
-                    if self.nt_value[owner as usize] {
+                    if self.nt_values[owner as usize] {
                         let (variant, _, fnname) = &self.nt_name[owner as usize];
                         let typ = self.get_nt_type(owner);
                         let varname = if is_child_repeat_lform { "acc" } else { fnname };
@@ -2855,18 +2870,18 @@ impl ParserGen {
         src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
         src.push("    fn check_abort_request(&self) -> Terminate { Terminate::None }".to_string());
         src.push("    fn get_log_mut(&mut self) -> &mut impl Logger;".to_string());
-        let extra_span = if self.gen_span_params { ", span: PosSpan" } else { "" };
-        let extra_ref_span = if self.gen_span_params { ", span: &PosSpan" } else { "" };
+        let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
+        let extra_ref_span = if self.options.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
             src.push("    #[allow(unused_variables)]".to_string());
             src.push(format!("    fn hook(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
         }
         src.push("    #[allow(unused_variables)]".to_string());
         src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str{extra_ref_span}) -> TokenId {{ token }}"));
-        if self.nt_value[self.start as usize] || self.gen_span_params {
+        if self.nt_values[self.start as usize] || self.options.gen_span_params {
             src.push("    #[allow(unused_variables)]".to_string());
         }
-        if self.nt_value[self.start as usize] {
+        if self.nt_values[self.start as usize] {
             src.push(format!("    fn exit(&mut self, {}: {}{extra_span}) {{}}", self.nt_name[self.start as usize].2, self.get_nt_type(self.start)));
         } else {
             src.push(format!("    fn exit(&mut self{extra_span}) {{}}"));
@@ -2891,7 +2906,7 @@ impl ParserGen {
         src.push("    stack: Vec<EnumSynValue>,".to_string());
         src.push("    max_stack: usize,".to_string());
         src.push("    stack_t: Vec<String>,".to_string());
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             src.push("    stack_span: Vec<PosSpan>,".to_string());
         }
         src.push("}".to_string());
@@ -2906,7 +2921,7 @@ impl ParserGen {
         src.push("        }".to_string());
         src.push("        match call {".to_string());
         src.push("            Call::Enter => {".to_string());
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             // adds span accumulator inits, using Segments to regroup them
             let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
             seg_span.normalize();
@@ -2954,11 +2969,11 @@ impl ParserGen {
         src.push("                    Terminate::None => {".to_string());
         let mut args = vec![];
         let (_nu, _nl, npl) = &self.nt_name[self.start as usize];
-        if self.nt_value[self.start as usize] {
+        if self.nt_values[self.start as usize] {
             src.push(format!("                        let val = self.stack.pop().unwrap().get_{npl}();"));
             args.push("val");
         }
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             src.push("                        let span = self.stack_span.pop().unwrap();".to_string());
             args.push("span");
         }
@@ -2981,7 +2996,7 @@ impl ParserGen {
         src.push(String::new());
         src.push("    fn abort(&mut self) {".to_string());
         src.push("        self.stack.clear();".to_string());
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             src.push("        self.stack_span.clear();".to_string());
         }
         src.push("        self.stack_t.clear();".to_string());
@@ -2990,7 +3005,7 @@ impl ParserGen {
         src.push("    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string());
         src.push("        self.listener.get_log_mut()".to_string());
         src.push("    }".to_string());
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             src.push(String::new());
             src.push("    fn push_span(&mut self, span: PosSpan) {".to_string());
             src.push("        self.stack_span.push(span);".to_string());
@@ -3004,14 +3019,14 @@ impl ParserGen {
         src.push("    fn is_stack_t_empty(&self) -> bool {".to_string());
         src.push("        self.stack_t.is_empty()".to_string());
         src.push("    }".to_string());
-        if self.gen_span_params {
+        if self.options.gen_span_params {
             src.add_space();
             src.push("    fn is_stack_span_empty(&self) -> bool {".to_string());
             src.push("        self.stack_span.is_empty()".to_string());
             src.push("    }".to_string());
         }
-        let unused_span = if self.gen_span_params { "" } else { "_" };
-        let extra_span_arg = if self.gen_span_params { ", span" } else { "" };
+        let unused_span = if self.options.gen_span_params { "" } else { "_" };
+        let extra_span_arg = if self.options.gen_span_params { ", span" } else { "" };
         if !self.terminal_hooks.is_empty() {
             src.add_space();
             src.push(format!("    fn hook(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
@@ -3029,7 +3044,7 @@ impl ParserGen {
         src.push("    pub fn new(listener: T, verbose: bool) -> Self {".to_string());
         src.push(format!(
             "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){} }}",
-            if self.gen_span_params { ", stack_span: Vec::new()" } else { "" }
+            if self.options.gen_span_params { ", stack_span: Vec::new()" } else { "" }
         ));
         src.push("    }".to_string());
         src.push(String::new());
@@ -3120,6 +3135,24 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
     }
 }
 
+impl Default for ParserGenOptions {
+    fn default() -> Self {
+        ParserGenOptions {
+            nt_value: NTValue::Default,
+            include_alts: false,
+            headers: vec![],
+            used_libs: StructLibs::new(),
+            gen_wrapper: true,
+            gen_span_params: false,
+            gen_token_enums: false,
+            lib_crate: LexigramCrate::Core,
+            indent: 0,
+            types_indent: 0,
+            listener_indent: 0,
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
@@ -3177,7 +3210,7 @@ impl ParserGen {
             cols.push(vec![
                 format!("| {v:3}"),
                 format!("| {line}"),
-                if self.nt_value[nt] { "| y".to_string() } else { "|".to_string() },
+                if self.nt_values[nt] { "| y".to_string() } else { "|".to_string() },
                 // format!("| {parent}"),
                 format!("| {}", ruleflag::to_string(self.parsing_table.flags[nt]).join(", ")),
                 "|".to_string(),
@@ -3253,7 +3286,7 @@ impl ParserGen {
                 if show_symbols {
                     let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
                     let value = if show_span {
-                        assert!(self.gen_span_params, "ParserGen is not configured for spans");
+                        assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
                         format!("({}, {symbols})", self.span_nbrs[a_id as usize])
                     } else {
                         symbols

@@ -2581,11 +2581,11 @@ mod wrapper_source {
             builder.use_full_lib(true);
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.get_inner_str().contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
-            builder.set_nt_value(&has_value);
+            builder.set_nt_value(has_value.clone());
             if VERBOSE {
                 println!("before, NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
-                             if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
+                             if builder.nt_values[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
             builder.set_indent(4);
@@ -2603,7 +2603,7 @@ mod wrapper_source {
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
-                             if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
+                             if builder.nt_values[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
             let result_items = builder.item_ops.iter().enumerate()

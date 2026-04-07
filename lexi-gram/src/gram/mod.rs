@@ -5,7 +5,7 @@ use gramparser::{build_parser, GramParserListener, Wrapper};
 use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::char_reader::CharReader;
-use lexigram_lib::lexer::{Lexer, TokenSpliterator};
+use lexigram_lib::lexer::{CaretCol, Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto};
 use lexigram_lib::parser::Parser;
@@ -18,7 +18,13 @@ mod gramparser;
 mod listener;
 mod tests;
 
+#[derive(Clone, Debug)]
+pub struct GramOptions {
+    pub tab_width: CaretCol,
+}
+
 pub struct Gram<'l, 'p, 'ls> {
+    pub options: GramOptions,
     pub gramlexer: Lexer<'l, Cursor<&'l str>>,
     pub gramparser: Parser<'p>,
     pub wrapper: Wrapper<GramListener<'ls>>,
@@ -36,12 +42,24 @@ impl<'l, 'ls: 'l> Gram<'l, '_, 'ls> {
         let mut gramlexer = build_lexer();
         gramlexer.set_tab_width(4);
         gramlexer.attach_stream(CharReader::new(Cursor::new(grammar)));
-        Gram {
+        let mut gram = Gram {
+            options: GramOptions::default(),
             gramlexer,
             gramparser: build_parser(),
             wrapper,
             start_nt: None,
-        }
+        };
+        gram.apply_options();
+        gram
+    }
+
+    pub fn set_options(&mut self, options: GramOptions) {
+        self.options = options;
+        self.apply_options();
+    }
+
+    fn apply_options(&mut self) {
+        self.gramlexer.set_tab_width(self.options.tab_width);
     }
 
     pub fn set_start_nt(&mut self, name_opt: Option<String>) {
@@ -110,5 +128,11 @@ impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
         let mut prs = ProdRuleSet::<General>::from(listener);
         prs.set_name(Some(name));
         prs.build_into()
+    }
+}
+
+impl Default for GramOptions {
+    fn default() -> Self {
+        GramOptions { tab_width: 4 }
     }
 }

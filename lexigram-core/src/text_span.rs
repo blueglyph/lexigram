@@ -40,9 +40,9 @@ pub trait GetTextSpan: GetLine {
         let &PosSpan { first: Pos(l1, c1), last: Pos(l2, c2) } = span;
         let (mut l1, c1, l2, c2) = (l1 as usize, c1 as usize, l2 as usize, c2 as usize);
         let line = self.get_line(l1);
-        let b_c1 = char_to_len(&line, c1 - 1);  // c1 = 2: (a1 a2) b1 b2 b3 c1 c2 d1 -> 2 -> ..2 = "a", 2.. = "bcd"
+        let b_c1 = char_to_len(line, c1 - 1);  // c1 = 2: (a1 a2) b1 b2 b3 c1 c2 d1 -> 2 -> ..2 = "a", 2.. = "bcd"
         if l1 == l2 {
-            let i_c2 = char_to_len(&line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
+            let i_c2 = char_to_len(line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
             format!("|{l1:4}| {}{BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..b_c1], &line[b_c1..i_c2], &line[i_c2..])
         } else {
             let mut result = format!("|{l1:4}| {}{BEFORE_ANSI}{}{AFTER_ANSI}", &line[..b_c1], &line[b_c1..]);
@@ -51,7 +51,7 @@ pub trait GetTextSpan: GetLine {
                 result.push_str(&format!("\n|{l1:4}| {BEFORE_ANSI}{}{AFTER_ANSI}", self.get_line(l1)));
             }
             let line = self.get_line(l2);
-            let i_c2 = char_to_len(&line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
+            let i_c2 = char_to_len(line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
             result.push_str(&format!("\n|{l2:4}| {BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..i_c2], &line[i_c2..]));
             result
         }

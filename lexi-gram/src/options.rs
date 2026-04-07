@@ -2,8 +2,13 @@
 
 use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
-use lexigram_lib::lexergen::LexigramCrate;
-use lexigram_lib::parsergen::NTValue;
+use lexigram_lib::lexer::CaretCol;
+use lexigram_lib::lexergen::{LexerGenOptions, LexigramCrate};
+use lexigram_lib::parsergen::{NTValue, ParserGenOptions};
+use lexigram_lib::StructLibs;
+use crate::gram::GramOptions;
+use crate::lexi::LexiOptions;
+
 /// Action performed by the source generator: generates the source or verifies it
 /// (verification is only possible with some [CodeLocation] options).
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -126,6 +131,8 @@ pub struct Options {
     pub lexer_headers: Vec<String>,
     /// Custom headers to insert before the parser code
     pub parser_headers: Vec<String>,
+    /// Input tab width (common to lexicon and grammar)
+    pub tab_width: CaretCol,
     /// Custom `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
     pub libs: Vec<String>,
     /// Name of the start nonterminal, which defaults to the first one defined in the grammar.
@@ -135,7 +142,7 @@ pub struct Options {
     /// Includes the definitions of the alternatives in the parser, for debugging purposes
     ///
     /// Default: `false`
-    pub gen_parser_alts: bool,
+    pub include_parser_alts: bool,
     /// Generates the wrapper, which is necessary to interface a listener (only if `parser_code` isn't `None`)
     ///
     /// Default: `true`
@@ -149,7 +156,7 @@ pub struct Options {
     /// Uses the full library instead of the core library in the generated code. Use this option for a lexer / parser that
     /// needs `lexigram_lib` instead of the smaller `lexigram_core` crate.
     ///
-    /// Default: `false`
+    /// Default: `LexigramCrate::Core`
     pub lib_crate: LexigramCrate,
     /// Sets the nonterminals that have a value.
     pub nt_value: NTValue,
@@ -204,9 +211,10 @@ impl Default for Options {
             parser_indent: 0,
             lexer_headers: vec![],
             parser_headers: vec![],
+            tab_width: 4,
             libs: vec![],
             start_nt: None,
-            gen_parser_alts: false,
+            include_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
             gen_token_enums: false,
@@ -531,6 +539,14 @@ impl OptionsBuilder {
         self
     }
 
+    /// Sets the tab width for input files like the lexicon and the grammar.
+    ///
+    /// Default: 4
+    pub fn tab_width(&mut self, tab_width: CaretCol) -> &mut Self {
+        self.options.tab_width = tab_width;
+        self
+    }
+
     /// **Adds** user crates and modules to the list of `use` dependencies for the parser / wrapper.
     /// This can be used to define the user types needed in the wrapper / listener
     /// (those types can be initially copied from the generated code; they're commented out near the
@@ -556,7 +572,7 @@ impl OptionsBuilder {
     ///
     /// Default: `false`
     pub fn parser_alts(&mut self, parser_alts: bool) -> &mut Self {
-        self.options.gen_parser_alts = parser_alts;
+        self.options.include_parser_alts = parser_alts;
         self
     }
 
@@ -754,5 +770,52 @@ pub mod macros {
         (stdout) => {
             $crate::options::CodeLocation::StdOut
         };
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+impl From<&Options> for LexiOptions {
+    fn from(options: &Options) -> Self {
+        LexiOptions {
+            tab_width: options.tab_width,
+        }
+    }
+}
+
+impl From<&Options> for GramOptions {
+    fn from(options: &Options) -> Self {
+        GramOptions {
+            tab_width: options.tab_width,
+        }
+    }
+}
+
+impl From<&Options> for LexerGenOptions {
+    fn from(options: &Options) -> Self {
+        LexerGenOptions {
+            headers: options.lexer_headers.clone(),
+            lib_crate: options.lib_crate.clone(),
+        }
+    }
+}
+
+impl From<&Options> for ParserGenOptions {
+    fn from(options: &Options) -> Self {
+        let mut used_libs = StructLibs::new();
+        used_libs.extend(options.libs.clone());
+        ParserGenOptions {
+            nt_value: options.nt_value.clone(),
+            include_alts: options.include_parser_alts,
+            headers: options.parser_headers.clone(),
+            used_libs,
+            gen_wrapper: options.gen_wrapper,
+            gen_span_params: options.gen_span_params,
+            gen_token_enums: options.gen_token_enums,
+            lib_crate: options.lib_crate.clone(),
+            indent: options.parser_indent,
+            types_indent: options.types_indent,
+            listener_indent: options.listener_indent,
+        }
     }
 }

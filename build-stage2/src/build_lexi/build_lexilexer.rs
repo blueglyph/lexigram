@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::lexergen::LexerGen;
+use lexigram_lib::lexergen::{LexerGen, LexigramCrate};
 use lexigram_lib::file_utils::replace_tagged_source;
 use lexigram_lib::dfa::{Dfa, DfaTables};
 use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
@@ -195,7 +195,7 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     // - builds the lexer
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    lexgen.use_full_lib(true);
+    lexgen.set_lib_crate(LexigramCrate::Full);
     let src = lexgen.gen_source_code(indent);
     let mut log = lexgen.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {

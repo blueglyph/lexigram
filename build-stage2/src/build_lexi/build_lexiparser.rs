@@ -127,7 +127,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
     if !builder.get_log().has_no_errors() {
         return Err(builder.give_log());
     }
-    builder.set_nt_value(&NTValue::Parents);
+    builder.set_nt_value(NTValue::Parents);
     builder.add_lib("lexiparser_types::*");
     builder.use_full_lib(true);
     builder.set_gen_span_params(true);

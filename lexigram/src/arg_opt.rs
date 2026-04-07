@@ -4,6 +4,7 @@ use std::iter::Peekable;
 use std::str::FromStr;
 use lexi_gram::{gencode, genspec};
 use lexi_gram::lexigram_lib::CollectJoin;
+use lexi_gram::lexigram_lib::lexer::CaretCol;
 use lexi_gram::lexigram_lib::lexergen::LexigramCrate;
 use lexi_gram::lexigram_lib::parsergen::NTValue;
 use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
@@ -76,6 +77,9 @@ if they apply to both, or after either of them if they only apply to the lexer o
                             This can also be used for the templates.
 
 Other options related to the generated code:
+
+  --tab-width <number>      Sets the tab width for input files like the lexicon and the grammar.
+                            The default is 4 (space positions per tab).
 
   --lib <string>            Adds a custom lib (crates/modules) to the "use" bindings in the
                             parser / wrapper / listener generated code. This option can be
@@ -268,6 +272,12 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             }
             "-v" | "--verify" => {
                 action = Action::Verify;
+            }
+            "--tab-width" => {
+                let tab = take_argument(&mut args, "missing argument after --tab-width")?;
+                let tab_value = CaretCol::from_str(tab)
+                    .map_err(|e| ExeError::Option(format!("error while parsing --tab-width {tab}: {e}")))?;
+                builder.tab_width(tab_value);
             }
             "--lib" => {
                 let lib = take_argument(&mut args, "missing argument after --lib")?;

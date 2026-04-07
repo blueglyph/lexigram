@@ -9,7 +9,7 @@ use std::io::Cursor;
 use lexigram_lib::build::{BuildError, BuildErrorSource, TryBuildFrom, TryBuildInto};
 use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::grammar::ProdRuleSet;
-use lexigram_lib::lexergen::LexerGen;
+use lexigram_lib::lexergen::{LexerGen, LexerGenOptions};
 use lexigram_lib::{file_utils, LL1};
 use lexigram_lib::log::{BufLog, LogReader, Logger};
 use lexigram_lib::parsergen::ParserGen;
@@ -38,7 +38,8 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 {
     // 1. Lexer
 
-    let lexi = Lexi::new(lexicon.as_str());
+    let mut lexi = Lexi::new(lexicon.as_str());
+    lexi.set_options(options.into());
     let lexi_tab_width = lexi.get_tab_width();
 
     // - reads the lexicon and builds the DFA
@@ -46,9 +47,8 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
+    lexgen.set_options(LexerGenOptions::from(options));
     lexgen.symbol_table = Some(symbol_table.clone());
-    lexgen.extend_headers(&options.lexer_headers);
-    lexgen.set_crate(options.lib_crate.clone());
 
     let is_combined = pos_grammar_opt.is_some();
     if pos_grammar_opt.is_some() && grammar_opt.is_some() {
@@ -91,18 +91,8 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
         // - generates Lexi's parser source code (parser + listener):
         let mut builder = ParserGen::try_build_from(ll1)?;
+        builder.set_options(options.into());
         builder.set_terminal_hooks(terminal_hooks);
-        builder.set_nt_value(&options.nt_value);
-        builder.set_include_alts(options.gen_parser_alts);
-        builder.extend_headers(&options.parser_headers);
-        builder.extend_libs(options.libs.clone());
-        builder.set_gen_wrapper(options.gen_wrapper);
-        builder.set_gen_span_params(options.gen_span_params);
-        builder.set_gen_token_enums(options.gen_token_enums);
-        builder.set_crate(options.lib_crate.clone());
-        builder.set_indent(options.parser_indent);
-        builder.set_types_indent(options.types_indent);
-        builder.set_listener_indent(options.listener_indent);
         let (parser_log, parser_src, types_src, listener_src) = builder.try_gen_source_code()?;
         log.extend(parser_log);
         Some((parser_src, types_src, listener_src))

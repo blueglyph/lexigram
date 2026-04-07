@@ -12,7 +12,7 @@ use crate::{gnode, General, SymbolTable, TokenId, VarId, LL1};
 use crate::fixed_sym_table::SymInfoTable;
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, Terminal};
-use crate::lexergen::{LexerGen, LexerTables};
+use crate::lexergen::{LexerGen, LexerTables, LexigramCrate};
 use super::*;
 use crate::grammar::{GrTreeExt, ProdRuleSet, RuleTreeSet};
 use lexigram_core::log::{LogReader, LogStatus};
@@ -75,7 +75,7 @@ fn gen_source_lexilexer(replace_source: bool) {
     let dfa = make_dfa();
     let dfa = dfa.optimize();
     let mut lexgen = LexerGen::build_from(dfa);
-    lexgen.use_full_lib(true);
+    lexgen.set_lib_crate(LexigramCrate::Full);
     let result_src = lexgen.gen_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
