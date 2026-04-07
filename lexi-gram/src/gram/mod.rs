@@ -21,6 +21,7 @@ mod tests;
 #[derive(Clone, Debug)]
 pub struct GramOptions {
     pub tab_width: CaretCol,
+    pub ansi: bool,
 }
 
 pub struct Gram<'l, 'p, 'ls> {
@@ -60,6 +61,8 @@ impl<'l, 'ls: 'l> Gram<'l, '_, 'ls> {
 
     fn apply_options(&mut self) {
         self.gramlexer.set_tab_width(self.options.tab_width);
+        let ansi = self.options.ansi;
+        self.get_listener_mut().set_ansi(ansi);
     }
 
     pub fn set_start_nt(&mut self, name_opt: Option<String>) {
@@ -133,6 +136,9 @@ impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
 
 impl Default for GramOptions {
     fn default() -> Self {
-        GramOptions { tab_width: 4 }
+        GramOptions {
+            tab_width: 4,
+            ansi: true,
+        }
     }
 }

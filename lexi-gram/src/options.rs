@@ -133,6 +133,8 @@ pub struct Options {
     pub parser_headers: Vec<String>,
     /// Input tab width (common to lexicon and grammar)
     pub tab_width: CaretCol,
+    /// Enables ANSI colour codes in log and stdout
+    pub ansi: bool,
     /// Custom `use` libraries to include in the parser code (only if `parser_code` isn't `None`)
     pub libs: Vec<String>,
     /// Name of the start nonterminal, which defaults to the first one defined in the grammar.
@@ -212,6 +214,7 @@ impl Default for Options {
             lexer_headers: vec![],
             parser_headers: vec![],
             tab_width: 4,
+            ansi: true,
             libs: vec![],
             start_nt: None,
             include_parser_alts: false,
@@ -547,6 +550,14 @@ impl OptionsBuilder {
         self
     }
 
+    /// Enables ANSI colour codes in log and stdout.
+    ///
+    /// Default: true
+    pub fn ansi(&mut self, ansi: bool) -> &mut Self {
+        self.options.ansi = ansi;
+        self
+    }
+
     /// **Adds** user crates and modules to the list of `use` dependencies for the parser / wrapper.
     /// This can be used to define the user types needed in the wrapper / listener
     /// (those types can be initially copied from the generated code; they're commented out near the
@@ -779,6 +790,7 @@ impl From<&Options> for LexiOptions {
     fn from(options: &Options) -> Self {
         LexiOptions {
             tab_width: options.tab_width,
+            ansi: options.ansi,
         }
     }
 }
@@ -787,6 +799,7 @@ impl From<&Options> for GramOptions {
     fn from(options: &Options) -> Self {
         GramOptions {
             tab_width: options.tab_width,
+            ansi: options.ansi,
         }
     }
 }

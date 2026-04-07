@@ -86,6 +86,7 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
         // - parses the grammar
         let mut gram = Gram::new(symbol_table, grammar);
+        gram.set_options(options.into());
         gram.set_start_nt(options.start_nt.clone());
         let ll1 = ProdRuleSet::<LL1>::try_build_from(gram)?;
 

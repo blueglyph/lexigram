@@ -29,6 +29,7 @@ pub struct SymbolicDfa {
 #[derive(Clone, Debug)]
 pub struct LexiOptions {
     pub tab_width: CaretCol,
+    pub ansi: bool,
 }
 
 pub struct Lexi<'l, 'p, 'ls> {
@@ -68,6 +69,8 @@ impl<'l, 'ls: 'l> Lexi<'l, '_, 'ls> {
 
     fn apply_options(&mut self) {
         self.lexilexer.set_tab_width(self.options.tab_width);
+        let ansi = self.options.ansi;
+        self.get_listener_mut().set_ansi(ansi);
     }
 
     pub fn get_listener_mut(&mut self) -> &mut LexiListener<'ls> {
@@ -158,6 +161,9 @@ impl TryBuildFrom<Lexi<'_, '_, '_>> for SymbolicDfa {
 
 impl Default for LexiOptions {
     fn default() -> Self {
-        LexiOptions { tab_width: 4 }
+        LexiOptions {
+            tab_width: 4,
+            ansi: true,
+        }
     }
 }
