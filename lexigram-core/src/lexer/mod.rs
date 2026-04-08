@@ -494,6 +494,20 @@ impl<'a, R: Read> Lexer<'a, R> {
         self.input.as_ref().map(|input| input.is_reading()).unwrap_or(false)
     }
 
+    pub fn skip_to_pos(&mut self, new_pos: Pos) -> Result<(), String> {
+        if self.input.is_none() {
+            return Err("no current input".to_string());
+        }
+        while self.cursor != new_pos {
+            if let Some(c) = self.input.as_mut().unwrap().get_char() {
+                self.cursor.update_pos(c, self.tab_width);
+            } else {
+                return Err("cannot find the position of the grammar in the lexicon".to_string());
+            };
+        }
+        Ok(())
+    }
+
     pub fn tokens(&mut self) -> LexInterpretIter<'_, 'a, R> {
         LexInterpretIter { lexer: self, error_info: None, mode: LexInterpretIterMode::Normal }
     }

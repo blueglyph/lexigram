@@ -5,9 +5,7 @@
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::io::Cursor;
 use lexigram_lib::build::{BuildError, BuildErrorSource, TryBuildFrom, TryBuildInto};
-use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::lexergen::{LexerGen, LexerGenOptions};
 use lexigram_lib::{file_utils, LL1};
@@ -40,7 +38,6 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 
     let mut lexi = Lexi::new(lexicon.as_str());
     lexi.set_options(options.into());
-    let lexi_tab_width = lexi.get_tab_width();
 
     // - reads the lexicon and builds the DFA
     let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.try_build_into()?;
@@ -64,30 +61,27 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     // 2. Parser
 
     let parser_sources = if grammar_opt.is_some() || is_combined {
-        let grammar = grammar_opt.as_deref().unwrap_or_else(|| {
+        let (grammar, start_pos) = if let Some(g) = grammar_opt.as_deref() {
+            // grammar not combined, starting at position (1, 1)
+            (g, Pos(1, 1))
+        } else {
             if let Some(pos_grammar) = pos_grammar_opt {
-                // if we carried the absolute position to the listener, we could avoid
-                // seeking the cursor position again, but we have the line/col only:
-                let mut cr = CharReader::new(Cursor::new(&lexicon));
-                let mut pos = Pos(1, 1);
-                let mut char_opt = None;
-                while pos != pos_grammar {
-                    char_opt = Some(cr.get_char().expect("cannot find the position of the grammar in the lexicon"));
-                    pos.update_pos(char_opt.unwrap(), lexi_tab_width);
-                }
-                if let Some(ch) = char_opt {
-                    cr.rewind(ch).expect("couldn't rewind the first character of the grammar");
-                }
-                let offset = cr.get_offset() as usize;
-                &lexicon[offset..]
+                // grammar combined with lexicon: will have to skip to the grammar position
+                (lexicon.as_str(), pos_grammar)
             } else {
-                panic!("shouldn't happen");
-            }});
+                log.add_error("no starting position with combined lexicon/grammar");
+                return Err(BuildError::new(log, BuildErrorSource::Gram));
+            }
+        };
 
         // - parses the grammar
         let mut gram = Gram::new(symbol_table, grammar);
         gram.set_options(options.into());
         gram.set_start_nt(options.start_nt.clone());
+        if let Err(s) = gram.gramlexer.skip_to_pos(start_pos) {
+            log.add_error(s);
+            return Err(BuildError::new(log, BuildErrorSource::Gram));
+        }
         let ll1 = ProdRuleSet::<LL1>::try_build_from(gram)?;
 
         // - generates Lexi's parser source code (parser + listener):

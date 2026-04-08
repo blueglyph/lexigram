@@ -41,7 +41,6 @@ impl<'l, 'ls: 'l> Gram<'l, '_, 'ls> {
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut gramlexer = build_lexer();
-        gramlexer.set_tab_width(4);
         gramlexer.attach_stream(CharReader::new(Cursor::new(grammar)));
         let mut gram = Gram {
             options: GramOptions::default(),
