@@ -316,7 +316,7 @@ mod listener {
             let msg = ll1.get_log().get_messages_str();
             println!("{msg}");
             println!("Nonterminals:\n{}", ll1.get_symbol_table().unwrap().get_nonterminals().enumerate().map(|(i, nt)| format!("- {i:2}: {nt}")).join("\n"));
-            let out = ll1.prs_alt_origins_str(true);
+            let out = ll1.prs_alt_origins_str();
             println!("{}", out.join("\n"));
         }
     }

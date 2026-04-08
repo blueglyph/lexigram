@@ -6,7 +6,7 @@ use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::{NTValue, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
-use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, ProdRuleSetOptions};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG, GRAM_TPL_FILENAME, TPL_LISTENER_TAG, TPL_TYPES_TAG};
@@ -69,7 +69,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         vec![0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)],
         Some(0),
-        false,
+        ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
         hashmap![]
     );
 

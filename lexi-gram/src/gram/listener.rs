@@ -3,7 +3,7 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, ProdRuleSetOptions, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
@@ -203,8 +203,11 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
         }
         let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
+            prs.set_options(ProdRuleSetOptions {
+                ansi: gram_listener.ansi,
+                disable_warning_unused_nt_t: gram_listener.disable_warning_unused_nt_t,
+            });
             prs.set_start(gram_listener.start_nt.unwrap());
-            prs.set_disable_warning_unused_nt_t(gram_listener.disable_warning_unused_nt_t);
         }
         prs
     }

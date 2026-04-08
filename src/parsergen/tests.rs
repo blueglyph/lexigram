@@ -2565,7 +2565,7 @@ mod wrapper_source {
                 println!("Terminals: {}", ll1.get_symbol_table().unwrap()
                     .get_terminals().enumerate()
                     .map(|(i, (s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", "));
-                println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str(true)], 4));
+                println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str()], 4));
             }
             if !ll1.has_no_errors() {
                 if VERBOSE {
