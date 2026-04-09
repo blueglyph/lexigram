@@ -9,7 +9,7 @@ use lexigram_lib::{hashset, CollectJoin};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundle, ReType};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
 use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Pos, PosSpan, Terminal};
 use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
@@ -633,6 +633,16 @@ impl LexiParserListener for LexiListener<'_> {
 
     fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        if let Some(span) = span_opt {
+            if let Some(msg_text) = msg.get_inner_str_mut() {
+                let text = self.annotate(&span);
+                *msg_text = format!("{msg_text}\n\n{text}\n");
+            }
+        }
+        self.get_log_mut().add(msg);
     }
 
     fn exit(&mut self, _file: SynFile, _span: PosSpan) {

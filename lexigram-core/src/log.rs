@@ -56,6 +56,15 @@ pub trait LogStatus: Debug {
 
 /// Common log functionalities for a message producer
 pub trait Logger: Debug {
+    fn add(&mut self, msg: LogMsg) {
+        match msg {
+            LogMsg::NoLogStore => {}
+            LogMsg::Note(s) => self.add_note(s),
+            LogMsg::Info(s) => self.add_info(s),
+            LogMsg::Warning(s) => self.add_warning(s),
+            LogMsg::Error(s) => self.add_error(s),
+        }
+    }
     fn add_note<T: Into<String>>(&mut self, msg: T);
     fn add_info<T: Into<String>>(&mut self, msg: T);
     fn add_warning<T: Into<String>>(&mut self, msg: T);
@@ -136,7 +145,18 @@ impl LogMsg {
             | LogMsg::Error(s) => s.as_str()
         }
     }
+
+    pub fn get_inner_str_mut(&mut self) -> Option<&mut String> {
+        match self {
+            LogMsg::NoLogStore => None,
+            LogMsg::Note(s)
+            | LogMsg::Info(s)
+            | LogMsg::Warning(s)
+            | LogMsg::Error(s) => Some(s),
+        }
+    }
 }
+
 impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -148,6 +168,7 @@ impl Display for LogMsg {
         }
     }
 }
+
 /// Log system that stores the messages
 #[derive(Clone, Debug)]
 pub struct BufLog {
@@ -227,6 +248,17 @@ impl LogStatus for BufLog {
 }
 
 impl Logger for BufLog {
+    fn add(&mut self, msg: LogMsg) {
+        match &msg {
+            LogMsg::NoLogStore => {}
+            LogMsg::Note(_) => { self.num_notes += 1; }
+            LogMsg::Info(_) => { self.num_infos += 1; }
+            LogMsg::Warning(_) => { self.num_warnings += 1; }
+            LogMsg::Error(_) => { self.num_errors += 1; }
+        }
+        self.messages.push(msg);
+    }
+
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Note(msg.into()));
         self.num_notes += 1;
@@ -311,6 +343,10 @@ impl<T: LogReader + Debug> LogStatus for T {
 }
 
 impl<L: LogWriter + Debug> Logger for L {
+    fn add(&mut self, msg: LogMsg) {
+        self.get_log_mut().add(msg);
+    }
+
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.get_log_mut().add_note(msg);
     }

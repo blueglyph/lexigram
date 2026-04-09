@@ -228,6 +228,17 @@ mod listener {
                 vec![], true,
                 vec![]
             ),
+            (
+                r#"grammar T14;
+                a: Id Equal Int Semicolon;
+                "#,
+                vec![], true,
+                vec![
+                    ("a = 1;", true, true),
+                    ("a = 2; xyz", true, false),
+                    ("a = ", true, false),
+                ]
+            ),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;

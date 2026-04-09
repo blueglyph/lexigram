@@ -5,7 +5,7 @@ use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, ProdRuleSetOptions, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
 use lexigram_lib::{General, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
@@ -248,6 +248,16 @@ impl GramParserListener for GramListener<'_> {
 
     fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        if let Some(span) = span_opt {
+            if let Some(msg_text) = msg.get_inner_str_mut() {
+                let text = self.annotate(&span);
+                *msg_text = format!("{msg_text}\n\n{text}\n");
+            }
+        }
+        self.get_log_mut().add(msg);
     }
 
     // file:

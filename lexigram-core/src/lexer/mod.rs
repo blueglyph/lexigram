@@ -553,7 +553,6 @@ impl<'a, R: Read> Lexer<'a, R> {
         self.error = LexerError::None;
         let mut text = String::new();
         let mut more_text = String::new();  // keeps previously scanned text if `more` action
-        // if let Some(input) = self.input.as_mut() {
         if self.input.is_some() {
             let mut state = self.start_state;
             let mut first_pos = self.cursor;

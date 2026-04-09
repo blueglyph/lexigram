@@ -2068,17 +2068,14 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
-        static PARSER_LIBS: [&str; 8] = [
+        static PARSER_LIBS: [&str; 9] = [
             "::VarId", "::parser::Call", "::parser::ListenerWrapper",
             "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan",
-            "::parser::Terminate"
+            "::parser::Terminate", "::log::LogMsg"
         ];
 
         self.log.add_note("generating wrapper source...");
         self.options.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
-        if self.options.gen_span_params {
-            self.options.used_libs.add(format!("{}::lexer::PosSpan", self.options.lib_crate));
-        }
 
         self.get_type_info();
         let pinfo = &self.parsing_table;
@@ -2870,6 +2867,10 @@ impl ParserGen {
         src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
         src.push("    fn check_abort_request(&self) -> Terminate { Terminate::None }".to_string());
         src.push("    fn get_log_mut(&mut self) -> &mut impl Logger;".to_string());
+        src.push("    #[allow(unused_variables)]".to_string());
+        src.push("    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {".to_string());
+        src.push("        self.get_log_mut().add(msg);".to_string());
+        src.push("    }".to_string());
         let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.options.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
@@ -3004,6 +3005,10 @@ impl ParserGen {
         src.push(String::new());
         src.push("    fn get_log_mut(&mut self) -> &mut impl Logger {".to_string());
         src.push("        self.listener.get_log_mut()".to_string());
+        src.push("    }".to_string());
+        src.push(String::new());
+        src.push("    fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {".to_string());
+        src.push("        self.listener.handle_msg(span_opt, msg);".to_string());
         src.push("    }".to_string());
         if self.options.gen_span_params {
             src.push(String::new());

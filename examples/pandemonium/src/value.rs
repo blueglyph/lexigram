@@ -725,7 +725,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 30;
@@ -1084,6 +1084,10 @@ pub mod pandemonium_parser {
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, text: SynText, span: PosSpan) {}
@@ -1340,6 +1344,10 @@ pub mod pandemonium_parser {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
