@@ -75,15 +75,8 @@ fn main() {
                     eprintln!("Error while parsing the command arguments: {msg}");
                     2
                 }
-                ExeError::GenParser { source, show_log } => {
+                ExeError::GenParser { source, .. } => {
                     eprintln!("Generator error:\n{source}");
-                    if let Some(log) = source.get_log() {
-                        if show_log {
-                            eprintln!("{log}");
-                        } else {
-                            eprintln!("{}", log.get_totals());
-                        }
-                    }
                     3
                 }
                 ExeError::Message(s) => {
