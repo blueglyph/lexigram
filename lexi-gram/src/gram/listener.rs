@@ -3,9 +3,9 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, ProdRuleSetOptions, RuleTreeSet};
 use lexigram_lib::build::BuildFrom;
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
 use lexigram_lib::{General, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
@@ -18,6 +18,7 @@ use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
 
 pub struct GramListener<'ls> {
     verbose: bool,
+    ansi: bool,
     lines: Vec<&'ls str>,
     name: String,
     log: BufLog,
@@ -55,6 +56,7 @@ impl<'ls> GramListener<'ls> {
         assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain nonterminals");
         GramListener {
             verbose: false,
+            ansi: true,
             lines: grammar.lines().collect(),
             name: String::new(),
             abort: Terminate::None,
@@ -76,6 +78,10 @@ impl<'ls> GramListener<'ls> {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
+    }
+
+    pub fn set_ansi(&mut self, ansi: bool) {
+        self.ansi = ansi;
     }
 
     pub fn get_name(&self) -> &str {
@@ -143,8 +149,16 @@ impl<'ls> GramListener<'ls> {
         }
     }
 
+    fn annotate(&self, span: &PosSpan) -> String {
+        if self.ansi {
+            self.annotate_text(span)
+        } else {
+            self.annotate_text_ascii(span)
+        }
+    }
+
     fn log_error(&mut self, span: &PosSpan, message: &str) {
-        let text = self.annotate_text(span);
+        let text = self.annotate(span);
         self.log.add_error(format!("at {span}, {message}:\n\n{text}\n"));
     }
 }
@@ -189,8 +203,11 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
         }
         let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
+            prs.set_options(ProdRuleSetOptions {
+                ansi: gram_listener.ansi,
+                disable_warning_unused_nt_t: gram_listener.disable_warning_unused_nt_t,
+            });
             prs.set_start(gram_listener.start_nt.unwrap());
-            prs.set_disable_warning_unused_nt_t(gram_listener.disable_warning_unused_nt_t);
         }
         prs
     }
@@ -231,6 +248,16 @@ impl GramParserListener for GramListener<'_> {
 
     fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        if let Some(span) = span_opt {
+            if let Some(msg_text) = msg.get_inner_str_mut() {
+                let text = self.annotate(&span);
+                *msg_text = format!("{msg_text}\n\n{text}\n");
+            }
+        }
+        self.get_log_mut().add(msg);
     }
 
     // file:
@@ -394,7 +421,7 @@ impl GramParserListener for GramListener<'_> {
                 let lform_var = lforms.remove(0);
                 let lform_spans = self.stack_lform.drain((n + 1 - nl)..).to_vec();
                 let at_text = lform_spans.iter().map(|s| s.to_string()).join(", ");
-                let annot_text = lform_spans.into_iter().map(|s| self.annotate_text(&s)).join("\n");
+                let annot_text = lform_spans.into_iter().map(|s| self.annotate(&s)).join("\n");
                 self.log.add_error(format!(
                     "at {at_text}, extra <L>: <L={}> was already declared in this scope:\n\n{annot_text}\n",
                     Symbol::NT(lform_var).to_str(Some(self.get_symbol_table()))

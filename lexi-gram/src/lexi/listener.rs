@@ -9,7 +9,7 @@ use lexigram_lib::{hashset, CollectJoin};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::dfa::{retree_to_str, tree_to_string, Dfa, DfaBuilder, DfaBundle, ReType};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, General, Normalized, SymbolTable, TokenId};
 use lexigram_lib::lexer::{ActionOption, ChannelId, ModeId, ModeOption, Pos, PosSpan, Terminal};
 use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
@@ -145,6 +145,7 @@ pub enum RuleType {
 
 pub struct LexiListener<'ls> {
     verbose: bool,
+    ansi: bool,
     lines: Vec<&'ls str>,
     name: String,
     curr: Option<VecTree<ReNode>>,
@@ -211,6 +212,7 @@ impl<'ls> LexiListener<'ls> {
     pub fn new(lexicon: &'ls str) -> Self {
         LexiListener {
             verbose: false,
+            ansi: true,
             lines: lexicon.lines().collect(),
             name: String::new(),
             curr: None,
@@ -240,6 +242,10 @@ impl<'ls> LexiListener<'ls> {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
+    }
+
+    pub fn set_ansi(&mut self, ansi: bool) {
+        self.ansi = ansi;
     }
 
     pub fn get_name(&self) -> &str {
@@ -414,8 +420,16 @@ impl<'ls> LexiListener<'ls> {
         }
     }
 
+    fn annotate(&self, span: &PosSpan) -> String {
+        if self.ansi {
+            self.annotate_text(span)
+        } else {
+            self.annotate_text_ascii(span)
+        }
+    }
+
     fn log_error(&mut self, span: &PosSpan, message: &str) {
-        let text = self.annotate_text(span);
+        let text = self.annotate(span);
         self.log.add_error(format!("at {span}, {message}:\n\n{text}\n"));
     }
 
@@ -509,7 +523,7 @@ impl<'ls> LexiListener<'ls> {
         }
         for (spans, err) in mode_errors {
             if !spans.is_empty() {
-                let text = spans.iter().map(|s| self.annotate_text(s)).join("\n");
+                let text = spans.iter().map(|s| self.annotate(s)).join("\n");
                 self.log.add_error(format!("at {}, {err}:\n\n{text}\n", spans.iter().map(|s| s.to_string()).join(", ")));
             } else {
                 self.log.add_error(err);
@@ -517,7 +531,7 @@ impl<'ls> LexiListener<'ls> {
         }
         for (span_opt, warn) in mode_warnings {
             if let Some(span) = span_opt {
-                let text = self.annotate_text(span);
+                let text = self.annotate(span);
                 self.log.add_warning(format!("at {span}, {warn}:\n\n{text}\n"));
             } else {
                 self.log.add_warning(warn);
@@ -619,6 +633,16 @@ impl LexiParserListener for LexiListener<'_> {
 
     fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        if let Some(span) = span_opt {
+            if let Some(msg_text) = msg.get_inner_str_mut() {
+                let text = self.annotate(&span);
+                *msg_text = format!("{msg_text}\n\n{text}\n");
+            }
+        }
+        self.get_log_mut().add(msg);
     }
 
     fn exit(&mut self, _file: SynFile, _span: PosSpan) {

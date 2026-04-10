@@ -5,11 +5,9 @@
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::io::Cursor;
 use lexigram_lib::build::{BuildError, BuildErrorSource, TryBuildFrom, TryBuildInto};
-use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::grammar::ProdRuleSet;
-use lexigram_lib::lexergen::LexerGen;
+use lexigram_lib::lexergen::{LexerGen, LexerGenOptions};
 use lexigram_lib::{file_utils, LL1};
 use lexigram_lib::log::{BufLog, LogReader, Logger};
 use lexigram_lib::parsergen::ParserGen;
@@ -38,17 +36,16 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
 {
     // 1. Lexer
 
-    let lexi = Lexi::new(lexicon.as_str());
-    let lexi_tab_width = lexi.get_tab_width();
+    let mut lexi = Lexi::new(lexicon.as_str());
+    lexi.set_options(options.into());
 
     // - reads the lexicon and builds the DFA
     let SymbolicDfa { dfa, symbol_table, terminal_hooks, pos_grammar_opt } = lexi.try_build_into()?;
 
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
+    lexgen.set_options(LexerGenOptions::from(options));
     lexgen.symbol_table = Some(symbol_table.clone());
-    lexgen.extend_headers(&options.lexer_headers);
-    lexgen.set_crate(options.lib_crate.clone());
 
     let is_combined = pos_grammar_opt.is_some();
     if pos_grammar_opt.is_some() && grammar_opt.is_some() {
@@ -64,45 +61,33 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
     // 2. Parser
 
     let parser_sources = if grammar_opt.is_some() || is_combined {
-        let grammar = grammar_opt.as_deref().unwrap_or_else(|| {
+        let (grammar, start_pos) = if let Some(g) = grammar_opt.as_deref() {
+            // grammar not combined, starting at position (1, 1)
+            (g, Pos(1, 1))
+        } else {
             if let Some(pos_grammar) = pos_grammar_opt {
-                // if we carried the absolute position to the listener, we could avoid
-                // seeking the cursor position again, but we have the line/col only:
-                let mut cr = CharReader::new(Cursor::new(&lexicon));
-                let mut pos = Pos(1, 1);
-                let mut char_opt = None;
-                while pos != pos_grammar {
-                    char_opt = Some(cr.get_char().expect("cannot find the position of the grammar in the lexicon"));
-                    pos.update_pos(char_opt.unwrap(), lexi_tab_width);
-                }
-                if let Some(ch) = char_opt {
-                    cr.rewind(ch).expect("couldn't rewind the first character of the grammar");
-                }
-                let offset = cr.get_offset() as usize;
-                &lexicon[offset..]
+                // grammar combined with lexicon: will have to skip to the grammar position
+                (lexicon.as_str(), pos_grammar)
             } else {
-                panic!("shouldn't happen");
-            }});
+                log.add_error("no starting position with combined lexicon/grammar");
+                return Err(BuildError::new(log, BuildErrorSource::Gram));
+            }
+        };
 
         // - parses the grammar
         let mut gram = Gram::new(symbol_table, grammar);
+        gram.set_options(options.into());
         gram.set_start_nt(options.start_nt.clone());
+        if let Err(s) = gram.gramlexer.skip_to_pos(start_pos) {
+            log.add_error(s);
+            return Err(BuildError::new(log, BuildErrorSource::Gram));
+        }
         let ll1 = ProdRuleSet::<LL1>::try_build_from(gram)?;
 
         // - generates Lexi's parser source code (parser + listener):
         let mut builder = ParserGen::try_build_from(ll1)?;
+        builder.set_options(options.into());
         builder.set_terminal_hooks(terminal_hooks);
-        builder.set_nt_value(&options.nt_value);
-        builder.set_include_alts(options.gen_parser_alts);
-        builder.extend_headers(&options.parser_headers);
-        builder.extend_libs(options.libs.clone());
-        builder.set_gen_wrapper(options.gen_wrapper);
-        builder.set_gen_span_params(options.gen_span_params);
-        builder.set_gen_token_enums(options.gen_token_enums);
-        builder.set_crate(options.lib_crate.clone());
-        builder.set_indent(options.parser_indent);
-        builder.set_types_indent(options.types_indent);
-        builder.set_listener_indent(options.listener_indent);
         let (parser_log, parser_src, types_src, listener_src) = builder.try_gen_source_code()?;
         log.extend(parser_log);
         Some((parser_src, types_src, listener_src))

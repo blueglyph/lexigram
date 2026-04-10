@@ -26,7 +26,14 @@ pub struct SymbolicDfa {
     pub pos_grammar_opt: Option<Pos>,
 }
 
+#[derive(Clone, Debug)]
+pub struct LexiOptions {
+    pub tab_width: CaretCol,
+    pub ansi: bool,
+}
+
 pub struct Lexi<'l, 'p, 'ls> {
+    pub options: LexiOptions,
     pub lexilexer: Lexer<'l, Cursor<&'l str>>,
     pub lexiparser: Parser<'p>,
     wrapper: Wrapper<LexiListener<'ls>>,
@@ -37,21 +44,33 @@ impl<'l, 'ls: 'l> Lexi<'l, '_, 'ls> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
-    pub const TAB_WIDTH: CaretCol = 4;
 
     pub fn new(lexicon: &'ls str) -> Self {
         let listener = LexiListener::new(lexicon);
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
-        lexilexer.set_tab_width(Self::TAB_WIDTH);
         lexilexer.attach_stream(CharReader::new(Cursor::new(lexicon)));
-        Lexi {
+        let mut lexi = Lexi {
+            options: LexiOptions::default(),
             lexilexer,
             lexiparser: build_parser(),
             wrapper,
             is_built: false
-        }
+        };
+        lexi.apply_options();
+        lexi
+    }
+
+    pub fn set_options(&mut self, options: LexiOptions) {
+        self.options = options;
+        self.apply_options();
+    }
+
+    fn apply_options(&mut self) {
+        self.lexilexer.set_tab_width(self.options.tab_width);
+        let ansi = self.options.ansi;
+        self.get_listener_mut().set_ansi(ansi);
     }
 
     pub fn get_listener_mut(&mut self) -> &mut LexiListener<'ls> {
@@ -63,7 +82,11 @@ impl<'l, 'ls: 'l> Lexi<'l, '_, 'ls> {
     }
 
     pub fn get_tab_width(&self) -> CaretCol {
-        Self::TAB_WIDTH
+        self.lexilexer.get_tab_width()
+    }
+
+    pub fn set_tab_width(&mut self, width: CaretCol) {
+        self.lexilexer.set_tab_width(width);
     }
 
     fn make(&mut self) {
@@ -132,6 +155,15 @@ impl TryBuildFrom<Lexi<'_, '_, '_>> for SymbolicDfa {
             }
         } else {
             Err(BuildError::new(source.give_log(), BuildErrorSource::Lexi))
+        }
+    }
+}
+
+impl Default for LexiOptions {
+    fn default() -> Self {
+        LexiOptions {
+            tab_width: 4,
+            ansi: true,
         }
     }
 }

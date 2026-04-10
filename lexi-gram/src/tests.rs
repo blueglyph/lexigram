@@ -294,6 +294,7 @@ mod test4 {
             lexer_spec: genspec!(filename: TEST_LEXICON_FILENAME),
             lexer_code: gencode!(filename: TEST4_LEXER_FILENAME),
             lexer_indent: 0,
+            tab_width: 4,
             parser_spec: genspec!(filename: TEST_GRAMMAR_FILENAME),
             parser_code: gencode!(filename: TEST4_PARSER_FILENAME),
             parser_indent: 0,
@@ -301,7 +302,7 @@ mod test4 {
             parser_headers: vec!["#![allow(unused)]".to_string()],
             libs: vec!["super::listener_types::test1::*".to_string()],
             start_nt: None,
-            gen_parser_alts: true,
+            include_parser_alts: true,
             gen_wrapper: true,
             gen_span_params: false,
             gen_token_enums: false,
@@ -311,6 +312,7 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            ansi: true,
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -342,6 +344,7 @@ mod test4 {
             lexer_spec: genspec!(string: lexicon),
             lexer_code: gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG),
             lexer_indent: 0,
+            tab_width: 4,
             parser_spec: genspec!(string: grammar),
             parser_code: gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG),
             parser_indent: 0,
@@ -349,7 +352,7 @@ mod test4 {
             parser_headers: Vec::new(),
             libs: vec!["super::listener_types::test1::*".to_string()],
             start_nt: None,
-            gen_parser_alts: false,
+            include_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
             gen_token_enums: false,
@@ -359,6 +362,7 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            ansi: true,
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -374,6 +378,7 @@ mod test4 {
             lexer_spec: genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG),
             lexer_code: gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG),
             lexer_indent: 0,
+            tab_width: 4,
             parser_spec: genspec!(filename: TEST4_GRAMMAR_FILENAME, tag: TEST4_GRAMMAR_TAG),
             parser_code: gencode!(filename: TEST4_PARSER_FILENAME, tag: TEST4_PARSER_TAG),
             parser_indent: 0,
@@ -381,7 +386,7 @@ mod test4 {
             parser_headers: Vec::new(),
             libs: vec!["super::listener_types::test1::*".to_string()],
             start_nt: None,
-            gen_parser_alts: false,
+            include_parser_alts: false,
             gen_wrapper: true,
             gen_span_params: false,
             gen_token_enums: false,
@@ -391,6 +396,7 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            ansi: true,
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -421,6 +427,7 @@ mod failing_tests {
             lexer_spec: genspec!(none),
             lexer_code: gencode!(filename: ""),
             lexer_indent: 0,
+            tab_width: 4,
             parser_spec: genspec!(none),
             parser_code: gencode!(filename: ""),
             parser_indent: 0,
@@ -428,7 +435,7 @@ mod failing_tests {
             parser_headers: vec![],
             libs: vec![],
             start_nt: None,
-            gen_parser_alts: false,
+            include_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
             gen_token_enums: false,
@@ -438,11 +445,13 @@ mod failing_tests {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            ansi: true,
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
             lexer_code: gencode!(filename: TEST5_TAGS_FILENAME, tag: TEST5_LEXER_TAG),
             lexer_indent: 4,
+            tab_width: 4,
             parser_spec: genspec!(none),
             parser_code: gencode!(filename: TEST5_TAGS_FILENAME, tag: TEST5_PARSER_TAG),
             parser_indent: 4,
@@ -450,7 +459,7 @@ mod failing_tests {
             parser_headers: vec![],
             libs: vec![],
             start_nt: None,
-            gen_parser_alts: false,
+            include_parser_alts: false,
             gen_wrapper: false,
             gen_span_params: false,
             gen_token_enums: false,
@@ -460,6 +469,7 @@ mod failing_tests {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            ansi: true,
         };
 
         let tests = vec![

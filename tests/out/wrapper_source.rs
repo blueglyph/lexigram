@@ -13,7 +13,7 @@ pub(crate) mod rules_13_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 13 #1, start s]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_13_1::*;
 
     #[derive(Debug)]
@@ -50,6 +50,10 @@ pub(crate) mod rules_13_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -128,6 +132,10 @@ pub(crate) mod rules_13_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -223,7 +231,7 @@ pub(crate) mod rules_14_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_14_1::*;
 
     #[derive(Debug)]
@@ -264,6 +272,10 @@ pub(crate) mod rules_14_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -344,6 +356,10 @@ pub(crate) mod rules_14_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -435,7 +451,7 @@ pub(crate) mod rules_14_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_14_2::*;
 
     #[derive(Debug)]
@@ -473,6 +489,10 @@ pub(crate) mod rules_14_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -554,6 +574,10 @@ pub(crate) mod rules_14_2 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -641,7 +665,7 @@ pub(crate) mod rules_14_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #3, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_14_3::*;
 
     #[derive(Debug)]
@@ -679,6 +703,10 @@ pub(crate) mod rules_14_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -760,6 +788,10 @@ pub(crate) mod rules_14_3 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -849,7 +881,7 @@ pub(crate) mod rules_14_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 14 #4, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_14_4::*;
 
     #[derive(Debug)]
@@ -885,6 +917,10 @@ pub(crate) mod rules_14_4 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -967,6 +1003,10 @@ pub(crate) mod rules_14_4 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1054,7 +1094,7 @@ pub(crate) mod rules_102_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 102 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_102_1::*;
 
     #[derive(Debug)]
@@ -1084,6 +1124,10 @@ pub(crate) mod rules_102_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1161,6 +1205,10 @@ pub(crate) mod rules_102_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1242,7 +1290,7 @@ pub(crate) mod rules_103_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 103 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_103_1::*;
 
     #[derive(Debug)]
@@ -1272,6 +1320,10 @@ pub(crate) mod rules_103_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1353,6 +1405,10 @@ pub(crate) mod rules_103_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -1432,7 +1488,7 @@ pub(crate) mod rules_104_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 104 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_104_1::*;
 
     #[derive(Debug)]
@@ -1473,6 +1529,10 @@ pub(crate) mod rules_104_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1554,6 +1614,10 @@ pub(crate) mod rules_104_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1647,7 +1711,7 @@ pub(crate) mod rules_105_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 105 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_105_1::*;
 
     #[derive(Debug)]
@@ -1688,6 +1752,10 @@ pub(crate) mod rules_105_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1771,6 +1839,10 @@ pub(crate) mod rules_105_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -1864,7 +1936,7 @@ pub(crate) mod rules_106_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_106_1::*;
 
     #[derive(Debug)]
@@ -1911,6 +1983,10 @@ pub(crate) mod rules_106_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1995,6 +2071,10 @@ pub(crate) mod rules_106_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2101,7 +2181,7 @@ pub(crate) mod rules_106_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 106 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_106_2::*;
 
     #[derive(Debug)]
@@ -2136,6 +2216,10 @@ pub(crate) mod rules_106_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2221,6 +2305,10 @@ pub(crate) mod rules_106_2 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2309,7 +2397,7 @@ pub(crate) mod rules_108_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 108 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_108_1::*;
 
     #[derive(Debug)]
@@ -2333,6 +2421,10 @@ pub(crate) mod rules_108_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2412,6 +2504,10 @@ pub(crate) mod rules_108_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -2475,7 +2571,7 @@ pub(crate) mod rules_109_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 109 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_109_1::*;
 
     #[derive(Debug)]
@@ -2516,6 +2612,10 @@ pub(crate) mod rules_109_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2594,6 +2694,10 @@ pub(crate) mod rules_109_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2689,7 +2793,7 @@ pub(crate) mod rules_110_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 110 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_110_1::*;
 
     #[derive(Debug)]
@@ -2732,6 +2836,10 @@ pub(crate) mod rules_110_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2813,6 +2921,10 @@ pub(crate) mod rules_110_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -2917,7 +3029,7 @@ pub(crate) mod rules_150_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 150 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_150_1::*;
 
     #[derive(Debug)]
@@ -2954,6 +3066,10 @@ pub(crate) mod rules_150_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3032,6 +3148,10 @@ pub(crate) mod rules_150_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3122,7 +3242,7 @@ pub(crate) mod rules_152_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 152 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_152_1::*;
 
     #[derive(Debug)]
@@ -3169,6 +3289,10 @@ pub(crate) mod rules_152_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3252,6 +3376,10 @@ pub(crate) mod rules_152_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3366,7 +3494,7 @@ pub(crate) mod rules_153_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 153 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 6;
@@ -3440,6 +3568,10 @@ pub(crate) mod rules_153_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3529,6 +3661,10 @@ pub(crate) mod rules_153_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3637,7 +3773,7 @@ pub(crate) mod rules_200_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_200_1::*;
 
     #[derive(Debug)]
@@ -3668,6 +3804,10 @@ pub(crate) mod rules_200_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3749,6 +3889,10 @@ pub(crate) mod rules_200_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -3834,7 +3978,7 @@ pub(crate) mod rules_200_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_200_2::*;
 
     #[derive(Debug)]
@@ -3863,6 +4007,10 @@ pub(crate) mod rules_200_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3945,6 +4093,10 @@ pub(crate) mod rules_200_2 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -4016,7 +4168,7 @@ pub(crate) mod rules_201_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_201_1::*;
 
     #[derive(Debug)]
@@ -4047,6 +4199,10 @@ pub(crate) mod rules_201_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4130,6 +4286,10 @@ pub(crate) mod rules_201_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -4209,7 +4369,7 @@ pub(crate) mod rules_201_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_201_2::*;
 
     #[derive(Debug)]
@@ -4238,6 +4398,10 @@ pub(crate) mod rules_201_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4322,6 +4486,10 @@ pub(crate) mod rules_201_2 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -4394,7 +4562,7 @@ pub(crate) mod rules_201_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #3, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_201_3::*;
 
     #[derive(Debug)]
@@ -4427,6 +4595,10 @@ pub(crate) mod rules_201_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4510,6 +4682,10 @@ pub(crate) mod rules_201_3 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -4588,7 +4764,7 @@ pub(crate) mod rules_202_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 202 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_202_1::*;
 
     #[derive(Debug)]
@@ -4627,6 +4803,10 @@ pub(crate) mod rules_202_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4712,6 +4892,10 @@ pub(crate) mod rules_202_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -4808,7 +4992,7 @@ pub(crate) mod rules_206_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 206 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_206_1::*;
 
     #[derive(Debug)]
@@ -4849,6 +5033,10 @@ pub(crate) mod rules_206_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4933,6 +5121,10 @@ pub(crate) mod rules_206_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5034,7 +5226,7 @@ pub(crate) mod rules_208_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_208_1::*;
 
     #[derive(Debug)]
@@ -5081,6 +5273,10 @@ pub(crate) mod rules_208_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5173,6 +5369,10 @@ pub(crate) mod rules_208_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5286,7 +5486,7 @@ pub(crate) mod rules_208_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_208_2::*;
 
     #[derive(Debug)]
@@ -5327,6 +5527,10 @@ pub(crate) mod rules_208_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5419,6 +5623,10 @@ pub(crate) mod rules_208_2 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -5518,7 +5726,7 @@ pub(crate) mod rules_208_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #3, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_208_3::*;
 
     #[derive(Debug)]
@@ -5557,6 +5765,10 @@ pub(crate) mod rules_208_3 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5650,6 +5862,10 @@ pub(crate) mod rules_208_3 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -5736,7 +5952,7 @@ pub(crate) mod rules_208_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #4, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_208_4::*;
 
     #[derive(Debug)]
@@ -5772,6 +5988,10 @@ pub(crate) mod rules_208_4 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5865,6 +6085,10 @@ pub(crate) mod rules_208_4 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -5949,7 +6173,7 @@ pub(crate) mod rules_210_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 210 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_210_1::*;
 
     #[derive(Debug)]
@@ -5978,6 +6202,10 @@ pub(crate) mod rules_210_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6060,6 +6288,10 @@ pub(crate) mod rules_210_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -6130,7 +6362,7 @@ pub(crate) mod rules_211_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 211 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_211_1::*;
 
     #[derive(Debug)]
@@ -6163,6 +6395,10 @@ pub(crate) mod rules_211_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6247,6 +6483,10 @@ pub(crate) mod rules_211_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6345,7 +6585,7 @@ pub(crate) mod rules_212_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 212 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_212_1::*;
 
     #[derive(Debug)]
@@ -6389,6 +6629,10 @@ pub(crate) mod rules_212_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6471,6 +6715,10 @@ pub(crate) mod rules_212_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6571,7 +6819,7 @@ pub(crate) mod rules_250_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 250 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_250_1::*;
 
     #[derive(Debug)]
@@ -6604,6 +6852,10 @@ pub(crate) mod rules_250_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6686,6 +6938,10 @@ pub(crate) mod rules_250_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6778,7 +7034,7 @@ pub(crate) mod rules_251_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 251 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_251_1::*;
 
     #[derive(Debug)]
@@ -6811,6 +7067,10 @@ pub(crate) mod rules_251_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -6895,6 +7155,10 @@ pub(crate) mod rules_251_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -6984,7 +7248,7 @@ pub(crate) mod rules_252_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 252 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_252_1::*;
 
     #[derive(Debug)]
@@ -7039,6 +7303,10 @@ pub(crate) mod rules_252_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7134,6 +7402,10 @@ pub(crate) mod rules_252_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7264,7 +7536,7 @@ pub(crate) mod rules_253_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 253 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_253_1::*;
 
     #[derive(Debug)]
@@ -7319,6 +7591,10 @@ pub(crate) mod rules_253_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7414,6 +7690,10 @@ pub(crate) mod rules_253_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7544,7 +7824,7 @@ pub(crate) mod rules_254_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 254 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_254_1::*;
 
     #[derive(Debug)]
@@ -7595,6 +7875,10 @@ pub(crate) mod rules_254_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7689,6 +7973,10 @@ pub(crate) mod rules_254_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -7825,7 +8113,7 @@ pub(crate) mod rules_256_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 256 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_256_1::*;
 
     #[derive(Debug)]
@@ -7868,6 +8156,10 @@ pub(crate) mod rules_256_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -7959,6 +8251,10 @@ pub(crate) mod rules_256_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8068,7 +8364,7 @@ pub(crate) mod rules_258_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 258 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_258_1::*;
 
     #[derive(Debug)]
@@ -8117,6 +8413,10 @@ pub(crate) mod rules_258_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8213,6 +8513,10 @@ pub(crate) mod rules_258_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8348,7 +8652,7 @@ pub(crate) mod rules_259_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 259 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_259_1::*;
 
     #[derive(Debug)]
@@ -8397,6 +8701,10 @@ pub(crate) mod rules_259_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8499,6 +8807,10 @@ pub(crate) mod rules_259_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8631,7 +8943,7 @@ pub(crate) mod rules_301_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #1, start expr]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_301_1::*;
 
     #[derive(Debug)]
@@ -8657,6 +8969,10 @@ pub(crate) mod rules_301_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8729,6 +9045,10 @@ pub(crate) mod rules_301_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -8804,7 +9124,7 @@ pub(crate) mod rules_301_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #2, start expr]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_301_2::*;
 
     #[derive(Debug)]
@@ -8827,6 +9147,10 @@ pub(crate) mod rules_301_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -8901,6 +9225,10 @@ pub(crate) mod rules_301_2 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -8971,7 +9299,7 @@ pub(crate) mod rules_401_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #1, start expr]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_401_1::*;
 
     #[derive(Debug)]
@@ -8997,6 +9325,10 @@ pub(crate) mod rules_401_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9072,6 +9404,10 @@ pub(crate) mod rules_401_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9150,7 +9486,7 @@ pub(crate) mod rules_401_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #2, start expr]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_401_2::*;
 
     #[derive(Debug)]
@@ -9173,6 +9509,10 @@ pub(crate) mod rules_401_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9250,6 +9590,10 @@ pub(crate) mod rules_401_2 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -9319,7 +9663,7 @@ pub(crate) mod rules_502_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_502_1::*;
 
     #[derive(Debug)]
@@ -9352,6 +9696,10 @@ pub(crate) mod rules_502_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9432,6 +9780,10 @@ pub(crate) mod rules_502_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9520,7 +9872,7 @@ pub(crate) mod rules_502_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 502 #2, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_502_2::*;
 
     #[derive(Debug)]
@@ -9555,6 +9907,10 @@ pub(crate) mod rules_502_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9633,6 +9989,10 @@ pub(crate) mod rules_502_2 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9714,7 +10074,7 @@ pub(crate) mod rules_580_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 580 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_580_1::*;
 
     #[derive(Debug)]
@@ -9742,6 +10102,10 @@ pub(crate) mod rules_580_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -9819,6 +10183,10 @@ pub(crate) mod rules_580_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -9907,7 +10275,7 @@ pub(crate) mod rules_600_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 600 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_600_1::*;
 
     #[derive(Debug)]
@@ -9933,6 +10301,10 @@ pub(crate) mod rules_600_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10008,6 +10380,10 @@ pub(crate) mod rules_600_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10086,7 +10462,7 @@ pub(crate) mod rules_603_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 603 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10143,6 +10519,10 @@ pub(crate) mod rules_603_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10223,6 +10603,10 @@ pub(crate) mod rules_603_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10378,7 +10762,7 @@ pub(crate) mod rules_604_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 604 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10435,6 +10819,10 @@ pub(crate) mod rules_604_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10515,6 +10903,10 @@ pub(crate) mod rules_604_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10669,7 +11061,7 @@ pub(crate) mod rules_605_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 605 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -10726,6 +11118,10 @@ pub(crate) mod rules_605_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -10806,6 +11202,10 @@ pub(crate) mod rules_605_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -10960,7 +11360,7 @@ pub(crate) mod rules_606_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 606 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11017,6 +11417,10 @@ pub(crate) mod rules_606_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11097,6 +11501,10 @@ pub(crate) mod rules_606_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11247,7 +11655,7 @@ pub(crate) mod rules_607_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 607 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11304,6 +11712,10 @@ pub(crate) mod rules_607_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11385,6 +11797,10 @@ pub(crate) mod rules_607_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11535,7 +11951,7 @@ pub(crate) mod rules_608_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 608 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -11592,6 +12008,10 @@ pub(crate) mod rules_608_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11676,6 +12096,10 @@ pub(crate) mod rules_608_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -11826,7 +12250,7 @@ pub(crate) mod rules_609_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 609 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -11883,6 +12307,10 @@ pub(crate) mod rules_609_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -11963,6 +12391,10 @@ pub(crate) mod rules_609_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12112,7 +12544,7 @@ pub(crate) mod rules_610_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 610 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -12169,6 +12601,10 @@ pub(crate) mod rules_610_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12250,6 +12686,10 @@ pub(crate) mod rules_610_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12399,7 +12839,7 @@ pub(crate) mod rules_611_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 611 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -12456,6 +12896,10 @@ pub(crate) mod rules_611_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12540,6 +12984,10 @@ pub(crate) mod rules_611_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12689,7 +13137,7 @@ pub(crate) mod rules_612_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 612 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
@@ -12746,6 +13194,10 @@ pub(crate) mod rules_612_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -12830,6 +13282,10 @@ pub(crate) mod rules_612_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -12980,7 +13436,7 @@ pub(crate) mod rules_613_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 613 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -13037,6 +13493,10 @@ pub(crate) mod rules_613_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13117,6 +13577,10 @@ pub(crate) mod rules_613_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13267,7 +13731,7 @@ pub(crate) mod rules_614_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 614 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
@@ -13324,6 +13788,10 @@ pub(crate) mod rules_614_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13405,6 +13873,10 @@ pub(crate) mod rules_614_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13555,7 +14027,7 @@ pub(crate) mod rules_630_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 630 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13612,6 +14084,10 @@ pub(crate) mod rules_630_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13689,6 +14165,10 @@ pub(crate) mod rules_630_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -13842,7 +14322,7 @@ pub(crate) mod rules_631_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 631 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -13899,6 +14379,10 @@ pub(crate) mod rules_631_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -13976,6 +14460,10 @@ pub(crate) mod rules_631_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14129,7 +14617,7 @@ pub(crate) mod rules_632_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 632 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Symbol, Terminate}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -14186,6 +14674,10 @@ pub(crate) mod rules_632_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14263,6 +14755,10 @@ pub(crate) mod rules_632_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14426,7 +14922,7 @@ pub(crate) mod rules_640_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 640 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_640_1::*;
 
     #[derive(Debug)]
@@ -14460,6 +14956,10 @@ pub(crate) mod rules_640_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14543,6 +15043,10 @@ pub(crate) mod rules_640_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14652,7 +15156,7 @@ pub(crate) mod rules_641_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 641 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_641_1::*;
 
     #[derive(Debug)]
@@ -14686,6 +15190,10 @@ pub(crate) mod rules_641_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14769,6 +15277,10 @@ pub(crate) mod rules_641_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -14878,7 +15390,7 @@ pub(crate) mod rules_642_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 642 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_642_1::*;
 
     #[derive(Debug)]
@@ -14912,6 +15424,10 @@ pub(crate) mod rules_642_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -14995,6 +15511,10 @@ pub(crate) mod rules_642_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15098,7 +15618,7 @@ pub(crate) mod rules_650_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 650 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_650_1::*;
 
     #[derive(Debug)]
@@ -15124,6 +15644,10 @@ pub(crate) mod rules_650_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15201,6 +15725,10 @@ pub(crate) mod rules_650_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -15275,7 +15803,7 @@ pub(crate) mod rules_705_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 705 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_705_1::*;
 
     #[derive(Debug)]
@@ -15307,6 +15835,10 @@ pub(crate) mod rules_705_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15385,6 +15917,10 @@ pub(crate) mod rules_705_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15475,7 +16011,7 @@ pub(crate) mod rules_810_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 810 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_810_1::*;
 
     #[derive(Debug)]
@@ -15507,6 +16043,10 @@ pub(crate) mod rules_810_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15585,6 +16125,10 @@ pub(crate) mod rules_810_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15675,7 +16219,7 @@ pub(crate) mod rules_811_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 811 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_811_1::*;
 
     #[derive(Debug)]
@@ -15707,6 +16251,10 @@ pub(crate) mod rules_811_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15787,6 +16335,10 @@ pub(crate) mod rules_811_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -15877,7 +16429,7 @@ pub(crate) mod rules_820_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 820 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_820_1::*;
 
     #[derive(Debug)]
@@ -15909,6 +16461,10 @@ pub(crate) mod rules_820_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -15991,6 +16547,10 @@ pub(crate) mod rules_820_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16086,7 +16646,7 @@ pub(crate) mod rules_821_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 821 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_821_1::*;
 
     #[derive(Debug)]
@@ -16118,6 +16678,10 @@ pub(crate) mod rules_821_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16201,6 +16765,10 @@ pub(crate) mod rules_821_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16297,7 +16865,7 @@ pub(crate) mod rules_835_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 835 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_835_1::*;
 
     #[derive(Debug)]
@@ -16333,6 +16901,10 @@ pub(crate) mod rules_835_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16417,6 +16989,10 @@ pub(crate) mod rules_835_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16525,7 +17101,7 @@ pub(crate) mod rules_862_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 862 #1, start expr]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_862_1::*;
 
     #[derive(Debug)]
@@ -16551,6 +17127,10 @@ pub(crate) mod rules_862_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16630,6 +17210,10 @@ pub(crate) mod rules_862_1 {
             self.listener.get_log_mut()
         }
 
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
         fn push_span(&mut self, span: PosSpan) {
             self.stack_span.push(span);
         }
@@ -16706,7 +17290,7 @@ pub(crate) mod rules_870_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 870 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_870_1::*;
 
     #[derive(Debug)]
@@ -16734,6 +17318,10 @@ pub(crate) mod rules_870_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -16812,6 +17400,10 @@ pub(crate) mod rules_870_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -16902,7 +17494,7 @@ pub(crate) mod rules_871_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 871 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_871_1::*;
 
     #[derive(Debug)]
@@ -16930,6 +17522,10 @@ pub(crate) mod rules_871_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -17008,6 +17604,10 @@ pub(crate) mod rules_871_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -17100,7 +17700,7 @@ pub(crate) mod rules_901_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 901 #1, start file]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_901_1::*;
 
     #[derive(Debug)]
@@ -17325,6 +17925,10 @@ pub(crate) mod rules_901_1 {
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, file: SynFile, span: PosSpan) {}
@@ -17513,6 +18117,10 @@ pub(crate) mod rules_901_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -17944,7 +18552,7 @@ pub(crate) mod rules_902_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 902 #1, start program]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_902_1::*;
 
     #[derive(Debug)]
@@ -18032,6 +18640,10 @@ pub(crate) mod rules_902_1 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -18148,6 +18760,10 @@ pub(crate) mod rules_902_1 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {
@@ -18350,7 +18966,7 @@ pub(crate) mod rules_902_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 902 #2, start program]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
     use super::super::wrapper_code::code_902_2::*;
 
     #[derive(Debug)]
@@ -18418,6 +19034,10 @@ pub(crate) mod rules_902_2 {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -18537,6 +19157,10 @@ pub(crate) mod rules_902_2 {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn push_span(&mut self, span: PosSpan) {

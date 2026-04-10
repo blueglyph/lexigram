@@ -6,7 +6,7 @@ use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::{NTValue, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
-use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, ProdRuleSetOptions};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG, LEXI_TPL_FILENAME, TPL_LISTENER_TAG, TPL_TYPES_TAG};
@@ -18,9 +18,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, String, String), BufLog> {
     // [versions]
 
-    // lexigram-lib: 0.9.2
-    // lexi-gram: 0.9.2
-    // build-stage1: 0.9.2
+    // lexigram-lib: 0.9.3
+    // lexi-gram: 0.9.3
+    // build-stage1: 0.9.3
 
     // [versions]
 
@@ -99,7 +99,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         vec![2048, 0, 0, 0, 2048, 32, 0, 0, 0, 2048, 0, 0, 2048, 6144, 32, 34, 6144, 32, 1, 1, 1, 1, 4129, 4129, 64, 96, 96, 64, 64, 64, 64, 64, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(9), Some(12), Some(13), Some(16), Some(5), Some(5), Some(14), Some(15), Some(17), Some(22), Some(23), Some(25), Some(26), Some(26)],
         Some(0),
-        false,
+        ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
         hashmap![]
     );
 
@@ -127,7 +127,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
     if !builder.get_log().has_no_errors() {
         return Err(builder.give_log());
     }
-    builder.set_nt_value(&NTValue::Parents);
+    builder.set_nt_value(NTValue::Parents);
     builder.add_lib("lexiparser_types::*");
     builder.use_full_lib(true);
     builder.set_gen_span_params(true);

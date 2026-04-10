@@ -4,10 +4,11 @@ use std::iter::Peekable;
 use std::str::FromStr;
 use lexi_gram::{gencode, genspec};
 use lexi_gram::lexigram_lib::CollectJoin;
+use lexi_gram::lexigram_lib::lexer::CaretCol;
 use lexi_gram::lexigram_lib::lexergen::LexigramCrate;
 use lexi_gram::lexigram_lib::parsergen::NTValue;
 use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
-use crate::ExeError;
+use crate::{ExeAnsi, ExeError};
 
 /// Description of the command-line arguments
 pub static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
@@ -77,6 +78,9 @@ if they apply to both, or after either of them if they only apply to the lexer o
 
 Other options related to the generated code:
 
+  --tab-width <number>      Sets the tab width for input files like the lexicon and the grammar.
+                            The default is 4 (space positions per tab).
+
   --lib <string>            Adds a custom lib (crates/modules) to the "use" bindings in the
                             parser / wrapper / listener generated code. This option can be
                             used multiple times if several custom bindings are required.
@@ -142,8 +146,12 @@ Other options related to the generated code:
 
 General options:
 
-  --ansi <yes/no>           Enables or disables ANSI startup. Disabled by default; try
-                            "--ansi yes" if your console doesn't display colours correctly.
+  --ansi <off/on/passive>   ANSI colour option for the output log and messages.
+                            - off: no ANSI colours
+                            - on: use ANSI colours and activate ANSI support in Windows
+                                console. This is the default behaviour.
+                            - passive: use ANSI colours but don't active ANSI support in
+                                the console. Try this option if "on" creates problems.
 
   -v|--verify               Verifies that the generated code matches what is already in the
                             lexer and parser locations. The files must already exist and
@@ -164,7 +172,7 @@ Example:
 pub(crate) struct ArgOptions {
     pub gen_options: Options,
     pub show_log: bool,
-    pub ansi: bool,
+    pub ansi: ExeAnsi,
 }
 
 fn take_argument<'a, I: Iterator<Item=&'a str>, S: Into<String>>(args: &mut I, error_message: S) -> Result<&'a str, ExeError> {
@@ -220,7 +228,7 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
     let mut builder = OptionsBuilder::new();
     let mut action = Action::Generate;
     let mut show_log = false;
-    let mut ansi = false;
+    let mut ansi = ExeAnsi::On;
     let mut args = all_args.iter().map(|s| s.as_str()).peekable();
     while let Some(arg) = args.next() {
         match arg {
@@ -261,13 +269,21 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
             "--ansi" => {
                 let ansi_str = take_argument(&mut args, "missing argument after --ansi")?.to_ascii_lowercase();
                 ansi = match ansi_str.as_str() {
-                    "yes" => true,
-                    "no" => false,
+                    "off" => ExeAnsi::Off,
+                    "on" => ExeAnsi::On,
+                    "passive" => ExeAnsi::OnPassive,
                     s => return Err(ExeError::Option(format!("ERROR: unexpected argument '{s}'"))),
                 };
+                builder.ansi(ansi != ExeAnsi::Off);
             }
             "-v" | "--verify" => {
                 action = Action::Verify;
+            }
+            "--tab-width" => {
+                let tab = take_argument(&mut args, "missing argument after --tab-width")?;
+                let tab_value = CaretCol::from_str(tab)
+                    .map_err(|e| ExeError::Option(format!("error while parsing --tab-width {tab}: {e}")))?;
+                builder.tab_width(tab_value);
             }
             "--lib" => {
                 let lib = take_argument(&mut args, "missing argument after --lib")?;

@@ -1,3 +1,13 @@
+# 0.9.3
+
+* add `--tab-width <number>` option to change the tab width in lexicon/grammar files (default: 4)
+* add `--ansi on/off/passive` option for ANSI colours in error messages and logs
+  * on (default): enables ANSI codes and adds support for Windows console
+  * off: disables ANSI codes
+  * passive: enables ANSI codes but doesn't add specific support for Windows console (use if "on" creates problems)
+* add `fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg)` to listener (+ default implementation) to intercept messages from parser
+* fix line:col values when reporting errors in combined lexicon/grammar sources
+
 # 0.9.2
 
 * fix Gram: crashes when `<L>` repetition in last rule

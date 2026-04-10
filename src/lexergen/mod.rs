@@ -138,8 +138,15 @@ impl Display for LexigramCrate {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct LexerGenOptions {
+    pub headers: Vec<String>,
+    pub lib_crate: LexigramCrate,
+}
+
 pub struct LexerGen {
     // parameters:
+    pub options: LexerGenOptions,
     pub max_utf8_chars: u32,
     pub nbr_groups: u32,
     pub initial_state: StateId,
@@ -155,8 +162,6 @@ pub struct LexerGen {
     // internal
     log: BufLog,
     group_partition: Segments,   // for optimization
-    headers: Vec<String>,
-    lib_crate: LexigramCrate,
 }
 
 impl LexerGen {
@@ -164,6 +169,7 @@ impl LexerGen {
 
     fn new() -> Self {
         LexerGen {
+            options: LexerGenOptions::default(),
             max_utf8_chars: Self::DEFAULT_UTF8_TABLE_SIZE,
             nbr_groups: 0,
             initial_state: 0,
@@ -177,29 +183,26 @@ impl LexerGen {
             symbol_table: None,
             log: BufLog::new(),
             group_partition: Segments::empty(),
-            headers: Vec::new(),
-            lib_crate: LexigramCrate::Core,
         }
+    }
+
+    pub fn set_options(&mut self, options: LexerGenOptions) {
+        self.options = options;
     }
 
     #[inline]
     pub fn add_header<T: Into<String>>(&mut self, header: T) {
-        self.headers.push(header.into());
+        self.options.headers.push(header.into());
     }
 
     #[inline]
     pub fn extend_headers<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, headers: I) {
-        self.headers.extend(headers.into_iter().map(|s| s.into()));
+        self.options.headers.extend(headers.into_iter().map(|s| s.into()));
     }
 
     #[inline]
-    pub fn use_full_lib(&mut self, use_full_lib: bool) {
-        self.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
-    }
-
-    #[inline]
-    pub fn set_crate(&mut self, lcrate: LexigramCrate) {
-        self.lib_crate = lcrate;
+    pub fn set_lib_crate(&mut self, lcrate: LexigramCrate) {
+        self.options.lib_crate = lcrate;
     }
 
     pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
@@ -351,17 +354,17 @@ impl LexerGen {
     }
 
     fn lexer_source_code(&self) -> Vec<String> {
-        let mut source = self.headers.clone();
+        let mut source = self.options.headers.clone();
 
-        if !self.headers.is_empty() {
+        if !self.options.headers.is_empty() {
             source.push(String::new());
         }
 
         // Create source code:
         source.push("use std::collections::HashMap;".to_string());
         source.push("use std::io::Read;".to_string());
-        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};", self.lib_crate));
-        source.push(format!("use {}::segmap::{{GroupId, Seg, SegMap}};", self.lib_crate));
+        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};", self.options.lib_crate));
+        source.push(format!("use {}::segmap::{{GroupId, Seg, SegMap}};", self.options.lib_crate));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
@@ -462,6 +465,15 @@ impl BuildFrom<Dfa<Normalized>> for LexerGen {
         let mut lexgen = LexerGen::new();
         lexgen.make_from_dfa(dfa);
         lexgen
+    }
+}
+
+impl Default for LexerGenOptions {
+    fn default() -> Self {
+        LexerGenOptions {
+            headers: vec![],
+            lib_crate: LexigramCrate::Core,
+        }
     }
 }
 

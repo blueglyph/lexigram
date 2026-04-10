@@ -87,6 +87,21 @@ impl Default for LLParsingTable {
 }
 
 #[derive(Clone, Debug)]
+pub struct ProdRuleSetOptions {
+    pub ansi: bool,
+    pub disable_warning_unused_nt_t: bool,
+}
+
+impl Default for ProdRuleSetOptions {
+    fn default() -> Self {
+        ProdRuleSetOptions {
+            ansi: true,
+            disable_warning_unused_nt_t: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     pub(super) prules: Option<Vec<ProdRule>>,
     pub(crate) origin: Origin<VarId, FromPRS>,
@@ -99,11 +114,15 @@ pub struct ProdRuleSet<T> {
     pub(crate) name: Option<String>,
     pub(crate) nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
-    pub(crate) disable_warning_unused_nt_t: bool,
+    pub(crate) options: ProdRuleSetOptions,
     pub(super) _phantom: PhantomData<T>
 }
 
 impl<T> ProdRuleSet<T> {
+    pub fn set_options(&mut self, options: ProdRuleSetOptions) {
+        self.options = options;
+    }
+
     /// Returns the starting production rule.
     pub fn get_start(&self) -> Option<VarId> {
         self.start
@@ -117,7 +136,7 @@ impl<T> ProdRuleSet<T> {
     /// Disables warnings about unused terminals and nonterminals. Can be used together with
     /// [set_start()](ProdRuleSet::set_start) to avoid expected warnings.
     pub fn set_disable_warning_unused_nt_t(&mut self, flag: bool) {
-        self.disable_warning_unused_nt_t = flag;
+        self.options.disable_warning_unused_nt_t = flag;
     }
 
     pub fn get_name(&self) -> Option<&String> {
@@ -424,7 +443,7 @@ impl<T> ProdRuleSet<T> {
                 let msg = format!(
                     "calc_first: unused nonterminals: {}",
                     nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", "));
-                if !self.disable_warning_unused_nt_t {
+                if !self.options.disable_warning_unused_nt_t {
                     self.log.add_warning(msg);
                 } else {
                     self.log.add_note(msg);
@@ -440,7 +459,7 @@ impl<T> ProdRuleSet<T> {
             }).to_vec();
         if !unused_t.is_empty() {
             let msg = format!("calc_first: unused terminals: {}", unused_t.join(", "));
-            if !self.disable_warning_unused_nt_t {
+            if !self.options.disable_warning_unused_nt_t {
                 self.log.add_warning(msg)
             } else {
                 self.log.add_note(msg);
@@ -991,7 +1010,7 @@ impl<T> ProdRuleSet<T> {
     /// each alternative represents (or which part of that rule).
     ///
     /// The output can be formatted with [`indent_source`].
-    pub fn prs_alt_origins_str(&self, ansi: bool) -> Vec<String> {
+    pub fn prs_alt_origins_str(&self) -> Vec<String> {
         let mut cols = vec![vec!["| ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
         // adds the current alternatives
         cols.extend(self.get_prules_iter()
@@ -1002,7 +1021,14 @@ impl<T> ProdRuleSet<T> {
                     if let Some((vo, ido)) = alt.origin {
                         let tree = &self.origin.trees[vo as usize];
                         let emphasis = if tree.get_root() == Some(ido) { None } else { Some(ido) };
-                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, Some(vo), self.get_symbol_table(), false, ansi);
+                        let orig_rule = grtree_to_str_custom(
+                            tree,
+                            None,
+                            emphasis,
+                            Some(vo),
+                            self.get_symbol_table(),
+                            false,
+                            self.options.ansi);
                         format!("{} -> {orig_rule}", Symbol::NT(vo).to_str(self.get_symbol_table()))
                     } else {
                         String::new()
@@ -1022,7 +1048,14 @@ impl<T> ProdRuleSet<T> {
                 "|".to_string(),
                 format!("{} -> {}",
                         Symbol::NT(v).to_str(self.get_symbol_table()),
-                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), None, self.get_symbol_table(), false, ansi))
+                        grtree_to_str_custom(
+                            &self.origin.trees[v as usize],
+                            None,
+                            Some(index),
+                            None,
+                            self.get_symbol_table(),
+                            false,
+                            self.options.ansi))
 
             ]));
         let mut lines = columns_to_str(cols, None);
@@ -1065,7 +1098,7 @@ impl ProdRuleSet<General> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
-            disable_warning_unused_nt_t: false,
+            options: ProdRuleSetOptions::default(),
             _phantom: PhantomData
         }
     }
@@ -1256,7 +1289,7 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    vec![{}],", self.flags.iter().join(", ")));
         source.push(format!("    vec![{}],", self.parent.iter().map(|p_maybe| format!("{p_maybe:?}")).join(", ")));
         source.push(format!("    {:?},", self.start));
-        source.push(format!("    {},", self.disable_warning_unused_nt_t));
+        source.push(format!("    {:?},", self.options));
         source.push(format!("    hashmap![{}]", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
@@ -1274,7 +1307,7 @@ pub struct ProdRuleSetTables {
     flags: Vec<u32>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
-    disable_warning_unused_nt_t: bool,
+    options: ProdRuleSetOptions,
     nt_conversion: HashMap<VarId, NTConversion>,
 }
 
@@ -1288,7 +1321,7 @@ impl ProdRuleSetTables {
         flags: Vec<u32>,
         parent: Vec<Option<VarId>>,
         start: Option<VarId>,
-        disable_warning_unused_nt_t: bool,
+        options: ProdRuleSetOptions,
         nt_conversion: HashMap<VarId, NTConversion>,
     ) -> Self {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
@@ -1296,8 +1329,8 @@ impl ProdRuleSetTables {
         ProdRuleSetTables {
             name: name.map(|s| s.into()),
             prules,
-            origin, t, nt, flags, parent, start,
-            disable_warning_unused_nt_t, nt_conversion,
+            origin, t, nt, flags, parent, start, options,
+            nt_conversion,
         }
     }
 
@@ -1323,7 +1356,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             name: source.name,
             nt_conversion: source.nt_conversion,
             log: BufLog::new(),
-            disable_warning_unused_nt_t: source.disable_warning_unused_nt_t,
+            options: source.options,
             _phantom: PhantomData,
         }
     }
@@ -1475,7 +1508,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             rules.check_flags();
             rules.log.add_note("final rule set:");
             rules.log.extend_messages(
-                rules.prs_alt_origins_str(false).into_iter().map(LogMsg::Note)
+                rules.prs_alt_origins_str().into_iter().map(LogMsg::Note)
             );
         }
         ProdRuleSet::<LL1> {
@@ -1490,7 +1523,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
-            disable_warning_unused_nt_t: rules.disable_warning_unused_nt_t,
+            options: rules.options,
             _phantom: PhantomData,
         }
     }
@@ -1515,7 +1548,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LALR> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
-            disable_warning_unused_nt_t: rules.disable_warning_unused_nt_t,
+            options: rules.options,
             _phantom: PhantomData,
         }
     }

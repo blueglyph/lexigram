@@ -40,19 +40,19 @@ pub trait GetTextSpan: GetLine {
         let &PosSpan { first: Pos(l1, c1), last: Pos(l2, c2) } = span;
         let (mut l1, c1, l2, c2) = (l1 as usize, c1 as usize, l2 as usize, c2 as usize);
         let line = self.get_line(l1);
-        let b_c1 = char_to_len(&line, c1 - 1);  // c1 = 2: (a1 a2) b1 b2 b3 c1 c2 d1 -> 2 -> ..2 = "a", 2.. = "bcd"
+        let b_c1 = char_to_len(line, c1 - 1);  // c1 = 2: (a1 a2) b1 b2 b3 c1 c2 d1 -> 2 -> ..2 = "a", 2.. = "bcd"
         if l1 == l2 {
-            let i_c2 = char_to_len(&line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
-            format!("|{l1:4}| {}{BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..b_c1], &line[b_c1..i_c2], &line[i_c2..])
+            let i_c2 = char_to_len(line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
+            format!("|{l1:>5}| {}{BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..b_c1], &line[b_c1..i_c2], &line[i_c2..])
         } else {
-            let mut result = format!("|{l1:4}| {}{BEFORE_ANSI}{}{AFTER_ANSI}", &line[..b_c1], &line[b_c1..]);
+            let mut result = format!("|{l1:>5}| {}{BEFORE_ANSI}{}{AFTER_ANSI}", &line[..b_c1], &line[b_c1..]);
             while l1 + 1 < l2 {
                 l1 += 1;
-                result.push_str(&format!("\n|{l1:4}| {BEFORE_ANSI}{}{AFTER_ANSI}", self.get_line(l1)));
+                result.push_str(&format!("\n|{l1:>5}| {BEFORE_ANSI}{}{AFTER_ANSI}", self.get_line(l1)));
             }
             let line = self.get_line(l2);
-            let i_c2 = char_to_len(&line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
-            result.push_str(&format!("\n|{l2:4}| {BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..i_c2], &line[i_c2..]));
+            let i_c2 = char_to_len(line, c2);  // c2 = 2: (a1 a2 b1 b2 b3) c1 c2 d1 -> ..5 = "ab", 5.. = "cd"
+            result.push_str(&format!("\n|{l2:>5}| {BEFORE_ANSI}{}{AFTER_ANSI}{}", &line[..i_c2], &line[i_c2..]));
             result
         }
     }
@@ -65,20 +65,20 @@ pub trait GetTextSpan: GetLine {
         let line = self.get_line(l1);
         let l1s = l1.to_string();
         if l1 == l2 {
-            format!("|{l1s:4}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=c2 + 1 - c1)
+            format!("|{l1s:>5}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=5.max(l1s.len()), w2=c1, w3=c2 + 1 - c1)
         } else {
-            let mut result = format!("|{l1:4}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=4.max(l1s.len()), w2=c1, w3=line.charlen() - c1);
+            let mut result = format!("|{l1:>5}| {line}\n|{:w1$}| {:w2$}{:^<w3$}", "", "", "", w1=5.max(l1s.len()), w2=c1, w3=line.charlen() - c1);
             while l1 + 1 < l2 {
                 l1 += 1;
                 let l1s = l1.to_string();
                 if UNDERLINE_INTER {
-                    result.push_str(&format!("\n|{l1:4}| {}\n|{:w1$}| {:^<w3$}", self.get_line(l1), "", "", w1 = 4.max(l1s.len()), w3 = line.charlen()));
+                    result.push_str(&format!("\n|{l1:>5}| {}\n|{:w1$}| {:^<w3$}", self.get_line(l1), "", "", w1 = 5.max(l1s.len()), w3 = line.charlen()));
                 } else {
-                    result.push_str(&format!("\n|{l1:4}> {}", self.get_line(l1)));
+                    result.push_str(&format!("\n|{l1:>5}> {}", self.get_line(l1)));
                 }
             }
             let l2s = l2.to_string();
-            result.push_str(&format!("\n|{l2:4}| {}\n|{:w1$}| {:^<w2$}", self.get_line(l2), "", "", w1=4.max(l2s.len()), w2=c2 + 1));
+            result.push_str(&format!("\n|{l2:>5}| {}\n|{:w1$}| {:^<w2$}", self.get_line(l2), "", "", w1=5.max(l2s.len()), w2=c2 + 1));
             result
         }
     }
@@ -110,43 +110,43 @@ mod tests {
         let tests = vec![
             (
                 1, 1, 1, 3,
-                "|   1| \u{1b}[1;36mα12\u{1b}[0m34567890β",
+                "|    1| \u{1b}[1;36mα12\u{1b}[0m34567890β",
             ),
             (
                 1, 3, 1, 5,
-                "|   1| α1\u{1b}[1;36m234\u{1b}[0m567890β",
+                "|    1| α1\u{1b}[1;36m234\u{1b}[0m567890β",
             ),
             (
                 1, 5, 2, 5,
-                "|   1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcd\u{1b}[0mefghijβ",
+                "|    1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcd\u{1b}[0mefghijβ",
             ),
             (
                 1, 5, 2, 12,
-                "|   1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m",
+                "|    1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m",
             ),
             (
                 1, 1, 2, 5,
-                "|   1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcd\u{1b}[0mefghijβ",
+                "|    1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcd\u{1b}[0mefghijβ",
             ),
             (
                 1, 1, 2, 12,
-                "|   1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m",
+                "|    1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m",
             ),
             (
                 1, 5, 3, 5,
-                "|   1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|   3| \u{1b}[1;36mαklmn\u{1b}[0mopqrstβ",
+                "|    1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|    3| \u{1b}[1;36mαklmn\u{1b}[0mopqrstβ",
             ),
             (
                 1, 5, 3, 12,
-                "|   1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|   3| \u{1b}[1;36mαklmnopqrstβ\u{1b}[0m",
+                "|    1| α123\u{1b}[1;36m4567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|    3| \u{1b}[1;36mαklmnopqrstβ\u{1b}[0m",
             ),
             (
                 1, 1, 3, 5,
-                "|   1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|   3| \u{1b}[1;36mαklmn\u{1b}[0mopqrstβ",
+                "|    1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|    3| \u{1b}[1;36mαklmn\u{1b}[0mopqrstβ",
             ),
             (
                 1, 1, 3, 12,
-                "|   1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|   2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|   3| \u{1b}[1;36mαklmnopqrstβ\u{1b}[0m",
+                "|    1| \u{1b}[1;36mα1234567890β\u{1b}[0m\n|    2| \u{1b}[1;36mαabcdefghijβ\u{1b}[0m\n|    3| \u{1b}[1;36mαklmnopqrstβ\u{1b}[0m",
             ),
         ];
         const VERBOSE: bool = false;
@@ -178,43 +178,43 @@ mod tests {
         let tests = vec![
             (
                 1, 1, 1, 3,
-                "|1   | α1234567890β\n|    | ^^^",
+                "|    1| α1234567890β\n|     | ^^^",
             ),
             (
                 1, 3, 1, 5,
-                "|1   | α1234567890β\n|    |   ^^^",
+                "|    1| α1234567890β\n|     |   ^^^",
             ),
             (
                 1, 5, 2, 5,
-                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^",
+                "|    1| α1234567890β\n|     |     ^^^^^^^^\n|    2| αabcdefghijβ\n|     | ^^^^^",
             ),
             (
                 1, 5, 2, 12,
-                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^^^^^^^^",
+                "|    1| α1234567890β\n|     |     ^^^^^^^^\n|    2| αabcdefghijβ\n|     | ^^^^^^^^^^^^",
             ),
             (
                 1, 1, 2, 5,
-                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^",
+                "|    1| α1234567890β\n|     | ^^^^^^^^^^^^\n|    2| αabcdefghijβ\n|     | ^^^^^",
             ),
             (
                 1, 1, 2, 12,
-                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2| αabcdefghijβ\n|    | ^^^^^^^^^^^^",
+                "|    1| α1234567890β\n|     | ^^^^^^^^^^^^\n|    2| αabcdefghijβ\n|     | ^^^^^^^^^^^^",
             ),
             (
                 1, 5, 3, 5,
-                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^",
+                "|    1| α1234567890β\n|     |     ^^^^^^^^\n|    2> αabcdefghijβ\n|    3| αklmnopqrstβ\n|     | ^^^^^",
             ),
             (
                 1, 5, 3, 12,
-                "|   1| α1234567890β\n|    |     ^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^^^^^^^^",
+                "|    1| α1234567890β\n|     |     ^^^^^^^^\n|    2> αabcdefghijβ\n|    3| αklmnopqrstβ\n|     | ^^^^^^^^^^^^",
             ),
             (
                 1, 1, 3, 5,
-                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^",
+                "|    1| α1234567890β\n|     | ^^^^^^^^^^^^\n|    2> αabcdefghijβ\n|    3| αklmnopqrstβ\n|     | ^^^^^",
             ),
             (
                 1, 1, 3, 12,
-                "|   1| α1234567890β\n|    | ^^^^^^^^^^^^\n|   2> αabcdefghijβ\n|   3| αklmnopqrstβ\n|    | ^^^^^^^^^^^^",
+                "|    1| α1234567890β\n|     | ^^^^^^^^^^^^\n|    2> αabcdefghijβ\n|    3| αklmnopqrstβ\n|     | ^^^^^^^^^^^^",
             ),
         ];
         const VERBOSE: bool = false;

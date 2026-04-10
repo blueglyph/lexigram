@@ -34,6 +34,20 @@ pub enum ExeError {
     Message(String),
 }
 
+/// ANSI colour option for Lexigram.
+///
+/// Default: [ExeAnsi::On]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
+pub enum ExeAnsi {
+    /// Don't output ANSI codes
+    Off,
+    /// Outputs ANSI codes; enables ANSI output on Windows console
+    #[default] On,
+    /// Outputs ANSI codes. Doesn't try to enable ANSI output on Windows console: use this
+    /// option if [ExeAnsi::On] generates problems.
+    OnPassive,
+}
+
 fn main() {
     let all_args: Vec<String> = std::env::args().skip(1).collect();
     let code = match execute(all_args) {
@@ -61,15 +75,8 @@ fn main() {
                     eprintln!("Error while parsing the command arguments: {msg}");
                     2
                 }
-                ExeError::GenParser { source, show_log } => {
+                ExeError::GenParser { source, .. } => {
                     eprintln!("Generator error:\n{source}");
-                    if let Some(log) = source.get_log() {
-                        if show_log {
-                            eprintln!("{log}");
-                        } else {
-                            eprintln!("{}", log.get_totals());
-                        }
-                    }
                     3
                 }
                 ExeError::Message(s) => {
@@ -86,7 +93,8 @@ fn main() {
 pub fn execute(all_args: Vec<String>) -> Result<Option<String>, ExeError> {
     let (action, arg_options) = parse_args(all_args)?;
     let ArgOptions { gen_options, show_log, ansi } = arg_options;
-    if ansi {
+    if ansi == ExeAnsi::On {
+        // enables ANSI support on Windows console
         match enable_ansi_support::enable_ansi_support() {
             Ok(()) => {}
             Err(e) => return Err(ExeError::Message(format!("ERROR: this console doesn't support ANSI output:\n{e}"))),

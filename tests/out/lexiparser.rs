@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -258,6 +258,10 @@ pub(crate) mod lexiparser {
         fn check_abort_request(&self) -> Terminate { Terminate::None }
         fn get_log_mut(&mut self) -> &mut impl Logger;
         #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, file: SynFile) {}
@@ -440,6 +444,10 @@ pub(crate) mod lexiparser {
 
         fn get_log_mut(&mut self) -> &mut impl Logger {
             self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
         }
 
         fn is_stack_empty(&self) -> bool {
