@@ -6,12 +6,13 @@ use vectree::VecTree;
 use lexigram_core::alt::Alternative;
 use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
-use crate::grammar::{grtree_to_str, GrTreeExt, LLParsingTable, NTConversion, ProdRuleSet};
+use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet};
 use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::alt::ruleflag;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
 use crate::CollectJoin;
+use crate::grammar::ll1::LL1ParsingTable;
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::lexergen::LexigramCrate;
 use crate::log::{BufLog, LogReader, LogStatus, Logger};
@@ -78,7 +79,7 @@ pub struct ParserTables {
 
 impl ParserTables {
     pub fn new(
-        parsing_table: LLParsingTable,
+        parsing_table: LL1ParsingTable,
         symbol_table: FixedSymTable,
         opcodes: Vec<Vec<OpCode>>,
         init_opcodes: Vec<OpCode>,
@@ -202,7 +203,7 @@ fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
 struct SourceInputContext<'a> {
     parent_has_value        : bool,
     parent_nt               : usize,
-    pinfo                   : &'a LLParsingTable,
+    pinfo                   : &'a LL1ParsingTable,
     syns                    : &'a Vec<VarId>,
     ambig_op_alts           : &'a BTreeMap<AltId, Vec<AltId>>,
 }
@@ -247,7 +248,7 @@ pub struct ParserGenOptions {
 
 #[derive(Debug)]
 pub struct ParserGen {
-    parsing_table: LLParsingTable,
+    parsing_table: LL1ParsingTable,
     symbol_table: SymbolTable,
     terminal_hooks: Vec<TokenId>,
     name: String,
@@ -356,7 +357,7 @@ impl ParserGen {
     }
 
     #[inline]
-    pub fn get_parsing_table(&self) -> &LLParsingTable {
+    pub fn get_parsing_table(&self) -> &LL1ParsingTable {
         &self.parsing_table
     }
 

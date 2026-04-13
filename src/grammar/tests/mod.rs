@@ -5,16 +5,17 @@
 pub mod prs;
 pub mod rts;
 pub mod manually_built_rts_prs;
+mod prs_lalr;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
-use crate::TokenId;
-use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
+use crate::{alt, btreemap, gnode, hashmap, prule, sym, TokenId, LL1, LALR};
 use crate::build::TryBuildFrom;
 use crate::build::BuildInto;
 use crate::rtsgen::RtsGen;
 use crate::columns_to_str;
 use lexigram_core::alt::Alternative;
+
 // ---------------------------------------------------------------------------------------------
 
 fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
@@ -390,6 +391,10 @@ impl TestRules {
     }
 
     pub fn to_prs_ll1(self) -> Option<ProdRuleSet<LL1>> {
+        self.to_prs_general().map(|prs| prs.build_into())
+    }
+
+    pub fn to_prs_lalr(self) -> Option<ProdRuleSet<LALR>> {
         self.to_prs_general().map(|prs| prs.build_into())
     }
 }

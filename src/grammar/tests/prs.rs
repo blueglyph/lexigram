@@ -4,6 +4,7 @@
 
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
+use crate::grammar::prs::ll1::LL1ParsingTable;
 use super::*;
 
 // ---------------------------------------------------------------------------------------------
@@ -85,7 +86,7 @@ pub fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
 
 // ---------------------------------------------------------------------------------------------
 
-fn test_prs_transforms<F, T>(
+pub(crate) fn test_prs_transforms<F, T>(
     tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)>,
     mut f: F,
     verbose: bool, show_answer_only: bool, comment_original_rules: bool)
@@ -1385,7 +1386,7 @@ fn prs_calc_table() {
         let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
-        let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
+        let LL1ParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
         if VERBOSE {
             ll1.print_flags();
         }
