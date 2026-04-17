@@ -1,10 +1,10 @@
 use crate::build::BuildFrom;
 use crate::grammar::ProdRuleSet;
 use crate::grammar::tests::prs::test_prs_transforms;
-use crate::LALR;
+use crate::LR;
 
 #[test]
-fn prs_lalr_from() {
+fn prs_lr_from() {
     let tests = vec![
         (14, vec![
             // a -> b c | c
@@ -26,7 +26,7 @@ fn prs_lalr_from() {
         tests,
         |prs| {
             if VERBOSE { prs.symbol_table.as_ref().unwrap().dump("Symbol table"); }
-            ProdRuleSet::<LALR>::build_from(prs)
+            ProdRuleSet::<LR>::build_from(prs)
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
 }

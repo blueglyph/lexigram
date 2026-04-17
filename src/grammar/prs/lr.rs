@@ -1,21 +1,21 @@
 use std::marker::PhantomData;
 use lexigram_core::log::LogStatus;
 use crate::build::BuildFrom;
-use crate::{General, LALR};
+use crate::{General, LR};
 use crate::grammar::ProdRuleSet;
 
-impl ProdRuleSet<LALR> {
+impl ProdRuleSet<LR> {
 
 }
 
-impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LALR> {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_ambiguity();
             rules.transfer_alt_flags();
             rules.check_flags();
         }
-        ProdRuleSet::<LALR> {
+        ProdRuleSet::<LR> {
             prules: rules.prules,
             origin: rules.origin,
             num_nt: rules.num_nt,
@@ -36,16 +36,16 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LALR> {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Debug)]
-pub struct LALRParsingTable {
+pub struct LRParsingTable {
 }
 
-impl LALRParsingTable {
+impl LRParsingTable {
     pub fn new() -> Self {
-        LALRParsingTable { }
+        LRParsingTable { }
     }
 }
 
-impl Default for LALRParsingTable {
+impl Default for LRParsingTable {
     fn default() -> Self {
         Self::new()
     }

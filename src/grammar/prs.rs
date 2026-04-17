@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 pub mod ll1;
-pub mod lalr;
+pub mod lr;
 
 use super::*;
 use crate::{columns_to_str, AltId, SymbolTable, VarId};

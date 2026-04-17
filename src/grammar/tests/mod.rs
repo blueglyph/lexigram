@@ -5,11 +5,11 @@
 pub mod prs;
 pub mod rts;
 pub mod manually_built_rts_prs;
-mod prs_lalr;
+mod prs_lr;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
-use crate::{alt, btreemap, gnode, hashmap, prule, sym, TokenId, LL1, LALR};
+use crate::{alt, btreemap, gnode, hashmap, prule, sym, TokenId, LL1, LR};
 use crate::build::TryBuildFrom;
 use crate::build::BuildInto;
 use crate::rtsgen::RtsGen;
@@ -394,7 +394,7 @@ impl TestRules {
         self.to_prs_general().map(|prs| prs.build_into())
     }
 
-    pub fn to_prs_lalr(self) -> Option<ProdRuleSet<LALR>> {
+    pub fn to_prs_lr(self) -> Option<ProdRuleSet<LR>> {
         self.to_prs_general().map(|prs| prs.build_into())
     }
 }
