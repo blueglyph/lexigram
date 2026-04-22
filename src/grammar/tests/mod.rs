@@ -55,6 +55,10 @@ impl TestRules {
             14 => vec![r#"a -> b c | c;"#,
                        r#"b -> Op c;"#,
                        r#"c -> Id;"#],
+            15 => vec![r#"a -> b | c | d;"#,
+                       r#"b -> Op d;"#,
+                       r#"c -> Id;"#,
+                       r#"d -> Num;"#],
             // empty
             30 => vec![r#"a -> A B ε C ε;"#],
             31 => vec![r#"a -> A B | C ε | ε | D | ε | <P> ε | <R> <P>;"#],
@@ -392,6 +396,13 @@ impl TestRules {
 
     pub fn to_prs_ll1(self) -> Option<ProdRuleSet<LL1>> {
         self.to_prs_general().map(|prs| prs.build_into())
+    }
+
+    pub fn to_prs_ll1_with_start(self, start: VarId) -> Option<ProdRuleSet<LL1>> {
+        self.to_prs_general().map(|mut prs| {
+            prs.set_start(start);
+            prs.build_into()
+        })
     }
 
     pub fn to_prs_lr(self) -> Option<ProdRuleSet<LR>> {

@@ -1,3 +1,7 @@
+# 0.9.4
+
+* minor changes
+
 # 0.9.3
 
 * add `--tab-width <number>` option to change the tab width in lexicon/grammar files (default: 4)
