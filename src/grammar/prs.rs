@@ -129,9 +129,9 @@ impl<T> ProdRuleSet<T> {
         self.prules.as_ref().unwrap().iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
     }
 
-    pub fn get_prules_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
-        self.prules.as_mut().unwrap().iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-    }
+    // pub fn get_prules_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
+    //     self.prules.as_mut().unwrap().iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+    // }
 
     pub fn get_alts(&self) -> impl Iterator<Item=(VarId, &Alternative)> {
         self.prules.as_ref().unwrap().iter().enumerate()
@@ -325,15 +325,15 @@ impl<T> ProdRuleSet<T> {
             }
         }
         for p in self.prules.as_mut().unwrap() {
-            for f in p {
-                for s in &mut f.v {
+            for a in p {
+                for s in &mut a.v {
                     if let Symbol::NT(s_var) = s {
                         if let Some(new) = conv.get(s_var) {
                             *s = Symbol::NT(*new);
                         }
                     }
                 }
-                if let Some((ref mut var, _id)) = f.origin {
+                if let Some((ref mut var, _id)) = a.origin {
                     if let Some(new_var) = conv.get(var) {
                         *var = *new_var;
                     }
@@ -401,7 +401,7 @@ impl<T> ProdRuleSet<T> {
             if !symbols.contains(&sym) {
                 symbols.insert(sym);
                 if let Symbol::NT(v) = sym {
-                    stack.extend(self.prules.as_ref().unwrap()[v as usize].iter().flat_map(|x| &x.v));
+                    stack.extend(self.prules.as_ref().unwrap()[v as usize].iter().flat_map(|a| &a.v));
                 }
             }
         }
