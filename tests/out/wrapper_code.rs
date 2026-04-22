@@ -39,6 +39,16 @@ pub(crate) mod code_14_4 {
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
+pub(crate) mod code_15_1 {
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)]
+    pub struct SynB();
+
+    /// User-defined type for `d`
+    #[derive(Debug, PartialEq)]
+    pub struct SynD();
+}
+
 pub(crate) mod code_102_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();

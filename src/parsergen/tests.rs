@@ -572,6 +572,22 @@ mod wrapper_source {
                 3 => (1, symbols![t 1]),                //  3: c -> Id   | ◄3 Id!    | 1 | Id
             ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3]]),
 
+            // a -> b | c | d
+            // b -> Op d        <-- start
+            // c -> Id
+            // d -> Num
+            //
+            //   NT    name  val   flags
+            // +-------------------------+
+            // |   0 | b    | y  |       |
+            // |   1 | d    | y  |       |
+            // +-------------------------+
+            (15, true, false, 1, btreemap![
+            ], btreemap![
+                0 => (2, symbols![t 0, nt 1]),          //  0: b -> Op d | ◄0 ►d Op! | 2 | Op d
+                1 => (1, symbols![t 2]),                //  1: d -> Num  | ◄1 Num!   | 1 | Num
+            ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
             // --------------------------------------------------------------------------- +_or_*
             // a -> A B* C
             // NT flags:
@@ -2554,7 +2570,7 @@ mod wrapper_source {
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
             // if !matches!(tr_id, 216..=219) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
-            let ll1_maybe = TestRules(tr_id).to_prs_ll1();
+            let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(start_nt);
             if ll1_maybe.is_none() { continue }
             let ll1 = ll1_maybe.unwrap();
             let symtab = ll1.get_symbol_table();
@@ -2589,7 +2605,7 @@ mod wrapper_source {
                          ).join(", "));
             }
             builder.set_indent(4);
-            let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(0).to_str(builder.get_symbol_table()));
             let rule_name = format!("{tr_id}_{rule_iter}");
             if !type_gen_exclusion(tr_id) {
                 builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));

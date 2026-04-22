@@ -1121,7 +1121,6 @@ impl ProdRuleSet<LL1> {
             table[pos].push(a_id);
         }
         const VERBOSE: bool = false;
-        const DISABLE_FILTER: bool = false;
         if !self.log.has_no_errors() {
             return LLParsingTable::new();
         }
@@ -1139,7 +1138,7 @@ impl ProdRuleSet<LL1> {
             p_hash_hash("first:", self.get_symbol_table(), first);
             p_hash_hash("follow:", self.get_symbol_table(), follow);
         }
-        let mut alts = self.prules.as_ref().unwrap().iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
+        let mut alts = self.prules.as_ref().unwrap().iter().index()
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone()))).to_vec();
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
         let error_pop = error_skip + 1;         // table entry for syntactic error; recovery by popping T or NT from stack
