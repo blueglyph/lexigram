@@ -152,27 +152,28 @@ impl LRParsingTable<'_> {
         items.iter().map(|i| format!("[{}]", self.item_to_str(i))).join(", ")
     }
 
-    fn closure(&self, items: Vec<LRItem>) -> Vec<LRItem> {
-        let mut set_items = HashSet::<LRItem>::from_iter(items);
+    fn closure(&self, mut items: Vec<LRItem>) -> Vec<LRItem> {
+        let mut set_items = HashSet::<LRItem>::from_iter(items.clone());
         loop {
-            let n = set_items.len();
-            let mut added = HashSet::<LRItem>::new();
-            for item in &set_items {
+            let n = items.len();
+            for idx_item in 0..n {
+                let item = &items[idx_item];
                 if let Some(Symbol::NT(nt)) = self.alts[item.alt_idx as usize].1.get(item.pos as usize) {
                     let &(start, end) = &self.nt_alts[*nt as usize];
                     for alt_id in start..end {
-                        added.insert(item!(alt_id));
+                        let new_item = item!(alt_id);
+                        if !set_items.contains(&new_item) {
+                            set_items.insert(new_item.clone());
+                            items.push(new_item);
+                        }
                     }
                 }
             }
-            set_items.extend(added);
-            if set_items.len() == n {
+            if items.len() == n {
                 break;
             }
         }
-        let mut new_items = Vec::<LRItem>::from_iter(set_items);
-        new_items.sort();
-        new_items
+        items
     }
 
     fn goto(&self, items: &[LRItem], x: &Symbol) -> Vec<LRItem> {
@@ -188,36 +189,37 @@ impl LRParsingTable<'_> {
     }
 
     pub fn calc_states(&self) -> Vec<Vec<LRItem>> {
-        let initial_items = self.closure(vec![item!(self.nt_alts[self.start as usize].0)]);
-        let mut s = HashSet::<Vec<LRItem>>::from_iter([initial_items]);
+        let top_rule = self.nt_alts[self.start as usize].0;
+        let mut states = vec![self.closure(vec![item!(top_rule)])];
+        let mut set_states = HashSet::<Vec<LRItem>>::from_iter(states.iter().cloned());
         loop {
-            let n = s.len();
-            let mut added = HashSet::<Vec<LRItem>>::new();
-            for items in &s {
-                let symbols = items.into_iter()
+            let n = states.len();
+            for idx_state in 0..n {
+                let state = &states[idx_state];
+                let mut new_states = vec![]; // must split because of borrow checker limitation
+                let symbols = state.iter()
                     .filter_map(|&LRItem { alt_idx, pos }| self.alts[alt_idx as usize].1.get(pos as usize))
                     .collect::<BTreeSet<_>>();
                 if Self::VERBOSE {
-                    println!("| items: {}", self.items_to_str(items));
+                    println!("| items: {}", self.items_to_str(&state));
                     println!("| -> symbols: {}", symbols.iter().map(|s| s.to_str(self.symbol_table)).join(", "));
                 }
                 for symbol in symbols {
-                    let items = self.goto(items.as_slice(), symbol);
+                    let items = self.goto(state.as_slice(), symbol);
                     if Self::VERBOSE {
                         println!("| -> GOTO(items, {}) = {}", symbol.to_str(self.symbol_table), self.items_to_str(&items));
                     }
-                    if !items.is_empty() {
-                        added.insert(items);
+                    if !items.is_empty() && !set_states.contains(&items) {
+                        set_states.insert(items.clone());
+                        new_states.push(items);
                     }
                 }
+                states.extend(new_states);
             }
-            s.extend(added);
-            if s.len() == n {
+            if set_states.len() == n {
                 break;
             }
         }
-        let mut states = Vec::<Vec<LRItem>>::from_iter(s);
-        states.sort();
         if Self::VERBOSE {
             println!(
                 "calc_states():{}",
