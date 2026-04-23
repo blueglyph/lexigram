@@ -6,17 +6,17 @@ use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{CollectJoin, VarId};
 use crate::build::BuildFrom;
-use crate::{prule, General, LR};
+use crate::{prule, General, SymbolTable, LR};
 use crate::grammar::ProdRuleSet;
 
 impl<T> ProdRuleSet<T> {
-    /// Adds extended nonterminal and production for extended grammar, required for LR parsing table.
+    /// Adds goal nonterminal and production for extended grammar, required for LR parsing table.
     ///
     /// Returns the original starting nonterminal.
-    fn add_extended_nt(&mut self) -> VarId {
+    fn add_goal_nt(&mut self) -> VarId {
         let orig_start = self.start.unwrap();
-        let ext_prod = prule!(nt orig_start);
-        self.prules.as_mut().unwrap().push(ext_prod);
+        let goal_prod = prule!(nt orig_start);
+        self.prules.as_mut().unwrap().push(goal_prod);
         self.start = Some(self.num_nt as VarId);
         self.num_nt += 1;
         self.parent.push(None);
@@ -29,7 +29,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Removes extended nonterminal and production
-    fn remove_extended_nt(&mut self, orig_start: VarId) {
+    fn remove_goal_nt(&mut self, orig_start: VarId) {
         self.prules.as_mut().unwrap().pop().unwrap();
         self.start = Some(orig_start);
         self.num_nt -= 1;
@@ -40,9 +40,9 @@ impl<T> ProdRuleSet<T> {
 }
 
 impl ProdRuleSet<LR> {
-    pub fn make_parsing_table(&mut self, _error_recovery: bool) -> LRParsingTable {
+    pub fn make_parsing_table(&mut self, _error_recovery: bool) -> Vec<Vec<LRItem>> {
         self.log.add_note("- calculating parsing table...");
-        let orig_start = self.add_extended_nt();
+        let orig_start = self.add_goal_nt();
         let first: HashMap<Symbol, HashSet<Symbol>> = self.calc_first();
         let follow: HashMap<Symbol, HashSet<Symbol>> = self.calc_follow(&first);
         let mut nt_idx: VarId = 0;
@@ -68,11 +68,11 @@ impl ProdRuleSet<LR> {
             follow,
             start: self.start.unwrap(),
             orig_start,
+            symbol_table: self.symbol_table.as_ref(),
         };
-        self.remove_extended_nt(orig_start);
-        let _states = table.calc_states();
-
-        table
+        let states = table.calc_states();
+        self.remove_goal_nt(orig_start);
+        states
     }
 }
 
@@ -109,8 +109,8 @@ pub type DotPos = u16;
 
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub struct LRItem {
-    pub alt_idx: u16,
     pub pos: DotPos,
+    pub alt_idx: u16,
 }
 
 #[macro_export]
@@ -120,7 +120,7 @@ macro_rules! item {
 }
 
 #[derive(Debug)]
-pub struct LRParsingTable {
+pub struct LRParsingTable<'a> {
     pub num_nt: usize,
     pub num_t: usize,                   // includes the end $ symbol
     pub alts: Vec<(VarId, Alternative)>,
@@ -131,15 +131,33 @@ pub struct LRParsingTable {
     pub follow: HashMap<Symbol, HashSet<Symbol>>,
     pub start: VarId,                   // S' -> S
     pub orig_start: VarId,              // S
+    symbol_table: Option<&'a SymbolTable>,
 }
 
-impl LRParsingTable {
+impl LRParsingTable<'_> {
+    const VERBOSE: bool = true;
+
+    fn item_to_str(&self, item: &LRItem) -> String {
+        let (var_id, alt) = &self.alts[item.alt_idx as usize];
+        let left = alt.v[..item.pos as usize].iter().map(|s| s.to_str(self.symbol_table)).join(" ");
+        let right = alt.v[item.pos as usize..].iter().map(|s| s.to_str(self.symbol_table)).join(" ");
+        format!(
+            "{} -> {left}{}•{}{right}",
+            Symbol::NT(*var_id).to_str(self.symbol_table),
+            if !left.is_empty() { " " } else { "" },
+            if !right.is_empty() { " " } else { "" })
+    }
+
+    fn items_to_str(&self, items: &[LRItem]) -> String {
+        items.iter().map(|i| format!("[{}]", self.item_to_str(i))).join(", ")
+    }
+
     fn closure(&self, items: Vec<LRItem>) -> Vec<LRItem> {
-        let mut s = HashSet::<LRItem>::from_iter(items);
+        let mut set_items = HashSet::<LRItem>::from_iter(items);
         loop {
-            let n = s.len();
+            let n = set_items.len();
             let mut added = HashSet::<LRItem>::new();
-            for item in &s {
+            for item in &set_items {
                 if let Some(Symbol::NT(nt)) = self.alts[item.alt_idx as usize].1.get(item.pos as usize) {
                     let &(start, end) = &self.nt_alts[*nt as usize];
                     for alt_id in start..end {
@@ -147,12 +165,12 @@ impl LRParsingTable {
                     }
                 }
             }
-            s.extend(added);
-            if s.len() == n {
+            set_items.extend(added);
+            if set_items.len() == n {
                 break;
             }
         }
-        let mut new_items = Vec::<LRItem>::from_iter(s);
+        let mut new_items = Vec::<LRItem>::from_iter(set_items);
         new_items.sort();
         new_items
     }
@@ -170,7 +188,8 @@ impl LRParsingTable {
     }
 
     pub fn calc_states(&self) -> Vec<Vec<LRItem>> {
-        let mut s = HashSet::<Vec<LRItem>>::from_iter([vec![item!(self.nt_alts[self.start as usize].0)]]);
+        let initial_items = self.closure(vec![item!(self.nt_alts[self.start as usize].0)]);
+        let mut s = HashSet::<Vec<LRItem>>::from_iter([initial_items]);
         loop {
             let n = s.len();
             let mut added = HashSet::<Vec<LRItem>>::new();
@@ -178,8 +197,15 @@ impl LRParsingTable {
                 let symbols = items.into_iter()
                     .filter_map(|&LRItem { alt_idx, pos }| self.alts[alt_idx as usize].1.get(pos as usize))
                     .collect::<BTreeSet<_>>();
+                if Self::VERBOSE {
+                    println!("| items: {}", self.items_to_str(items));
+                    println!("| -> symbols: {}", symbols.iter().map(|s| s.to_str(self.symbol_table)).join(", "));
+                }
                 for symbol in symbols {
                     let items = self.goto(items.as_slice(), symbol);
+                    if Self::VERBOSE {
+                        println!("| -> GOTO(items, {}) = {}", symbol.to_str(self.symbol_table), self.items_to_str(&items));
+                    }
                     if !items.is_empty() {
                         added.insert(items);
                     }
@@ -192,6 +218,12 @@ impl LRParsingTable {
         }
         let mut states = Vec::<Vec<LRItem>>::from_iter(s);
         states.sort();
+        if Self::VERBOSE {
+            println!(
+                "calc_states():{}",
+                states.iter().enumerate()
+                    .map(|(i, items)| format!("\nstate {i}:{}", items.iter().map(|i| format!("\n  - {}", self.item_to_str(i))).join(""))).join(""))
+        }
         states
     }
 }

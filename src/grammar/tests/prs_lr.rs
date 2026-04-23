@@ -26,7 +26,9 @@ fn prs_lr_from() {
         tests,
         |prs| {
             if VERBOSE { prs.symbol_table.as_ref().unwrap().dump("Symbol table"); }
-            ProdRuleSet::<LR>::build_from(prs)
+            let mut lr = ProdRuleSet::<LR>::build_from(prs);
+            let _ = lr.make_parsing_table(false);
+            lr
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
 }
