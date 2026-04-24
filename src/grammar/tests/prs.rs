@@ -31,6 +31,10 @@ impl<T> ProdRuleSet<T> {
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             options: ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
+            alts: Vec::new(),
+            nt_alts: Vec::new(),
+            first: HashMap::new(),
+            follow: HashMap::new(),
             _phantom: PhantomData
         }
     }
@@ -888,7 +892,7 @@ fn prs_calc_first() {
     const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
-    test_first_or_follow(tests, |ll1| ll1.calc_first(), VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
+    test_first_or_follow(tests, |ll1| { ll1.calc_first(); ll1.first.clone() }, VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }
 
 #[test]
@@ -932,8 +936,9 @@ fn prs_calc_follow() {
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     test_first_or_follow(tests, |ll1| {
-        let first = ll1.calc_first();
-        ll1.calc_follow(&first)
+        ll1.calc_first();
+        ll1.calc_follow();
+        ll1.follow.clone()
     }, VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }
 
@@ -1520,11 +1525,11 @@ fn prs_grammar_notes() {
             ll1.print_rules(false, false);
         }
         if ll1.log.num_errors() == 0 {
-            let first = ll1.calc_first();
+            ll1.calc_first();
             if ll1.log.num_errors() == 0 {
-                let follow = ll1.calc_follow(&first);
+                ll1.calc_follow();
                 if ll1.log.num_errors() == 0 {
-                    _ = Some(ll1.calc_table(&first, &follow, false));
+                    _ = Some(ll1.calc_table(false));
                 }
             }
             if VERBOSE {

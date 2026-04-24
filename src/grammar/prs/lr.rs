@@ -1,13 +1,21 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::marker::PhantomData;
-use iter_index::IndexerIterator;
-use lexigram_core::alt::Alternative;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{CollectJoin, VarId};
 use crate::build::BuildFrom;
-use crate::{prule, General, SymbolTable, LR};
 use crate::grammar::ProdRuleSet;
+use crate::{item, prule, General, LR};
+
+/// Dot position in a production rule (alternative). The symbol after the dot is at [value as usize],
+/// if it exists.
+pub type DotPos = u16;
+
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+pub struct LRItem {
+    pub pos: DotPos,
+    pub alt_idx: u16,
+}
 
 impl<T> ProdRuleSet<T> {
     /// Adds goal nonterminal and production for extended grammar, required for LR parsing table.
@@ -40,110 +48,13 @@ impl<T> ProdRuleSet<T> {
 }
 
 impl ProdRuleSet<LR> {
-    pub fn make_parsing_table(&mut self, _error_recovery: bool) -> Vec<Vec<LRItem>> {
-        self.log.add_note("- calculating parsing table...");
-        let orig_start = self.add_goal_nt();
-        let first: HashMap<Symbol, HashSet<Symbol>> = self.calc_first();
-        let follow: HashMap<Symbol, HashSet<Symbol>> = self.calc_follow(&first);
-        let mut nt_idx: VarId = 0;
-        let nt_alts = self.prules.as_ref().unwrap().iter()
-            .map(|p| {
-                let len: VarId = p.len().try_into().expect("too many productions");
-                let value = (nt_idx, nt_idx.checked_add(len).expect("too many productions"));
-                nt_idx = value.1;
-                value
-            })
-            .to_vec();
-        let alts = self.prules.as_ref().unwrap().iter().index()
-            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
-            .to_vec();
-        let table = LRParsingTable {
-            num_nt: self.num_nt,
-            num_t: self.num_t,
-            alts,
-            nt_alts,
-            flags: self.flags.clone(),
-            parent: self.parent.clone(),
-            first,
-            follow,
-            start: self.start.unwrap(),
-            orig_start,
-            symbol_table: self.symbol_table.as_ref(),
-        };
-        let states = table.calc_states();
-        self.remove_goal_nt(orig_start);
-        states
-    }
-}
-
-impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
-    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
-        if rules.log.has_no_errors() {
-            rules.remove_ambiguity();
-            rules.transfer_alt_flags();
-            rules.check_flags();
-        }
-        ProdRuleSet::<LR> {
-            prules: rules.prules,
-            origin: rules.origin,
-            num_nt: rules.num_nt,
-            num_t: rules.num_t,
-            symbol_table: rules.symbol_table,
-            flags: rules.flags,
-            parent: rules.parent,
-            start: rules.start,
-            name: rules.name,
-            nt_conversion: rules.nt_conversion,
-            log: rules.log,
-            options: rules.options,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-
-/// Dot position in a production rule (alternative). The symbol after the dot is at [value as usize],
-/// if it exists.
-pub type DotPos = u16;
-
-#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
-pub struct LRItem {
-    pub pos: DotPos,
-    pub alt_idx: u16,
-}
-
-#[macro_export]
-macro_rules! item {
-    ($a:expr, $b:expr) => { LRItem { alt_idx: $a, pos: $b }};
-    ($a:expr) => { LRItem { alt_idx: $a, pos: 0 }};
-}
-
-#[derive(Debug)]
-pub struct LRParsingTable<'a> {
-    pub num_nt: usize,
-    pub num_t: usize,                   // includes the end $ symbol
-    pub alts: Vec<(VarId, Alternative)>,
-    pub nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
-    pub flags: Vec<u32>,                // NT -> flags (+ or * normalization)
-    pub parent: Vec<Option<VarId>>,     // NT -> parent NT
-    pub first: HashMap<Symbol, HashSet<Symbol>>,
-    pub follow: HashMap<Symbol, HashSet<Symbol>>,
-    pub start: VarId,                   // S' -> S
-    pub orig_start: VarId,              // S
-    symbol_table: Option<&'a SymbolTable>,
-}
-
-impl LRParsingTable<'_> {
-    const VERBOSE: bool = true;
-
     fn item_to_str(&self, item: &LRItem) -> String {
         let (var_id, alt) = &self.alts[item.alt_idx as usize];
-        let left = alt.v[..item.pos as usize].iter().map(|s| s.to_str(self.symbol_table)).join(" ");
-        let right = alt.v[item.pos as usize..].iter().map(|s| s.to_str(self.symbol_table)).join(" ");
+        let left = alt.v[..item.pos as usize].iter().map(|s| s.to_str(self.get_symbol_table())).join(" ");
+        let right = alt.v[item.pos as usize..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" ");
         format!(
             "{} -> {left}{}•{}{right}",
-            Symbol::NT(*var_id).to_str(self.symbol_table),
+            Symbol::NT(*var_id).to_str(self.get_symbol_table()),
             if !left.is_empty() { " " } else { "" },
             if !right.is_empty() { " " } else { "" })
     }
@@ -189,7 +100,9 @@ impl LRParsingTable<'_> {
     }
 
     pub fn calc_states(&self) -> Vec<Vec<LRItem>> {
-        let top_rule = self.nt_alts[self.start as usize].0;
+        const VERBOSE: bool = false;
+
+        let top_rule = self.nt_alts[self.start.unwrap() as usize].0;
         let mut states = vec![self.closure(vec![item!(top_rule)])];
         let mut set_states = HashSet::<Vec<LRItem>>::from_iter(states.iter().cloned());
         loop {
@@ -200,14 +113,14 @@ impl LRParsingTable<'_> {
                 let symbols = state.iter()
                     .filter_map(|&LRItem { alt_idx, pos }| self.alts[alt_idx as usize].1.get(pos as usize))
                     .collect::<BTreeSet<_>>();
-                if Self::VERBOSE {
+                if VERBOSE {
                     println!("| items: {}", self.items_to_str(&state));
-                    println!("| -> symbols: {}", symbols.iter().map(|s| s.to_str(self.symbol_table)).join(", "));
+                    println!("| -> symbols: {}", symbols.iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
                 }
                 for symbol in symbols {
                     let items = self.goto(state.as_slice(), symbol);
-                    if Self::VERBOSE {
-                        println!("| -> GOTO(items, {}) = {}", symbol.to_str(self.symbol_table), self.items_to_str(&items));
+                    if VERBOSE {
+                        println!("| -> GOTO(items, {}) = {}", symbol.to_str(self.get_symbol_table()), self.items_to_str(&items));
                     }
                     if !items.is_empty() && !set_states.contains(&items) {
                         set_states.insert(items.clone());
@@ -220,12 +133,68 @@ impl LRParsingTable<'_> {
                 break;
             }
         }
-        if Self::VERBOSE {
+        if VERBOSE {
             println!(
                 "calc_states():{}",
                 states.iter().enumerate()
                     .map(|(i, items)| format!("\nstate {i}:{}", items.iter().map(|i| format!("\n  - {}", self.item_to_str(i))).join(""))).join(""))
         }
         states
+    }
+
+    pub fn make_parsing_table(&mut self, _error_recovery: bool) -> LRParsingTable {
+        self.log.add_note("- calculating parsing table...");
+        let orig_start = self.add_goal_nt();
+        self.calc_first();
+        self.calc_follow();
+        self.calc_alts();
+        let _states = self.calc_states();
+        self.remove_goal_nt(orig_start);
+        LRParsingTable { }
+    }
+}
+
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
+    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
+        if rules.log.has_no_errors() {
+            rules.remove_ambiguity();
+            rules.transfer_alt_flags();
+            rules.check_flags();
+        }
+        ProdRuleSet::<LR> {
+            prules: rules.prules,
+            origin: rules.origin,
+            num_nt: rules.num_nt,
+            num_t: rules.num_t,
+            symbol_table: rules.symbol_table,
+            flags: rules.flags,
+            parent: rules.parent,
+            start: rules.start,
+            name: rules.name,
+            nt_conversion: rules.nt_conversion,
+            log: rules.log,
+            options: rules.options,
+            alts: rules.alts,
+            nt_alts: rules.nt_alts,
+            first: rules.first,
+            follow: rules.follow,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Debug)]
+pub struct LRParsingTable {
+}
+
+// ---------------------------------------------------------------------------------------------
+
+mod macros {
+    #[macro_export]
+    macro_rules! item {
+        ($a:expr, $b:expr) => { LRItem { alt_idx: $a, pos: $b }};
+        ($a:expr) => { LRItem { alt_idx: $a, pos: 0 }};
     }
 }

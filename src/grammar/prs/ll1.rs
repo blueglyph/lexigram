@@ -18,9 +18,7 @@ impl ProdRuleSet<LL1> {
     /// - `alts`, the production alternatives: (VarId, Alternative) where the first value is the non-terminal index and the second one of its alts
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production alternative for
     ///   the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
-    pub(crate) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool)
-                                         -> LL1ParsingTable
-    {
+    pub(crate) fn calc_table(&mut self, error_recovery: bool) -> LL1ParsingTable {
         fn add_table(table: &mut [Vec<AltId>], num_t: usize, nt_id: VarId, t_id: VarId, a_id: AltId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(a_id);
@@ -40,8 +38,8 @@ impl ProdRuleSet<LL1> {
                 println!("{title}\n{}",
                          syms.into_iter().map(|(s, f)| format!("- {} -> {}", s.to_str(tbl), f.into_iter().map(|s2| s2.to_str(tbl)).join(", "))).join("\n"));
             }
-            p_hash_hash("first:", self.get_symbol_table(), first);
-            p_hash_hash("follow:", self.get_symbol_table(), follow);
+            p_hash_hash("first:", self.get_symbol_table(), &self.first);
+            p_hash_hash("follow:", self.get_symbol_table(), &self.follow);
         }
         let mut alts = self.prules.as_ref().unwrap().iter().index()
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
@@ -57,14 +55,14 @@ impl ProdRuleSet<LL1> {
             used_t.extend(alt.iter().filter(|s| s.is_t()));
             if VERBOSE { println!("- {a_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
                                   alt.to_str(self.get_symbol_table()),
-                                  alt.calc_alt_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                                  alt.calc_alt_first(&self.first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut has_end = false;
             let mut has_empty = false;
-            for s in alt.calc_alt_first(first) {
+            for s in alt.calc_alt_first(&self.first) {
                 match s {
                     Symbol::Empty => {
                         has_empty = true;
-                        for s in &follow[&Symbol::NT(*nt_id)] {
+                        for s in &self.follow[&Symbol::NT(*nt_id)] {
                             match s {
                                 Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, a_id),
                                 Symbol::End     => add_table(&mut table, num_t, *nt_id, end, a_id),
@@ -95,7 +93,7 @@ impl ProdRuleSet<LL1> {
                         if error_recovery {
                             let sym_t = if t_id < num_t - 1 { Symbol::T(t_id as TokenId) } else { Symbol::End };
                             let sym_nt = Symbol::NT(nt_id as VarId);
-                            if follow[&sym_nt].contains(&sym_t) || first[&sym_nt].contains(&sym_t) {
+                            if self.follow[&sym_nt].contains(&sym_t) || self.first[&sym_nt].contains(&sym_t) {
                                 error_pop
                             } else {
                                 error_skip
@@ -155,12 +153,14 @@ impl ProdRuleSet<LL1> {
 
     pub fn make_parsing_table(&mut self, error_recovery: bool) -> LL1ParsingTable {
         self.log.add_note("- calculating parsing table...");
-        let first = self.calc_first();
-        let follow = self.calc_follow(&first);
-        self.calc_table(&first, &follow, error_recovery)
+        self.calc_first();
+        self.calc_follow();
+        self.calc_table(error_recovery)
     }
 
     pub fn gen_tables_source_code(&self, indent: usize) -> String {
+        assert!(self.alts.is_empty(), "alts & nt_alts fields aren't empty");
+        assert!(self.first.is_empty(), "first & follow fields aren't empty");
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
         // "origin" preparation
@@ -219,6 +219,10 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             nt_conversion: source.nt_conversion,
             log: BufLog::new(),
             options: source.options,
+            alts: Vec::new(),
+            nt_alts: Vec::new(),
+            first: HashMap::new(),
+            follow: HashMap::new(),
             _phantom: PhantomData,
         }
     }
@@ -249,6 +253,10 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             nt_conversion: rules.nt_conversion,
             log: rules.log,
             options: rules.options,
+            alts: rules.alts,
+            nt_alts: rules.nt_alts,
+            first: rules.first,
+            follow: rules.follow,
             _phantom: PhantomData,
         }
     }

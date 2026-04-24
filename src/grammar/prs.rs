@@ -87,6 +87,10 @@ pub struct ProdRuleSet<T> {
     pub(crate) nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
     pub(crate) options: ProdRuleSetOptions,
+    pub(crate) alts: Vec<(VarId, Alternative)>,
+    pub(crate) nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
+    pub(crate) first: HashMap<Symbol, HashSet<Symbol>>,
+    pub(crate) follow: HashMap<Symbol, HashSet<Symbol>>,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -384,7 +388,22 @@ impl<T> ProdRuleSet<T> {
         if VERBOSE { println!("-> nt_conversion: {:?}", self.nt_conversion); }
     }
 
-    pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
+    pub fn calc_alts(&mut self) {
+        let mut nt_idx: VarId = 0;
+        self.nt_alts = self.prules.as_ref().unwrap().iter()
+            .map(|p| {
+                let len: VarId = p.len().try_into().expect("too many productions");
+                let value = (nt_idx, nt_idx.checked_add(len).expect("too many productions"));
+                nt_idx = value.1;
+                value
+            })
+            .to_vec();
+        self.alts = self.prules.as_ref().unwrap().iter().index()
+            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
+            .to_vec();
+    }
+
+    pub fn calc_first(&mut self) {
         const VERBOSE: bool = false;
         if self.start.is_none() {
             self.log.add_error("calc_first: start NT symbol not defined");
@@ -393,7 +412,7 @@ impl<T> ProdRuleSet<T> {
             self.log.add_error("calc_first: no nonterminal in grammar".to_string());
         }
         if !self.log.has_no_errors() {
-            return HashMap::new();
+            return;
         }
         let mut symbols = HashSet::<Symbol>::new();
         let mut stack = vec![Symbol::NT(self.start.unwrap())];
@@ -478,16 +497,16 @@ impl<T> ProdRuleSet<T> {
         if self.num_t == 0 {
             self.log.add_error("calc_first: no terminal in grammar".to_string());
         }
-        first
+        self.first = first;
     }
 
-    pub fn calc_follow(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashMap<Symbol, HashSet<Symbol>> {
+    pub fn calc_follow(&mut self) {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
         if !self.log.has_no_errors() {
-            return HashMap::new();
+            return;
         }
-        let mut follow = first.iter()
+        let mut follow = self.first.iter()
             .filter_map(|(s, _)| if matches!(s, Symbol::NT(_)) { Some((*s, HashSet::<Symbol>::new())) } else { None })
             .collect::<HashMap<_, _>>();
         follow.get_mut(&Symbol::NT(self.start.unwrap())).unwrap().insert(Symbol::End);
@@ -511,11 +530,11 @@ impl<T> ProdRuleSet<T> {
                                          follow.get(sym_i).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
                             }
                             change |= follow.get(sym_i).unwrap().len() > num_items;
-                            if first[sym_i].contains(&Symbol::Empty) {
-                                trail.extend(first[sym_i].iter().filter(|s| *s != &Symbol::Empty));
+                            if self.first[sym_i].contains(&Symbol::Empty) {
+                                trail.extend(self.first[sym_i].iter().filter(|s| *s != &Symbol::Empty));
                             } else {
                                 trail.clear();
-                                trail.extend(&first[sym_i]);
+                                trail.extend(&self.first[sym_i]);
                             }
                         } else {
                             trail.clear();
@@ -526,7 +545,7 @@ impl<T> ProdRuleSet<T> {
             }
             if VERBOSE && change { println!("---------------------------- again"); }
         }
-        follow
+        self.follow = follow;
     }
 
     /// Eliminates recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
@@ -1071,6 +1090,10 @@ impl ProdRuleSet<General> {
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             options: ProdRuleSetOptions::default(),
+            alts: Vec::new(),
+            nt_alts: Vec::new(),
+            first: HashMap::new(),
+            follow: HashMap::new(),
             _phantom: PhantomData
         }
     }
