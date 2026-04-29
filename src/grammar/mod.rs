@@ -16,7 +16,7 @@ use vectree::VecTree;
 use lexigram_core::alt::ruleflag;
 use lexigram_core::CollectJoin;
 use crate::cproduct::CProduct;
-use crate::{alt, gnode, hashset, prule, sym, vaddi, General, Normalized, TokenId, VarId};
+use crate::{alt, gnode, prule, sym, vaddi, General, Normalized, TokenId, VarId};
 use crate::fixed_sym_table::SymInfoTable;
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};

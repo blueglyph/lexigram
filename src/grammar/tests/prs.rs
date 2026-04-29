@@ -829,59 +829,35 @@ where
 fn prs_calc_first() {
     let tests: Vec<(u32, VarId, HashMap<&str, &str>)> = vec![
         (0, 0, hashmap![
-            "A" => "A",
             "a" => "A",
         ]),
         (1, 0, hashmap![
-            "A" => "A",
-            "B" => "B",
             "a" => "A",
         ]),
         (2, 0, hashmap![
-            "A" => "A",
-            "B" => "B",
             "a" => "A, B",
         ]),
         (500, 0, hashmap![
-            "Not" => "Not",
-            "Question" => "Question",
             "a" => "Question",
             "a_1" => "Not, ε",
-            "ε" => "ε",
         ]),
         (501, 0, hashmap![
-            "B" => "B",
-            "C" => "C",
-            "A" => "A",
-            "a" => "A",
+             "a" => "A",
             "a_1" => "B, C, ε",
-            "ε" => "ε",
         ]),
         (600, 0, hashmap![
-            "Add" => "Add",
-            "Num" => "Num",
             "e" => "Num",
             "e_1" => "Add, ε",
             "e_2" => "Num",
-            "ε" => "ε",
         ]),
         (603, 0, hashmap![
-            "Mul" => "Mul",
-            "Add" => "Add",
-            "Op" => "Op",
-            "Num" => "Num",
             "e" => "Op, Num",
             "e_1" => "Mul, Add, ε",
             "e_2" => "Op, Num",
             "e_3" => "Mul, ε",
             "e_4" => "Op, Num",
-            "ε" => "ε",
         ]),
         (860, 0, hashmap![
-            "A" => "A",
-            "B" => "B",
-            "C" => "C",
-            "D" => "D",
             "a" => "A, D",
             "a_1" => "B, C",
         ]),
@@ -890,7 +866,7 @@ fn prs_calc_first() {
         */
     ];
     const VERBOSE: bool = false;
-    const SHOW_ANSWER_ONLY: bool = false;
+    const SHOW_ANSWER_ONLY: bool = true;
     const SHOW_RULES: bool = false;
     test_first_or_follow(tests, |ll1| { ll1.calc_first(); ll1.first.clone() }, VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }

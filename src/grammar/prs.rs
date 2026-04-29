@@ -457,13 +457,14 @@ impl<T> ProdRuleSet<T> {
             }
         }
 
-        let mut first = symbols.into_iter().map(|sym| {
-            match &sym {
-                Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
-                Symbol::NT(_) => (sym, HashSet::new()),
-                Symbol::End => panic!("found reserved symbol {sym:?} in production rules"),
-            }
-        }).collect::<HashMap<_, _>>();
+        let mut first: HashMap<Symbol, HashSet<Symbol>> = symbols.into_iter()
+            .filter_map(|sym| {
+                match &sym {
+                    Symbol::T(_) | Symbol::Empty => None,
+                    Symbol::NT(_) => Some((sym, HashSet::new())),
+                    Symbol::End => panic!("found reserved symbol {sym:?} in production rules"),
+                }
+            }).collect::<HashMap<_, _>>();
         let mut change = true;
         let rules = (0..self.num_nt as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
         if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
