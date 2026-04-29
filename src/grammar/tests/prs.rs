@@ -863,7 +863,7 @@ fn prs_calc_first() {
         */
     ];
     const VERBOSE: bool = false;
-    const SHOW_ANSWER_ONLY: bool = true;
+    const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     test_first_or_follow(tests, |ll1| { ll1.calc_first(); ll1.first.clone() }, VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }

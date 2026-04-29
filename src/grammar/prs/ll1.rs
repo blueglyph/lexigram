@@ -36,7 +36,7 @@ impl ProdRuleSet<LL1> {
                 }).to_vec();
                 println!(
                     "{title}\n{}",
-                    syms.into_iter().index::<VarId>()
+                    syms.into_iter().index::<VarId>().filter(|(_, v)| !v.is_empty())
                         .map(|(s, f)| format!("- {} -> {}", Symbol::NT(s).to_str(tbl), f.into_iter().map(|s2| s2.to_str(tbl)).join(", "))).join("\n"));
             }
             print_first_or_follow("first:", self.get_symbol_table(), &self.first);
