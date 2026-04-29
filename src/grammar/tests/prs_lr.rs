@@ -14,12 +14,18 @@ fn prs_lr_from() {
             r#"b -> Op c"#,
             r#"c -> Id"#,
         ], vec![0, 0, 0], vec![None, None, None]),
+        (552, vec![
+            // e -> e "-" t | t
+            // t -> Id | "(" e ")"
+            r#"e -> e "-" t | t"#,                              //
+            r#"t -> Id | "(" e ")""#,                           //
+        ], vec![0, 0], vec![None, None]),
         /* template:
         (1, vec![
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(

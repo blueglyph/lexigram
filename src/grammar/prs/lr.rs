@@ -134,7 +134,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub fn calc_states_lr0(&self) -> Vec<Vec<LR0Item>> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let top_rule = self.nt_alts[self.start.unwrap() as usize].0;
         let mut states = vec![self.closure_lr0(vec![item!(top_rule)])];
@@ -177,7 +177,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub fn make_parsing_table(&mut self, _error_recovery: bool) -> LRParsingTable {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.log.add_note("- calculating parsing table...");
         let orig_start = self.add_goal_nt();
         self.calc_first();
