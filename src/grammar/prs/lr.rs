@@ -65,12 +65,14 @@ impl<T> ProdRuleSet<T> {
     fn first_or_follow_to_str(&self, set: &Vec<HashSet<Symbol>>, prefix: &str) -> String {
         let mut result = String::new();
         for var in 0..self.num_nt {
-            let mut values = set[var].iter().to_vec();
-            values.sort();
-            result.push_str(&format!(
-                "{prefix}{} -> {}",
-                Symbol::NT(var as VarId).to_str(self.get_symbol_table()),
-                values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")));
+            if !set[var].is_empty() {
+                let mut values = set[var].iter().to_vec();
+                values.sort();
+                result.push_str(&format!(
+                    "{prefix}{} -> {}",
+                    Symbol::NT(var as VarId).to_str(self.get_symbol_table()),
+                    values.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(", ")));
+            }
         }
         result
     }
