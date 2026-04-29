@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashSet};
 use std::marker::PhantomData;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
@@ -62,16 +62,14 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table.as_mut().map(|s| s.remove_nonterminal(self.num_nt as VarId));
     }
 
-    fn first_or_follow_to_str(&self, set: &HashMap<Symbol, HashSet<Symbol>>, prefix: &str) -> String {
+    fn first_or_follow_to_str(&self, set: &Vec<HashSet<Symbol>>, prefix: &str) -> String {
         let mut result = String::new();
-        let mut keys = set.keys().to_vec();
-        keys.sort();
-        for s in keys {
-            let mut values = set.get(s).unwrap().iter().to_vec();
+        for var in 0..self.num_nt {
+            let mut values = set[var].iter().to_vec();
             values.sort();
             result.push_str(&format!(
                 "{prefix}{} -> {}",
-                s.to_str(self.get_symbol_table()),
+                Symbol::NT(var as VarId).to_str(self.get_symbol_table()),
                 values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")));
         }
         result

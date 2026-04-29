@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
@@ -7,7 +7,7 @@ use lexigram_core::log::{BufLog, LogMsg, LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use crate::build::BuildFrom;
 use crate::{grammar, indent_source, General, SymbolTable, LL1};
-use crate::grammar::{ProdRuleSet, ProdRuleSetTables};
+use crate::grammar::{calc_alt_first, ProdRuleSet, ProdRuleSetTables};
 
 impl ProdRuleSet<LL1> {
     /// Creates the table for predictive top-down parsing.
@@ -28,18 +28,19 @@ impl ProdRuleSet<LL1> {
             return LL1ParsingTable::new();
         }
         if VERBOSE {
-            fn p_hash_hash(title: &str, tbl: Option<&SymbolTable>, table: &HashMap<Symbol, HashSet<Symbol>>) {
-                let mut syms = table.iter().map(|(s, hs)| {
+            fn print_first_or_follow(title: &str, tbl: Option<&SymbolTable>, table: &Vec<HashSet<Symbol>>) {
+                let syms = table.iter().map(|hs| {
                     let mut f = hs.iter().cloned().to_vec();
                     f.sort();
-                    (*s, f)
+                    f
                 }).to_vec();
-                syms.sort();
-                println!("{title}\n{}",
-                         syms.into_iter().map(|(s, f)| format!("- {} -> {}", s.to_str(tbl), f.into_iter().map(|s2| s2.to_str(tbl)).join(", "))).join("\n"));
+                println!(
+                    "{title}\n{}",
+                    syms.into_iter().index::<VarId>()
+                        .map(|(s, f)| format!("- {} -> {}", Symbol::NT(s).to_str(tbl), f.into_iter().map(|s2| s2.to_str(tbl)).join(", "))).join("\n"));
             }
-            p_hash_hash("first:", self.get_symbol_table(), &self.first);
-            p_hash_hash("follow:", self.get_symbol_table(), &self.follow);
+            print_first_or_follow("first:", self.get_symbol_table(), &self.first);
+            print_first_or_follow("follow:", self.get_symbol_table(), &self.follow);
         }
         let mut alts = self.prules.as_ref().unwrap().iter().index()
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
@@ -55,14 +56,14 @@ impl ProdRuleSet<LL1> {
             used_t.extend(alt.iter().filter(|s| s.is_t()));
             if VERBOSE { println!("- {a_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
                                   alt.to_str(self.get_symbol_table()),
-                                  alt.calc_alt_first(&self.first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                                  calc_alt_first(alt, &self.first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut has_end = false;
             let mut has_empty = false;
-            for s in alt.calc_alt_first(&self.first) {
+            for s in calc_alt_first(alt, &self.first) {
                 match s {
                     Symbol::Empty => {
                         has_empty = true;
-                        for s in &self.follow[&Symbol::NT(*nt_id)] {
+                        for s in &self.follow[*nt_id as usize] {
                             match s {
                                 Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, a_id),
                                 Symbol::End     => add_table(&mut table, num_t, *nt_id, end, a_id),
@@ -92,8 +93,7 @@ impl ProdRuleSet<LL1> {
                     0 => {
                         if error_recovery {
                             let sym_t = if t_id < num_t - 1 { Symbol::T(t_id as TokenId) } else { Symbol::End };
-                            let sym_nt = Symbol::NT(nt_id as VarId);
-                            if self.follow[&sym_nt].contains(&sym_t) || self.first[&sym_nt].contains(&sym_t) {
+                            if self.follow[nt_id].contains(&sym_t) || self.first[nt_id].contains(&sym_t) {
                                 error_pop
                             } else {
                                 error_skip
@@ -221,8 +221,8 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             options: source.options,
             alts: Vec::new(),
             nt_alts: Vec::new(),
-            first: HashMap::new(),
-            follow: HashMap::new(),
+            first: Vec::new(),
+            follow: Vec::new(),
             _phantom: PhantomData,
         }
     }

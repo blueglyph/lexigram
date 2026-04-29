@@ -9,7 +9,7 @@ mod prs_lr;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
-use crate::{alt, btreemap, gnode, hashmap, prule, sym, TokenId, LL1, LR};
+use crate::{alt, btreemap, gnode, prule, sym, TokenId, LL1, LR};
 use crate::build::TryBuildFrom;
 use crate::build::BuildInto;
 use crate::rtsgen::RtsGen;

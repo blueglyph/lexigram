@@ -1,6 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 use crate::fixed_sym_table::SymInfoTable;
 use crate::parser::Symbol;
@@ -199,38 +198,6 @@ impl Alternative {
 
     pub fn is_sym_empty(&self) -> bool {
         self.v.len() == 1 && self.v[0] == Symbol::Empty
-    }
-
-    pub fn calc_alt_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
-        let mut new = HashSet::<Symbol>::new();
-        match &self.v[0] {
-            t @ Symbol::T(_) => { new.insert(*t); }
-            nt @ Symbol::NT(_) => { new.extend(first[nt].iter().filter(|s| !s.is_empty())); }
-            Symbol::Empty => {}
-            e @ Symbol::End => { new.insert(*e); }
-        }
-        let mut trail = true;
-        for i in 0..self.v.len() - 1 {
-            let sym_i = &self.v[i];
-            if !sym_i.is_t() && (sym_i.is_empty() || first[sym_i].contains(&Symbol::Empty)) {
-                match &self.v[i + 1] {
-                    t @ Symbol::T(_) => { new.insert(*t); }
-                    nt @ Symbol::NT(_) => { new.extend(first[nt].iter().filter(|s| !s.is_empty())); }
-                    Symbol::Empty => {}
-                    e @ Symbol::End => { new.insert(*e); }
-                }
-            } else {
-                trail = false;
-                break;
-            }
-        }
-        if trail {
-            let last = self.last().unwrap();
-            if !last.is_t() && (last.is_empty() || first[self.last().unwrap()].contains(&Symbol::Empty)) {
-                new.insert(Symbol::Empty);
-            }
-        }
-        new
     }
 
     pub fn is_greedy(&self) -> bool {

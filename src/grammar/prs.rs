@@ -34,6 +34,39 @@ pub fn prule_to_macro(prule: &ProdRule) -> String {
     format!("prule!({})", prule.iter().map(|alt| alt.to_macro_item()).join("; "))
 }
 
+pub fn calc_alt_first(alt: &Alternative, first: &Vec<HashSet<Symbol>>) -> HashSet<Symbol> {
+    let mut new = HashSet::<Symbol>::new();
+    match &alt.v[0] {
+        t @ Symbol::T(_) => { new.insert(*t); }
+        Symbol::NT(nt) => { new.extend(first[*nt as usize].iter().filter(|s| !s.is_empty())); }
+        Symbol::Empty => {}
+        e @ Symbol::End => { new.insert(*e); }
+    }
+    let mut trail = true;
+    for i in 0..alt.v.len() - 1 {
+        let sym_i = &alt.v[i];
+        if sym_i.is_empty() || matches!(sym_i, Symbol::NT(var) if first[*var as usize].contains(&Symbol::Empty)) {
+            match &alt.v[i + 1] {
+                t @ Symbol::T(_) => { new.insert(*t); }
+                Symbol::NT(var) => { new.extend(first[*var as usize].iter().filter(|s| !s.is_empty())); }
+                Symbol::Empty => {}
+                e @ Symbol::End => { new.insert(*e); }
+            }
+        } else {
+            trail = false;
+            break;
+        }
+    }
+    if trail {
+        let last = alt.last().unwrap();
+        if last.is_empty() || matches!(last, Symbol::NT(var) if first[*var as usize].contains(&Symbol::Empty)) {
+            new.insert(Symbol::Empty);
+        }
+    }
+    new
+}
+
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum AltType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
 
@@ -89,8 +122,8 @@ pub struct ProdRuleSet<T> {
     pub(crate) options: ProdRuleSetOptions,
     pub(crate) alts: Vec<(VarId, Alternative)>,
     pub(crate) nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
-    pub(crate) first: HashMap<Symbol, HashSet<Symbol>>,
-    pub(crate) follow: HashMap<Symbol, HashSet<Symbol>>,
+    pub(crate) first: Vec<HashSet<Symbol>>,
+    pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -404,7 +437,6 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn calc_first(&mut self) {
-        const VERBOSE: bool = false;
         if self.start.is_none() {
             self.log.add_error("calc_first: start NT symbol not defined");
         }
@@ -457,43 +489,22 @@ impl<T> ProdRuleSet<T> {
             }
         }
 
-        let mut first: HashMap<Symbol, HashSet<Symbol>> = symbols.into_iter()
-            .filter_map(|sym| {
-                match &sym {
-                    Symbol::T(_) | Symbol::Empty => None,
-                    Symbol::NT(_) => Some((sym, HashSet::new())),
-                    Symbol::End => panic!("found reserved symbol {sym:?} in production rules"),
-                }
-            }).collect::<HashMap<_, _>>();
+        let mut first = vec![HashSet::<Symbol>::new(); self.num_nt];
         let mut change = true;
-        let rules = (0..self.num_nt as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
-        if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
         while change {
             change = false;
-            for i in &rules {
-                let prule = &self.prules.as_ref().unwrap()[*i as usize];
-                let symbol = Symbol::NT(*i as VarId);
-                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
-                let num_items = first[&symbol].len();
+            for var in 0..self.num_nt {
+                let prule = &self.prules.as_ref().unwrap()[var];
+                let num_items = first[var].len();
                 for alt in prule {
-                    if VERBOSE { println!("  - {}", alt.to_str(self.symbol_table.as_ref())); }
                     assert!(!alt.is_empty(), "empty alternative for {}: {}",
-                            symbol.to_str(self.symbol_table.as_ref()), alt.to_str(self.symbol_table.as_ref()));
-                    if VERBOSE {
-                        print!("    [0] {}", alt[0].to_str(self.symbol_table.as_ref()));
-                        println!(", first = {}", first[&alt[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
-                    }
-                    let new = alt.calc_alt_first(&first);
-                    let _n = first.get(&symbol).unwrap().len();
-                    first.get_mut(&symbol).unwrap().extend(new);
-                    if VERBOSE && first.get(&symbol).unwrap().len() > _n {
-                        println!("    first[{}] -> {}", symbol.to_str(self.get_symbol_table()),
-                                 first.get(&symbol).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
-                    }
+                            Symbol::NT(var as VarId).to_str(self.symbol_table.as_ref()), alt.to_str(self.symbol_table.as_ref()));
+                    let new = calc_alt_first(alt, &first);
+                    let _n = first[var].len();
+                    first[var].extend(new);
                 }
-                change |= first[&symbol].len() > num_items;
+                change |= first[var].len() > num_items;
             }
-            if VERBOSE && change { println!("---------------------------- again"); }
         }
         if self.num_t == 0 {
             self.log.add_error("calc_first: no terminal in grammar".to_string());
@@ -502,40 +513,30 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn calc_follow(&mut self) {
-        const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
         if !self.log.has_no_errors() {
             return;
         }
-        let mut follow = self.first.iter()
-            .filter_map(|(s, _)| if matches!(s, Symbol::NT(_)) { Some((*s, HashSet::<Symbol>::new())) } else { None })
-            .collect::<HashMap<_, _>>();
-        follow.get_mut(&Symbol::NT(self.start.unwrap())).unwrap().insert(Symbol::End);
-        let rules = (0..self.num_nt as VarId).filter(|var| follow.contains_key(&Symbol::NT(*var))).to_vec();
+        let mut follow = vec![HashSet::<Symbol>::new(); self.num_nt];
+        follow[self.start.unwrap() as usize].insert(Symbol::End);
         let mut change = true;
         while change {
             change = false;
-            for i in &rules {
-                let prule = &self.prules.as_ref().unwrap()[*i as usize];
-                let symbol = Symbol::NT(*i as VarId);
-                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
+            for i in 0..self.num_nt {
+                let prule = &self.prules.as_ref().unwrap()[i];
                 for alt in prule {
-                    if VERBOSE { println!("  - {}", alt.to_str(self.symbol_table.as_ref())); }
-                    let mut trail = follow.get(&symbol).unwrap().clone();
+                    let mut trail = follow[i].clone();
                     for sym_i in alt.iter().rev() {
-                        if let Symbol::NT(_) = sym_i {
-                            let num_items = follow.get(sym_i).unwrap().len();
-                            follow.get_mut(sym_i).unwrap().extend(&trail);
-                            if VERBOSE && follow.get(sym_i).unwrap().len() > num_items {
-                                println!("    follow[{}] -> {}", sym_i.to_str(self.get_symbol_table()),
-                                         follow.get(sym_i).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
-                            }
-                            change |= follow.get(sym_i).unwrap().len() > num_items;
-                            if self.first[sym_i].contains(&Symbol::Empty) {
-                                trail.extend(self.first[sym_i].iter().filter(|s| *s != &Symbol::Empty));
+                        if let Symbol::NT(v_i) = sym_i {
+                            let var_i = *v_i as usize;
+                            let num_items = follow[var_i].len();
+                            follow[var_i].extend(&trail);
+                            change |= follow[var_i].len() > num_items;
+                            if self.first[var_i].contains(&Symbol::Empty) {
+                                trail.extend(self.first[var_i].iter().filter(|s| *s != &Symbol::Empty));
                             } else {
                                 trail.clear();
-                                trail.extend(&self.first[sym_i]);
+                                trail.extend(&self.first[var_i]);
                             }
                         } else {
                             trail.clear();
@@ -544,7 +545,6 @@ impl<T> ProdRuleSet<T> {
                     }
                 }
             }
-            if VERBOSE && change { println!("---------------------------- again"); }
         }
         self.follow = follow;
     }
@@ -1093,8 +1093,8 @@ impl ProdRuleSet<General> {
             options: ProdRuleSetOptions::default(),
             alts: Vec::new(),
             nt_alts: Vec::new(),
-            first: HashMap::new(),
-            follow: HashMap::new(),
+            first: Vec::new(),
+            follow: Vec::new(),
             _phantom: PhantomData
         }
     }

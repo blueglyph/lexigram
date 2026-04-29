@@ -33,8 +33,8 @@ impl<T> ProdRuleSet<T> {
             options: ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
             alts: Vec::new(),
             nt_alts: Vec::new(),
-            first: HashMap::new(),
-            follow: HashMap::new(),
+            first: Vec::new(),
+            follow: Vec::new(),
             _phantom: PhantomData
         }
     }
@@ -772,9 +772,9 @@ fn prs_ll1_from() {
         VERBOSE, SHOW_ANSWER_ONLY, true);
 }
 
-fn test_first_or_follow<F>(tests: Vec<(u32, VarId, HashMap<&str, &str>)>, mut f: F, verbose: bool, show_answer_only: bool, show_rules: bool)
+fn test_first_or_follow<F>(tests: Vec<(u32, VarId, Vec<(&str, &str)>)>, mut f: F, verbose: bool, show_answer_only: bool, show_rules: bool)
 where
-    F: FnMut(&mut ProdRuleSet<LL1>) -> HashMap<Symbol, HashSet<Symbol>>
+    F: FnMut(&mut ProdRuleSet<LL1>) -> Vec<HashSet<Symbol>>,
 {
     let mut errors = 0;
     for (test_id, start, expected) in tests {
@@ -785,27 +785,24 @@ where
         ll1.set_start(start);
         let set_to_test = f(&mut ll1);
         let symtab = ll1.get_symbol_table();
-        let result = set_to_test.iter()
+        let result = set_to_test.iter().index().filter(|(_, s)| !s.is_empty())
             .map(|(s, hs)| {
                 let mut values = hs.into_iter().to_vec();
                 values.sort();
-                (s.to_str_name(symtab), values.into_iter().map(|s2| s2.to_str_name(symtab)).join(", "))
+                (Symbol::NT(s).to_str_name(symtab), values.into_iter().map(|s2| s2.to_str_name(symtab)).join(", "))
             })
-            .collect::<HashMap<_, _>>();
+            .to_vec();
         if verbose || show_answer_only {
-            println!("        ({test_id}, {start}, hashmap![");
+            println!("        ({test_id}, {start}, vec![");
             if !show_answer_only || show_rules {
                 ll1.print_rules(true, false);
             }
-            let mut syms = set_to_test.keys().to_vec();
-            syms.sort();
-            for s in syms {
-                let str = s.to_str_name(symtab);
-                println!("            \"{str}\" => \"{}\",", result.get(&str).unwrap());
+            for (s, hs) in &result {
+                println!("            ({s:?}, {hs:?}),",);
             }
             println!("        ]),");
         }
-        let fail1 = result != expected.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).collect();
+        let fail1 = result != expected.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec();
         let fail2 = !ll1.log.has_no_errors();
         let fail3 = !ll1.log.has_no_warnings();
         if fail1 || fail2 || fail3 {
@@ -827,42 +824,42 @@ where
 
 #[test]
 fn prs_calc_first() {
-    let tests: Vec<(u32, VarId, HashMap<&str, &str>)> = vec![
-        (0, 0, hashmap![
-            "a" => "A",
+    let tests: Vec<(u32, VarId, Vec<(&str, &str)>)> = vec![
+        (0, 0, vec![
+            ("a", "A"),
         ]),
-        (1, 0, hashmap![
-            "a" => "A",
+        (1, 0, vec![
+            ("a", "A"),
         ]),
-        (2, 0, hashmap![
-            "a" => "A, B",
+        (2, 0, vec![
+            ("a", "A, B"),
         ]),
-        (500, 0, hashmap![
-            "a" => "Question",
-            "a_1" => "Not, ε",
+        (500, 0, vec![
+            ("a", "Question"),
+            ("a_1", "Not, ε"),
         ]),
-        (501, 0, hashmap![
-             "a" => "A",
-            "a_1" => "B, C, ε",
+        (501, 0, vec![
+            ("a", "A"),
+            ("a_1", "B, C, ε"),
         ]),
-        (600, 0, hashmap![
-            "e" => "Num",
-            "e_1" => "Add, ε",
-            "e_2" => "Num",
+        (600, 0, vec![
+            ("e", "Num"),
+            ("e_1", "Add, ε"),
+            ("e_2", "Num"),
         ]),
-        (603, 0, hashmap![
-            "e" => "Op, Num",
-            "e_1" => "Mul, Add, ε",
-            "e_2" => "Op, Num",
-            "e_3" => "Mul, ε",
-            "e_4" => "Op, Num",
+        (603, 0, vec![
+            ("e", "Op, Num"),
+            ("e_1", "Mul, Add, ε"),
+            ("e_2", "Op, Num"),
+            ("e_3", "Mul, ε"),
+            ("e_4", "Op, Num"),
         ]),
-        (860, 0, hashmap![
-            "a" => "A, D",
-            "a_1" => "B, C",
+        (860, 0, vec![
+            ("a", "A, D"),
+            ("a_1", "B, C"),
         ]),
         /* template:
-        (, 0, hashmap![]),
+        (, 0, vec![]),
         */
     ];
     const VERBOSE: bool = false;
@@ -873,39 +870,39 @@ fn prs_calc_first() {
 
 #[test]
 fn prs_calc_follow() {
-    let tests: Vec<(u32, VarId, HashMap<&str, &str>)> = vec![
-        (0, 0, hashmap![
-            "a" => "$",
+    let tests: Vec<(u32, VarId, Vec<(&str, &str)>)> = vec![
+        (0, 0, vec![
+            ("a", "$"),
         ]),
-        (100, 0, hashmap![
-            "a" => "$",
-            "a_1" => "$",
+        (100, 0, vec![
+            ("a", "$"),
+            ("a_1", "$"),
         ]),
-        (300, 0, hashmap![
-            "a" => "$",
+        (300, 0, vec![
+            ("a", "$"),
         ]),
-        (500, 0, hashmap![
-            "a" => "$",
-            "a_1" => "$",
+        (500, 0, vec![
+            ("a", "$"),
+            ("a_1", "$"),
         ]),
-        (600, 0, hashmap![
-            "e" => "$",
-            "e_1" => "$",
-            "e_2" => "Add, $",
+        (600, 0, vec![
+            ("e", "$"),
+            ("e_1", "$"),
+            ("e_2", "Add, $"),
         ]),
-        (603, 0, hashmap![
-            "e" => "Mul, Add, $",
-            "e_1" => "Mul, Add, $",
-            "e_2" => "Mul, Add, $",
-            "e_3" => "Mul, Add, $",
-            "e_4" => "Mul, Add, $",
+        (603, 0, vec![
+            ("e", "Mul, Add, $"),
+            ("e_1", "Mul, Add, $"),
+            ("e_2", "Mul, Add, $"),
+            ("e_3", "Mul, Add, $"),
+            ("e_4", "Mul, Add, $"),
         ]),
-        (860, 0, hashmap![
-            "a" => "$",
-            "a_1" => "$",
+        (860, 0, vec![
+            ("a", "$"),
+            ("a_1", "$"),
         ]),
         /* template:
-        (, 0, hashmap![]),
+        (, 0, vec![]),
         */
     ];
     const VERBOSE: bool = false;
