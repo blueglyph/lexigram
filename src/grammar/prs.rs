@@ -500,7 +500,6 @@ impl<T> ProdRuleSet<T> {
                     assert!(!alt.is_empty(), "empty alternative for {}: {}",
                             Symbol::NT(var as VarId).to_str(self.symbol_table.as_ref()), alt.to_str(self.symbol_table.as_ref()));
                     let new = calc_alt_first(alt, &first);
-                    let _n = first[var].len();
                     first[var].extend(new);
                 }
                 change |= first[var].len() > num_items;
