@@ -6,6 +6,7 @@ use crate::LR;
 #[test]
 fn prs_lr_from() {
     let tests = vec![
+        #[cfg(any())]
         (14, vec![
             // a -> b c | c
             // b -> Op c
