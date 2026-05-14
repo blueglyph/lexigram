@@ -160,18 +160,18 @@ impl ProdRuleSet<LR> {
                 for symbol in symbols {
                     let items = self.goto_lr0(state.as_slice(), symbol);
                     if !items.is_empty() {
-                        set_states.entry(items.clone())
-                            .and_modify(|x| { gotos[idx_state].insert(symbol.clone(), *x); })
-                            .or_insert_with(|| {
-                                let new_state_id = states.len() + new_states.len();
-                                if VERBOSE {
-                                    println!("| -> GOTO(items, {}) = {} => STATE = {new_state_id}", symbol.to_str(self.get_symbol_table()), self.items_to_str(&items));
-                                }
-                                gotos.push(btreemap![]);
-                                gotos[idx_state].insert(symbol.clone(), new_state_id as StateId); // [from]: symbol => to
-                                new_states.push(items);
-                                new_state_id as StateId
-                            });
+                        if let Some(state_id) = set_states.get(&items) {
+                            gotos[idx_state].insert(symbol.clone(), *state_id);
+                        } else {
+                            let new_state_id = states.len() + new_states.len();
+                            if VERBOSE {
+                                println!("| -> GOTO(items, {}) = {} => STATE = {new_state_id}", symbol.to_str(self.get_symbol_table()), self.items_to_str(&items));
+                            }
+                            gotos.push(btreemap![]);
+                            gotos[idx_state].insert(symbol.clone(), new_state_id as StateId); // [from]: symbol => to
+                            new_states.push(items.clone());
+                            set_states.insert(items, new_state_id as StateId);
+                        }
                     }
                 }
                 if VERBOSE && !new_states.is_empty() {
