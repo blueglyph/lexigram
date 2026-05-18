@@ -138,7 +138,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub fn calc_states_lr0(&self) -> (Vec<Vec<LR0Item>>, Vec<BTreeMap<Symbol, StateId>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let top_rule = self.nt_alts[self.start.unwrap() as usize].0;
         let mut states = vec![self.closure_lr0(vec![item!(top_rule)])];
@@ -198,22 +198,42 @@ impl ProdRuleSet<LR> {
         (states, gotos)
     }
 
+    fn calc_reverse_gotos(gotos: &[BTreeMap<Symbol, StateId>]) -> Vec<BTreeMap<Symbol, Vec<StateId>>> {
+        let mut rev_gotos = vec![btreemap![]; gotos.len()];
+        for (start, symb, dest) in gotos.iter().index::<StateId>().flat_map(|(start, g)| g.iter().map(move |(symb, dest)| (start, *symb, *dest))) {
+            rev_gotos[dest as usize].entry(symb)
+                .and_modify(|v: &mut Vec<StateId>| v.push(start))
+                .or_insert_with(|| vec![start]);
+        }
+        rev_gotos
+    }
+
     pub fn make_parsing_table(&mut self, _error_recovery: bool) -> LRParsingTable {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         self.log.add_note("- calculating parsing table...");
         let orig_start = self.add_goal_nt();
-        // self.calc_first();
-        // self.calc_follow();
-        if VERBOSE {
-            self.print_alts();
-            // let first = self.first_or_follow_to_str(&self.first, "\n- ");
-            // println!("first:{first}");
-            // let follow = self.first_or_follow_to_str(&self.follow, "\n- ");
-            // println!("follow:{follow}");
-        }
         self.calc_alts();
         let (states, gotos) = self.calc_states_lr0();
+        let rev_gotos = Self::calc_reverse_gotos(&gotos);
+
+        // nonterminals and terminals of G', the transition-graph grammar
+        let mut nt_p = vec![];
+        let mut t_p = vec![];
+        for (start, symb) in gotos.iter().index::<StateId>().flat_map(|(start, g)| g.keys().map(move |symb| (start, *symb))) {
+            match symb {
+                Symbol::T(t) => t_p.push((start, t)),
+                Symbol::NT(nt) => nt_p.push((start, nt)),
+                Symbol::Empty | Symbol::End => {}
+            }
+        }
+
+        // productions of G'
+        for (nt, alt) in self.prules.as_ref().unwrap().iter().index::<VarId>().flat_map(|(nt, rule)| rule.iter().map(move |a| (nt, &a.v))) {
+            
+        }
+
         if VERBOSE {
+            self.print_alts();
             println!(
                 "calc_states():{}",
                 states.iter().enumerate()
@@ -222,7 +242,15 @@ impl ProdRuleSet<LR> {
                 "gotos:{}",
                 gotos.iter().enumerate()
                     .map(|(i, g)| format!("\n- {i}: {}", g.iter().map(|(s, t)| format!("{} → {t}", s.to_str_quote(self.get_symbol_table()))).join(", "))).join(""));
+            println!(
+                "rev_gotos:{}",
+                rev_gotos.iter().enumerate()
+                    .map(|(i, g)| format!(
+                        "\n- {i}: {}",
+                        g.iter().map(|(s, v)| format!("{} → {{{}}}", s.to_str_quote(self.get_symbol_table()), v.iter().map(|s| s.to_string()).join(", "))).join(", "))
+                    ).join(""));
         }
+
         self.remove_goal_nt(orig_start);
         LRParsingTable { }
     }
