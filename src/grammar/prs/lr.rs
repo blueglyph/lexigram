@@ -3,10 +3,11 @@ use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
-use lexigram_core::{CollectJoin, VarId};
+use lexigram_core::{CollectJoin, TokenId, VarId};
+use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
-use crate::grammar::ProdRuleSet;
-use crate::{btreemap, item, prule, General, LR};
+use crate::grammar::{ProdRule, ProdRuleSet};
+use crate::{btreemap, item, prule, General, SymbolTable, LR};
 
 trait LRItem {
     fn pos(&self) -> DotPos;
@@ -65,6 +66,14 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table.as_mut().map(|s| s.remove_nonterminal(self.num_nt as VarId));
     }
 
+    fn remove_empty_symbols(&mut self) {
+        for alt in self.prules.as_mut().unwrap().iter_mut().flat_map(|r| r.iter_mut().map(|p| &mut p.v)) {
+            if alt.len() == 1 && alt[0].is_empty() {
+                alt.pop();
+            }
+        }
+    }
+
     #[allow(unused)]
     fn first_or_follow_to_str(&self, set: &Vec<HashSet<Symbol>>, prefix: &str) -> String {
         let mut result = String::new();
@@ -86,14 +95,14 @@ impl<T> ProdRuleSet<T> {
 impl ProdRuleSet<LR> {
     fn item_to_str<T: LRItem>(&self, item: &T) -> String {
         let (var_id, alt) = &self.alts[item.alt_idx() as usize];
-        let left = alt.v[..item.pos() as usize].iter().map(|s| s.to_str(self.get_symbol_table())).join(" ");
-        let right = alt.v[item.pos() as usize..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" ");
+        let left = alt.v[..item.pos() as usize].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
+        let right = alt.v[item.pos() as usize..].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
         format!(
             "{} -> {left}{}•{}{right}{}",
             Symbol::NT(*var_id).to_str(self.get_symbol_table()),
             if !left.is_empty() { " " } else { "" },
             if !right.is_empty() { " " } else { "" },
-            if let Some(p) = item.prefix() { format!(", {}", p.iter().map(|s| s.to_str(self.get_symbol_table())).join("/")) } else { String::new() }
+            if let Some(p) = item.prefix() { format!(", {}", p.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join("/")) } else { String::new() }
         )
     }
 
@@ -208,30 +217,75 @@ impl ProdRuleSet<LR> {
         rev_gotos
     }
 
-    pub fn make_parsing_table(&mut self, _error_recovery: bool) -> LRParsingTable {
+    /// Makes an LALR parsing table using Bermudez and Logothetis' algorithm.
+    /// Bermudez, Manuel. “Simple Computation of LALR(1) Lookahead Sets.” Information Processing Letters, 1989.
+    /// Manuel E. Bermudez, George Logothetis, "Simple computation of LALR(1) lookahead sets."
+    /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
+    /// doi:10.1016/0020-0190(89)90079-3
+    pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
         const VERBOSE: bool = true;
-        self.log.add_note("- calculating parsing table...");
+        self.log.add_note("- calculating LALR parsing table...");
         let orig_start = self.add_goal_nt();
+        self.remove_empty_symbols();
         self.calc_alts();
         let (states, gotos) = self.calc_states_lr0();
         let rev_gotos = Self::calc_reverse_gotos(&gotos);
 
         // nonterminals and terminals of G', the transition-graph grammar
-        let mut nt_p = vec![];
-        let mut t_p = vec![];
-        for (start, symb) in gotos.iter().index::<StateId>().flat_map(|(start, g)| g.keys().map(move |symb| (start, *symb))) {
-            match symb {
-                Symbol::T(t) => t_p.push((start, t)),
-                Symbol::NT(nt) => nt_p.push((start, nt)),
-                Symbol::Empty | Symbol::End => {}
+        let mut symtab_p = SymbolTable::new();          // symbol table for G', for log/debug only
+        let mut nts_p = vec![];                         // G' nonterminals
+        let mut ts_p = vec![];                          // G' terminals
+        let mut nt_to_nt_p = vec![vec![]; self.num_nt]; // nt_to_nt_p[nt] = vec![nt'0, nt'1, ...]
+        let mut state_symb_p = vec![];                  // state_symb_p[state].get(symb) = Some(symb')
+        for (state, g) in gotos.iter().index::<StateId>() {
+            let mut map = btreemap![];                  // maps each goto from that state to a symbol of G'
+            for &symb in g.keys() {
+                match symb {
+                    Symbol::T(t) => {
+                        map.insert(symb, Symbol::T(ts_p.len() as TokenId)); // luckily, TokenId is the same type as VarId, no need of an enum
+                        ts_p.push((state, t));
+                        symtab_p.add_terminal(format!("[{state}:{}]", symb.to_str_quote(self.get_symbol_table())), None);
+                    }
+                    Symbol::NT(nt) => {
+                        map.insert(symb, Symbol::NT(nts_p.len() as VarId));
+                        nt_to_nt_p[nt as usize].push(nts_p.len() as VarId);
+                        nts_p.push((state, nt));
+                        symtab_p.add_nonterminal(format!("[{state}:{}]", symb.to_str(self.get_symbol_table())));
+                    }
+                    Symbol::Empty | Symbol::End => {}
+                }
             }
+            state_symb_p.push(map);
+        }
+        let num_nt_p = nts_p.len();
+        let num_t_p = ts_p.len();
+        if num_nt_p >= VarId::MAX as usize {
+            self.log.add_error(format!("too many nonterminals in G' ({num_nt_p})"));
+            return Err(());
+        }
+        if num_t_p >= VarId::MAX as usize {
+            self.log.add_error(format!("too many terminals in G' ({num_t_p})"));
+            return Err(());
         }
 
         // productions of G'
-        for (nt, alt) in self.prules.as_ref().unwrap().iter().index::<VarId>().flat_map(|(nt, rule)| rule.iter().map(move |a| (nt, &a.v))) {
-            
+        let mut prules = vec![ProdRule::new(); num_nt_p];
+        for (nt, rule) in self.prules.as_ref().unwrap().iter().index::<VarId>() {
+            for alt in rule.iter().map(|a| &a.v) {
+                for nt_p in &nt_to_nt_p[nt as usize] {
+                    let mut alt_p = vec![];
+                    let mut state = nts_p[*nt_p as usize].0;
+                    for symb in alt {
+                        alt_p.push(state_symb_p[state as usize].get(symb).unwrap().clone());
+                        state = *gotos[state as usize].get(symb).unwrap();
+                    }
+                    if alt_p.is_empty() {
+                        alt_p.push(Symbol::Empty);
+                    }
+                    prules[*nt_p as usize].push(Alternative::new(alt_p));
+                }
+            }
         }
-
         if VERBOSE {
             self.print_alts();
             println!(
@@ -249,10 +303,38 @@ impl ProdRuleSet<LR> {
                         "\n- {i}: {}",
                         g.iter().map(|(s, v)| format!("{} → {{{}}}", s.to_str_quote(self.get_symbol_table()), v.iter().map(|s| s.to_string()).join(", "))).join(", "))
                     ).join(""));
+            println!("G':");
+            symtab_p.dump("");
+        }
+        let mut g_p = ProdRuleSet::<General> {
+            prules: Some(prules),
+            origin: Default::default(),
+            num_nt: num_nt_p,
+            num_t: ts_p.len(),
+            symbol_table: Some(symtab_p),
+            flags: vec![0; num_nt_p],
+            parent: vec![None; num_nt_p],
+            start: Some(nt_to_nt_p[orig_start as usize][0]),
+            name: None,
+            nt_conversion: Default::default(),
+            log: Default::default(),
+            options: Default::default(),
+            alts: vec![],
+            nt_alts: vec![],
+            first: vec![],
+            follow: vec![],
+            _phantom: Default::default(),
+        };
+        g_p.calc_first();
+        g_p.calc_follow();
+
+        if VERBOSE {
+            g_p.print_alts();
+            println!("Follow:{}", g_p.first_or_follow_to_str(&g_p.follow, "\n-"));
         }
 
         self.remove_goal_nt(orig_start);
-        LRParsingTable { }
+        Ok(LRParsingTable { })
     }
 }
 
@@ -287,7 +369,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct LRParsingTable {
 }
 

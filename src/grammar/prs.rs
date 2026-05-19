@@ -1300,7 +1300,7 @@ impl<T> ProdRuleSet<T> {
                  self.get_alts().enumerate().map(|(id, (v, a))|
                      format!("    // - {id}: {} -> {}{}",
                              Symbol::NT(v).to_str(self.get_symbol_table()),
-                             a.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                             a.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
                              if a.flags != 0 { format!("     {} ({})", ruleflag::to_string(a.flags).join(" | "), a.flags) } else { "".to_string() }
                      )
         ).join("\n"));

@@ -15,12 +15,15 @@ fn prs_lr_from() {
             r#"b -> Op c"#,
             r#"c -> Id"#,
         ], vec![0, 0, 0], vec![None, None, None]),
+        #[cfg(any())]
         (552, vec![
             // e -> e "-" t | t
             // t -> Id | "(" e ")"
             r#"e -> e "-" t | t"#,                              //
             r#"t -> Id | "(" e ")""#,                           //
         ], vec![0, 0], vec![None, None]),
+        (2000, vec![
+        ], vec![], vec![]),
         /* template:
         (1, vec![
         ], vec![], vec![]),
@@ -34,7 +37,7 @@ fn prs_lr_from() {
         |prs| {
             if VERBOSE { prs.symbol_table.as_ref().unwrap().dump("Symbol table"); }
             let mut lr = ProdRuleSet::<LR>::build_from(prs);
-            let _ = lr.make_parsing_table(false);
+            let _ = lr.make_parsing_table_lalr(false);
             lr
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
