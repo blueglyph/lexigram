@@ -223,6 +223,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
+            original_start: None,
             _phantom: PhantomData,
         }
     }
@@ -257,6 +258,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             nt_alts: rules.nt_alts,
             first: rules.first,
             follow: rules.follow,
+            original_start: None,
             _phantom: PhantomData,
         }
     }

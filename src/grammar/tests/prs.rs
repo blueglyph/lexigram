@@ -35,6 +35,7 @@ impl<T> ProdRuleSet<T> {
             nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
+            original_start: None,
             _phantom: PhantomData
         }
     }

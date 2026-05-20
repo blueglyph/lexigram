@@ -124,6 +124,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
     pub(crate) first: Vec<HashSet<Symbol>>,
     pub(crate) follow: Vec<HashSet<Symbol>>,
+    pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -227,6 +228,13 @@ impl<T> ProdRuleSet<T> {
         } else {
             self.parent[child]
         }
+    }
+
+    /// Returns true if an extra goal nonterminal has been added for an LR grammar.
+    ///
+    /// If that's the case, the original grammar's start is in `self.original_start`.
+    pub fn has_extra_goal(&self) -> bool {
+        self.original_start.is_some()
     }
 
     fn get_top_parent(&self, nt: VarId) -> VarId {
@@ -1094,6 +1102,7 @@ impl ProdRuleSet<General> {
             nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
+            original_start: None,
             _phantom: PhantomData
         }
     }
