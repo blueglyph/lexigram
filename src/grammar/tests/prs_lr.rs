@@ -46,12 +46,19 @@ fn prs_lr_from() {
 
     test_prs_transforms(
         tests
-            //.into_iter().filter(|t| matches!(t.0, 2000)).collect()
+            // .into_iter().filter(|t| matches!(t.0, 2000)).collect()
         ,
         |prs| {
             if VERBOSE { prs.symbol_table.as_ref().unwrap().dump("Symbol table"); }
             let mut lr = ProdRuleSet::<LR>::build_from(prs);
-            let _ = lr.make_parsing_table_lalr(false);
+            match lr.make_parsing_table_lalr(false) {
+                Ok(table) => {
+                    if VERBOSE {
+                        println!("Table:\n{}", table.to_str(lr.get_symbol_table()).join("\n"));
+                    }
+                }
+                Err(_) => {}
+            }
             lr
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);

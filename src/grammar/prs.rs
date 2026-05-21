@@ -237,6 +237,10 @@ impl<T> ProdRuleSet<T> {
         self.original_start.is_some()
     }
 
+    pub(crate) fn symbol(&self, t: TokenId) -> Symbol {
+        if self.num_t > t as usize { Symbol::T(t) } else { Symbol::End }
+    }
+
     fn get_top_parent(&self, nt: VarId) -> VarId {
         let mut var = nt;
         while let Some(parent) = self.parent[var as usize] {

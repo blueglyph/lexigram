@@ -1,18 +1,19 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
-use lexigram_core::{CollectJoin, TokenId, VarId};
+use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
-use crate::{btreemap, item, prule, General, SymbolTable, LR};
+use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
 
 /// Dot position in a production rule (alternative). The symbol after the dot is at [value as usize], if it exists.
 pub type DotPos = u16;
 /// State index
-pub type StateId = u32;
+pub type StateId = u16;
 /// Item index in a state's list of items
 pub type ItemId = u16;
 
@@ -23,7 +24,7 @@ pub struct LRItem {
     /// index of production alternative in `ProdRuleSet::alts`
     pub alt_idx: u16,
     /// lookahead
-    pub prefix: Option<BTreeSet<Symbol>>,
+    pub prefix: Option<BTreeSet<TokenId>>,
 }
 
 impl LRItem {
@@ -35,8 +36,8 @@ impl LRItem {
         self.alt_idx
     }
 
-    fn prefix(&self) -> Option<impl Iterator<Item=&Symbol>> {
-        self.prefix.as_ref().map(|p| p.iter())
+    fn prefix(&self) -> Option<impl Iterator<Item=TokenId>> {
+        self.prefix.as_ref().map(|p| p.iter().copied())
     }
 }
 
@@ -109,7 +110,11 @@ impl ProdRuleSet<LR> {
             Symbol::NT(*var_id).to_str(self.get_symbol_table()),
             if !left.is_empty() { " " } else { "" },
             if !right.is_empty() { " " } else { "" },
-            if let Some(p) = item.prefix() { format!(", [{}]", p.map(|s| s.to_str_quote(self.get_symbol_table())).join(",")) } else { String::new() }
+            if let Some(p) = item.prefix() {
+                format!(", [{}]", p.map(|s| self.symbol(s).to_str_quote(self.get_symbol_table())).join(","))
+            } else {
+                String::new()
+            }
         )
     }
 
@@ -245,7 +250,7 @@ impl ProdRuleSet<LR> {
     /// Manuel E. Bermudez, George Logothetis, "Simple computation of LALR(1) lookahead sets."
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
-    fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<(StateId, ItemId)>) {
+    fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
         const VERBOSE: bool = true;
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
@@ -285,11 +290,11 @@ impl ProdRuleSet<LR> {
         let num_t_p = ts_p.len();
         if num_nt_p >= VarId::MAX as usize {
             self.log.add_error(format!("too many nonterminals in G' ({num_nt_p})"));
-            return (vec![], vec![]);
+            return (vec![], vec![], vec![]);
         }
         if num_t_p >= VarId::MAX as usize {
             self.log.add_error(format!("too many terminals in G' ({num_t_p})"));
-            return (vec![], vec![]);
+            return (vec![], vec![], vec![]);
         }
 
         // productions of G'
@@ -358,15 +363,19 @@ impl ProdRuleSet<LR> {
                 if end_state == state {
                     let lookahead = g_p.follow[nt_p as usize].iter()
                         .map(|s_p| match s_p {
-                            Symbol::T(t_p) => Symbol::T(ts_p[*t_p as usize].1),
+                            Symbol::T(t_p) => ts_p[*t_p as usize].1,
                             Symbol::NT(_) | Symbol::Empty => { panic!("found {s_p:?} in G' follow set"); }
-                            Symbol::End => Symbol::End,
+                            Symbol::End => self.num_t as TokenId,
                         });
-                    if VERBOSE { println!(" => [{}]", lookahead.clone().map(|s| s.to_str_quote(self.get_symbol_table())).join(",")); }
+                    if VERBOSE { println!(" => [{}]", lookahead.clone().map(|s| self.symbol(s).to_str_quote(self.get_symbol_table())).join(",")); }
                     item.prefix.get_or_insert_default().extend(lookahead);
                 } else if VERBOSE {
                     println!(" (no)");
                 }
+            }
+            if item.prefix.is_none() {
+                // accept lookahead
+                item.prefix = Some(btreeset![self.num_t as TokenId])
             }
         }
         if VERBOSE {
@@ -376,19 +385,57 @@ impl ProdRuleSet<LR> {
         }
         #[cfg(any())]
         self.remove_lr_goal_nt(orig_start);
-        (states, reductions)
+        (states, gotos, reductions)
     }
 
     pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
-        // const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         self.log.add_note("- calculating LALR parsing table...");
-        let (_states, _reductions) = self.calc_states_lalr();
+        let (states, gotos, reductions) = self.calc_states_lalr();
         if !self.log.has_no_errors() {
             return Err(());
         }
-
-
-        Ok(LRParsingTable { })
+        let num_nt = self.num_nt - 1;       // doesn't include the goal NT
+        let num_t_full = self.num_t + 1;    // includes the end symbol
+        let num_states = states.len();
+        let mut action = vec![LRAction::Error; num_t_full * num_states];
+        let mut goto = vec![num_states as StateId; num_nt * num_states];    // num_states value = error
+        for (s, map) in gotos.into_iter().enumerate() {
+            for (symb, s_dest) in map {
+                match symb {
+                    Symbol::T(t) => action[t as usize + s * num_t_full] = LRAction::Shift(s_dest),
+                    Symbol::NT(nt) => goto[nt as usize + s * num_nt] = s_dest,
+                    Symbol::Empty => {}
+                    Symbol::End => action[self.num_t + s * num_t_full] = LRAction::Shift(s_dest),
+                }
+            }
+        }
+        let alt_id_accept = self.alts.len() as AltId - 1;
+        for (s, item_id) in reductions {
+            let item = &states[s as usize][item_id as usize];
+            let alt_id = item.alt_idx;
+            for &t in item.prefix.as_ref().unwrap() {
+                action[t as usize + s as usize * num_t_full] = if alt_id == alt_id_accept {
+                    LRAction::Accept
+                } else {
+                    LRAction::Reduce(alt_id)
+                };
+            }
+        }
+        let table = LRParsingTable {
+            num_nt,
+            num_t_full,
+            num_states,
+            alts: self.alts.clone(),
+            action,
+            goto,
+            flags: self.flags.clone(),
+            parent: self.parent.clone(),
+        };
+        if VERBOSE {
+            println!("Table:\n{}", table.to_str(self.get_symbol_table()).join("\n"));
+        }
+        Ok(table)
     }
 }
 
@@ -424,8 +471,72 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Debug, Default)]
+#[derive(Clone, Default, Debug)]
+pub enum LRAction {
+    #[default]
+    Error,
+    Shift(StateId),
+    Reduce(AltId),
+    Accept,
+}
+
+impl Display for LRAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LRAction::Error => write!(f, "-"),
+            LRAction::Shift(s) => write!(f, "s{s}"),
+            LRAction::Reduce(a) => write!(f, "r{a}"),
+            LRAction::Accept => write!(f, "acc"),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct LRParsingTable {
+    pub num_nt: usize,                      // doesn't include the goal NT
+    pub num_t_full: usize,                  // includes the end symbol
+    pub num_states: usize,
+    pub alts: Vec<(VarId, Alternative)>,
+    pub action: Vec<LRAction>,
+    pub goto: Vec<StateId>,
+    pub flags: Vec<u32>,                    // NT -> flags (+ or * normalization)
+    pub parent: Vec<Option<VarId>>,         // NT -> parent NT
+}
+
+impl LRParsingTable {
+    pub(crate) fn symbol(&self, t: TokenId) -> Symbol {
+        if self.num_t_full > 1 + t as usize { Symbol::T(t) } else { Symbol::End }
+    }
+
+    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
+        let mut lines = vec![];
+        let &LRParsingTable { num_nt, num_t_full, num_states, ref action, ref goto, .. } = self;
+        let max_sw = 1.max((num_states as StateId - 1).ilog10() as usize + 1);
+        let max_ntw = 1.max((num_states as VarId - 1).ilog10() as usize + 1);
+        let t_str = (0..num_t_full as TokenId).map(|t| self.symbol(t).to_str_quote(symbol_table)).to_vec();
+        let t_len = t_str.iter().map(|s| s.len().max(max_sw + 1)).to_vec();
+        let nt_str = (0..num_nt as VarId).map(|nt| Symbol::NT(nt).to_str(symbol_table)).to_vec();
+        let nt_len = nt_str.iter().map(|s| s.len().max(max_ntw)).to_vec();
+        lines.push(format!(
+            "{:<w$} | {} | {}", "",
+            (0..num_t_full).map(|t| format!("{:^w$}", t_str[t], w = t_len[t])).join(" "),
+            (0..num_nt).map(|nt| format!("{:^w$}", nt_str[nt], w = nt_len[nt])).join(" "),
+            w = max_sw));
+        lines.push(format!(
+            "{:-<w$}-+-{:-<t$}-+-{:-<nt$}", "", "", "",
+            t = num_t_full + t_len.iter().sum::<usize>() - 1,
+            nt = num_nt + nt_len.iter().sum::<usize>() - 1,
+            w = max_sw));
+        for s in 0..num_states {
+            let action_s = (0..num_t_full).map(|t| format!("{:^w$}", action[s * num_t_full + t].to_string(), w = t_len[t])).join(" ");
+            let goto_s = (0..num_nt).map(|nt| {
+                let val = goto[s * num_nt + nt];
+                if num_states > val as usize { format!("{val:^w$}", w = nt_len[nt]) } else { format!("{:^w$}", "-", w = nt_len[nt]) }
+            }).join(" ");
+            lines.push(format!("{s:>w$} | {action_s} | {goto_s}", w = max_sw));
+        }
+        lines
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
