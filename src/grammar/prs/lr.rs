@@ -511,10 +511,16 @@ impl LRParsingTable {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
         let mut lines = vec![];
         let &LRParsingTable { num_nt, num_t_full, num_states, ref action, ref goto, .. } = self;
-        let max_sw = 1.max((num_states as StateId - 1).ilog10() as usize + 1);
-        let max_ntw = 1.max((num_states as VarId - 1).ilog10() as usize + 1);
+        let max_sw = (num_states as StateId - 1).ilog10() as usize + 1;
+        let max_sws = LRAction::Shift(num_states as StateId - 1).to_string().len()
+            .max(LRAction::Reduce(self.alts.len() as AltId - 1).to_string().len());
+        let max_ntw = (num_states as VarId - 1).ilog10() as usize + 1;
         let t_str = (0..num_t_full as TokenId).map(|t| self.symbol(t).to_str_quote(symbol_table)).to_vec();
-        let t_len = t_str.iter().map(|s| s.len().max(max_sw + 1)).to_vec();
+        let t_len = t_str.iter().enumerate().map(|(t, s)|
+            s.len() // title
+                .max(max_sws) // s15
+                .max(if t + 1 < num_t_full { 1 } else { LRAction::Accept.to_string().len() }) // acc
+        ).to_vec();
         let nt_str = (0..num_nt as VarId).map(|nt| Symbol::NT(nt).to_str(symbol_table)).to_vec();
         let nt_len = nt_str.iter().map(|s| s.len().max(max_ntw)).to_vec();
         lines.push(format!(
