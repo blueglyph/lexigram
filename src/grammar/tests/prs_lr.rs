@@ -51,6 +51,20 @@ fn prs_calc_lr_table() {
             r#"13 |  -   -  r2  | -  -  -  -  - "#,
         ], &[]),
 
+        // resolved ambiguities
+        (601, 0, 0, &[
+            r#"  | "*" "+" Num Id  $  | e"#,
+            r#"--+--------------------+--"#,
+            r#"0 |  -   -  s1  s2  -  | 3"#,
+            r#"1 | r2  r2   -  -  r2  | -"#,
+            r#"2 | r3  r3   -  -  r3  | -"#,
+            r#"3 | s4  s5   -  -  acc | -"#,
+            r#"4 |  -   -  s1  s2  -  | 6"#,
+            r#"5 |  -   -  s1  s2  -  | 7"#,
+            r#"6 | r0  r0   -  -  r0  | -"#,
+            r#"7 | s4  r1   -  -  r1  | -"#,
+        ], &[]),
+
         // non-LR(1) grammar
         (2500, 0, 0, &[
             r#"  | A  B   $  | s a"#,
@@ -69,16 +83,19 @@ fn prs_calc_lr_table() {
             "ambiguity for state 4, terminal A: s7/r2",
         ]),
         /* template:
-        (, 0, false, 1, &[
-        ]),
+        (, 0, 0, &[
+        ], &[]),
         */
     ];
-    const VERBOSE: bool = false;
+    static INDENT0: &str = "        ";
+    static INDENT1: &str = "            ";
+    const VERBOSE: bool = true;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
+    const SHOW_STATES: bool = true;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_amb) in TESTS {
-        // if !matches!(test_id, 2500) { continue }
+        if !matches!(test_id, 601) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -86,7 +103,7 @@ fn prs_calc_lr_table() {
         let msg = format!("## ERROR ## test {test_id}, start={start}");
         let mut lr = TestRules(test_id).to_prs_lr().unwrap();
         lr.set_start(start);
-        let fail = if let Ok(parsing_table) = lr.make_parsing_table_lalr(true) {
+        let fail = if let Ok((parsing_table, states)) = lr.make_parsing_table_with_states_lalr(true) {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
                 lr.print_flags();
@@ -111,13 +128,20 @@ fn prs_calc_lr_table() {
                 println!("        ({test_id}, {start}, {result_warnings}, &[");
                 if VERBOSE || SHOW_RULES {
                     print_alts(&alts, lr.get_symbol_table());
-                    println!("            //");
+                    println!("{INDENT1}//");
                 }
-                println!("{}", result_lines.iter().map(|s| format!("            r#\"{s}\"#,")).join("\n"));
+                if VERBOSE || SHOW_STATES {
+                    let str = states.iter().enumerate()
+                        .map(|(i, items)|
+                            format!("{INDENT1}// state {i}:{}", items.iter().map(|i| format!("\n{INDENT1}// - {}", lr.item_to_str(i))).join("")))
+                        .join("\n");
+                    println!("{str}");
+                }
+                println!("{}", result_lines.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n"));
                 if is_ambiguous {
-                    println!("        ], [{}\n        ]),", result_amb.iter().map(|s| format!("\n            \"{s}\",")).join(""));
+                    println!("{INDENT0}], &[{}\n{INDENT0}]),", result_amb.iter().map(|s| format!("\n{INDENT1}\"{s}\",")).join(""));
                 } else {
-                    println!("        ], &[]),");
+                    println!("{INDENT0}], &[]),");
                 }
             }
             [

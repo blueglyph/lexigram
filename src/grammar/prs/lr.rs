@@ -101,7 +101,7 @@ impl ProdRuleSet<LR> {
         self.symbol_table.as_mut().map(|s| s.remove_nonterminal(self.num_nt as VarId));
     }
 
-    fn item_to_str(&self, item: &LRItem) -> String {
+    pub(crate) fn item_to_str(&self, item: &LRItem) -> String {
         let (var_id, alt) = &self.alts[item.alt_idx() as usize];
         let left = alt.v[..item.pos() as usize].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
         let right = alt.v[item.pos() as usize..].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
@@ -118,16 +118,16 @@ impl ProdRuleSet<LR> {
         )
     }
 
-    fn items_to_str(&self, items: &[LRItem]) -> String {
+    pub(crate) fn items_to_str(&self, items: &[LRItem]) -> String {
         items.iter().map(|i| format!("[{}]", self.item_to_str(i))).join(", ")
     }
 
-    fn states_to_str(&self, states: &[Vec<LRItem>]) -> String {
+    pub(crate) fn states_to_str(&self, states: &[Vec<LRItem>]) -> String {
         states.iter().enumerate()
             .map(|(i, items)| format!("\nstate {i}:{}", items.iter().map(|i| format!("\n  - {}", self.item_to_str(i))).join(""))).join("")
     }
 
-    fn is_item_done(&self, item: &LRItem) -> bool {
+    pub(crate) fn is_item_done(&self, item: &LRItem) -> bool {
         item.pos as usize >= self.alts[item.alt_idx() as usize].1.v.len()
     }
 
@@ -388,7 +388,7 @@ impl ProdRuleSet<LR> {
         (states, gotos, reductions)
     }
 
-    pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
+    pub fn make_parsing_table_with_states_lalr(&mut self, _error_recovery: bool) -> Result<(LRParsingTable, Vec<Vec<LRItem>>), ()> {
         const VERBOSE: bool = false;
         self.log.add_note("- calculating LALR parsing table...");
         let (states, gotos, reductions) = self.calc_states_lalr();
@@ -445,7 +445,12 @@ impl ProdRuleSet<LR> {
         if VERBOSE {
             println!("Table:\n{}", table.to_str(self.get_symbol_table()).join("\n"));
         }
-        Ok(table)
+        Ok((table, states))
+    }
+    
+    pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
+        self.make_parsing_table_with_states_lalr(_error_recovery)
+            .map(|(table, _)| table)
     }
 }
 

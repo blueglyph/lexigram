@@ -1,3 +1,5 @@
+# LALR
+
 ```
 0: s -> "a" a "a"
 1: s -> "a" "a" "b"
@@ -9,7 +11,7 @@
 7: <goal> -> s
 ```
 
-States:
+## States:
 ```
 state 0 ------------+-"a"-> state 1 -----------+-"a"-> state 4 ------------"b"-> state 9 
 <goal> -> • s       |       s -> "a" • a "a"   |       s -> "a" "a" • "b"        s -> "a" "a" "b" •
@@ -42,6 +44,8 @@ gotos:                                        |   rev_gotos:
 - 5: "a" → 10                  - 12:          |   - 5: a → {1}      - 12: d → {6}
 - 6: c → 11, d → 12            - 13:          |   - 6: b → {1, 2}   - 13: "b" → {8}
 ```
+
+## Computing the reduction lookaheads
 
 G', where NT and T are transitions in G:
 ```
@@ -139,6 +143,8 @@ state 13:
   - s -> "b" a "b" •, [$]
 ```
 
+## Computing the table
+
 Table:
 ```
    | "a" "b"  $  | s  a  b  c  d 
@@ -157,4 +163,66 @@ Table:
 11 | r3  r3   -  | -  -  -  -  - 
 12 | r5  r5   -  | -  -  -  -  - 
 13 |  -   -  r2  | -  -  -  -  -  
+```
+
+## Removing ambiguities
+
+Test 601
+
+```
+0: e -> e "*" e
+1: e -> e "+" e
+2: e -> Num
+3: e -> Id
+4: <goal> -> e
+```
+
+States:
+```
+state 0:                            state 5:
+- <goal> -> • e                     - e -> e "+" • e
+- e -> • e "*" e                    - e -> • e "*" e
+- e -> • e "+" e                    - e -> • e "+" e
+- e -> • Num                        - e -> • Num
+- e -> • Id                         - e -> • Id
+state 1:                            state 6:
+- e -> Num •, ["*","+",$]           - e -> e "*" e •, ["*","+",$]
+state 2:                            - e -> e • "*" e
+- e -> Id •, ["*","+",$]            - e -> e • "+" e
+state 3:                            state 7:
+- <goal> -> e •, [$]                - e -> e "+" e •, ["*","+",$]
+- e -> e • "*" e                    - e -> e • "*" e
+- e -> e • "+" e                    - e -> e • "+" e
+state 4:
+- e -> e "*" • e
+- e -> • e "*" e
+- e -> • e "+" e
+- e -> • Num
+- e -> • Id
+```
+Table:
+```
+  | "*" "+" Num Id  $  | e
+--+--------------------+--
+0 |  -   -  s1  s2  -  | 3
+1 | r2  r2   -  -  r2  | -
+2 | r3  r3   -  -  r3  | -
+3 | s4  s5   -  -  acc | -
+4 |  -   -  s1  s2  -  | 6
+5 |  -   -  s1  s2  -  | 7
+6 | ??  ??   -  -  r0  | -
+7 | ??  ??   -  -  r1  | -
+
+Ambiguities:              state               shift (right > left)         reduce (left >= right)
+- state 6, "*": s4/r0? -> 6: e -> e "*" e •   4: e -> e "*" • e (r-assoc)  0: e -> e "*" e (l-assoc)  => r0  
+- state 6, "+": s5/r0?                        5: e -> e "+" • e (+ > *)    0: e -> e "*" e (* > +)    => r0
+- state 7, "*": s4/r1?    7: e -> e "+" e •   4: e -> e "*" • e (* > +)    1: e -> e "+" e (+ > *)    => s4
+- state 7, "+": s5/r1?                        5: e -> e "+" • e (r-assoc)  1: e -> e "+" e (r-assoc)  => r1
+
+compare priority(alt[state or reduce]) and priority(alt[shift]), 
+if equal =>
+    if l-assoc => reduce
+    else       => shift
+else =>
+    choose action with alt of higher priority    
 ```
