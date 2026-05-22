@@ -977,7 +977,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub(crate) fn remove_ambiguity(&mut self) {
-        self.log.add_warning("TODO: remove_ambiguity");
+        self.log.add_note("TODO: remove_ambiguity");
     }
 
     /// Moves the flags of the mask from the alternatives to the NT flags

@@ -251,7 +251,7 @@ impl ProdRuleSet<LR> {
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
         self.remove_empty_symbols();
@@ -389,7 +389,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.log.add_note("- calculating LALR parsing table...");
         let (states, gotos, reductions) = self.calc_states_lalr();
         if !self.log.has_no_errors() {
@@ -415,11 +415,21 @@ impl ProdRuleSet<LR> {
             let item = &states[s as usize][item_id as usize];
             let alt_id = item.alt_idx;
             for &t in item.prefix.as_ref().unwrap() {
-                action[t as usize + s as usize * num_t_full] = if alt_id == alt_id_accept {
+                let act = if alt_id == alt_id_accept {
                     LRAction::Accept
                 } else {
                     LRAction::Reduce(alt_id)
                 };
+                let action_cell = &mut action[t as usize + s as usize * num_t_full];
+                if *action_cell != LRAction::Error {
+                    self.log.add_warning(format!(
+                        "- calc_table: ambiguity for state {s}, terminal {}: {}/{}",
+                        self.symbol(t).to_str(self.get_symbol_table()),
+                        *action_cell, act));
+                    // TODO: resolver
+                } else {
+                    *action_cell = act;
+                }
             }
         }
         let table = LRParsingTable {
@@ -471,7 +481,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, PartialEq, Debug)]
 pub enum LRAction {
     #[default]
     Error,
