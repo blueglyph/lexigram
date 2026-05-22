@@ -5,7 +5,7 @@ use iter_index::IndexerIterator;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
-use lexigram_core::alt::Alternative;
+use lexigram_core::alt::{ruleflag, Alternative};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
@@ -421,14 +421,50 @@ impl ProdRuleSet<LR> {
                     LRAction::Reduce(alt_id)
                 };
                 let action_cell = &mut action[t as usize + s as usize * num_t_full];
-                if *action_cell != LRAction::Error {
-                    self.log.add_warning(format!(
-                        "- calc_table: ambiguity for state {s}, terminal {}: {}/{}",
-                        self.symbol(t).to_str(self.get_symbol_table()),
-                        *action_cell, act));
-                    // TODO: resolver
-                } else {
-                    *action_cell = act;
+                // TODO: resolver
+                // pub const R_ASSOC: u32 = 256;
+                // pub const GREEDY: u32 = 8192;   ?
+                // pub const PREC_EQ: u32 = 16384;
+                match (*action_cell, act) {
+                    (LRAction::Error, _) => *action_cell = act,
+                    (LRAction::Shift(shift), LRAction::Reduce(_)) => {
+                        let mut left_alt_id = alt_id as usize;
+                        let mut right_alt_id = states[shift as usize][0].alt_idx as usize;
+                        let nt_shift = self.alts[alt_id as usize].0;
+                        let nt_red = self.alts[right_alt_id].0;
+                        if nt_shift != nt_red {
+                            self.log.add_warning(format!(
+                                "- calc_table: conflict for state {s}, terminal {}: {}/{}, cannot solve conflict between nonterminals {} and {}",
+                                self.symbol(t).to_str(self.get_symbol_table()),
+                                *action_cell, act,
+                                Symbol::NT(nt_shift).to_str(self.get_symbol_table()),
+                                Symbol::NT(nt_red).to_str(self.get_symbol_table())));
+                        } else {
+                            // compare priority of shift_alt_id and alt_id
+                            let is_left_rassoc = self.alts[left_alt_id].1.flags & ruleflag::R_ASSOC != 0;
+                            // note: normally, the first alt of this NT mustn't have the flag PREC_EQ, but we check underflow anyway:
+                            let min_alt_id = self.nt_alts[nt_shift as usize].0 as usize;
+                            while left_alt_id > min_alt_id && self.alts[left_alt_id].1.flags & ruleflag::PREC_EQ != 0 { left_alt_id -= 1; }
+                            while right_alt_id > min_alt_id && self.alts[right_alt_id].1.flags & ruleflag::PREC_EQ != 0 { right_alt_id -= 1; }
+                            let resolved = if left_alt_id == right_alt_id {
+                                // same priority: if left is right-assoc => shift, else reduce
+                                if is_left_rassoc { *action_cell } else { act }
+                            } else {
+                                // if priority(left) < priority(right) => shift, else reduce
+                                if left_alt_id > right_alt_id { *action_cell } else { act }
+                            };
+                            self.log.add_note(format!("- calc_table: conflict for state {s}, terminal {}: {}/{} => resolved as {}",
+                                self.symbol(t).to_str(self.get_symbol_table()),
+                                *action_cell, act, resolved));
+                            *action_cell = resolved;
+                        }
+                    }
+                    _ => {
+                        self.log.add_warning(format!(
+                            "- calc_table: conflict for state {s}, terminal {}: {}/{}",
+                            self.symbol(t).to_str(self.get_symbol_table()),
+                            *action_cell, act));
+                    }
                 }
             }
         }
@@ -447,7 +483,7 @@ impl ProdRuleSet<LR> {
         }
         Ok((table, states))
     }
-    
+
     pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
         self.make_parsing_table_with_states_lalr(_error_recovery)
             .map(|(table, _)| table)
@@ -486,7 +522,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Default, PartialEq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub enum LRAction {
     #[default]
     Error,

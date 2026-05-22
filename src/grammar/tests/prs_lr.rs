@@ -51,7 +51,7 @@ fn prs_calc_lr_table() {
             r#"13 |  -   -  r2  | -  -  -  -  - "#,
         ], &[]),
 
-        // resolved ambiguities
+        // resolved conflicts
         (601, 0, 0, &[
             r#"  | "*" "+" Num Id  $  | e"#,
             r#"--+--------------------+--"#,
@@ -80,7 +80,7 @@ fn prs_calc_lr_table() {
             r#"8 | -  -  r0  | - -"#,
             r#"9 | -  -  r1  | - -"#,
         ], &[
-            "ambiguity for state 4, terminal A: s7/r2",
+            "conflict for state 4, terminal A: s7/r2",
         ]),
         /* template:
         (, 0, 0, &[
@@ -94,8 +94,8 @@ fn prs_calc_lr_table() {
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = true;
     let mut errors = 0;
-    for &(test_id, start, expected_warnings, expected_lines, expected_amb) in TESTS {
-        if !matches!(test_id, 601) { continue }
+    for &(test_id, start, expected_warnings, expected_lines, expected_conflict) in TESTS {
+        // if !matches!(test_id, 601) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -106,14 +106,17 @@ fn prs_calc_lr_table() {
         let fail = if let Ok((parsing_table, states)) = lr.make_parsing_table_with_states_lalr(true) {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
-                lr.print_flags();
+                let text = lr.log.get_messages().map(|m| m.to_string()).filter(|s| s.contains("calc_table")).to_vec();
+                if !text.is_empty() {
+                    println!("logs related to parsing table:\n{}", text.join("\n"));
+                }
             }
-            let result_amb = lr.log.get_warnings()
+            let result_conflict = lr.log.get_warnings()
                 .map(|w| w.get_inner_str())
-                .filter(|s| s.contains("calc_table: ambiguity"))
+                .filter(|s| s.contains("calc_table: conflict"))
                 .to_vec();
-            let result_warnings = lr.log.num_warnings() - result_amb.len();
-            let is_ambiguous = !result_amb.is_empty();
+            let result_warnings = lr.log.num_warnings() - result_conflict.len();
+            let has_conflict = !result_conflict.is_empty();
             if VERBOSE && action.len() != num_t_full * num_states {
                 println!("{msg}: incorrect action table size");
             }
@@ -121,9 +124,9 @@ fn prs_calc_lr_table() {
             if VERBOSE || SHOW_ANSWER_ONLY {
                 if !SHOW_ANSWER_ONLY {
                     println!(
-                        "table has {} ambiguitie(s){}",
-                        result_amb.len(),
-                        result_amb.iter().map(|s| format!("\n- {s}")).join(""));
+                        "table has {} conflict(s){}",
+                        result_conflict.len(),
+                        result_conflict.iter().map(|s| format!("\n- {s}")).join(""));
                 }
                 println!("        ({test_id}, {start}, {result_warnings}, &[");
                 if VERBOSE || SHOW_RULES {
@@ -138,15 +141,17 @@ fn prs_calc_lr_table() {
                     println!("{str}");
                 }
                 println!("{}", result_lines.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n"));
-                if is_ambiguous {
-                    println!("{INDENT0}], &[{}\n{INDENT0}]),", result_amb.iter().map(|s| format!("\n{INDENT1}\"{s}\",")).join(""));
+                if has_conflict {
+                    println!("{INDENT0}], &[{}\n{INDENT0}]),", result_conflict.iter().map(|s| format!("\n{INDENT1}\"{s}\",")).join(""));
                 } else {
                     println!("{INDENT0}], &[]),");
                 }
             }
+            let conflict_mismatch = expected_conflict.len() != result_conflict.len()
+                || result_conflict.iter().zip(expected_conflict).any(|(&r, &e)| !r.contains(e));
             [
                 false,
-                result_amb.iter().zip(expected_amb).any(|(&r, &e)| !r.contains(e)),
+                conflict_mismatch,
                 result_lines != expected_lines,
                 !lr.log.has_no_errors(),
                 result_warnings != expected_warnings,
@@ -159,7 +164,7 @@ fn prs_calc_lr_table() {
             if !SHOW_ANSWER_ONLY {
                 print!("## ERROR ## test {test_id} failed");
                 if fail[0] { print!(", couldn't generate parsing table"); }
-                if fail[1] { print!(", ambiguity mismatch(es)"); }
+                if fail[1] { print!(", conflicts mismatch"); }
                 if fail[2] { print!(", wrong result"); }
                 if fail[3] { print!(", errors in log"); }
                 if fail[4] { print!(", warnings in log"); }
