@@ -1,0 +1,145 @@
+// --------------------------------------------------------------------------------
+// Template for the user implementation of RtsGenListener
+
+struct Listener {
+    log: BufLog,
+}
+
+#[allow(unused)]
+impl RtsGenListener for Listener {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_file(&mut self, ctx: CtxFile) -> SynFile {
+        // file -> decls ruleset
+        let CtxFile::V1 { decls, ruleset } = ctx;
+        SynFile()
+    }
+
+    fn exit_decls(&mut self, ctx: CtxDecls) -> SynDecls {
+        // decls -> (<L> decl)*
+        let CtxDecls::V1 = ctx;
+        SynDecls()
+    }
+
+    fn exit_decl_iter(&mut self, ctx: CtxDeclIter) {
+        // `<L> decl` iteration in `decls -> ( ►► <L> decl ◄◄ )*`
+        let CtxDeclIter::V1 { decl } = ctx;
+    }
+
+    fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl {
+        // decl -> "token" decl_terminal ("," decl_terminal)* ";"
+        let CtxDecl::V1 { star } = ctx;
+        SynDecl()
+    }
+
+    fn exit_decl_terminal(&mut self, ctx: CtxDeclTerminal) -> SynDeclTerminal {
+        match ctx {
+            // decl_terminal -> Terminal "=" TerminalCst
+            CtxDeclTerminal::V1 { terminal, terminalcst } => {}
+            // decl_terminal -> Terminal
+            CtxDeclTerminal::V2 { terminal } => {}
+        }
+        SynDeclTerminal()
+    }
+
+    fn exit_ruleset(&mut self, ctx: CtxRuleset) -> SynRuleset {
+        // ruleset -> (<L> rule)*
+        let CtxRuleset::V1 = ctx;
+        SynRuleset()
+    }
+
+    fn exit_rule_iter(&mut self, ctx: CtxRuleIter) {
+        // `<L> rule` iteration in `ruleset -> ( ►► <L> rule ◄◄ )*`
+        let CtxRuleIter::V1 { rule } = ctx;
+    }
+
+    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+        match ctx {
+            // rule -> rule_nt "=>" rts_expr ";"
+            CtxRule::V1 { rule_nt, rts_expr } => {}
+            // rule -> rule_nt "->" prs_expr ";"
+            CtxRule::V2 { rule_nt, prs_expr } => {}
+        }
+        SynRule()
+    }
+
+    fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt {
+        // rule_nt -> Nonterminal
+        let CtxRuleNt::V1 { nonterminal } = ctx;
+        SynRuleNt()
+    }
+
+    fn exit_rts_expr(&mut self, ctx: CtxRtsExpr) -> SynRtsExpr {
+        match ctx {
+            // rts_expr -> "&" rts_children
+            CtxRtsExpr::V1 { rts_children } => {}
+            // rts_expr -> "|" rts_children
+            CtxRtsExpr::V2 { rts_children } => {}
+            // rts_expr -> "+" rts_children
+            CtxRtsExpr::V3 { rts_children } => {}
+            // rts_expr -> "*" rts_children
+            CtxRtsExpr::V4 { rts_children } => {}
+            // rts_expr -> "?" rts_children
+            CtxRtsExpr::V5 { rts_children } => {}
+            // rts_expr -> item
+            CtxRtsExpr::V6 { item } => {}
+        }
+        SynRtsExpr()
+    }
+
+    fn exit_rts_children(&mut self, ctx: CtxRtsChildren) -> SynRtsChildren {
+        // rts_children -> "(" rts_expr* ")"
+        let CtxRtsChildren::V1 { star } = ctx;
+        SynRtsChildren()
+    }
+
+    fn exit_prs_expr(&mut self, ctx: CtxPrsExpr) -> SynPrsExpr {
+        match ctx {
+            // prs_expr -> prs_expr "+"
+            CtxPrsExpr::V1 { prs_expr } => {}
+            // prs_expr -> prs_expr "*"
+            CtxPrsExpr::V2 { prs_expr } => {}
+            // prs_expr -> prs_expr "?"
+            CtxPrsExpr::V3 { prs_expr } => {}
+            // prs_expr -> prs_expr prs_expr
+            CtxPrsExpr::V4 { prs_expr } => {}
+            // prs_expr -> prs_expr "|" prs_expr
+            CtxPrsExpr::V5 { prs_expr } => {}
+            // prs_expr -> "(" prs_expr ")"
+            CtxPrsExpr::V6 { prs_expr } => {}
+            // prs_expr -> item
+            CtxPrsExpr::V7 { item } => {}
+        }
+        SynPrsExpr()
+    }
+
+    fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
+        match ctx {
+            // item -> Nonterminal
+            CtxItem::V1 { nonterminal } => {}
+            // item -> NTx
+            CtxItem::V2 { ntx } => {}
+            // item -> Terminal
+            CtxItem::V3 { terminal } => {}
+            // item -> TerminalCst
+            CtxItem::V4 { terminalcst } => {}
+            // item -> Tx
+            CtxItem::V5 { tx } => {}
+            // item -> Empty
+            CtxItem::V6 { empty } => {}
+            // item -> LTag
+            CtxItem::V7 { ltag } => {}
+            // item -> "<P>"
+            CtxItem::V8 => {}
+            // item -> "<R>"
+            CtxItem::V9 => {}
+            // item -> "<G>"
+            CtxItem::V10 => {}
+        }
+        SynItem()
+    }
+}
+
+// --------------------------------------------------------------------------------

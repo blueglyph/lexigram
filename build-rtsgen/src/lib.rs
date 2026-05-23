@@ -12,6 +12,7 @@ use lexigram_lib::parsergen::NTValue;
 static LEXICON_FILENAME: &str = "src/rtsgen.l";
 static GRAMMAR_FILENAME: &str = "src/rtsgen.g";
 static SOURCE_FILENAME: &str = "../src/rtsgen/mod.rs";
+static LISTENER_TPL_FILENAME: &str = "../src/rtsgen/rtsgen_template.txt";
 static LEXER_TAG: &str = "rtsgen_lexer";
 static PARSER_TAG: &str = "rtsgen_parser";
 const LEXER_INDENT: usize = 4;
@@ -28,6 +29,7 @@ fn gen_source_rtsgen(action: Action) {
         .libs(["super::listener_types::*"])
         .use_full_lib(true)
         .set_nt_value(NTValue::Parents)
+        .listener_code(gencode!(filename: LISTENER_TPL_FILENAME))
         .build()
         .expect("should have no error");
     match try_gen_parser(action, options) {
