@@ -172,7 +172,7 @@ impl TestRules {
             // note: [TOKENS0] inserts predfined tokens: token Mul = "*", Add = "+", Op = "!", Num, Id;
             600 => vec![r#"e -> e "+" e | Num;"#],
             // ----- swapping independent terms shouldn't have an impact:
-            601 => vec![r#"e -> e "*" e | e "+" e | Num | Id;"#],
+            601 => vec![r#"<resolve> e -> e "*" e | e "+" e | Num | Id;"#],
             602 => vec![r#"e -> Num | e "*" e | Id | e "+" e;"#],
             // ----- prefix op:
             603 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e |   "!" e | Num;"#],

@@ -27,7 +27,7 @@ rule:
 ;
 
 rule_nt:
-    Nonterminal
+    ResolveTag? Nonterminal
 ;
 
 rts_expr:

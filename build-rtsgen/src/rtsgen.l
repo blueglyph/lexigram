@@ -36,6 +36,7 @@ LTag                    : '<L' ('=' NonterminalId)? '>';
 PTag                    : '<P>';
 RTag                    : '<R>';
 GTag                    : '<G>';
+ResolveTag              : '<resolve>';
 
 Token                   : 'token';
 

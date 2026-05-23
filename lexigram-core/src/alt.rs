@@ -53,6 +53,8 @@ pub mod ruleflag {
     pub const PREC_EQ: u32 = 16384;
     /// List of token-separated items: α (β α)*, where β only contains fixed terminals and α contains at least one value
     pub const SEP_LIST: u32 = 32768;
+    /// Mark the nonterminal's productions as source of conflict that should be solved when creating the LR parsing table.
+    pub const RESOLVE_CONFLICT: u32 = 65536;
 
     pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACT;

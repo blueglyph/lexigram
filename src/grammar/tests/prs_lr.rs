@@ -123,10 +123,7 @@ fn prs_calc_lr_table() {
             let result_lines = parsing_table.to_str(lr.get_symbol_table());
             if VERBOSE || SHOW_ANSWER_ONLY {
                 if !SHOW_ANSWER_ONLY {
-                    println!(
-                        "table has {} conflict(s){}",
-                        result_conflict.len(),
-                        result_conflict.iter().map(|s| format!("\n- {s}")).join(""));
+                    println!("table has {} conflict(s)", result_conflict.len());
                 }
                 println!("        ({test_id}, {start}, {result_warnings}, &[");
                 if VERBOSE || SHOW_RULES {

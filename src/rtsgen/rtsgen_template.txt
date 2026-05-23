@@ -66,8 +66,12 @@ impl RtsGenListener for Listener {
     }
 
     fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt {
-        // rule_nt -> Nonterminal
-        let CtxRuleNt::V1 { nonterminal } = ctx;
+        match ctx {
+            // rule_nt -> "<resolve>" Nonterminal
+            CtxRuleNt::V1 { nonterminal } => {}
+            // rule_nt -> Nonterminal
+            CtxRuleNt::V2 { nonterminal } => {}
+        }
         SynRuleNt()
     }
 

@@ -414,6 +414,8 @@ impl ProdRuleSet<LR> {
         for (s, item_id) in reductions {
             let item = &states[s as usize][item_id as usize];
             let alt_id = item.alt_idx;
+            let nt = self.alts[alt_id as usize].0;
+            let solve_conflict = self.flags[nt as usize] & ruleflag::RESOLVE_CONFLICT != 0;
             for &t in item.prefix.as_ref().unwrap() {
                 let act = if alt_id == alt_id_accept {
                     LRAction::Accept
@@ -427,10 +429,10 @@ impl ProdRuleSet<LR> {
                 // pub const PREC_EQ: u32 = 16384;
                 match (*action_cell, act) {
                     (LRAction::Error, _) => *action_cell = act,
-                    (LRAction::Shift(shift), LRAction::Reduce(_)) => {
+                    (LRAction::Shift(shift), LRAction::Reduce(_)) if solve_conflict => {
                         let mut left_alt_id = alt_id as usize;
                         let mut right_alt_id = states[shift as usize][0].alt_idx as usize;
-                        let nt_shift = self.alts[alt_id as usize].0;
+                        let nt_shift = nt;
                         let nt_red = self.alts[right_alt_id].0;
                         if nt_shift != nt_red {
                             self.log.add_warning(format!(

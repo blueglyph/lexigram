@@ -609,6 +609,19 @@ impl RuleTreeSet<General> {
         }
     }
 
+    pub fn get_flags(&self, var: VarId) -> u32 {
+        if (var as usize) < self.flags.len() {
+            self.flags[var as usize]
+        } else {
+            0
+        }
+    }
+
+    pub fn set_flags(&mut self, var: VarId, flags: u32) {
+        self.flags.resize(self.trees.len(), 0);
+        self.flags[var as usize] = flags;
+    }
+
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
         self.log.add_note("original rules:");

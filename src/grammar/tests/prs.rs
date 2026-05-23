@@ -241,7 +241,7 @@ fn prs_remove_recursion() {
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
             r#"e_4 -> Num | Id"#,                               //
-        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        ], vec![67072, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
         (602, vec![
             // e -> Num | e "*" e | Id | e "+" e
             r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
@@ -544,7 +544,7 @@ fn prs_ll1_from() {
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
             r#"e_4 -> Num | Id"#,                               //
-        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        ], vec![67072, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
         (650, vec![
             // a -> a A a a | B
             r#"a -> a_2 a_1"#,                                  // parent_left_rec | parent_amb
