@@ -137,7 +137,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
-    let prules = rules.prules.as_mut().unwrap();
+    let prules = &mut rules.prules;
     let start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)

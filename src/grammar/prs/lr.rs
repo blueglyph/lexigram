@@ -44,7 +44,7 @@ impl LRItem {
 impl<T> ProdRuleSet<T> {
     /// Removes lone ε symbols in productions
     fn remove_empty_symbols(&mut self) {
-        for alt in self.prules.as_mut().unwrap().iter_mut().flat_map(|r| r.iter_mut().map(|p| &mut p.v)) {
+        for alt in self.prules.iter_mut().flat_map(|r| r.iter_mut().map(|p| &mut p.v)) {
             if alt.len() == 1 && alt[0].is_empty() {
                 alt.pop();
             }
@@ -77,7 +77,7 @@ impl ProdRuleSet<LR> {
         if !self.has_extra_goal() {
             let orig_start = self.start.unwrap();
             let goal_prod = prule!(nt orig_start);
-            self.prules.as_mut().unwrap().push(goal_prod);
+            self.prules.push(goal_prod);
             self.start = Some(self.num_nt as VarId);
             self.num_nt += 1;
             self.parent.push(None);
@@ -93,7 +93,7 @@ impl ProdRuleSet<LR> {
     #[cfg(any())]
     /// Removes extended nonterminal and production
     fn remove_lr_goal_nt(&mut self, orig_start: VarId) {
-        self.prules.as_mut().unwrap().pop().unwrap();
+        self.prules.pop().unwrap();
         self.start = Some(orig_start);
         self.num_nt -= 1;
         self.parent.pop();
@@ -332,7 +332,7 @@ impl ProdRuleSet<LR> {
             symtab_p.dump("");
         }
         let mut g_p = ProdRuleSet::<General> {
-            prules: Some(prules),
+            prules: prules,
             origin: Default::default(),
             num_nt: num_nt_p,
             num_t: ts_p.len(),

@@ -42,7 +42,7 @@ impl ProdRuleSet<LL1> {
             print_first_or_follow("first:", self.get_symbol_table(), &self.first);
             print_first_or_follow("follow:", self.get_symbol_table(), &self.follow);
         }
-        let mut alts = self.prules.as_ref().unwrap().iter().index()
+        let mut alts = self.prules.iter().index()
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
             .to_vec();
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
@@ -186,7 +186,7 @@ impl ProdRuleSet<LL1> {
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
         source.push(format!("    {:?},", self.name));
         source.push("    vec![".to_string());
-        source.extend(self.prules.as_ref().unwrap().iter().map(|prule| format!("        {},", grammar::prule_to_macro(prule))));
+        source.extend(self.prules.iter().map(|prule| format!("        {},", grammar::prule_to_macro(prule))));
         source.push("    ],".to_string());
         source.push("    origin,".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
@@ -207,7 +207,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
         symbol_table.extend_terminals(source.t);
         symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
-            prules: Some(source.prules),
+            prules: source.prules,
             origin: source.origin,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),

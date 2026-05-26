@@ -19,7 +19,7 @@ impl<T> ProdRuleSet<T> {
 impl<T> ProdRuleSet<T> {
     pub fn new() -> Self {
         Self {
-            prules: Some(Vec::new()),
+            prules: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,

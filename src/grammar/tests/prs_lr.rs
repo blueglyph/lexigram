@@ -111,7 +111,7 @@ fn prs_calc_lr_table() {
     ];
     static INDENT0: &str = "        ";
     static INDENT1: &str = "            ";
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = true;
