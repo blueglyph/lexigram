@@ -66,7 +66,6 @@ pub fn calc_alt_first(alt: &Alternative, first: &Vec<HashSet<Symbol>>) -> HashSe
     new
 }
 
-
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum AltType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
 
@@ -121,7 +120,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) log: BufLog,
     pub(crate) options: ProdRuleSetOptions,
     pub(crate) alts: Vec<(VarId, Alternative)>,
-    pub(crate) nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
+    pub(crate) nt_alts: Vec<(AltId, AltId)>,   // (first, last+1) in alts for each NT
     pub(crate) first: Vec<HashSet<Symbol>>,
     pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
@@ -433,19 +432,33 @@ impl<T> ProdRuleSet<T> {
         if VERBOSE { println!("-> nt_conversion: {:?}", self.nt_conversion); }
     }
 
-    pub fn calc_alts(&mut self) {
+    pub fn make_alts(&self) -> (Vec<(VarId, Alternative)>, Vec<(AltId, AltId)>) { // OLDPRULES
         let mut nt_idx: VarId = 0;
-        self.nt_alts = self.prules.iter()
-            .map(|p| {
-                let len: VarId = p.len().try_into().expect("too many productions");
-                let value = (nt_idx, nt_idx.checked_add(len).expect("too many productions"));
-                nt_idx = value.1;
-                value
-            })
-            .to_vec();
-        self.alts = self.prules.iter().index()
-            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
-            .to_vec();
+        (
+            // alts:
+            self.prules.iter().index()
+                .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
+                .to_vec(),
+
+            // nt_alts:
+            self.prules.iter()
+                .map(|p| {
+                    let value = (nt_idx, VarId::try_from(nt_idx as usize + p.len()).expect("too many productions"));
+                    nt_idx = value.1;
+                    value
+                })
+                .to_vec()
+        )
+    }
+
+    pub fn calc_alts(&mut self) { // OLDPRULES
+        (self.alts, self.nt_alts) = self.make_alts();
+    }
+
+    pub fn check_alts(&self) {  // OLDPRULES
+        let (alts, nt_alts) = self.make_alts();
+        assert_eq!(self.alts, alts);
+        assert_eq!(self.nt_alts, nt_alts);
     }
 
     pub fn calc_first(&mut self) {
@@ -580,6 +593,8 @@ impl<T> ProdRuleSet<T> {
         const DONT_DISTRIB_IN_AMBIG: bool = true;   // E -> E * E | E + E | F  will keep F in an independent NT
 
         const VERBOSE: bool = false;
+
+        self.check_alts(); // OLDPRULES
 
         self.log.add_note("removing left / binary recursion in grammar...");
         self.check_num_nt_coherency();
@@ -1102,7 +1117,7 @@ impl ProdRuleSet<General> {
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             options: ProdRuleSetOptions::default(),
-            alts: Vec::new(),
+            alts: Vec::with_capacity(capacity),     // underestimated
             nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
@@ -1210,8 +1225,10 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             return prules;
         }
         prules.origin = Origin::<VarId, FromPRS>::from_trees_mut(&mut rules.origin.trees);
+        let mut alt_id: AltId = 0;
         for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
+                let first_alt_id = alt_id;
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
                 let mut prule = match root_sym {
@@ -1267,11 +1284,17 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         prules.origin.add(var, (v, index));
                     }
                 }
-                prules.prules.push(prule);
+                assert_eq!(var as usize, prules.prules.len());
+                alt_id += prule.len() as AltId;
+                prules.nt_alts.push((first_alt_id, alt_id));
+                prules.prules.push(prule.clone()); // OLDPRULES
+                prules.alts.extend(prule.into_iter().map(|a| (var, a)));
             } else {
-                prules.prules.push(ProdRule::new()); // empty
+                prules.log.add_error(format!("tree for {} is empty", Symbol::NT(var).to_str(prules.get_symbol_table())));
+                // prules.prules.push(ProdRule::new()); // empty // OLDPRULES
             }
         }
+        prules.check_alts(); // OLDPRULES
         prules.calc_num_symbols();
         prules
     }

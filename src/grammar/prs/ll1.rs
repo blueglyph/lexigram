@@ -159,7 +159,7 @@ impl ProdRuleSet<LL1> {
     }
 
     pub fn gen_tables_source_code(&self, indent: usize) -> String {
-        assert!(self.alts.is_empty(), "alts & nt_alts fields aren't empty");
+        // assert!(self.alts.is_empty(), "alts & nt_alts fields aren't empty"); // OLDPRULES
         assert!(self.first.is_empty(), "first & follow fields aren't empty");
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();

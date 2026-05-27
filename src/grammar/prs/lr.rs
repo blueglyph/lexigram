@@ -252,6 +252,9 @@ impl ProdRuleSet<LR> {
     /// doi:10.1016/0020-0190(89)90079-3
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
         const VERBOSE: bool = false;
+
+        self.check_alts();  // OLDPRULES
+
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
         self.remove_empty_symbols();
