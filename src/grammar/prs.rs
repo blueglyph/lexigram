@@ -451,6 +451,14 @@ impl<T> ProdRuleSet<T> {
         )
     }
 
+    /// self.alts, self.nt_alts -> self.prules
+    fn calc_prules(&mut self) { // OLDPRULES
+        self.prules = self.nt_alts.iter().map(|&(start, next)|
+            self.alts[start as usize..next as usize].iter().map(|(_, a)| a.clone()).to_vec()
+        ).to_vec();
+    }
+
+    /// self.prules -> self.alts, self.nt_alts
     pub fn calc_alts(&mut self) { // OLDPRULES
         (self.alts, self.nt_alts) = self.make_alts();
     }
@@ -594,20 +602,23 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
-        self.check_alts(); // OLDPRULES
-
         self.log.add_note("removing left / binary recursion in grammar...");
+        self.check_alts(); // OLDPRULES
         self.check_num_nt_coherency();
         if VERBOSE {
             println!("ORIGINAL:");
             self.print_rules(false, false);
         }
-        let next_avail_var = self.get_next_available_var() as usize;
-        let mut var_new = next_avail_var;
+        let mut var_new = self.get_next_available_var() as usize;
         let mut ambig_alt_id = 0;
-        for var in 0..next_avail_var {
-            let mut prule = self.prules[var].clone();
+        let old_nt_alts = take(&mut self.nt_alts);
+        let mut old_alts_iter = take(&mut self.alts).into_iter().map(|(_, a)| a);
+        let mut extra_alts = vec![];    // OLDPRULES
+        let mut extra_lengths = vec![]; // OLDPRULES
+        for (var, (first_alt_id, next_alt_id)) in old_nt_alts.into_iter().enumerate() {
+            let mut prule = (first_alt_id..next_alt_id).map(|_| old_alts_iter.next().unwrap()).to_vec();
             let var = var as VarId;
+            let var_new_0 = var_new as VarId;
             let symbol = Symbol::NT(var);
             let var_name = symbol.to_str(self.get_symbol_table());
             let mut extra_prods = Vec::<ProdRule>::new();
@@ -847,7 +858,13 @@ impl<T> ProdRuleSet<T> {
             } else if prule.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) && self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
                 self.set_flags(var, ruleflag::R_RECURSION);
             }
-            self.prules.extend(extra_prods);
+            // self.prules.extend(extra_prods); // OLDPRULES
+            extra_alts.extend(
+                extra_prods.into_iter().index_start(var_new_0)
+                    .flat_map(|(nt, p)| {
+                        extra_lengths.push(p.len() as AltId); // temporary increment, since we don't know the final size of self.alts yet
+                        p.into_iter().map(move |a| (nt, a))
+                    }));  // OLDPRULES
             let incompatibility_flags = ruleflag::R_RECURSION | ruleflag::L_FORM | ruleflag::PARENT_L_RECURSION;
             let incompatibility_str = "<L> right recursivity + left recursivity";
             let flags = self.get_flags(var);
@@ -857,15 +874,30 @@ impl<T> ProdRuleSet<T> {
                     "`{var_name} -> {}` has incompatible rule alternatives: {incompatibility_str}",
                     grtree_to_str(tree, None, None, None, self.get_symbol_table(), false)));
             }
-            self.prules[var as usize] = prule;
+            self.nt_alts.push((self.alts.len() as AltId, (self.alts.len() + prule.len()) as AltId));
+            self.alts.extend(prule.into_iter().map(|a| (var, a)));  // OLDPRULES
+            // self.prules[var as usize] = prule; // OLDPRULES
         }
+
+        // OLDPRULES:
+        let mut new_alt_id = self.alts.len() as AltId;
+        self.alts.extend(extra_alts);
+        self.nt_alts.extend(extra_lengths.into_iter().map(|len| {
+            let first = new_alt_id;
+            new_alt_id += len;
+            (first, new_alt_id)
+        }));
+        // self.num_nt = self.prules.len();
+        self.num_nt = self.nt_alts.len();
+
+        self.calc_prules(); // OLDPRULES: rebuild self.prules for now
+
         if VERBOSE {
-            println!("#prules: {}, #flags: {}, #parents:{}", self.prules.len(), self.flags.len(), self.parent.len());
+            println!("#prules: {}, #flags: {}, #parents:{}", self.num_nt, self.flags.len(), self.parent.len());
             if let Some(ref mut table) = self.symbol_table {
                 println!("table: {} ({})", table.get_nonterminals().join(", "), table.get_num_nt());
             }
         }
-        self.num_nt = self.prules.len();
         if VERBOSE {
             println!("FINAL:");
             self.print_rules(false, false);
