@@ -2085,13 +2085,13 @@ mod wrapper_source {
 
             // --------------------------------------------------------------------------- left_fact
             // a -> A | A B | A B C | A B D | E
-            // NT flags:
-            //  - a: parent_left_fact (32)
-            //  - a_1: parent_left_fact | child_left_fact (96)
-            //  - a_2: child_left_fact (64)
-            // parents:
-            //  - a_1 -> a
-            //  - a_2 -> a_1
+            //
+            //   NT    name     val   flags
+            // +--------------------------------------------------------+
+            // |   0 | a       | y  | parent_left_fact                  |
+            // |   1 | . a_1   |    | parent_left_fact, child_left_fact |
+            // |   2 | .   a_2 |    | child_left_fact                   |
+            // +--------------------------------------------------------+
             (705, true, false, 0, btreemap![
                 0 => "SynA".to_string(),
             ], btreemap![
@@ -2103,6 +2103,47 @@ mod wrapper_source {
                 5 => (3, symbols![t 0, t 1, t 3]),      //  5: a_2 -> D     | ◄5 D!   | 3 | A B D
                 6 => (2, symbols![t 0, t 1]),           //  6: a_2 -> ε     | ◄6      | 2 | A B
             ], NTValue::Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
+
+            // a -> A | A B | A C D | b
+            // b -> E
+            //
+            //   NT    name   val   flags
+            // +-------------------------------------+
+            // |   0 | a     | y  | parent_left_fact |
+            // |   2 | . a_1 |    | child_left_fact  |
+            // |   1 | b     | y  |                  |
+            // +-------------------------------------+
+            (706, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                   //  0: a -> A a_1 | ►a_1 A!  | 0 |
+                1 => (1, symbols![nt 1]),               //  1: a -> b     | ◄1 ►b    | 1 | b
+                2 => (1, symbols![t 4]),                //  2: b -> E     | ◄2 E!    | 1 | E
+                3 => (2, symbols![t 0, t 1]),           //  3: a_1 -> B   | ◄3 B!    | 2 | A B
+                4 => (3, symbols![t 0, t 2, t 3]),      //  4: a_1 -> C D | ◄4 D! C! | 3 | A C D
+                5 => (1, symbols![t 0]),                //  5: a_1 -> ε   | ◄5       | 1 | A
+            ], NTValue::Default, btreemap![0 => vec![1, 3, 4, 5], 1 => vec![2]]),
+
+            // a -> A | A B | A B C | A B D | b
+            // b -> E
+            //
+            //   NT    name     val   flags
+            // +--------------------------------------------------------+
+            // |   0 | a       | y  | parent_left_fact                  |
+            // |   2 | . a_1   |    | parent_left_fact, child_left_fact |
+            // |   3 | .   a_2 |    | child_left_fact                   |
+            // |   1 | b       | y  |                                   |
+            // +--------------------------------------------------------+
+            (707, false, false, 0, btreemap![
+            ], btreemap![
+                0 => (0, symbols![]),                   //  0: a -> A a_1   | ►a_1 A! | 0 |
+                1 => (1, symbols![nt 1]),               //  1: a -> b       | ◄1 ►b   | 1 | b
+                2 => (1, symbols![t 4]),                //  2: b -> E       | ◄2 E!   | 1 | E
+                3 => (0, symbols![]),                   //  3: a_1 -> B a_2 | ►a_2 B! | 0 |
+                4 => (1, symbols![t 0]),                //  4: a_1 -> ε     | ◄4      | 1 | A
+                5 => (3, symbols![t 0, t 1, t 2]),      //  5: a_2 -> C     | ◄5 C!   | 3 | A B C
+                6 => (3, symbols![t 0, t 1, t 3]),      //  6: a_2 -> D     | ◄6 D!   | 3 | A B D
+                7 => (2, symbols![t 0, t 1]),           //  7: a_2 -> ε     | ◄7      | 2 | A B
+            ], NTValue::Default, btreemap![0 => vec![1, 4, 5, 6, 7], 1 => vec![2]]),
 
             // --------------------------------------------------------------------------- combinations
 
@@ -2568,7 +2609,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            // if !matches!(tr_id, 216..=219) { continue }
+            // if !matches!(tr_id, 705| 707) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(start_nt);
             if ll1_maybe.is_none() { continue }
