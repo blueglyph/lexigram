@@ -97,14 +97,20 @@ pub mod ruleflag {
             }).collect();
         v
     }
-
-
 }
 
 // ---------------------------------------------------------------------------------------------
 
-pub fn alts_to_rule_str<T: SymInfoTable>(nt: VarId, alts: &[(VarId, Alternative)], symbol_table: Option<&T>) -> String {
-    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), alts.iter().map(|(_, a)| a.to_str(symbol_table)).join(" | "))
+pub fn alt_to_str<T: SymInfoTable>(f: &[Symbol], symbol_table: Option<&T>) -> String {
+    if f.is_empty() {
+        "<empty>".to_string()
+    } else {
+        f.iter().map(|s| s.to_str_quote(symbol_table)).join(" ")
+    }
+}
+
+pub fn alt_to_rule_str<T: SymInfoTable>(nt: VarId, f: &[Symbol], symbol_table: Option<&T>) -> String {
+    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), alt_to_str(f, symbol_table))
 }
 
 /// Stores a production alternative (or alternative body): `A a` or `B` in `A -> A a | B`.
@@ -155,21 +161,13 @@ impl Alternative {
         self.flags
     }
 
-    fn symbols_to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        if self.v.is_empty() {
-            "<empty>".to_string()
-        } else {
-            self.v.iter().map(|s| s.to_str_quote(symbol_table)).join(" ")
-        }
-    }
-
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         let mut s = if self.flags & ruleflag::ALTERNATIVE_INFO != 0 {
             format!("<{}> ", ruleflag::alt_info_to_string(self.flags).join(","))
         } else {
             String::new()
         };
-        s.push_str(&self.symbols_to_str(symbol_table));
+        s.push_str(&alt_to_str(&self.v, symbol_table));
         s
     }
 
@@ -180,7 +178,7 @@ impl Alternative {
         } else {
             String::new()
         };
-        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.symbols_to_str(symbol_table))
+        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), alt_to_str(&self.v, symbol_table))
     }
 
     pub fn to_macro_item(&self) -> String {

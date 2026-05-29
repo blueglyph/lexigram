@@ -137,6 +137,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
+    let prules = &mut rules.prules;
     let start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
@@ -147,7 +148,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:T, 2:F
             def_arith_symbols(&mut symbol_table, true);
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
                 prule!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
                 prule!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
@@ -161,7 +162,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
             symbol_table.extend_nonterminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
                 prule!(t 0, nt 1; e),         // A1 -> - A1 | ε
                 prule!(t 1, nt 2; e),         // A2 -> + A2 | ε
@@ -169,14 +170,14 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         8 => {
             // ambiguous
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
             ]);
         }
         16 => {
             // A -> B A | b
             // B -> a
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 1, nt 0; t 1),
                 prule!(t 0)
             ]);
@@ -190,7 +191,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("(".to_string(), Some("(".to_string())),
                 (")".to_string(), Some(")".to_string())),
             ]);
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 1; t 0),
                 prule!(nt 2, t 2),
                 prule!(t 1, nt 0),
@@ -198,13 +199,13 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         18 => {
             // A -> a
-            rules.import_prules([
+            prules.extend([
                 prule!(t 0),
             ]);
         }
         19 => {
             // A -> a | ε
-            rules.import_prules([
+            prules.extend([
                 prule!(t 0; e),
             ]);
         }
@@ -223,14 +224,14 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
-            rules.import_prules([
+            prules.extend([
                 prule!(t 0, t 5, t 1, nt 1),
                 prule!(t 5, t 3, t 5, t 4, nt 1; t 2),
             ]);
         }
         33 => {
             // A -> A a | b c | b d
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 0, t 0; t 1, t 2; t 1, t 3),
             ]);
         }
@@ -255,7 +256,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 "EXPR".to_string(),                         // 2
                 "FACTOR".to_string(),                       // 3
             ]);
-            rules.import_prules([
+            prules.extend([
                 prule!(#L, nt 1, t 7, nt 0; e),
                 prule!(t 0, nt 2, t 1; t 2, nt 2, t 3),
                 prule!(nt 3, t 4, nt 3),
@@ -280,7 +281,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             symbol_table.extend_nonterminals(["E".to_string()]);   // 0
             symbol_table.extend_nonterminals(["F".to_string()]);   // 1
-            rules.import_prules([
+            prules.extend([
                 prule!(t 0, nt 0;
                     nt 0, t 2, nt 0;
                     nt 0, t 9;
@@ -303,7 +304,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 0, t 0; t 1, nt 0; t 2; t 3)
             ])
         }
@@ -322,13 +323,13 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 // "E5".to_string(),       // 2
                 // "E6".to_string(),       // 3
             ]);
-            rules.import_prules([
+            prules.extend([
                 prule!(#R, nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; t 4),
             ]);
         }
         100 => {
             // A -> A a A b | c (amb removed)
-            rules.import_prules([
+            prules.extend([
                 prule!(nt 0, t 0, nt 0, t 1; t 2),
             ]);
         }
@@ -347,11 +348,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     if let Some(start) = start {
         rules.set_start(start);
     }
-
-    // OLDPRULES:
-    //rules.check_alts();
-    //rules.calc_alts();
-
+    rules.calc_alts();  // OLDPRULES
     rules
 }
 

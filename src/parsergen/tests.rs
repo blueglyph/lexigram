@@ -489,6 +489,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
+    use lexigram_core::alt::alt_to_rule_str;
     use crate::grammar::tests::TestRules;
     use crate::parser::Symbol;
     use crate::{btreemap, columns_to_str, indent_source, symbols, AltId, VarId};
@@ -3024,7 +3025,7 @@ mod wrapper_source {
                         vec![
                             "".to_string(),
                             format!("{s_full},"),
-                            format!("// {i}: {}", prod.to_rule_str(*v, symtable, 0)),
+                            format!("// {i}: {}", alt_to_rule_str(*v, prod, symtable)),
                         ]
                     })
                     .to_vec();
