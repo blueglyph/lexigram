@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use lexigram_core::alt::Alternative;
+use lexigram_core::alt::{alts_to_rule_str, Alternative};
 use crate::build::BuildFrom;
 use crate::grammar::prs::ll1::LL1ParsingTable;
 use super::*;
@@ -11,8 +11,8 @@ use super::*;
 // ProdRuleSet
 
 impl<T> ProdRuleSet<T> {
-    pub fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
-        self.get_prules_iter().filter(|(_, rule)| **rule != prule!(e))
+    pub fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &[(VarId, Alternative)])> {
+        self.get_prules_iter().filter(|(_, alts)| alts.len() > 1 || alts.get(0).map(|(_, a)| !a.is_sym_empty()).unwrap_or(true))
     }
 }
 
@@ -57,20 +57,19 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub(crate) fn print_prs_summary(&self) {
-        let alts = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
-        print_alts(&alts, self.get_symbol_table());
+        print_alts(&self.alts, self.get_symbol_table());
         self.print_flags();
     }
 }
 
-impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
-    fn from(rules: &ProdRuleSet<T>) -> Self {
-        rules.get_prules_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
+// impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
+//     fn from(rules: &ProdRuleSet<T>) -> Self {
+//         rules.get_prules_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
+//
+//     }
+// }
 
-    }
-}
-
-pub fn print_alts<T: SymInfoTable>(alts: &Vec<(VarId, Alternative)>, symbol_table: Option<&T>) {
+pub fn print_alts<T: SymInfoTable>(alts: &[(VarId, Alternative)], symbol_table: Option<&T>) {
     println!("{}",
              alts.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
@@ -117,7 +116,7 @@ where
         assert!(prs.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", prs.log.get_messages_str());
         let prs = f(prs);
         let symtab = prs.get_symbol_table();
-        let result = prs.get_prules_iter().map(|(id, p)| prule_to_rule_str(id, &p, symtab)).to_vec();
+        let result = prs.get_prules_iter().map(|(id, alts)| alts_to_rule_str(id, alts, symtab)).to_vec();
         let num_vars = result.len();
         if verbose || show_answer_only {
             let flags = (0..num_vars).into_iter().map(|nt| prs.flags[nt]).join(", ");
@@ -207,7 +206,7 @@ fn rts_prodrule_from() {
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(
@@ -1581,5 +1580,40 @@ pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize
     if symbol_table.get_num_nt() == 0 {
         assert!(num_nt <= 26);
         symbol_table.extend_nonterminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    }
+}
+
+#[test]
+fn calc_nt_alts() {
+    let a0 = (0 as VarId, Alternative::new(vec![]));
+    let a1 = (1 as VarId, Alternative::new(vec![]));
+    let a2 = (2 as VarId, Alternative::new(vec![]));
+    let tests = vec![
+        (
+            vec![],
+            vec![],
+        ),
+        (
+            vec![a0.clone()],
+            vec![(0, 1)],
+        ),
+        (
+            vec![a0.clone(), a1.clone()],
+            vec![(0, 1), (1, 2)],
+        ),
+        (
+            vec![a0.clone(), a0.clone(), a1.clone()],
+            vec![(0, 2), (2, 3)],
+        ),
+        (
+            vec![a0.clone(), a0.clone(), a1.clone(), a1.clone(), a1.clone(), a2.clone(), a2.clone()],
+            vec![(0, 2), (2, 5), (5, 7)],
+        ),
+    ];
+    for (i, (alts, expected)) in tests.into_iter().enumerate() {
+        let mut prs = ProdRuleSet::<General>::new();
+        prs.alts = alts;
+        prs.calc_nt_alts();
+        assert_eq!(prs.nt_alts, expected, "test {i} failed");
     }
 }

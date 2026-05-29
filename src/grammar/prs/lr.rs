@@ -44,9 +44,9 @@ impl LRItem {
 impl<T> ProdRuleSet<T> {
     /// Removes lone ε symbols in productions
     fn remove_empty_symbols(&mut self) {
-        for alt in self.prules.iter_mut().flat_map(|r| r.iter_mut().map(|p| &mut p.v)) {
-            if alt.len() == 1 && alt[0].is_empty() {
-                alt.pop();
+        for (_, alt) in &mut self.alts {
+            if alt.is_sym_empty() {
+                alt.v.pop();
             }
         }
     }
@@ -77,11 +77,8 @@ impl ProdRuleSet<LR> {
         if !self.has_extra_goal() {
             let orig_start = self.start.unwrap();
             let goal_prod = prule!(nt orig_start);
-            self.prules.push(goal_prod);
-            self.start = Some(self.num_nt as VarId);
-            self.num_nt += 1;
-            self.parent.push(None);
-            self.flags.push(0);
+            self.import_prules([goal_prod]);
+            self.start = Some(self.num_nt as VarId - 1);
             self.symbol_table.as_mut().map(|s| {
                 let v = s.add_nonterminal("<goal>");
                 assert_eq!(v, self.num_nt as VarId - 1);
@@ -253,11 +250,10 @@ impl ProdRuleSet<LR> {
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
         const VERBOSE: bool = false;
 
-        self.check_alts();  // OLDPRULES
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
         self.remove_empty_symbols();
-        self.calc_alts();
+        // self.calc_alts();
         let (mut states, gotos, reductions) = self.calc_states_lr0();
         #[cfg(any())]
         let rev_gotos = Self::calc_reverse_gotos(&gotos);

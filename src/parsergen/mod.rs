@@ -288,7 +288,7 @@ impl ParserGen {
     {
         rules.log.add_note("building parser gen from rules...");
         let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
-        assert_eq!(ll1_rules.get_log().num_errors(), 0);
+        assert_eq!(ll1_rules.get_log().num_errors(), 0, "log:{}", ll1_rules.log);
         let parsing_table = ll1_rules.make_parsing_table(true);
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();

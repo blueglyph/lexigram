@@ -3,10 +3,11 @@
 pub mod ll1;
 pub mod lr;
 
+use std::borrow::Borrow;
 use std::collections::VecDeque;
 use super::*;
 use crate::{columns_to_str, AltId, SymbolTable, VarId};
-use lexigram_core::alt::{alt_to_rule_str, Alternative};
+use lexigram_core::alt::{alts_to_rule_str, Alternative};
 use lexigram_core::{CharLen, CollectJoin};
 
 /// Stores a normalized production rule, where each alternative (e.g. `B C`) is stored in
@@ -22,18 +23,28 @@ use lexigram_core::{CharLen, CollectJoin};
 /// (where the representation of vectors & type names has been simplified to square brackets).
 pub type ProdRule = Vec<Alternative>;
 
-pub fn prule_to_str(prule: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | ")
+pub fn prule_to_str<T: IntoIterator<Item=U>, U: Borrow<Alternative>>(prule: T, symbol_table: Option<&SymbolTable>) -> String {
+    prule.into_iter().map(|alt| alt.borrow().to_str(symbol_table)).join(" | ")
 }
 
-pub fn prule_to_rule_str(nt: VarId, prule: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | "))
-
-}
+// pub fn prule_to_rule_str(nt: VarId, prule: &[&Alternative], symbol_table: Option<&SymbolTable>) -> String {
+//     format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | "))
+//
+// }
 
 pub fn prule_to_macro(prule: &ProdRule) -> String {
     format!("prule!({})", prule.iter().map(|alt| alt.to_macro_item()).join("; "))
 }
+
+// pub fn prules_to_alts_start<T: IntoIterator<Item=ProdRule>>(prules: T, start: VarId) -> Vec<(VarId, Alternative)> {
+//     prules.into_iter().index_start(start)
+//         .flat_map(|(v, p)| p.into_iter().map(move |a| (v, a)))
+//         .collect()
+// }
+//
+// pub fn prules_to_alts<T: IntoIterator<Item=ProdRule>>(prules: T) -> Vec<(VarId, Alternative)> {
+//     prules_to_alts_start(prules, 0)
+// }
 
 pub fn calc_alt_first(alt: &Alternative, first: &Vec<HashSet<Symbol>>) -> HashSet<Symbol> {
     let mut new = HashSet::<Symbol>::new();
@@ -162,18 +173,15 @@ impl<T> ProdRuleSet<T> {
         self.nt_alts.len() as VarId   // we don't use self.num_nt for safety reason
     }
 
-    /// Returns all the non-empty prules
-    pub fn get_prules_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
-        self.prules.iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
+    /// Returns all the rules
+    pub fn get_prules_iter(&self) -> impl Iterator<Item=(VarId, &[(VarId, Alternative)])> {
+        self.nt_alts.iter().index().map(|(v, &(start, next))|
+            (v, &self.alts[start as usize..next as usize])
+        )
     }
 
-    // pub fn get_prules_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
-    //     self.prules.as_mut().unwrap().iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-    // }
-
-    pub fn get_alts(&self) -> impl Iterator<Item=(VarId, &Alternative)> {
-        self.prules.iter().enumerate()
-            .flat_map(|(v, p)| p.iter().map(move |alt| (v as VarId, alt)))
+    pub fn get_alts(&self) -> impl Iterator<Item=&(VarId, Alternative)> {
+        self.alts.iter()
     }
 
     pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
@@ -249,6 +257,66 @@ impl<T> ProdRuleSet<T> {
         var
     }
 
+    pub fn import_prules<P: IntoIterator<Item=ProdRule>>(&mut self, prules: P) {
+        let mut nt_alts = vec![];
+        let first_v = self.nt_alts.len() as VarId;
+        let mut first_a = self.alts.len() as AltId;
+        self.alts.extend(
+            prules.into_iter().index_start(first_v)
+                .flat_map(|(v, p)| {
+                    let first_a_prev = first_a;
+                    first_a += p.len() as AltId;
+                    nt_alts.push((first_a_prev, first_a));
+                    p.into_iter().map(move |a| (v, a))
+                })
+        );
+        self.nt_alts.extend(nt_alts);
+        self.calc_num_symbols();
+    }
+
+    // OLDPRULES:
+    // pub fn make_alts(&self) -> (Vec<(VarId, Alternative)>, Vec<(AltId, AltId)>) { // OLDPRULES
+    //     let mut nt_idx: VarId = 0;
+    //     (
+    //         // alts:
+    //         self.prules.iter().index()
+    //             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
+    //             .to_vec(),
+    //
+    //         // nt_alts:
+    //         self.prules.iter()
+    //             .map(|p| {
+    //                 let value = (nt_idx, VarId::try_from(nt_idx as usize + p.len()).expect("too many productions"));
+    //                 nt_idx = value.1;
+    //                 value
+    //             })
+    //             .to_vec()
+    //     )
+    // }
+
+    /// self.alts, self.nt_alts -> self.prules
+    fn calc_prules(&mut self) { // OLDPRULES
+        self.prules = self.nt_alts.iter().map(|&(start, next)|
+            self.alts[start as usize..next as usize].iter().map(|(_, a)| a.clone()).to_vec()
+        ).to_vec();
+    }
+
+    pub(crate) fn calc_nt_alts(&mut self) {
+        self.nt_alts.clear();
+        if !self.alts.is_empty() {
+            let mut last_nt = 0;
+            let mut first = 0;
+            for (i, &(nt, _)) in self.alts.iter().index::<AltId>() {
+                if nt != last_nt {
+                    self.nt_alts.push((first, i));
+                    first = i;
+                    last_nt = nt;
+                }
+            }
+            self.nt_alts.push((first, self.alts.len() as AltId));
+        }
+    }
+
     /// Calculates `num_t` and `num_nt` (done right after importing rules).
     /// - `num_t` is calculated on the basis of the higher symbol found in the production rules,
     ///   so we can drop any unused symbol that is higher and keep the table width down. We can't
@@ -256,12 +324,10 @@ impl<T> ProdRuleSet<T> {
     ///   the lexer.
     /// - `num_nt` is simply the number of production rules.
     pub(super) fn calc_num_symbols(&mut self) {
-        self.num_nt = self.prules.len();
-        self.num_t = self.prules.iter().map(|p|
-            p.iter().map(|f|
-                f.iter().filter_map(|s|
-                    if let Symbol::T(v) = s { Some(*v + 1) } else { None }
-                ).max().unwrap_or(0)
+        self.num_nt = self.nt_alts.len();
+        self.num_t = self.alts.iter().map(|(_, a)|
+            a.iter().filter_map(|s|
+                if let Symbol::T(v) = s { Some(*v + 1) } else { None }
             ).max().unwrap_or(0)
         ).max().unwrap_or(0) as usize;
         if let Some(st) = self.symbol_table.as_mut() {
@@ -271,38 +337,32 @@ impl<T> ProdRuleSet<T> {
         self.parent.resize(self.num_nt, None);
     }
 
-    /// Simplifies the productions by removing unnecessary empty symbols.
+    /// Simplifies the productions by removing redundant empty symbols.
     pub(super) fn simplify(&mut self) {
-        for p in &mut self.prules {
-            let mut has_empty = false;
-            let mut i = 0;
-            while i < p.len() {
-                let alt = p.get_mut(i).unwrap();
-                let mut j = 0;
-                while j < alt.len() {
-                    if alt[j].is_empty() && (j > 0 || j + 1 < alt.len()) {
-                        alt.v.remove(j);
-                    } else {
-                        j += 1;
-                    }
+        let mut last_empty_nt = None;
+        for (nt, alt) in &mut self.alts {
+            let has_last = last_empty_nt == Some(*nt);
+            let len = alt.len();
+            if len > 1 {
+                alt.retain(|s| !s.is_empty());
+                if !has_last && alt.len() == 0 {
+                    alt.push(Symbol::Empty);
+                    last_empty_nt = Some(*nt);
                 }
-                if alt.len() == 1 && alt[0].is_empty() {
-                    if has_empty {
-                        p.remove(i);
-                    } else {
-                        has_empty = true;
-                        i += 1;
-                    }
-                } else {
-                    i += 1;
+            } else if alt.is_sym_empty() {
+                if has_last {
+                    alt.clear();
                 }
+                last_empty_nt = Some(*nt);
             }
         }
+        self.alts.retain(|(_, a)| !a.is_empty());
+        self.calc_nt_alts();
     }
 
     fn check_num_nt_coherency(&mut self) {
         if let Some(n) = self.symbol_table.as_ref().map(|table| table.get_num_nt()) {
-            let num_nt = self.prules.len();
+            let num_nt = self.nt_alts.len();
             if n != num_nt {
                 self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} nonterminal symbols: dropping the table"));
                 self.symbol_table = None;
@@ -431,43 +491,6 @@ impl<T> ProdRuleSet<T> {
             }
         };
         if VERBOSE { println!("-> nt_conversion: {:?}", self.nt_conversion); }
-    }
-
-    pub fn make_alts(&self) -> (Vec<(VarId, Alternative)>, Vec<(AltId, AltId)>) { // OLDPRULES
-        let mut nt_idx: VarId = 0;
-        (
-            // alts:
-            self.prules.iter().index()
-                .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
-                .to_vec(),
-
-            // nt_alts:
-            self.prules.iter()
-                .map(|p| {
-                    let value = (nt_idx, VarId::try_from(nt_idx as usize + p.len()).expect("too many productions"));
-                    nt_idx = value.1;
-                    value
-                })
-                .to_vec()
-        )
-    }
-
-    /// self.alts, self.nt_alts -> self.prules
-    fn calc_prules(&mut self) { // OLDPRULES
-        self.prules = self.nt_alts.iter().map(|&(start, next)|
-            self.alts[start as usize..next as usize].iter().map(|(_, a)| a.clone()).to_vec()
-        ).to_vec();
-    }
-
-    /// self.prules -> self.alts, self.nt_alts
-    pub fn calc_alts(&mut self) { // OLDPRULES
-        (self.alts, self.nt_alts) = self.make_alts();
-    }
-
-    pub fn check_alts(&self) {  // OLDPRULES
-        let (alts, nt_alts) = self.make_alts();
-        assert_eq!(self.alts, alts);
-        assert_eq!(self.nt_alts, nt_alts);
     }
 
     pub fn calc_first(&mut self) {
@@ -607,7 +630,8 @@ impl<T> ProdRuleSet<T> {
         self.check_num_nt_coherency();
 
         // OLDPRULES:
-        self.check_alts();
+        //self.check_alts();
+        //self.check_alts_exist();
         self.prules.clear();
 
         if VERBOSE {
@@ -856,7 +880,7 @@ impl<T> ProdRuleSet<T> {
                 self.parent.resize(var_new, None);
                 self.flags.resize(var_new, 0);
                 self.log.add_note(format!("  => {var_name} -> {}", prule_to_str(&prule, self.get_symbol_table())));
-                for (v, p) in extra_prods.iter().index_start(self.prules.len() as VarId) {
+                for (v, p) in extra_prods.iter().index_start(var_new_0 as VarId) {
                     self.log.add_note(
                         format!("     {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), prule_to_str(p, self.get_symbol_table())));
                 }
@@ -895,7 +919,7 @@ impl<T> ProdRuleSet<T> {
         // self.num_nt = self.prules.len();
         self.num_nt = self.nt_alts.len();
 
-        self.calc_prules(); // OLDPRULES: rebuild self.prules for now
+        // self.calc_prules(); // OLDPRULES: rebuild self.prules for now
 
         if VERBOSE {
             println!("#prules: {}, #flags: {}, #parents:{}", self.num_nt, self.flags.len(), self.parent.len());
@@ -941,7 +965,8 @@ impl<T> ProdRuleSet<T> {
         let mut var_new = self.get_next_available_var();
 
         // OLDPRULES:
-        self.check_alts();
+        // self.check_alts();
+        //self.check_alts_exist();
         self.prules.clear();
         let mut nbr_tail = take(&mut self.nt_alts).into_iter().map(|(a, b)| b - a).collect::<VecDeque<_>>(); // OLDPRULES
         let mut tail = VecDeque::from_iter(take(&mut self.alts).into_iter().map(|(_, a)| a));
@@ -1089,9 +1114,9 @@ impl<T> ProdRuleSet<T> {
         let mut cols = vec![vec!["| ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
         // adds the current alternatives
         cols.extend(self.get_prules_iter()
-            .flat_map(|(v, prule)| prule.iter()
-                .map(move |alt| vec![
-                    format!("| {}", alt_to_rule_str(v, &alt.v, self.get_symbol_table())),
+            .flat_map(|(v, alts)| alts.iter()
+                .map(|(_, alt)| vec![
+                    format!("| {}", alt.to_rule_str(v, self.get_symbol_table(), 0)),
                     "|".to_string(),
                     if let Some((vo, ido)) = alt.origin {
                         let tree = &self.origin.trees[vo as usize];
@@ -1108,7 +1133,7 @@ impl<T> ProdRuleSet<T> {
                     } else {
                         String::new()
                     }
-                ])
+                ]).collect::<Vec<_>>()
             ));
         let n1 = cols.len();
         // adds child nonterminals that represent a part of the original nonterminals
@@ -1341,17 +1366,17 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         prules.origin.add(var, (v, index));
                     }
                 }
-                assert_eq!(var as usize, prules.prules.len());
+                assert_eq!(var as usize, prules.nt_alts.len());
                 alt_id += prule.len() as AltId;
                 prules.nt_alts.push((first_alt_id, alt_id));
-                prules.prules.push(prule.clone()); // OLDPRULES
+                //prules.prules.push(prule.clone()); // OLDPRULES
                 prules.alts.extend(prule.into_iter().map(|a| (var, a)));
             } else {
                 prules.log.add_error(format!("tree for {} is empty", Symbol::NT(var).to_str(prules.get_symbol_table())));
                 // prules.prules.push(ProdRule::new()); // empty // OLDPRULES
             }
         }
-        prules.check_alts(); // OLDPRULES
+        //prules.check_alts(); // OLDPRULES
         prules.calc_num_symbols();
         prules
     }
@@ -1380,19 +1405,16 @@ impl<T> ProdRuleSet<T> {
         let prefix = if as_comment { "            // " } else { "    " };
         println!("{prefix}{}",
                  self.get_prules_iter()
-                     .filter(|(_, rule)| !filter_empty_nt || **rule != prule!(e))
-                     .map(|(var, p)|
-                         format!("({var}) {} -> {}",
-                                 Symbol::NT(var).to_str(self.get_symbol_table()),
-                                 prule_to_str(p, self.get_symbol_table())))
+                     .filter(|(_, alts)| !filter_empty_nt || alts.len() > 1 || alts.get(0).map(|(_, a)| !a.is_sym_empty()).unwrap_or(true))
+                     .map(|(var, p)| format!("({var}) {}", alts_to_rule_str(var, p, self.get_symbol_table())))
                      .join(&format!("\n{prefix}")));
     }
 
     pub fn print_alts(&self) {
         println!("Alternatives:\n{}",
-                 self.get_alts().enumerate().map(|(id, (v, a))|
+                 self.alts.iter().enumerate().map(|(id, (v, a))|
                      format!("    // - {id}: {} -> {}{}",
-                             Symbol::NT(v).to_str(self.get_symbol_table()),
+                             Symbol::NT(*v).to_str(self.get_symbol_table()),
                              a.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
                              if a.flags != 0 { format!("     {} ({})", ruleflag::to_string(a.flags).join(" | "), a.flags) } else { "".to_string() }
                      )
