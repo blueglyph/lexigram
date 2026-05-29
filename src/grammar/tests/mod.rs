@@ -211,8 +211,6 @@ impl TestRules {
             703 => vec![r#"a -> B | A B | A C;"#],
             704 => vec![r#"a -> A B C | B B C | B C | B B A;"#],
             705 => vec![r#"a -> A | A B | A B C | A B D | E;"#],
-            706 => vec![r#"a -> A | A B | A C D | b; b -> E;"#],
-            707 => vec![r#"a -> A | A B | A B C | A B D | b; b -> E;"#],
 
             // 8xx = combinations
             // -----------------------------------------------------------------------------

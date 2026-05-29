@@ -254,6 +254,7 @@ impl ProdRuleSet<LR> {
         const VERBOSE: bool = false;
 
         self.check_alts();  // OLDPRULES
+
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
         self.remove_empty_symbols();

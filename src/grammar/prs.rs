@@ -3,7 +3,6 @@
 pub mod ll1;
 pub mod lr;
 
-use std::collections::VecDeque;
 use super::*;
 use crate::{columns_to_str, AltId, SymbolTable, VarId};
 use lexigram_core::alt::{alt_to_rule_str, Alternative};
@@ -159,7 +158,7 @@ impl<T> ProdRuleSet<T> {
 
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_available_var(&self) -> VarId {
-        self.nt_alts.len() as VarId   // we don't use self.num_nt for safety reason
+        self.prules.len() as VarId   // we don't use self.num_nt for safety reason
     }
 
     /// Returns all the non-empty prules
@@ -604,12 +603,8 @@ impl<T> ProdRuleSet<T> {
         const VERBOSE: bool = false;
 
         self.log.add_note("removing left / binary recursion in grammar...");
+        self.check_alts(); // OLDPRULES
         self.check_num_nt_coherency();
-
-        // OLDPRULES:
-        self.check_alts();
-        self.prules.clear();
-
         if VERBOSE {
             println!("ORIGINAL:");
             self.print_rules(false, false);
@@ -936,81 +931,74 @@ impl<T> ProdRuleSet<T> {
         }
 
         const VERBOSE: bool = false;
-
         self.log.add_note("removing left factorization...");
-        let mut var_new = self.get_next_available_var();
-
-        // OLDPRULES:
-        self.check_alts();
-        self.prules.clear();
-        let mut nbr_tail = take(&mut self.nt_alts).into_iter().map(|(a, b)| b - a).collect::<VecDeque<_>>(); // OLDPRULES
-        let mut tail = VecDeque::from_iter(take(&mut self.alts).into_iter().map(|(_, a)| a));
-
+        let mut new_var = self.get_next_available_var();
+        // we must take prules out because of the borrow checker and other &mut borrows we need later...
+        // let mut prules = self.prules.take().unwrap();
         let mut i = 0;
-        while !tail.is_empty() {
-            // let mut prule = self.prules[i].clone();
-            let nbr_alt = nbr_tail.pop_front().unwrap() as usize;
-            let mut prule = (0..nbr_alt).map(|_| tail.pop_front().unwrap()).to_vec();
+        while i < self.prules.len() {
+            let mut prule = self.prules[i].clone();
             let var_flags = self.flags[i];
             let var = i as VarId;
-            let mut changed = false;
+            if prule.len() < 2 {
+                i += 1;
+                continue
+            }
             let mut alts = prule.clone();
             let mut extra = Vec::<ProdRule>::new();
-            let var_new_0 = var_new;
-            if prule.len() > 1 {
-                alts.sort();
-                if VERBOSE { println!("{var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), alts.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")); }
-                while alts.len() > 1 {
-                    let simi = alts.windows(2).enumerate()
-                        .map(|(j, x)| (j, similarity(&x[0], &x[1])))
-                        .skip_while(|(_, s)| *s == 0)
-                        .take_while(|(_, s)| *s != 0)
-                        .to_vec();
-                    if simi.is_empty() {
-                        if VERBOSE { println!(" nothing to factorize"); }
-                        break;
-                    }
-                    changed = true;
-                    let min = simi.iter().map(|(_, s)| *s).min().unwrap();
-                    let start = simi[0].0;
-                    let stop = start + simi.len();
-                    let mut factorized = Alternative::new(alts[start].v.iter().take(min).cloned().to_vec());
-                    let mut child = alts.drain(start..=stop).to_vec();
-                    if VERBOSE { println!("child:\n{}", child.iter().enumerate().map(|(i, c)| format!("- [{i}] = {}  org = {:?}", c.to_str(self.get_symbol_table()), c.origin)).join("\n")); }
-                    if child.iter().all(|f| f.is_greedy()) {
-                        factorized.flags |= ruleflag::GREEDY;
-                    }
-                    for f in &mut child {
-                        f.v.drain(0..min);
-                    }
-                    if child[0].v.is_empty() {
-                        if var_flags & ruleflag::CHILD_REPEAT != 0 {
-                            factorized.origin = child[0].origin;
-                        }
-                        child[0].v.push(Symbol::Empty);
-                        let empty = child.remove(0);
-                        child.push(empty);
-                    }
-                    let var_prime = var_new;
-                    var_new += 1;
-                    self.set_flags(var, ruleflag::PARENT_L_FACTOR);
-                    self.set_flags(var_prime, ruleflag::CHILD_L_FACT);
-                    let rep_l_form = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
-                    let top = if var_flags & rep_l_form == rep_l_form { var } else { self.get_top_parent(var) };
-                    if let Some(table) = self.symbol_table.as_mut() {
-                        assert_eq!(table.add_child_nonterminal(top), var_prime);
-                    };
-                    self.set_parent(var_prime, var);
-                    let symbol_prime = Symbol::NT(var_prime);
-                    factorized.v.push(symbol_prime);
-                    alts.insert(start, factorized);
-                    if VERBOSE {
-                        println!(" - similarity: {} => {}", simi.iter().map(|(j, s)| format!("{j}:{s}")).join(", "), min);
-                        println!("   factorize: {}", child.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
-                        println!("   left:      {}", alts.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
-                    }
-                    extra.push(child);
+            let mut changed = false;
+            alts.sort();
+            if VERBOSE { println!("{var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), alts.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")); }
+            while alts.len() > 1 {
+                let simi = alts.windows(2).enumerate()
+                    .map(|(j, x)| (j, similarity(&x[0], &x[1])))
+                    .skip_while(|(_, s)| *s == 0)
+                    .take_while(|(_, s)| *s != 0)
+                    .to_vec();
+                if simi.is_empty() {
+                    if VERBOSE { println!(" nothing to factorize"); }
+                    break;
                 }
+                changed = true;
+                let min = simi.iter().map(|(_, s)| *s).min().unwrap();
+                let start = simi[0].0;
+                let stop = start + simi.len();
+                let mut factorized = Alternative::new(alts[start].v.iter().take(min).cloned().to_vec());
+                let mut child = alts.drain(start..=stop).to_vec();
+                if VERBOSE { println!("child:\n{}", child.iter().enumerate().map(|(i, c)| format!("- [{i}] = {}  org = {:?}", c.to_str(self.get_symbol_table()), c.origin)).join("\n")); }
+                if child.iter().all(|f| f.is_greedy()) {
+                    factorized.flags |= ruleflag::GREEDY;
+                }
+                for f in &mut child {
+                    f.v.drain(0..min);
+                }
+                if child[0].v.is_empty() {
+                    if var_flags & ruleflag::CHILD_REPEAT != 0 {
+                        factorized.origin = child[0].origin;
+                    }
+                    child[0].v.push(Symbol::Empty);
+                    let empty = child.remove(0);
+                    child.push(empty);
+                }
+                let var_prime = new_var;
+                new_var += 1;
+                self.set_flags(var, ruleflag::PARENT_L_FACTOR);
+                self.set_flags(var_prime, ruleflag::CHILD_L_FACT);
+                let rep_l_form = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
+                let top = if var_flags & rep_l_form == rep_l_form { var } else { self.get_top_parent(var) };
+                if let Some(table) = self.symbol_table.as_mut() {
+                    assert_eq!(table.add_child_nonterminal(top), var_prime);
+                };
+                self.set_parent(var_prime, var);
+                let symbol_prime = Symbol::NT(var_prime);
+                factorized.v.push(symbol_prime);
+                alts.insert(start, factorized);
+                if VERBOSE {
+                    println!(" - similarity: {} => {}", simi.iter().map(|(j, s)| format!("{j}:{s}")).join(", "), min);
+                    println!("   factorize: {}", child.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
+                    println!("   left:      {}", alts.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
+                }
+                extra.push(child);
             }
             if changed {
                 self.log.add_note(format!(
@@ -1020,32 +1008,19 @@ impl<T> ProdRuleSet<T> {
                     "  => {} -> {}",
                     Symbol::NT(var).to_str(self.get_symbol_table()), prule_to_str(&alts, self.get_symbol_table())));
                 prule = alts;
-                for (v, p) in extra.iter().index_start(var_new_0) {
+                let offset = self.prules.len() as VarId;
+                for (v, p) in extra.iter().index_start(offset) {
                     self.log.add_note(format!(
                         "     {} -> {}",
                         Symbol::NT(v).to_str(self.get_symbol_table()), prule_to_str(p, self.get_symbol_table())));
                 }
-                // self.prules[i] = prule;  -> later
-                // self.prules.extend(extra);
-                tail.extend(
-                    extra.into_iter()
-                        .flat_map(|p| {
-                            nbr_tail.push_back(p.len() as AltId); // temporary increment, since we don't know the final size of self.alts yet
-                            p.into_iter()
-                        }));  // OLDPRULES
-
+                self.prules[i] = prule;
+                self.prules.extend(extra);
             }
-            self.nt_alts.push((self.alts.len() as AltId, (self.alts.len() + prule.len()) as AltId));
-            self.alts.extend(prule.into_iter().map(|a| (i as VarId, a)));
             i += 1;
         }
-        if VERBOSE {
-            println!("alts:{}", self.alts.iter().map(|(nt, a)| format!("\n- {}", a.to_rule_str(*nt, self.get_symbol_table(), 0))).join(""));
-            println!("nt_alts:{}", self.nt_alts.iter().index::<VarId>().map(|(v, (a, b))| format!("\n# {}: {a}..{b}", Symbol::NT(v).to_str(self.get_symbol_table()))).join(""));
-        }
-        // self.num_nt = self.prules.len();
-        self.num_nt = self.nt_alts.len();
-        self.calc_prules(); // OLDPRULES: rebuild self.prules for now
+        self.num_nt = self.prules.len();
+        // self.prules = Some(prules);
     }
 
     pub(crate) fn remove_ambiguity(&mut self) {
