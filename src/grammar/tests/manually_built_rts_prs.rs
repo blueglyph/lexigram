@@ -348,7 +348,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     if let Some(start) = start {
         rules.set_start(start);
     }
-    rules.calc_alts();  // OLDPRULES
     rules
 }
 
