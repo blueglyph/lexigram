@@ -21,21 +21,15 @@ pub type ItemId = u16;
 pub struct LRItem {
     /// position of dot in item (index of following symbol: 0 = • "a" a "a")
     pub pos: DotPos,
-    /// index of production alternative in `ProdRuleSet::alts`
+    /// nonterminal, index in `ProdRuleSet::prules`
+    pub nt: VarId,
+    /// index of production alternative in `ProdRuleSet::prules[nt]`
     pub alt_idx: u16,
     /// lookahead
     pub prefix: Option<BTreeSet<TokenId>>,
 }
 
 impl LRItem {
-    fn pos(&self) -> DotPos {
-        self.pos
-    }
-
-    fn alt_idx(&self) -> u16 {
-        self.alt_idx
-    }
-
     fn prefix(&self) -> Option<impl Iterator<Item=TokenId>> {
         self.prefix.as_ref().map(|p| p.iter().copied())
     }
@@ -101,13 +95,21 @@ impl ProdRuleSet<LR> {
         self.symbol_table.as_mut().map(|s| s.remove_nonterminal(self.num_nt as VarId));
     }
 
+    fn item_alt(&self, item: &LRItem) -> &Alternative {
+        &self.prules[item.nt as usize][item.alt_idx as usize]
+    }
+
+    fn item_symbol(&self, item: &LRItem) -> Option<&Symbol> {
+        self.prules[item.nt as usize][item.alt_idx as usize].get(item.pos as usize)
+    }
+
     pub(crate) fn item_to_str(&self, item: &LRItem) -> String {
-        let (var_id, alt) = &self.alts[item.alt_idx() as usize];
-        let left = alt.v[..item.pos() as usize].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
-        let right = alt.v[item.pos() as usize..].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
+        let alt = &self.item_alt(item);
+        let left = alt.v[..item.pos as usize].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
+        let right = alt.v[item.pos as usize..].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
         format!(
             "{} -> {left}{}•{}{right}{}",
-            Symbol::NT(*var_id).to_str(self.get_symbol_table()),
+            Symbol::NT(item.nt).to_str(self.get_symbol_table()),
             if !left.is_empty() { " " } else { "" },
             if !right.is_empty() { " " } else { "" },
             if let Some(p) = item.prefix() {
@@ -128,7 +130,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub(crate) fn is_item_done(&self, item: &LRItem) -> bool {
-        item.pos as usize >= self.alts[item.alt_idx() as usize].1.v.len()
+        item.pos as usize >= self.item_alt(&item).len()
     }
 
     fn closure_lr0(&self, mut items: Vec<LRItem>) -> Vec<LRItem> {
@@ -137,10 +139,9 @@ impl ProdRuleSet<LR> {
             let n = items.len();
             for idx_item in 0..n {
                 let item = &items[idx_item];
-                if let Some(Symbol::NT(nt)) = self.alts[item.alt_idx as usize].1.get(item.pos as usize) {
-                    let &(start, end) = &self.nt_alts[*nt as usize];
-                    for alt_id in start..end {
-                        let new_item = item!(alt_id);
+                if let Some(&Symbol::NT(nt)) = self.item_symbol(&item) {
+                    for alt_id in 0..self.prules[nt as usize].len() {
+                        let new_item = item!(nt, alt_id as AltId);
                         if !set_items.contains(&new_item) {
                             set_items.insert(new_item.clone());
                             items.push(new_item);
@@ -157,10 +158,12 @@ impl ProdRuleSet<LR> {
 
     fn goto_lr0(&self, items: &[LRItem], x: &Symbol) -> Vec<LRItem> {
         let mut s = vec![];
-        for &LRItem { alt_idx, pos, .. } in items {
-            if let Some(symbol) = self.alts[alt_idx as usize].1.get(pos as usize) {
+        for item in items {
+            if let Some(symbol) = self.item_symbol(&item) {
                 if symbol == x {
-                    s.push(item!(alt_idx, pos + 1));
+                    let mut new_item = item.clone();
+                    new_item.pos += 1;
+                    s.push(new_item);
                 }
             }
         }
@@ -169,9 +172,8 @@ impl ProdRuleSet<LR> {
 
     pub fn calc_states_lr0(&self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
         const VERBOSE: bool = false;
-
-        let top_rule = self.nt_alts[self.start.unwrap() as usize].0;
-        let mut states = vec![self.closure_lr0(vec![item!(top_rule)])];
+        let top_nt = self.start.unwrap();
+        let mut states = vec![self.closure_lr0(vec![item!(top_nt, 0)])];
         let mut set_states = HashMap::<Vec<LRItem>, StateId>::from_iter(states.iter().cloned().index::<StateId>().map(|(i, v)| (v, i)));
         let mut gotos = vec![btreemap![]];
         let mut reductions = vec![];
@@ -181,7 +183,7 @@ impl ProdRuleSet<LR> {
                 let state = &states[idx_state];
                 let mut new_states = vec![]; // must split because of borrow checker limitation
                 let symbols = state.iter()
-                    .filter_map(|&LRItem { alt_idx, pos, .. }| self.alts[alt_idx as usize].1.get(pos as usize))
+                    .filter_map(|item| self.item_symbol(item))
                     .collect::<BTreeSet<_>>();
                 if VERBOSE {
                     println!("| STATE {idx_state} ----------------------");
@@ -252,10 +254,10 @@ impl ProdRuleSet<LR> {
     /// doi:10.1016/0020-0190(89)90079-3
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
         const VERBOSE: bool = false;
+        
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
         self.remove_empty_symbols();
-        self.calc_alts();
         let (mut states, gotos, reductions) = self.calc_states_lr0();
         #[cfg(any())]
         let rev_gotos = Self::calc_reverse_gotos(&gotos);
@@ -299,8 +301,10 @@ impl ProdRuleSet<LR> {
 
         // productions of G'
         let mut prules = vec![ProdRule::new(); num_nt_p];
-        for (nt, Alternative { v: alt, .. }) in &self.alts {
-            for &nt_p in &nt_to_nt_p[*nt as usize] {
+        let alts = self.prules.iter().enumerate()
+            .flat_map(|(nt, alts)| alts.iter().map(move |a| (nt, a)));
+        for (nt, Alternative { v: alt, .. }) in alts {
+            for &nt_p in &nt_to_nt_p[nt] {
                 let mut alt_p = vec![];
                 let mut state = nts_p[nt_p as usize].0;
                 for symb in alt {
@@ -344,8 +348,6 @@ impl ProdRuleSet<LR> {
             nt_conversion: Default::default(),
             log: Default::default(),
             options: Default::default(),
-            alts: vec![],
-            nt_alts: vec![],
             first: vec![],
             follow: vec![],
             original_start: None,
@@ -356,8 +358,8 @@ impl ProdRuleSet<LR> {
         for &(state, i_item) in &reductions {
             let item = &mut states[state as usize][i_item as usize];
             if VERBOSE { println!("reduction state {state}: {}", self.item_to_str(item)); }
-            let (nt, Alternative { v: alt, .. }) = &self.alts[item.alt_idx as usize];
-            for &nt_p in &nt_to_nt_p[*nt as usize] {
+            let alt = self.item_alt(&item);
+            for &nt_p in &nt_to_nt_p[item.nt as usize] {
                 let end_state = alt.iter().fold(nts_p[nt_p as usize].0, |st, symb| *gotos[st as usize].get(symb).unwrap());
                 if VERBOSE { print!("- {nt_p}: states {} ---> {end_state}", nts_p[nt_p as usize].0); }
                 if end_state == state {
@@ -410,30 +412,34 @@ impl ProdRuleSet<LR> {
                 }
             }
         }
-        let alt_id_accept = self.alts.len() as AltId - 1;
+        let mut offset = 0;
+        let alt_offsets = self.prules.iter().map(|p| {  // nt -> index of its first alt in table alts
+            let ofs = offset;
+            offset += p.len() as AltId;
+            ofs
+        }).to_vec();
         for (s, item_id) in reductions {
-            let item = &states[s as usize][item_id as usize];
-            let alt_id = item.alt_idx;
-            let nt = self.alts[alt_id as usize].0;
-            let solve_conflict = self.flags[nt as usize] & ruleflag::RESOLVE_CONFLICT != 0;
-            for &t in item.prefix.as_ref().unwrap() {
-                let act = if alt_id == alt_id_accept {
+            let LRItem { nt, alt_idx, prefix, .. } = &states[s as usize][item_id as usize];
+            let solve_conflict = self.flags[*nt as usize] & ruleflag::RESOLVE_CONFLICT != 0;
+            let action_reduce = LRAction::Reduce(*alt_idx + alt_offsets[*nt as usize]);
+            for &t in prefix.as_ref().unwrap() {
+                let act = if *nt == self.start.unwrap() {
                     LRAction::Accept
                 } else {
-                    LRAction::Reduce(alt_id)
+                    action_reduce
                 };
                 let action_cell = &mut action[t as usize + s as usize * num_t_full];
-                // TODO: resolver
+                // TODO: better resolver for other issues?
                 // pub const R_ASSOC: u32 = 256;
                 // pub const GREEDY: u32 = 8192;   ?
                 // pub const PREC_EQ: u32 = 16384;
-                match (*action_cell, act) {
-                    (LRAction::Error, _) => *action_cell = act,
-                    (LRAction::Shift(shift), LRAction::Reduce(_)) if solve_conflict => {
-                        let mut left_alt_id = alt_id as usize;
-                        let mut right_alt_id = states[shift as usize][0].alt_idx as usize;
-                        let nt_shift = nt;
-                        let nt_red = self.alts[right_alt_id].0;
+                match (act, *action_cell) {
+                    (_, LRAction::Error) => *action_cell = act,
+                    (LRAction::Reduce(_), LRAction::Shift(shift)) if solve_conflict => {
+                        let mut left_alt_id = *alt_idx as usize;        // left op: what's potentially reduced
+                        let nt_red = *nt;
+                        let right_item = &states[shift as usize][0];    // right op: what's potentially shifted
+                        let nt_shift = right_item.nt;
                         if nt_shift != nt_red {
                             self.log.add_warning(format!(
                                 "- calc_table: conflict for state {s}, terminal {}: {}/{}, cannot solve conflict between nonterminals {} and {}",
@@ -443,11 +449,13 @@ impl ProdRuleSet<LR> {
                                 Symbol::NT(nt_red).to_str(self.get_symbol_table())));
                         } else {
                             // compare priority of shift_alt_id and alt_id
-                            let is_left_rassoc = self.alts[left_alt_id].1.flags & ruleflag::R_ASSOC != 0;
+                            let mut right_alt_id = right_item.alt_idx as usize;
+                            let prules = &self.prules[*nt as usize];
+                            let left_alt = &prules[left_alt_id];
+                            let is_left_rassoc = left_alt.flags & ruleflag::R_ASSOC != 0;
                             // note: normally, the first alt of this NT mustn't have the flag PREC_EQ, but we check underflow anyway:
-                            let min_alt_id = self.nt_alts[nt_shift as usize].0 as usize;
-                            while left_alt_id > min_alt_id && self.alts[left_alt_id].1.flags & ruleflag::PREC_EQ != 0 { left_alt_id -= 1; }
-                            while right_alt_id > min_alt_id && self.alts[right_alt_id].1.flags & ruleflag::PREC_EQ != 0 { right_alt_id -= 1; }
+                            while left_alt_id > 0 && prules[left_alt_id].flags & ruleflag::PREC_EQ != 0 { left_alt_id -= 1; }
+                            while right_alt_id > 0 && prules[right_alt_id].flags & ruleflag::PREC_EQ != 0 { right_alt_id -= 1; }
                             let resolved = if left_alt_id == right_alt_id {
                                 // same priority: if left is right-assoc => shift, else reduce
                                 if is_left_rassoc { *action_cell } else { act }
@@ -470,11 +478,14 @@ impl ProdRuleSet<LR> {
                 }
             }
         }
+        let alts = self.prules.iter().index()
+            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
+            .to_vec();
         let table = LRParsingTable {
             num_nt,
             num_t_full,
             num_states,
-            alts: self.alts.clone(),
+            alts,
             action,
             goto,
             flags: self.flags.clone(),
@@ -512,8 +523,6 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
             nt_conversion: rules.nt_conversion,
             log: rules.log,
             options: rules.options,
-            alts: rules.alts,
-            nt_alts: rules.nt_alts,
             first: rules.first,
             follow: rules.follow,
             original_start: None,
@@ -603,7 +612,7 @@ impl LRParsingTable {
 mod macros {
     #[macro_export]
     macro_rules! item {
-        ($a:expr, $b:expr) => { $crate::grammar::prs::lr::LRItem { alt_idx: $a, pos: $b, prefix: None }};
-        ($a:expr) => { item!($a, 0) };
+        ($nt:expr, $a:expr , $b:expr) => { $crate::grammar::prs::lr::LRItem { alt_idx: $a, nt: $nt, pos: $b, prefix: None }};
+        ($nt:expr, $a:expr) => { item!($nt, $a, 0) };
     }
 }

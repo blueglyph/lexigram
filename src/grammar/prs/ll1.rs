@@ -159,7 +159,6 @@ impl ProdRuleSet<LL1> {
     }
 
     pub fn gen_tables_source_code(&self, indent: usize) -> String {
-        assert!(self.alts.is_empty(), "alts & nt_alts fields aren't empty");
         assert!(self.first.is_empty(), "first & follow fields aren't empty");
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
@@ -219,8 +218,6 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             nt_conversion: source.nt_conversion,
             log: BufLog::new(),
             options: source.options,
-            alts: Vec::new(),
-            nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
@@ -254,8 +251,6 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             nt_conversion: rules.nt_conversion,
             log: rules.log,
             options: rules.options,
-            alts: rules.alts,
-            nt_alts: rules.nt_alts,
             first: rules.first,
             follow: rules.follow,
             original_start: None,

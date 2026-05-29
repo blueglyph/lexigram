@@ -31,8 +31,6 @@ impl<T> ProdRuleSet<T> {
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             options: ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
-            alts: Vec::new(),
-            nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,

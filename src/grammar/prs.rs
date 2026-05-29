@@ -120,8 +120,6 @@ pub struct ProdRuleSet<T> {
     pub(crate) nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
     pub(crate) options: ProdRuleSetOptions,
-    pub(crate) alts: Vec<(VarId, Alternative)>,
-    pub(crate) nt_alts: Vec<(VarId, VarId)>,   // (first, last+1) in alts for each NT
     pub(crate) first: Vec<HashSet<Symbol>>,
     pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
@@ -166,10 +164,6 @@ impl<T> ProdRuleSet<T> {
     pub fn get_prules_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
         self.prules.iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
     }
-
-    // pub fn get_prules_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
-    //     self.prules.as_mut().unwrap().iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-    // }
 
     pub fn get_alts(&self) -> impl Iterator<Item=(VarId, &Alternative)> {
         self.prules.iter().enumerate()
@@ -431,21 +425,6 @@ impl<T> ProdRuleSet<T> {
             }
         };
         if VERBOSE { println!("-> nt_conversion: {:?}", self.nt_conversion); }
-    }
-
-    pub fn calc_alts(&mut self) {
-        let mut nt_idx: VarId = 0;
-        self.nt_alts = self.prules.iter()
-            .map(|p| {
-                let len: VarId = p.len().try_into().expect("too many productions");
-                let value = (nt_idx, nt_idx.checked_add(len).expect("too many productions"));
-                nt_idx = value.1;
-                value
-            })
-            .to_vec();
-        self.alts = self.prules.iter().index()
-            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
-            .to_vec();
     }
 
     pub fn calc_first(&mut self) {
@@ -886,8 +865,6 @@ impl<T> ProdRuleSet<T> {
         const VERBOSE: bool = false;
         self.log.add_note("removing left factorization...");
         let mut new_var = self.get_next_available_var();
-        // we must take prules out because of the borrow checker and other &mut borrows we need later...
-        // let mut prules = self.prules.take().unwrap();
         let mut i = 0;
         while i < self.prules.len() {
             let mut prule = self.prules[i].clone();
@@ -973,7 +950,6 @@ impl<T> ProdRuleSet<T> {
             i += 1;
         }
         self.num_nt = self.prules.len();
-        // self.prules = Some(prules);
     }
 
     pub(crate) fn remove_ambiguity(&mut self) {
@@ -1102,8 +1078,6 @@ impl ProdRuleSet<General> {
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             options: ProdRuleSetOptions::default(),
-            alts: Vec::new(),
-            nt_alts: Vec::new(),
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
