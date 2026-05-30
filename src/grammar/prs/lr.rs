@@ -1,19 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
+use lexigram_core::parser::lr_parser::{LRAction, StateId};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
 
 /// Dot position in a production rule (alternative). The symbol after the dot is at [value as usize], if it exists.
 pub type DotPos = u16;
-/// State index
-pub type StateId = u16;
 /// Item index in a state's list of items
 pub type ItemId = u16;
 
@@ -536,26 +535,6 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 }
 
 // ---------------------------------------------------------------------------------------------
-
-#[derive(Clone, Copy, Default, PartialEq, Debug)]
-pub enum LRAction {
-    #[default]
-    Error,
-    Shift(StateId),
-    Reduce(AltId),
-    Accept,
-}
-
-impl Display for LRAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LRAction::Error => write!(f, "-"),
-            LRAction::Shift(s) => write!(f, "s{s}"),
-            LRAction::Reduce(a) => write!(f, "r{a}"),
-            LRAction::Accept => write!(f, "acc"),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct LRParsingTable {

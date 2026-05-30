@@ -8,6 +8,7 @@ use crate::log::{LogMsg, Logger};
 use crate::alt::Alternative;
 
 pub(crate) mod tests;
+pub mod lr_parser;
 
 // ---------------------------------------------------------------------------------------------
 
