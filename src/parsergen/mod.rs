@@ -16,7 +16,7 @@ use crate::grammar::ll1::LL1ParsingTable;
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::lexergen::LexigramCrate;
 use crate::log::{BufLog, LogReader, LogStatus, Logger};
-use crate::parser::{OpCode, Parser, Symbol};
+use crate::parser::{OpCode, LLParser, Symbol};
 use crate::segments::Segments;
 use crate::segmap::Seg;
 
@@ -56,14 +56,14 @@ impl ItemInfo {
 
 // ---------------------------------------------------------------------------------------------
 
-/// Tables and parameters used to create a [`Parser`]. This type is used as a return object from the parser generator,
-/// when the Parser must be created dynamically; for example, in tests or in situations where the grammar isn't
-/// known in advance. In those situations, the ParserTables object must live as long as the parser it generates.
+/// Tables and parameters used to create a [`LLParser`]. This type is used as a return object from the parser generator,
+/// when the LLParser must be created dynamically; for example, in tests or in situations where the grammar isn't
+/// known in advance. In those situations, the LLParserTables object must live as long as the parser it generates.
 ///
-/// The Parser itself uses references to tables whenever possible because, in most situations, the tables are
+/// The LLParser itself uses references to tables whenever possible because, in most situations, the tables are
 /// static in generated source files. A few fields must still be created dynamically from (possibly) static
 /// tables because they don't exist in static form.
-pub struct ParserTables {
+pub struct LLParserTables {
     num_nt: usize,
     num_t: usize,
     // parsing_table: LLParsingTable,
@@ -77,7 +77,7 @@ pub struct ParserTables {
     include_alts: bool,
 }
 
-impl ParserTables {
+impl LLParserTables {
     pub fn new(
         parsing_table: LL1ParsingTable,
         symbol_table: FixedSymTable,
@@ -91,11 +91,11 @@ impl ParserTables {
         let num_t = parsing_table.num_t;
         let table = parsing_table.table;
         let (factor_var, alts): (Vec<_>, Vec<_>) = parsing_table.alts.into_iter().unzip();
-        ParserTables { num_nt, num_t, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
+        LLParserTables { num_nt, num_t, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
     }
 
-    pub fn make_parser(&self) -> Parser<'_> {
-        Parser::new(
+    pub fn make_parser(&self) -> LLParser<'_> {
+        LLParser::new(
             self.num_nt,
             self.num_t,
             self.alt_var.as_slice(),
@@ -109,11 +109,11 @@ impl ParserTables {
     }
 }
 
-impl BuildFrom<ParserGen> for ParserTables {
-    /// Creates a [`ParserTables`], from which a parser can be created dynamically with
-    /// [`parser_table.make_parser()`](ParserTables::make_parser).
+impl BuildFrom<ParserGen> for LLParserTables {
+    /// Creates a [`LLParserTables`], from which a parser can be created dynamically with
+    /// [`parser_table.make_parser()`](LLParserTables::make_parser).
     fn build_from(parser_gen: ParserGen) -> Self {
-        ParserTables::new(
+        LLParserTables::new(
             parser_gen.parsing_table,
             parser_gen.symbol_table.to_fixed_sym_table(),
             parser_gen.opcodes,
@@ -124,13 +124,13 @@ impl BuildFrom<ParserGen> for ParserTables {
     }
 }
 
-// not generated automatically since ParserTables isn't LogReader
-impl TryBuildFrom<ParserGen> for ParserTables {
+// not generated automatically since LLParserTables isn't LogReader
+impl TryBuildFrom<ParserGen> for LLParserTables {
     type Error = BuildError;
 
     fn try_build_from(source: ParserGen) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
-            Ok(ParserTables::build_from(source))
+            Ok(LLParserTables::build_from(source))
         } else {
             Err(BuildError::new(source.give_log(), BuildErrorSource::ParserGen))
         }
@@ -1737,7 +1737,7 @@ impl ParserGen {
             "::VarId",
             "::AltId",
             "::parser::OpCode",
-            "::parser::Parser",
+            "::parser::LLParser",
             "::fixed_sym_table::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
@@ -1819,12 +1819,12 @@ impl ParserGen {
             src.push("}\n".to_string());
         }
         src.extend(vec![
-            "pub fn build_parser() -> Parser<'static> {{".to_string(),
+            "pub fn build_parser() -> LLParser<'static> {{".to_string(),
             "    let symbol_table = FixedSymTable::new(".to_string(),
             "        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),".to_string(),
             "        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
             "    );".to_string(),
-            "    Parser::new(".to_string(),
+            "    LLParser::new(".to_string(),
             "        PARSER_NUM_NT, PARSER_NUM_T + 1,".to_string(),
             "        &ALT_VAR,".to_string(),
             if self.options.include_alts {

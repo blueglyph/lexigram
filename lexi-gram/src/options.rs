@@ -648,7 +648,7 @@ impl OptionsBuilder {
     ///     .expect("should have no error");
     /// try_gen_parser(action, options)?;
     /// ```
-    /// -> `use lexigram_core::parser::Parser;` and so on
+    /// -> `use lexigram_core::parser::LLParser;` and so on
     pub fn use_full_lib(&mut self, use_full_lib: bool) -> &mut Self {
         self.options.lib_crate = if use_full_lib { LexigramCrate::Full } else { LexigramCrate::Core };
         self
@@ -671,7 +671,7 @@ impl OptionsBuilder {
     ///     .expect("should have no error");
     /// try_gen_parser(action, options)?;
     /// ```
-    /// -> `use core::parser::Parser;` and so on
+    /// -> `use core::parser::LLParser;` and so on
     pub fn set_crate(&mut self, lcrate: LexigramCrate) -> &mut Self {
         self.options.lib_crate = lcrate;
         self

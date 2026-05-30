@@ -19,7 +19,7 @@ use crate::grammar::{GrNode, GrTree, RuleTreeSet};
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use crate::parser::{Parser, Symbol};
+use crate::parser::{LLParser, Symbol};
 use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
 use crate::rtsgen::rtsgen_parser::*;
@@ -39,7 +39,7 @@ static T_NAME_DICTIONARY: &[(&str, &str)] = &[
 
 pub struct RtsGen<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
-    parser: Parser<'p>,
+    parser: LLParser<'p>,
     t_name_dictionary: Option<HashMap<String, String>>,
 }
 
@@ -741,7 +741,7 @@ pub mod rtsgen_parser {
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 24;
@@ -754,12 +754,12 @@ pub mod rtsgen_parser {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             Vec::new(),

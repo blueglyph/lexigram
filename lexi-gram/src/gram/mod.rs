@@ -8,7 +8,7 @@ use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{CaretCol, Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto};
-use lexigram_lib::parser::Parser;
+use lexigram_lib::parser::LLParser;
 use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Cursor;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
@@ -27,7 +27,7 @@ pub struct GramOptions {
 pub struct Gram<'l, 'p, 'ls> {
     pub options: GramOptions,
     pub gramlexer: Lexer<'l, Cursor<&'l str>>,
-    pub gramparser: Parser<'p>,
+    pub gramparser: LLParser<'p>,
     pub wrapper: Wrapper<GramListener<'ls>>,
     start_nt: Option<String>,
 }

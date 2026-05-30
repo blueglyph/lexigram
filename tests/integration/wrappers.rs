@@ -267,7 +267,7 @@ pub mod precedence_type {
     use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_core::log::BufLog;
-    use lexigram_lib::parser::{ListenerWrapper, Parser, ParserError, ParserToken};
+    use lexigram_lib::parser::{ListenerWrapper, LLParser, ParserError, ParserToken};
     use crate::integration::wrappers::level_string::LevelString;
 
     const TOK_NUM: TokenId = 3;
@@ -296,14 +296,14 @@ pub mod precedence_type {
     }
 
     pub struct Tester<W: ListenerWrapper> {
-        pub parser: Parser<'static>,
+        pub parser: LLParser<'static>,
         pub wrapper: W,
         pub symbols: HashMap<String, TokenId>
     }
 
     pub trait TestApi {
         fn new() -> Self where Self: Sized;
-        fn get_symbols(parser: &Parser) -> HashMap<String, TokenId> where Self: Sized {
+        fn get_symbols(parser: &LLParser) -> HashMap<String, TokenId> where Self: Sized {
             let table = parser.get_symbol_table().unwrap();
             (0..table.get_num_t() as TokenId)
                 .map(|t| (Symbol::T(t).to_str(Some(table)), t))

@@ -165,11 +165,11 @@ pub mod opcodes {
     use crate::parser::Symbol;
     use crate::{columns_to_str, VarId};
     use crate::grammar::tests::TestRules;
-    use crate::parser::{OpCode, Parser};
-    use crate::parsergen::{ParserGen, ParserTables};
+    use crate::parser::{OpCode, LLParser};
+    use crate::parsergen::{ParserGen, LLParserTables};
     use crate::parsergen::tests::get_original_str;
 
-    fn get_alts_str(parser: &Parser) -> Vec<String> {
+    fn get_alts_str(parser: &LLParser) -> Vec<String> {
         let pv = parser.get_alt_var();
         let pf = parser.get_alts();
         pv.iter().enumerate().map(|(id, v)|
@@ -180,7 +180,7 @@ pub mod opcodes {
         ).collect()
     }
 
-    fn print_opcodes(parser: &Parser) {
+    fn print_opcodes(parser: &LLParser) {
         let alts = get_alts_str(&parser);
         if !alts.is_empty() {
             let indent = 16;
@@ -437,7 +437,7 @@ pub mod opcodes {
                 ll1.print_prs_summary();
             }
             let original_str = get_original_str(&ll1, 12);
-            let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
+            let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final alts and opcodes:\n{original_str}");
@@ -465,7 +465,7 @@ mod parser_source {
     use crate::grammar::tests::TestRules;
     use lexigram_core::log::{LogReader, LogStatus};
     use crate::build::BuildFrom;
-    use crate::parsergen::{ParserGen, ParserTables};
+    use crate::parsergen::{ParserGen, LLParserTables};
 
     #[test]
     fn alternatives() {
@@ -478,7 +478,7 @@ mod parser_source {
             let (src, ..) = builder.gen_source_code();
             let alt_present = src.contains("static ALTERNATIVES");
             assert_eq!(alt_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
-            let pt = ParserTables::build_from(builder);
+            let pt = LLParserTables::build_from(builder);
             let parser = pt.make_parser();
             let alts = parser.get_alts();
             assert_eq!(alts.is_empty(), !include_alts, "unexpected: include_alts = {include_alts}, alts = {alts:?}");

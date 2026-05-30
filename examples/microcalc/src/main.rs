@@ -7,7 +7,7 @@ use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::Parser;
+use lexigram_core::parser::LLParser;
 use crate::listener_types::*;
 use crate::microcalc_lexer::build_lexer;
 use crate::microcalc_parser::*;
@@ -59,7 +59,7 @@ fn main() {
 
 pub struct MCalc<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
-    parser: Parser<'p>,
+    parser: LLParser<'p>,
     wrapper: Wrapper<MCalcListener>,
 }
 
@@ -355,7 +355,7 @@ pub mod microcalc_parser {
 
     // [microcalc_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 28;
@@ -368,12 +368,12 @@ pub mod microcalc_parser {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             Vec::new(),

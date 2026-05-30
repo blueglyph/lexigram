@@ -180,7 +180,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test3_parser_tag]
 
-use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;
@@ -193,12 +193,12 @@ static OPCODES: [&[OpCode]; 27] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::
 static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
 static START_SYMBOL: VarId = 0;
 
-pub fn build_parser() -> Parser<'static> {{
+pub fn build_parser() -> LLParser<'static> {{
     let symbol_table = FixedSymTable::new(
         SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
         SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
     );
-    Parser::new(
+    LLParser::new(
         PARSER_NUM_NT, PARSER_NUM_T + 1,
         &ALT_VAR,
         Vec::new(),

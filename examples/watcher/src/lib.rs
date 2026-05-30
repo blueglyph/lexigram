@@ -9,7 +9,7 @@ use lexigram_core::char_reader::CharReader;
 use lexigram_core::CollectJoin;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::{Parser, Terminate};
+use lexigram_core::parser::{LLParser, Terminate};
 use watcher_lexer::build_lexer;
 use watcher_parser::*;
 
@@ -197,7 +197,7 @@ struct ParserData {
 
 struct WatcherParser<'l, 'p, 'lr> {
     lexer: Lexer<'l, LoggedReader<'lr>>,
-    parser: Parser<'p>,
+    parser: LLParser<'p>,
     wrapper: Option<Wrapper<Listener>>,
 }
 
@@ -559,7 +559,7 @@ pub mod watcher_parser {
 
     // [watcher_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
 
     const PARSER_NUM_T: usize = 11;
     const PARSER_NUM_NT: usize = 11;
@@ -571,12 +571,12 @@ pub mod watcher_parser {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             Vec::new(),

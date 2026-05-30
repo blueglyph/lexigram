@@ -7,7 +7,7 @@ use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::Parser;
+use lexigram_core::parser::LLParser;
 use lexigram_core::{CollectJoin, TokenId};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use typedef_type_lexer::build_lexer;
@@ -131,7 +131,7 @@ pub struct ParserData {
 
 pub struct TypeParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
-    parser: Parser<'p>,
+    parser: LLParser<'p>,
     wrapper: Option<Wrapper<TypeListener<'ls>>>,
 }
 
@@ -413,7 +413,7 @@ pub mod typedef_type_parser {
 
     // [typedef_type_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Parser, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
     use super::listener_type_types::*;
 
     const PARSER_NUM_T: usize = 11;
@@ -462,12 +462,12 @@ pub mod typedef_type_parser {
         SYMBOLS_T[t as usize]
     }
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             Vec::new(),

@@ -95,7 +95,7 @@ mod listener {
     use lexigram_lib::grammar::ProdRuleSet;
     use lexigram_lib::char_reader::CharReader;
     use lexigram_lib::lexer::TokenSpliterator;
-    use lexigram_lib::parsergen::{ParserGen, ParserTables};
+    use lexigram_lib::parsergen::{ParserGen, LLParserTables};
     use lexigram_lib::{AltId, VarId, LL1};
     use lexigram_lib::CollectJoin;
 
@@ -287,7 +287,7 @@ mod listener {
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:\n{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
-                let parser_table = ParserTables::build_from(builder);
+                let parser_table = LLParserTables::build_from(builder);
                 let mut parser = parser_table.make_parser();
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {

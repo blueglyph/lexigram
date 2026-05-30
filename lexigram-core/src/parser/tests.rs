@@ -134,7 +134,7 @@ mod parser {
     // This code is generated with lexigram version 0.9.4 from lexi-gram/src/tests.rs
     // and corresponds to the grammar above between tags [parser_grammar]
 
-    use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser}};
+    use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode}};
 
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 3;
@@ -146,12 +146,12 @@ mod parser {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             Vec::new(),

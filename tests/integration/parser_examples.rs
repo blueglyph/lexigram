@@ -8,7 +8,7 @@ pub(crate) mod listener1 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener1]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -21,12 +21,12 @@ pub(crate) mod listener1 {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
@@ -47,7 +47,7 @@ pub(crate) mod listener2 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener2]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -60,12 +60,12 @@ pub(crate) mod listener2 {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
@@ -86,7 +86,7 @@ pub(crate) mod listener3 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener3]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -99,12 +99,12 @@ pub(crate) mod listener3 {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
@@ -125,7 +125,7 @@ pub(crate) mod listener4 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener4]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -138,12 +138,12 @@ pub(crate) mod listener4 {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
@@ -164,7 +164,7 @@ pub(crate) mod listener5 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener5]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Parser, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
 
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 2;
@@ -177,12 +177,12 @@ pub(crate) mod listener5 {
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser<'static> {{
+    pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
-        Parser::new(
+        LLParser::new(
             PARSER_NUM_NT, PARSER_NUM_T + 1,
             &ALT_VAR,
             ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),

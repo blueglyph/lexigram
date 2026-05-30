@@ -323,7 +323,7 @@ pub trait ListenerWrapper {
 pub type ParserToken = (TokenId, String, PosSpan);
 
 /// Code of the error that occurred during the parsing, returned by the
-/// [parse_stream(...)](Parser::parse_stream) method of the parser.
+/// [parse_stream(...)](LLParser::parse_stream) method of the parser.
 #[derive(PartialEq, Debug)]
 pub enum ParserError {
     /// A syntax error was met. Either
@@ -336,17 +336,17 @@ pub enum ParserError {
     ///   doesn't begin with the next one.
     ///
     /// This error is returned only when the parser doesn't try to recover from syntax errors; this
-    /// option is set with the [set_try_recover(...)](Parser::set_try_recover) method and is
+    /// option is set with the [set_try_recover(...)](LLParser::set_try_recover) method and is
     /// enabled by default.
     ///
     /// See also [ParserError::TooManyErrors].
     SyntaxError,
     /// Too many syntax errors were met, either
-    /// * during the parsing. The limit is set by the constant [Parser::MAX_NBR_RECOVERS].
-    /// * by the lexer. The limit is set by the constant [Parser::MAX_NBR_LEXER_ERRORS].
+    /// * during the parsing. The limit is set by the constant [LLParser::MAX_NBR_RECOVERS].
+    /// * by the lexer. The limit is set by the constant [LLParser::MAX_NBR_LEXER_ERRORS].
     ///
     /// This error is returned only when the parser tries to recover from syntactic or lexical errors;
-    /// this option is set with the [set_try_recover(...)](Parser::set_try_recover) method and is
+    /// this option is set with the [set_try_recover(...)](LLParser::set_try_recover) method and is
     /// enabled by default.
     ///
     /// See also [ParserError::SyntaxError].
@@ -391,8 +391,8 @@ impl Display for ParserError {
     }
 }
 
-/// Parser object. The [new(...)](Parser::new) method creates a new instance.
-pub struct Parser<'a> {
+/// LL(1) parser object. The [new(...)](LLParser::new) method creates a new instance.
+pub struct LLParser<'a> {
     num_nt: usize,
     num_t: usize,
     alt_var: &'a [VarId],
@@ -405,7 +405,7 @@ pub struct Parser<'a> {
     try_recover: bool,          // tries to recover from syntactical errors
 }
 
-impl<'a> Parser<'a> {
+impl<'a> LLParser<'a> {
     /// Maximum number of error recoveries attempted when meeting a syntax error
     pub const MAX_NBR_RECOVERS: u32 = 5;
     pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
@@ -421,7 +421,7 @@ impl<'a> Parser<'a> {
         symbol_table: FixedSymTable,
         start: VarId,
     ) -> Self {
-        Parser { num_nt, num_t, alt_var, alts, opcodes, init_opcodes, table, symbol_table, start, try_recover: true }
+        LLParser { num_nt, num_t, alt_var, alts, opcodes, init_opcodes, table, symbol_table, start, try_recover: true }
     }
 
     /// Gets a reference to the symbol table, if one is attached.
@@ -781,7 +781,7 @@ impl<'a> Parser<'a> {
 }
 
 #[cfg(feature = "test_utils")]
-impl<'a> Parser<'a> {
+impl<'a> LLParser<'a> {
     pub fn get_alt_var(&self) -> &[VarId] {
         self.alt_var
     }

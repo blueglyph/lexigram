@@ -6,7 +6,7 @@ use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{CaretCol, Lexer, Pos, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto, TryBuildFrom};
-use lexigram_lib::parser::Parser;
+use lexigram_lib::parser::LLParser;
 use lexigram_lib::{Normalized, SymbolTable, TokenId};
 use lexigram_lib::build::{BuildError, BuildErrorSource, HasBuildErrorSource};
 use lexilexer::build_lexer;
@@ -35,7 +35,7 @@ pub struct LexiOptions {
 pub struct Lexi<'l, 'p, 'ls> {
     pub options: LexiOptions,
     pub lexilexer: Lexer<'l, Cursor<&'l str>>,
-    pub lexiparser: Parser<'p>,
+    pub lexiparser: LLParser<'p>,
     wrapper: Wrapper<LexiListener<'ls>>,
     is_built: bool
 }
