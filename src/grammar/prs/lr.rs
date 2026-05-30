@@ -36,6 +36,7 @@ impl LRItem {
 }
 
 impl<T> ProdRuleSet<T> {
+    #[allow(unused)]
     /// Removes lone ε symbols in productions
     fn remove_empty_symbols(&mut self) {
         for alt in self.prules.iter_mut().flat_map(|r| r.iter_mut().map(|p| &mut p.v)) {
@@ -140,8 +141,9 @@ impl ProdRuleSet<LR> {
             for idx_item in 0..n {
                 let item = &items[idx_item];
                 if let Some(&Symbol::NT(nt)) = self.item_symbol(&item) {
-                    for alt_id in 0..self.prules[nt as usize].len() {
-                        let new_item = item!(nt, alt_id as AltId);
+                    for (alt_id, alt) in self.prules[nt as usize].iter().enumerate() {
+                        let pos = if alt.is_sym_empty() { 1 } else { 0 };
+                        let new_item = item!(nt, alt_id as AltId, pos);
                         if !set_items.contains(&new_item) {
                             set_items.insert(new_item.clone());
                             items.push(new_item);
@@ -257,7 +259,7 @@ impl ProdRuleSet<LR> {
         
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();
-        self.remove_empty_symbols();
+        // self.remove_empty_symbols();
         let (mut states, gotos, reductions) = self.calc_states_lr0();
         #[cfg(any())]
         let rev_gotos = Self::calc_reverse_gotos(&gotos);
@@ -307,7 +309,7 @@ impl ProdRuleSet<LR> {
             for &nt_p in &nt_to_nt_p[nt] {
                 let mut alt_p = vec![];
                 let mut state = nts_p[nt_p as usize].0;
-                for symb in alt {
+                for symb in alt.iter().filter(|s| !s.is_empty()) {
                     alt_p.push(state_symb_p[state as usize].get(symb).unwrap().clone());
                     state = *gotos[state as usize].get(symb).unwrap();
                 }
@@ -360,7 +362,9 @@ impl ProdRuleSet<LR> {
             if VERBOSE { println!("reduction state {state}: {}", self.item_to_str(item)); }
             let alt = self.item_alt(&item);
             for &nt_p in &nt_to_nt_p[item.nt as usize] {
-                let end_state = alt.iter().fold(nts_p[nt_p as usize].0, |st, symb| *gotos[st as usize].get(symb).unwrap());
+                let end_state = alt.iter()
+                    .filter(|s| !s.is_empty())
+                    .fold(nts_p[nt_p as usize].0, |st, symb| *gotos[st as usize].get(symb).unwrap());
                 if VERBOSE { print!("- {nt_p}: states {} ---> {end_state}", nts_p[nt_p as usize].0); }
                 if end_state == state {
                     let lookahead = g_p.follow[nt_p as usize].iter()
