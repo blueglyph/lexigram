@@ -196,3 +196,120 @@ fn prs_calc_lr_table() {
     }
     assert!(errors == 0, "{errors} error(s)");
 }
+
+mod parse {
+    use std::collections::HashMap;
+    use iter_index::IndexerIterator;
+    use lexigram_core::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_core::log::{BufLog, LogStatus, Logger};
+    use lexigram_core::parser::{Call, ListenerWrapper, Symbol};
+    use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
+    use crate::grammar::tests::TestRules;
+    use crate::SymbolTable;
+
+    #[test]
+    fn make_parser_lalr() {
+        const VERBOSE: bool = false;
+
+        struct Stub<'a> {
+            log: BufLog,
+            symtab: Option<&'a SymbolTable>,
+        }
+
+        impl ListenerWrapper for Stub<'_> {
+            fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+                if VERBOSE {
+                    println!(
+                        "=> call {call:?}, nt {}, alt {alt_id}, t_data [{}]",
+                        Symbol::NT(nt).to_str(self.symtab),
+                        t_data.map(|v| v.into_iter().map(|s| format!("{s:?}")).join(", ")).unwrap_or_else(|| String::new())
+                    );
+                }
+            }
+
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+        }
+
+        let tests = vec![
+            // test_id, start, id_id, num_id, sequences to test
+            (2000, 0, 2, 999, vec![
+                // s -> "a" a "a" | "a" "a" "b" | "b" a "b";
+                // a -> b c;
+                // b -> "a";
+                // c -> d;
+                // d -> ε;
+                ("a a a", None),
+                ("a a b", None),
+                ("b a b", None),
+                ("a b", Some([r#"syntax error: unexpected token 'b' on "b", line 1, col 2"#])),
+            ]),
+            (601, 0, 3, 2, vec![
+                ("1 + 2 * 3", None),
+            ]),
+
+            /*
+            (, 0, id, num, vec![
+                ("", None),
+            ]),
+            */
+        ];
+
+        for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
+            let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
+            lalr1.set_start(start);
+            let symtab = lalr1.symbol_table.clone();
+            let symbols = (0..lalr1.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(lalr1.get_symbol_table()), t))
+                .collect::<HashMap<_, _>>();
+            if VERBOSE {
+                //lalr1.get_symbol_table().unwrap().dump("symbol table:");
+                lalr1.print_alts();
+                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().unwrap().to_str(lalr1.get_symbol_table()).join("\n"));
+            }
+            let mut parser = lalr1.make_parser_lalr().expect("failed to make LALR parser");
+            for (input, expected_errors) in sequences {
+                let expected_errors = expected_errors.map(|v| v.to_vec());
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    let pos = Pos(1, i);
+                    let pos_span = PosSpan::new(pos, pos);
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), pos_span)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            (num_id, w.to_string(), pos_span)
+                        } else {
+                            (id_id, w.to_string(), pos_span)
+                        }
+                    }
+                }).inspect(|(token, str, pos)|{
+                    if VERBOSE {
+                        println!(">> token {token}: {str:?} at {pos}");
+                    }
+                });
+                let mut listener = Stub { log: BufLog::new(), symtab: symtab.as_ref() };
+                let errors = match parser.parse_stream(&mut listener, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        None
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        Some(listener.log.get_errors().map(|s| s.get_inner_str()).to_vec())
+                    }
+                };
+                if VERBOSE {
+                    let msg = listener.log.get_messages().map(|s| format!("- {s}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                assert_eq!(errors, expected_errors, "test {test_id}/{grammar_id:?}/{start} failed for input {input}");
+            }
+        }
+    }
+}

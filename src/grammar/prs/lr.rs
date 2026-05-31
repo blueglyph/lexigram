@@ -507,7 +507,9 @@ impl ProdRuleSet<LR> {
     /// Temporary method to create a parser
     pub fn make_parser_lalr(&mut self) -> Result<LRParser, ()> {
         let table = self.make_parsing_table_lalr()?;
-        let symtable = self.symbol_table.clone().ok_or(())?;
+        let mut symtable = self.symbol_table.clone().ok_or(())?;
+        symtable.add_terminal("<$>", Some("<$>"));
+        symtable.add_terminal("<empty>", Some("<empty>"));
         Ok(LRParser::new(
             table.num_nt,
             table.num_t_full,
@@ -519,7 +521,8 @@ impl ProdRuleSet<LR> {
                     // nonterminal index:
                     nt,
                     // number of symbols in production alternative:
-                    u16::try_from(alt.len()).expect(&format!("alt[{i}] too long:\n{}", alt.to_str(self.get_symbol_table()))),
+                    u16::try_from(if alt.is_sym_empty() { 0 } else { alt.len() })
+                        .expect(&format!("alt[{i}] too long:\n{}", alt.to_str(self.get_symbol_table()))),
                     // number of (variable) terminals containing data:
                     alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
                 ))

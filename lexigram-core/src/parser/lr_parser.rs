@@ -35,7 +35,7 @@ pub struct LRParser {
     action: Vec<LRAction>,
     goto: Vec<StateId>,
     alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
-    symbol_table: FixedSymTable,
+    symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
 }
 
 impl LRParser {
@@ -93,26 +93,37 @@ impl LRParser {
                 });
                 advance_stream = false;
                 if error.is_some() { break }
-                if self.symbol_table.is_token_data(stream_sym) {
+                if stream_sym < token_eof && self.symbol_table.is_token_data(stream_sym) {
                     stack_t.push(stream_str.clone());
                 }
             }
+            if VERBOSE {
+                println!(
+                    "states [{}] -> {s}, input: token {} = {stream_str:?}",
+                    stack_state.iter().map(|s| s.to_string()).join(" "),
+                    Symbol::T(stream_sym).to_str(Some(&self.symbol_table))
+                );
+            }
             match self.action[stream_sym as usize + s as usize * self.num_t_full] {
                 LRAction::Shift(new_s) => {
+                    if VERBOSE { println!("- shift({new_s})"); }
                     stack_state.push(new_s);
                     s = new_s;
                     advance_stream = true;
                 }
-                LRAction::Reduce(alt) => {                                      // alt: s -> ω
+                LRAction::Reduce(alt) => {
+                    // alt: s -> ω
                     let (nt, alt_len, nbr_t) = self.alt_nt_len[alt as usize];   // s
                     stack_state.drain(stack_state.len() - alt_len as usize..);  // pop |ω| states
-                    let new_s = stack_state.pop().unwrap();
-                    s = new_s;
+                    let new_s = *stack_state.last().unwrap();
                     stack_state.push(self.goto[nt as usize + new_s as usize * self.num_nt]);
+                    s = *stack_state.last().unwrap();
+                    if VERBOSE { println!("- reduce({alt}) -> state {new_s} -> goto {s}"); }
                     let t_data = stack_t.drain(stack_t.len() - nbr_t as usize ..).to_vec();
                     wrapper.switch(Call::Exit, nt, alt, Some(t_data));
                 }
                 LRAction::Accept => {
+                    if VERBOSE { println!("- accept"); }
                     wrapper.switch(Call::End(Terminate::None), 0, 0, None);
                     break
                 }
