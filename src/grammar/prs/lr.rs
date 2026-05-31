@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fmt::Display;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
-use lexigram_core::parser::lr_parser::{LRAction, StateId};
+use lexigram_core::fixed_sym_table::SymInfoTable;
+use lexigram_core::parser::lr_parser::{LRAction, LRParser, StateId};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
@@ -249,7 +249,6 @@ impl ProdRuleSet<LR> {
     }
 
     /// Calculates the LALR lookaheads from LR0 items using Bermudez and Logothetis' algorithm.
-    /// Bermudez, Manuel. “Simple Computation of LALR(1) Lookahead Sets.” Information Processing Letters, 1989.
     /// Manuel E. Bermudez, George Logothetis, "Simple computation of LALR(1) lookahead sets."
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
@@ -393,7 +392,7 @@ impl ProdRuleSet<LR> {
         (states, gotos, reductions)
     }
 
-    pub fn make_parsing_table_with_states_lalr(&mut self, _error_recovery: bool) -> Result<(LRParsingTable, Vec<Vec<LRItem>>), ()> {
+    pub fn make_parsing_table_with_states_lalr(&mut self) -> Result<(LRParsingTable, Vec<Vec<LRItem>>), ()> {
         const VERBOSE: bool = false;
         self.log.add_note("- calculating LALR parsing table...");
         let (states, gotos, reductions) = self.calc_states_lalr();
@@ -500,9 +499,33 @@ impl ProdRuleSet<LR> {
         Ok((table, states))
     }
 
-    pub fn make_parsing_table_lalr(&mut self, _error_recovery: bool) -> Result<LRParsingTable, ()> {
-        self.make_parsing_table_with_states_lalr(_error_recovery)
+    pub fn make_parsing_table_lalr(&mut self) -> Result<LRParsingTable, ()> {
+        self.make_parsing_table_with_states_lalr()
             .map(|(table, _)| table)
+    }
+
+    /// Temporary method to create a parser
+    pub fn make_parser_lalr(&mut self) -> Result<LRParser, ()> {
+        let table = self.make_parsing_table_lalr()?;
+        let symtable = self.symbol_table.clone().ok_or(())?;
+        Ok(LRParser::new(
+            table.num_nt,
+            table.num_t_full,
+            table.action,
+            table.goto,
+            table.alts.into_iter()
+                .enumerate()
+                .map(|(i, (nt, alt))| (
+                    // nonterminal index:
+                    nt,
+                    // number of symbols in production alternative:
+                    u16::try_from(alt.len()).expect(&format!("alt[{i}] too long:\n{}", alt.to_str(self.get_symbol_table()))),
+                    // number of (variable) terminals containing data:
+                    alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
+                ))
+                .to_vec(),
+            symtable.to_fixed_sym_table()
+        ))
     }
 }
 

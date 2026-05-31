@@ -125,7 +125,7 @@ fn prs_calc_lr_table() {
         let msg = format!("## ERROR ## test {test_id}, start={start}");
         let mut lr = TestRules(test_id).to_prs_lr().unwrap();
         lr.set_start(start);
-        let fail = if let Ok((parsing_table, states)) = lr.make_parsing_table_with_states_lalr(true) {
+        let fail = if let Ok((parsing_table, states)) = lr.make_parsing_table_with_states_lalr() {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
                 let text = lr.log.get_messages().map(|m| m.to_string()).filter(|s| s.contains("calc_table")).to_vec();

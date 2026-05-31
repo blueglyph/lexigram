@@ -287,38 +287,3 @@ fn parse() {
     }
 }
 ```
-
-We can reduce the number of next_token() calls, which are actually more complex, to one instance. Per design, state s = 0 never has an action in ACTION[s, $] because it's the state of the extra goal nonterminal:
-- it won't have a shift on $ (there's no shift on $ in LR)
-- it won't have a reduce on $ because it's never reduced in that state. (to check)
-
-```rust
-fn parse() {
-    let mut error = false;
-    let mut end = false;
-    let mut s = 0;
-    let mut state_stack = vec![];
-    let mut t = Symbol::End;
-    self.action[t] = LRAction::Shift(0);
-    while !end {
-        match self.action[t + s * num_t_full] {
-            LRAction::Shift(new_s) => {
-                state_stack.push(new_s);
-                s = new_s;
-                t = next_token();                   // <==== next_token()
-            }
-            LRAction::Reduce(alt) => {                                          // alt: s -> ω 
-                let nt = self.alt_to_nt[alt];                                   // s
-                state_stack.drain(state_stack.len() - self.alt_len[alt] ..);    // pop |ω| states
-                let new_s = state_stack.pop();
-                s = new_s;
-                state_stack.push(self.goto[nt + new_s * num_nt]);
-                let t_data = ...;
-                wrapper.switch(Call::Exit, nt, alt, t_data);
-            }
-            LRAction::Accept => { end = true }
-            _ => { end = true; error = true }
-        }
-    }
-}
-```
