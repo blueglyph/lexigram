@@ -34,7 +34,7 @@ mod gen_integration {
         let rules = TestRules(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
         assert_eq!(rules.get_log().num_errors(), 0, "building {tr_id} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::build_from(rules);
-        let mut builder = ParserGen::build_from_rules(ll1, name);
+        let mut builder = ParserGen::build_from_rules_ll1(ll1, name);
         builder.set_include_alts(include_alts);
         builder.use_full_lib(true);
         builder.set_gen_wrapper(false);
@@ -437,7 +437,7 @@ pub mod opcodes {
                 ll1.print_prs_summary();
             }
             let original_str = get_original_str(&ll1, 12);
-            let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
+            let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final alts and opcodes:\n{original_str}");
@@ -472,7 +472,7 @@ mod parser_source {
         for include_alts in [false, true] {
             let ll1 = TestRules(900).to_prs_ll1().unwrap();
             assert_eq!(ll1.get_log().num_errors(), 0, "building the LL(1) failed:\n{}", ll1.get_log());
-            let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
+            let mut builder = ParserGen::build_from_rules_ll1(ll1, "simple".to_string());
             builder.set_include_alts(include_alts);
             builder.set_gen_wrapper(false);
             let (src, ..) = builder.gen_source_code();
@@ -2591,7 +2591,7 @@ mod wrapper_source {
                 }
             }
             let original_str = get_original_str(&ll1, 12);
-            let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
+            let mut builder = ParserGen::build_from_rules_ll1(ll1, "Test".to_string());
             builder.set_gen_span_params(true);
             builder.set_include_alts(true);
             builder.use_full_lib(true);
@@ -2964,7 +2964,7 @@ mod wrapper_source {
                 .to_vec();
             let ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
             let original_str = get_original_str(&ll1, 12);
-            let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
+            let builder = ParserGen::build_from_rules_ll1(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_full = vec![];
             for (a_id, (_v, a)) in builder.alts.iter().index() {

@@ -4,7 +4,7 @@ use std::io::Write;
 use lexigram_lib::file_utils::{get_tagged_source, replace_tagged_source, SrcTagError};
 use lexigram_lib::lexer::CaretCol;
 use lexigram_lib::lexergen::{LexerGenOptions, LexigramCrate};
-use lexigram_lib::parsergen::{NTValue, ParserGenOptions};
+use lexigram_lib::parsergen::{NTValue, ParserGenOptions, ParserType};
 use lexigram_lib::StructLibs;
 use crate::gram::GramOptions;
 use crate::lexi::LexiOptions;
@@ -170,6 +170,8 @@ pub struct Options {
     pub listener_code: CodeLocation,
     /// Indentation of the template for the listener implementation
     pub listener_indent: usize,
+    /// Parser type: LL1, LALR
+    pub parser_type: ParserType,
 }
 
 impl Options {
@@ -227,6 +229,7 @@ impl Default for Options {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
+            parser_type: ParserType::LL1,
         }
     }
 }
@@ -829,6 +832,7 @@ impl From<&Options> for ParserGenOptions {
             indent: options.parser_indent,
             types_indent: options.types_indent,
             listener_indent: options.listener_indent,
+            parser_type: options.parser_type,
         }
     }
 }

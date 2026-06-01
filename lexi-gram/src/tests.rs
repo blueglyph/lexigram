@@ -274,7 +274,7 @@ mod test3 {
 // ---------------------------------------------------------------------------------------------
 
 mod test4 {
-    use lexigram_lib::parsergen::NTValue;
+    use lexigram_lib::parsergen::{NTValue, ParserType};
     use crate::options::CodeLocation;
     use super::*;
 
@@ -313,6 +313,7 @@ mod test4 {
             listener_code: CodeLocation::None,
             listener_indent: 0,
             ansi: true,
+            parser_type: ParserType::LL1,
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -363,6 +364,7 @@ mod test4 {
             listener_code: CodeLocation::None,
             listener_indent: 0,
             ansi: true,
+            parser_type: ParserType::LL1,
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -397,6 +399,7 @@ mod test4 {
             listener_code: CodeLocation::None,
             listener_indent: 0,
             ansi: true,
+            parser_type: ParserType::LL1,
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -412,7 +415,7 @@ mod test4 {
 // ---------------------------------------------------------------------------------------------
 
 mod failing_tests {
-    use lexigram_lib::parsergen::NTValue;
+    use lexigram_lib::parsergen::{NTValue, ParserType};
     use crate::options::{CodeLocation, ERR_COMBINED_SPEC_ALREADY_SET, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
     use super::*;
 
@@ -446,6 +449,7 @@ mod failing_tests {
             listener_code: CodeLocation::None,
             listener_indent: 0,
             ansi: true,
+            parser_type: ParserType::LL1,
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
@@ -470,6 +474,7 @@ mod failing_tests {
             listener_code: CodeLocation::None,
             listener_indent: 0,
             ansi: true,
+            parser_type: ParserType::LL1,
         };
 
         let tests = vec![

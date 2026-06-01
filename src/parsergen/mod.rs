@@ -6,8 +6,9 @@ use vectree::VecTree;
 use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
 use lexigram_core::alt::Alternative;
+use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
 use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet};
-use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
+use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1, LR};
 use crate::fixed_sym_table::{SymInfoTable};
 use crate::alt::ruleflag;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource};
@@ -146,6 +147,12 @@ struct WrapperSources {
     src_wrapper_impl        : Vec<String>,
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum ParserType {
+    LL1,
+    LALR,
+}
+
 #[derive(Clone, Debug)]
 pub struct ParserGenOptions {
     pub nt_value: NTValue,
@@ -164,17 +171,27 @@ pub struct ParserGenOptions {
     pub types_indent: usize,
     /// source code indentation of the template for the listener implementation
     pub listener_indent: usize,
+    /// parser type: LL1 or LALR
+    pub parser_type: ParserType,
 }
 
 #[derive(Debug)]
 pub struct ParserGen {
-    // LL1-specific fields
+    // common parsing table fields:
     num_nt: usize,
     num_t_full: usize,               // includes the end $ symbol
     alts: Vec<(VarId, Alternative)>,
-    table: Vec<AltId>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
+    // LL1-specific parsing table fields:
+    table: Vec<AltId>,
+    // LR-specific parsing table fields:
+    #[allow(unused)]
+    num_states: usize,
+    #[allow(unused)]
+    action: Vec<LRAction>,
+    #[allow(unused)]
+    goto: Vec<LRStateId>,
 
     symbol_table: SymbolTable,
     terminal_hooks: Vec<TokenId>,
@@ -209,7 +226,7 @@ impl ParserGen {
     ///
     /// If `rules` already has a name, it is best to use the
     /// [`BuildFrom<ProdRuleSet<T>>`](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn build_from_rules<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
+    pub fn build_from_rules_ll1<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
     where
         ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
     {
@@ -229,10 +246,12 @@ impl ParserGen {
             num_nt: parsing_table.num_nt,
             num_t_full: parsing_table.num_t_full,
             alts: parsing_table.alts,
-            table: parsing_table.table,
             flags: parsing_table.flags,
             parent: parsing_table.parent,
-
+            table: parsing_table.table,
+            num_states: 0,
+            action: vec![],
+            goto: vec![],
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
             options: ParserGenOptions::default(),
@@ -256,17 +275,81 @@ impl ParserGen {
             nt_type: HashMap::new(),
             log: ll1_rules.log,
         };
-        for var_id in 0..num_nt {
-            let top_var_id = builder.get_top_parent(var_id as VarId) as usize;
-            builder.nt_parent[top_var_id].push(var_id as VarId);
-        }
-        builder.apply_options();
-        builder.make_opcodes();
-        builder.make_span_nbrs();
+        builder.post_build_from_rules(ParserType::LL1);
         builder
     }
 
+    /// Creates a [ParserGen] from a set of production rules and gives it a specific name, which is used
+    /// to name the user listener trait in the generated code.
+    ///
+    /// If `rules` already has a name, it is best to use the
+    /// [`BuildFrom<ProdRuleSet<T>>`](BuildFrom<ProdRuleSet<T>>::build_from) trait.
+    pub fn build_from_rules_lr<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
+    where
+        ProdRuleSet<LR>: BuildFrom<ProdRuleSet<T>>,
+    {
+        rules.log.add_note("building parser gen from rules...");
+        let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
+        assert_eq!(lr_rules.get_log().num_errors(), 0);
+        let parsing_table = lr_rules.make_parsing_table_lalr();
+        let num_nt = lr_rules.get_num_nt();
+        let mut var_alts = vec![vec![]; num_nt];
+        for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
+            var_alts[*var_id as usize].push(alt_id);
+        }
+        let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
+        let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = lr_rules;
+
+        let mut builder = ParserGen {
+            num_nt: parsing_table.num_nt,
+            num_t_full: parsing_table.num_t_full,
+            alts: parsing_table.alts,
+            flags: parsing_table.flags,
+            parent: parsing_table.parent,
+            table: vec![],
+            num_states: parsing_table.num_states,
+            action: parsing_table.action,
+            goto: parsing_table.goto,
+            symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
+            name,
+            options: ParserGenOptions::default(),
+            nt_values: vec![false; num_nt],
+            nt_parent,
+            var_alts,
+            origin,
+            terminal_hooks: Vec::new(),
+            item_ops: Vec::new(),
+            opcodes: Vec::new(),
+            init_opcodes: Vec::new(),
+            nt_name: Vec::new(),
+            alt_info: Vec::new(),
+            item_info: Vec::new(),
+            child_repeat_endpoints: HashMap::new(),
+            gen_parser: true,
+            span_nbrs: Vec::new(),
+            span_nbrs_sep_list: HashMap::new(),
+            start: 0,
+            nt_conversion,
+            nt_type: HashMap::new(),
+            log: lr_rules.log,
+        };
+        builder.post_build_from_rules(ParserType::LALR);
+        builder
+    }
+
+    fn post_build_from_rules(&mut self, parser_type: ParserType) {
+        self.options.parser_type = parser_type;
+        for var_id in 0..self.num_nt {
+            let top_var_id = self.get_top_parent(var_id as VarId) as usize;
+            self.nt_parent[top_var_id].push(var_id as VarId);
+        }
+        self.apply_options();
+        self.make_opcodes();
+        self.make_span_nbrs();
+    }
+
     pub fn set_options(&mut self, options: ParserGenOptions) {
+        assert_eq!(options.parser_type, self.options.parser_type, "incompatible parser type");
         self.options = options;
         self.apply_options();
     }
@@ -3081,7 +3164,7 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
     /// is used instead (unless the name is set with [`ParserGen::set_name()`].
     fn build_from(mut rules: ProdRuleSet<T>) -> Self {
         let name = rules.name.take().unwrap_or(DEFAULT_LISTENER_NAME.to_string());
-        ParserGen::build_from_rules(rules, name)
+        ParserGen::build_from_rules_ll1(rules, name)
     }
 }
 
@@ -3099,6 +3182,7 @@ impl Default for ParserGenOptions {
             indent: 0,
             types_indent: 0,
             listener_indent: 0,
+            parser_type: ParserType::LL1,
         }
     }
 }

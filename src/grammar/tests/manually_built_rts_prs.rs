@@ -471,7 +471,7 @@ fn parser_parse_stream() {
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
+        let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
         let mut parser = parser_tables.make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
@@ -599,7 +599,7 @@ fn parser_parse_stream_id() {
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
+        let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
         let mut parser = parser_tables.make_parser();
         for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
