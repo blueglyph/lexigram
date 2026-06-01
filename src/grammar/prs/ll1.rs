@@ -275,14 +275,6 @@ impl LL1ParsingTable {
     pub fn new() -> Self {
         LL1ParsingTable { num_nt: 0, num_t: 0, alts: vec![], table: vec![], flags: vec![], parent: vec![] }
     }
-
-    pub fn get_top_parent(&self, nt: VarId) -> VarId {
-        let mut var = nt;
-        while let Some(parent) = self.parent[var as usize] {
-            var = parent;
-        }
-        var
-    }
 }
 
 impl Default for LL1ParsingTable {

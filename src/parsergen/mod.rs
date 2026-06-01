@@ -5,6 +5,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
+use lexigram_core::alt::Alternative;
 use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet};
 use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1};
 use crate::fixed_sym_table::{SymInfoTable};
@@ -123,7 +124,6 @@ fn count_span_nbr(opcode: &[OpCode]) -> SpanNbr {
 struct SourceInputContext<'a> {
     parent_has_value        : bool,
     parent_nt               : usize,
-    pinfo                   : &'a LL1ParsingTable,
     syns                    : &'a Vec<VarId>,
     ambig_op_alts           : &'a BTreeMap<AltId, Vec<AltId>>,
 }
@@ -168,7 +168,14 @@ pub struct ParserGenOptions {
 
 #[derive(Debug)]
 pub struct ParserGen {
-    parsing_table: LL1ParsingTable,
+    // LL1-specific fields
+    num_nt: usize,
+    num_t: usize,               // includes the end $ symbol
+    alts: Vec<(VarId, Alternative)>,
+    table: Vec<AltId>,
+    flags: Vec<u32>,            // NT -> flags (+ or * normalization)
+    parent: Vec<Option<VarId>>, // NT -> parent NT
+
     symbol_table: SymbolTable,
     terminal_hooks: Vec<TokenId>,
     name: String,
@@ -216,14 +223,16 @@ impl ParserGen {
         for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
             var_alts[*var_id as usize].push(alt_id);
         }
-        let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        for var_id in 0..num_nt {
-            let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
-            nt_parent[top_var_id].push(var_id as VarId);
-        }
+        let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = ll1_rules;
         let mut builder = ParserGen {
-            parsing_table,
+            num_nt: parsing_table.num_nt,
+            num_t: parsing_table.num_t,
+            alts: parsing_table.alts,
+            table: parsing_table.table,
+            flags: parsing_table.flags,
+            parent: parsing_table.parent,
+
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
             options: ParserGenOptions::default(),
@@ -247,6 +256,10 @@ impl ParserGen {
             nt_type: HashMap::new(),
             log: ll1_rules.log,
         };
+        for var_id in 0..num_nt {
+            let top_var_id = builder.get_top_parent(var_id as VarId) as usize;
+            builder.nt_parent[top_var_id].push(var_id as VarId);
+        }
         builder.apply_options();
         builder.make_opcodes();
         builder.make_span_nbrs();
@@ -274,11 +287,6 @@ impl ParserGen {
     #[inline]
     pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
         Some(&self.symbol_table)
-    }
-
-    #[inline]
-    pub fn get_parsing_table(&self) -> &LL1ParsingTable {
-        &self.parsing_table
     }
 
     #[inline]
@@ -327,6 +335,17 @@ impl ParserGen {
     pub fn set_nt_value(&mut self, nt_value: NTValue) {
         self.options.nt_value = nt_value;
         self.apply_nt_value();
+    }
+
+    pub fn make_ll1_parsing_table(&self) -> LL1ParsingTable {
+        LL1ParsingTable {
+            num_nt: self.num_nt,
+            num_t: self.num_t,
+            alts: self.alts.clone(),
+            table: self.table.clone(),
+            flags: self.flags.clone(),
+            parent: self.parent.clone()
+        }
     }
 
     fn apply_nt_value(&mut self) {
@@ -466,7 +485,16 @@ impl ParserGen {
 
     #[inline]
     pub fn get_nt_parent(&self, v: VarId) -> Option<VarId> {
-        self.parsing_table.parent[v as usize]
+        self.parent[v as usize]
+    }
+
+    #[inline]
+    pub fn get_top_parent(&self, nt: VarId) -> VarId {
+        let mut var = nt;
+        while let Some(parent) = self.parent[var as usize] {
+            var = parent;
+        }
+        var
     }
 
     /// Include the definitions of the alternatives in the parser, for debugging purposes:
@@ -487,7 +515,7 @@ impl ParserGen {
 
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
     fn get_original_alt_str(&self, a_id: AltId, symbol_table: Option<&SymbolTable>) -> Option<String> {
-        let (_var, f) = &self.parsing_table.alts[a_id as usize];
+        let (_var, f) = &self.alts[a_id as usize];
         f.get_origin().and_then(|(o_v, o_id)| {
             Some(format!(
                 "{} -> {}",
@@ -504,7 +532,7 @@ impl ParserGen {
     /// production rules or if <L> low-latency labels were declared.
     fn conv_nt(&self, org_var: VarId) -> Option<VarId> {
         match self.nt_conversion.get(&org_var) {
-            None => if (org_var as usize) < self.parsing_table.num_nt { Some(org_var) } else { None },
+            None => if (org_var as usize) < self.num_nt { Some(org_var) } else { None },
             Some(NTConversion::MovedTo(new)) => Some(*new),
             Some(NTConversion::Removed) => None
         }
@@ -512,12 +540,12 @@ impl ParserGen {
 
     #[allow(unused)]
     fn nt_has_all_flags(&self, var: VarId, flags: u32) -> bool {
-        self.parsing_table.flags[var as usize] & flags == flags
+        self.flags[var as usize] & flags == flags
     }
 
     #[allow(unused)]
     fn nt_has_any_flags(&self, var: VarId, flags: u32) -> bool {
-        self.parsing_table.flags[var as usize] & flags != 0
+        self.flags[var as usize] & flags != 0
     }
 
     #[allow(unused)]
@@ -537,13 +565,13 @@ impl ParserGen {
     fn full_alt_components(&self, a_id: AltId, emphasis: Option<VarId>) -> (String, String) {
         const VERBOSE: bool = false;
         if VERBOSE { println!("full_alt_components(a_id = {a_id}):"); }
-        let &(mut v_a, ref alt) = &self.parsing_table.alts[a_id as usize];
-        while self.parsing_table.flags[v_a as usize] & ruleflag::CHILD_L_FACT != 0 {
-            v_a = *self.parsing_table.parent[v_a as usize].as_ref().unwrap();
+        let &(mut v_a, ref alt) = &self.alts[a_id as usize];
+        while self.flags[v_a as usize] & ruleflag::CHILD_L_FACT != 0 {
+            v_a = *self.parent[v_a as usize].as_ref().unwrap();
         }
         let symtab = self.get_symbol_table();
         if let Some(v_emph) = emphasis {
-            let parent_nt = self.parsing_table.get_top_parent(v_emph);
+            let parent_nt = self.get_top_parent(v_emph);
             if let Some((t_emph, id_emph)) = self.origin.get(v_emph) {
                 return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), Some(parent_nt), symtab, true));
             } else {
@@ -552,7 +580,7 @@ impl ParserGen {
         }
         if let Some((vo, id)) = alt.get_origin() {
             let t = self.origin.get_tree(vo).unwrap();
-            let flags = self.parsing_table.flags[v_a as usize];
+            let flags = self.flags[v_a as usize];
             if v_a != vo && flags & ruleflag::CHILD_REPEAT != 0 {
                 // iteration in parent rule
                 (
@@ -587,25 +615,25 @@ impl ParserGen {
         self.log.add_note("- making opcodes...");
         self.opcodes.clear();
         self.init_opcodes = vec![OpCode::End, OpCode::NT(self.start)];
-        for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
+        for (alt_id, (var_id, alt)) in self.alts.iter().index() {
             if VERBOSE {
                 println!("{alt_id}: {}", alt.to_rule_str(*var_id, self.get_symbol_table(), 0));
             }
-            let flags = self.parsing_table.flags[*var_id as usize];
+            let flags = self.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
-            let mut new = self.parsing_table.alts[alt_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+            let mut new = self.alts[alt_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("  - {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
-            let mut parent = self.parsing_table.parent[*var_id as usize];
+            let mut parent = self.parent[*var_id as usize];
             if flags & ruleflag::CHILD_L_FACT != 0 {
                 while self.nt_has_all_flags(parent.unwrap(), ruleflag::CHILD_L_FACT) {
-                    parent = self.parsing_table.parent[parent.unwrap() as usize];
+                    parent = self.parent[parent.unwrap() as usize];
                 }
                 let parent = parent.unwrap();
                 // replaces Enter by Loop when going back to left-factorization parent, typically when coupled with + or *
                 // (per construction, there can't be any alternative going back to the grandparent or further up in a left factorization, so
                 //  we don't check that)
-                let parent_r_form_right_rec = self.parsing_table.flags[parent as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
+                let parent_r_form_right_rec = self.flags[parent as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
                 if VERBOSE {
                     println!("  - child lfact, parent: {}, !parent_r_form_right_rec = !{parent_r_form_right_rec}, match = {}",
                              Symbol::NT(parent).to_str(self.get_symbol_table()),
@@ -634,7 +662,7 @@ impl ParserGen {
             let r_form_right_rec = flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
             if VERBOSE { println!("  - r_form_right_rec = {r_form_right_rec} = {} || {}",
                                   flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0,
-                                  flags & ruleflag::CHILD_L_FACT != 0 && self.parsing_table.flags[parent.unwrap() as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0); }
+                                  flags & ruleflag::CHILD_L_FACT != 0 && self.flags[parent.unwrap() as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0); }
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) && !r_form_right_rec {
                 // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
@@ -667,15 +695,15 @@ impl ParserGen {
                     opcode.swap(0, 1);
                     opcode[0] = OpCode::Loop(parent.unwrap());
                 }
-                let fact_top = self.parsing_table.get_top_parent(*var_id);
+                let fact_top = self.get_top_parent(*var_id);
                 if VERBOSE {
                     println!("  - check for initial exit swap: opcode = [{}], daddy = {}",
                              opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                              Symbol::NT(fact_top).to_str(self.get_symbol_table()));
                 }
-                if self.parsing_table.flags[fact_top as usize] & ruleflag::PARENT_L_RECURSION != 0 &&
+                if self.flags[fact_top as usize] & ruleflag::PARENT_L_RECURSION != 0 &&
                     matches!(opcode[0], OpCode::Exit(_)) &&
-                    matches!(opcode[1], OpCode::NT(v) if self.parsing_table.flags[v as usize] & ruleflag::CHILD_L_RECURSION != 0)
+                    matches!(opcode[1], OpCode::NT(v) if self.flags[v as usize] & ruleflag::CHILD_L_RECURSION != 0)
                 {
                     if VERBOSE {
                         println!("    swapping for initial exit_{}: {} <-> {}",
@@ -744,16 +772,16 @@ impl ParserGen {
         const VERBOSE: bool = false;
         self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
-        let num_nt = self.parsing_table.num_nt;
-        let num_t = self.parsing_table.num_t;
-        let err = self.parsing_table.alts.len() as AltId;
+        let num_nt = self.num_nt;
+        let num_t = self.num_t;
+        let err = self.alts.len() as AltId;
         if VERBOSE {
-            self.parsing_table.print(self.get_symbol_table(), 0);
-            println!("num_nt = {num_nt}\nnum_t = {num_t}\ntable: {}", self.parsing_table.table.len());
+            self.make_ll1_parsing_table().print(self.get_symbol_table(), 0);
+            println!("num_nt = {num_nt}\nnum_t = {num_t}\ntable: {}", self.table.len());
         }
         if VERBOSE { println!("hooks: {}", self.terminal_hooks.iter().map(|t| self.symbol_table.get_t_name(*t)).join(", ")); }
         let deps: HashSet<VarId> = (0..num_nt as VarId)
-            .filter(|&nt| hooks.iter().any(|&t| self.parsing_table.table[nt as usize * num_t + t as usize] < err))
+            .filter(|&nt| hooks.iter().any(|&t| self.table[nt as usize * num_t + t as usize] < err))
             .collect();
         if VERBOSE { println!("deps = {deps:?} = {}", deps.iter().map(|nt| self.symbol_table.get_nt_name(*nt)).join(", ")); }
 
@@ -787,7 +815,7 @@ impl ParserGen {
             println!("new opcodes:");
             let mut cols = vec![];
             let tbl = self.get_symbol_table();
-            for (i, (opcodes, (nt, alt))) in self.opcodes.iter().zip(&self.parsing_table.alts).enumerate() {
+            for (i, (opcodes, (nt, alt))) in self.opcodes.iter().zip(&self.alts).enumerate() {
                 cols.push(vec![
                     i.to_string(),
                     format!("{} -> ", Symbol::NT(*nt).to_str(tbl)),
@@ -801,8 +829,8 @@ impl ParserGen {
 
     fn make_span_nbrs(&mut self) {
         self.log.add_note("- making spans...");
-        let mut span_nbrs = vec![0 as SpanNbr; self.parsing_table.alts.len()];
-        for (alt_id, (var_id, _)) in self.parsing_table.alts.iter().enumerate() {
+        let mut span_nbrs = vec![0 as SpanNbr; self.alts.len()];
+        for (alt_id, (var_id, _)) in self.alts.iter().enumerate() {
             let opcode = &self.opcodes[alt_id];
             let mut span_nbr = span_nbrs[alt_id] + count_span_nbr(opcode);
             if self.nt_has_any_flags(*var_id, ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) ||
@@ -810,7 +838,7 @@ impl ParserGen {
                 // there is a loop span
                 span_nbr += 1;
             }
-            if matches!(opcode.first(), Some(OpCode::NT(nt)) if nt != var_id && self.parsing_table.flags[*nt as usize] & ruleflag::CHILD_L_RECURSION != 0) {
+            if matches!(opcode.first(), Some(OpCode::NT(nt)) if nt != var_id && self.flags[*nt as usize] & ruleflag::CHILD_L_RECURSION != 0) {
                 // independent lrec term: the first NT doesn't count
                 span_nbr -= 1;
             }
@@ -853,7 +881,7 @@ impl ParserGen {
                                   alt.iter().join(", "), explore.iter().join(", "),
                                   &self.var_alts[var as usize].iter().join(", ")); }
             for a in &self.var_alts[var as usize] {
-                let (_, alter) = &self.parsing_table.alts[*a as usize];
+                let (_, alter) = &self.alts[*a as usize];
                 if let Some(Symbol::NT(last)) = alter.symbols().last() {
                     if self.nt_has_all_flags(*last, ruleflag::CHILD_L_FACT) {
                         // only one alternative calls NT(last), so we won't push it twice in explore:
@@ -907,11 +935,11 @@ impl ParserGen {
                         }
                     }
                     // Looks if a child_repeat has a value
-                    if has_value && self.parsing_table.parent[*var_id as usize].is_some() {
+                    if has_value && self.parent[*var_id as usize].is_some() {
                         // If it's a child of left factorization, we need to find the original nonterminal with the flags:
                         let mut child_nt = *var_id as usize;
-                        while self.parsing_table.flags[child_nt] & ruleflag::CHILD_REPEAT == 0 {
-                            if let Some(parent) = self.parsing_table.parent[child_nt] {
+                        while self.flags[child_nt] & ruleflag::CHILD_REPEAT == 0 {
+                            if let Some(parent) = self.parent[child_nt] {
                                 child_nt = parent as usize;
                             } else {
                                 break;
@@ -919,7 +947,7 @@ impl ParserGen {
                         }
                         // +* non-lform children have the same value as their parent, but +* lform
                         // children's value is independent of their parent's
-                        if self.parsing_table.flags[child_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                        if self.flags[child_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                             if VERBOSE && !self.nt_values[child_nt] {
                                 print!(" | {} is now valued {}",
                                        Symbol::NT(child_nt as VarId).to_str(self.get_symbol_table()),
@@ -939,8 +967,7 @@ impl ParserGen {
         const VERBOSE: bool = false;
         self.calc_nt_value();
         self.log.add_note("- making item ops...");
-        let info = &self.parsing_table;
-        let mut items = vec![Vec::<Symbol>::new(); self.parsing_table.alts.len()];
+        let mut items = vec![Vec::<Symbol>::new(); self.alts.len()];
         if VERBOSE {
             println!("Groups:");
             for g in self.nt_parent.iter().filter(|va| !va.is_empty()) {
@@ -975,14 +1002,14 @@ impl ParserGen {
             }
             for (var_id, alt_id) in &group {
                 let opcode = &self.opcodes[*alt_id as usize];
-                let (_, alt) = &info.alts[*alt_id as usize];
+                let (_, alt) = &self.alts[*alt_id as usize];
                 if VERBOSE {
                     print!("- {alt_id}: {} -> {}   [{}]",
                            Symbol::NT(*var_id).to_str(self.get_symbol_table()),
                            alt.to_str(self.get_symbol_table()),
                            opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
                 }
-                let flags = info.flags[*var_id as usize];
+                let flags = self.flags[*var_id as usize];
 
                 // Default values are taken from opcodes. Loop(nt) is only taken if the parent is l-rec;
                 // we look at the parent's flags instead of the alternative's because left factorization could
@@ -1010,7 +1037,7 @@ impl ParserGen {
                             if has_value
                                 // for now, leaves child* nonterminals used in another nonterminal (the parent),
                                 // because they're necessary in check_sep_list() to locate the first sep_list item:
-                                || matches!(s, Symbol::NT(v) if v != *var_id && self.parsing_table.flags[v as usize] & REP_MASK == CHILD_STAR)
+                                || matches!(s, Symbol::NT(v) if v != *var_id && self.flags[v as usize] & REP_MASK == CHILD_STAR)
                             {
                                 if !has_value {
                                     has_sep_list_child_without_value = true;
@@ -1038,7 +1065,7 @@ impl ParserGen {
                     let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_values[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
                         Some(Symbol::NT(*var_id))
                     } else if !is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 {
-                        let parent = info.parent[*var_id as usize].unwrap();
+                        let parent = self.parent[*var_id as usize].unwrap();
                         Some(Symbol::NT(parent))
                     } else if !is_ambig && flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
                         Some(Symbol::NT(*var_id))
@@ -1178,7 +1205,7 @@ impl ParserGen {
             let candidate_children = g.iter()
                 .filter_map(|&var| {
                     let alts = &self.var_alts[var as usize];
-                    let flags = self.parsing_table.flags[var as usize];
+                    let flags = self.flags[var as usize];
                     // takes only len() == 2 to reject complex cases like a -> A B C (B C | D)*
                     if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
                         Some((var, alts[0] as usize, flags))
@@ -1204,7 +1231,7 @@ impl ParserGen {
                     let (p_var, _p_alt_id, p_alt, mut p_pos) = self.nt_parent[top_nt].iter()
                         .flat_map(|&p_var| &self.var_alts[p_var as usize])
                         .filter_map(|&p_alt_id| {
-                            let (p_var, p_alt) = &self.parsing_table.alts[p_alt_id as usize];
+                            let (p_var, p_alt) = &self.alts[p_alt_id as usize];
                             if *p_var != c_var {
                                 p_alt.v.iter().position(|s| s == &c_sym).map(|p_pos| (*p_var, p_alt_id as usize, p_alt, p_pos))
                             } else {
@@ -1216,7 +1243,7 @@ impl ParserGen {
                     if p_pos > 0 {
                         // verifies if enough symbols match
                         p_pos -= 1; // easier to skip the child nonterminal, since it may or may not have a value
-                        let c_alt = &self.parsing_table.alts[c_alt_id].1.v;
+                        let c_alt = &self.alts[c_alt_id].1.v;
                         let mut c_pos = c_alt.len() - 2; // safe: there's at least another symbol before `c_sym` (per design)
                         let p_pos0 = p_pos;
                         let mut span_nbr = 0;
@@ -1280,7 +1307,7 @@ impl ParserGen {
                                     if VERBOSE {
                                         println!("    => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
                                     }
-                                    self.parsing_table.flags[c_var as usize] |= ruleflag::SEP_LIST;
+                                    self.flags[c_var as usize] |= ruleflag::SEP_LIST;
                                 }
                             }
                         }
@@ -1295,7 +1322,7 @@ impl ParserGen {
         if VERBOSE {
             println!("  sorting {} alts {alts:?}", Symbol::NT(top_nt).to_str(self.get_symbol_table()));
             for &a_id in alts {
-                let &(_nt, ref alt) = &self.parsing_table.alts[a_id as usize];
+                let &(_nt, ref alt) = &self.alts[a_id as usize];
                 if let Some((v, id)) = alt.origin {
                     let tree = &self.origin.trees[v as usize];
                     println!("    [{a_id}] id = {},{id} -> {}  <->  {}",
@@ -1308,7 +1335,7 @@ impl ParserGen {
             }
         }
         let mut sorted = vec![];
-        let mut ids = alts.iter().filter_map(|&alt_id| self.parsing_table.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
+        let mut ids = alts.iter().filter_map(|&alt_id| self.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
             .collect::<HashMap<_, _>>();
         let tree = &self.origin.trees[top_nt as usize];
         for node in tree.iter_post_depth() {
@@ -1380,11 +1407,10 @@ impl ParserGen {
         const VERBOSE: bool = false;
 
         self.log.add_note("- determining item_info...");
-        let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_plower_fixer = NameFixer::new_empty(); // prefixed lowercase: don't worry about reserved words
-        let nt_name: Vec<(String, String, String)> = (0..pinfo.num_nt).map(|v| {
+        let nt_name: Vec<(String, String, String)> = (0..self.num_nt).map(|v| {
             let name = self.symbol_table.get_nt_name(v as VarId);
             let nu = nt_upper_fixer.get_unique_name(name.to_camelcase());
             let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
@@ -1392,9 +1418,9 @@ impl ParserGen {
             (nu, nl, npl)
         }).to_vec();
 
-        let mut alt_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.alts.len()];
+        let mut alt_info: Vec<Option<(VarId, String)>> = vec![None; self.alts.len()];
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
-        let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.alts.len()];
+        let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; self.alts.len()];
         let mut child_repeat_endpoints = HashMap::<VarId, Vec<AltId>>::new();
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let is_ambig = self.nt_has_any_flags(group[0], ruleflag::PARENT_AMBIGUITY);
@@ -1402,7 +1428,7 @@ impl ParserGen {
             let mut alt_info_to_sort = HashMap::<VarId, Vec<AltId>>::new();
             for var in group {
                 let nt = *var as usize;
-                let nt_flags = pinfo.flags[nt];
+                let nt_flags = self.flags[nt];
                 if is_ambig && (nt_flags & ruleflag::PARENT_L_RECURSION != 0 || (nt_flags & ruleflag::CHILD_L_RECURSION != 0 && !is_ambig_1st_child)) {
                     continue;
                 }
@@ -1418,7 +1444,7 @@ impl ParserGen {
                         endpoints = endpoints.chunks(2).map(|slice| slice[0]).to_vec();
                     } else {
                         // with *, the endpoint corresponding to the exit has no data
-                        endpoints.retain(|e| !pinfo.alts[*e as usize].1.is_sym_empty());
+                        endpoints.retain(|e| !self.alts[*e as usize].1.is_sym_empty());
                     }
                     assert!(!endpoints.is_empty());
                     let endpoints = self.sort_alt_ids(group[0], &endpoints);
@@ -1426,7 +1452,7 @@ impl ParserGen {
                 }
                 for &alt_id in &self.var_alts[nt] {
                     let i = alt_id as usize;
-                    if is_ambig_1st_child && pinfo.alts[i].1.is_sym_empty() {
+                    if is_ambig_1st_child && self.alts[i].1.is_sym_empty() {
                         continue;
                     }
                     let item_ops = &self.item_ops[alt_id as usize];
@@ -1436,9 +1462,9 @@ impl ParserGen {
                     //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
                     let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
                     let mut fixer = NameFixer::new();
-                    let mut owner = pinfo.alts[i].0;
-                    while let Some(parent) = pinfo.parent[owner as usize] {
-                        if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                    let mut owner = self.alts[i].0;
+                    while let Some(parent) = self.parent[owner as usize] {
+                        if self.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
                             // a child + * is owner
                             // - if <L>, it has its own public context and a user-defined return type
                             // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
@@ -1447,16 +1473,16 @@ impl ParserGen {
                         }
                         owner = parent;
                     }
-                    let is_nt_child_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
+                    let is_nt_child_repeat = self.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
                     for s in item_ops {
                         if let Some((_, c)) = indices.get_mut(s) {
                             *c = Some(0);
                         } else {
                             let name = if let Symbol::NT(vs) = s {
-                                let flag = pinfo.flags[*vs as usize];
+                                let flag = self.flags[*vs as usize];
                                 if flag & ruleflag::CHILD_REPEAT != 0 {
                                     let inside_alt_id = self.var_alts[*vs as usize][0];
-                                    let inside_alt = &pinfo.alts[inside_alt_id as usize].1;
+                                    let inside_alt = &self.alts[inside_alt_id as usize].1;
                                     if false {
                                         // we don't use this any more
                                         let mut plus_name = inside_alt.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
@@ -1482,11 +1508,11 @@ impl ParserGen {
                     // A parent of left factorization has no context, but we must check the alternatives that are the actual parents.
                     // The flag test is optional, but it serves to gate the more complex parental test.
                     let has_lfact_child = nt_flags & ruleflag::PARENT_L_FACTOR != 0 &&
-                        pinfo.alts[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACT != 0));
+                        self.alts[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if self.flags[c as usize] & ruleflag::CHILD_L_FACT != 0));
 
                     // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
                     // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
-                    let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
+                    let is_hidden_repeat_child = self.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
 
                     // <alt> -> ε
                     let is_alt_sym_empty = self.is_alt_sym_empty(alt_id);
@@ -1679,21 +1705,21 @@ impl ParserGen {
             format!("static SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
                      self.symbol_table.get_nonterminals().map(|s| format!("{s:?}")).join(", ")),
             format!("static ALT_VAR: [VarId; {}] = [{}];",
-                    self.parsing_table.alts.len(),
-                    self.parsing_table.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
+                    self.alts.len(),
+                    self.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
         ];
         if self.options.include_alts {
             self.options.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
             src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
-                             self.parsing_table.alts.len(),
-                             self.parsing_table.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(symbol_to_code).join(", "))).join(", ")));
+                             self.alts.len(),
+                             self.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(symbol_to_code).join(", "))).join(", ")));
         }
-        self.log.add_note(format!("- creating parsing tables: {} items, {} opcodes", self.parsing_table.table.len(), self.opcodes.len()));
+        self.log.add_note(format!("- creating parsing tables: {} items, {} opcodes", self.table.len(), self.opcodes.len()));
         src.extend(vec![
             format!(
                 "static PARSING_TABLE: [AltId; {}] = [{}];",
-                self.parsing_table.table.len(),
-                self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
+                self.table.len(),
+                self.table.iter().map(|v| format!("{v}")).join(", ")),
             format!(
                 "static OPCODES: [&[OpCode]; {}] = [{}];",
                 self.opcodes.len(),
@@ -1799,7 +1825,7 @@ impl ParserGen {
     }
 
     fn is_alt_sym_empty(&self, a_id: AltId) -> bool {
-        self.parsing_table.alts[a_id as usize].1.is_sym_empty()
+        self.alts[a_id as usize].1.is_sym_empty()
     }
 
     /// Generates the match cases for the "Call::Exit" in the `switch` method.
@@ -1999,7 +2025,6 @@ impl ParserGen {
         self.options.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
 
         self.get_type_info();
-        let pinfo = &self.parsing_table;
 
         // defines missing type names
         for (v, name) in self.nt_name.iter().enumerate().filter(|(v, _)| self.nt_values[*v]) {
@@ -2046,7 +2071,7 @@ impl ParserGen {
         // we proceed by var parent, then all alts in each parent/children group
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let parent_nt = group[0] as usize;
-            let parent_flags = self.parsing_table.flags[parent_nt];
+            let parent_flags = self.flags[parent_nt];
             let parent_has_value = self.nt_values[parent_nt];
             let mut exit_alt_done = HashSet::<VarId>::new();
             let mut init_nt_done = HashSet::<VarId>::new();
@@ -2063,7 +2088,7 @@ impl ParserGen {
             let mut ambig_op_alts = BTreeMap::<AltId, Vec<AltId>>::new();
             for (id, f) in ambig_children.iter()        // id = operator priority/ID in ambig rule
                 .flat_map(|v| self.gather_alts(*v))
-                .filter_map(|f| self.parsing_table.alts[f as usize].1.get_ambig_alt_id().map(|id| (id, f)))
+                .filter_map(|f| self.alts[f as usize].1.get_ambig_alt_id().map(|id| (id, f)))
             {
                 ambig_op_alts.entry(id).or_default().push(f);
             }
@@ -2076,7 +2101,6 @@ impl ParserGen {
             let in_ctx = SourceInputContext {
                 parent_has_value,
                 parent_nt,
-                pinfo,
                 syns: &syns,
                 ambig_op_alts: &ambig_op_alts,
             };
@@ -2090,7 +2114,7 @@ impl ParserGen {
 
             for var in group {
                 let nt = *var as usize;
-                let flags = self.parsing_table.flags[nt];
+                let flags = self.flags[nt];
                 // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
                 let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && ambig_children.first() == Some(var);
                 // we only process the first variable of the left recursion; below we gather the alts of
@@ -2125,11 +2149,11 @@ impl ParserGen {
             // completes the unused nt entries in the match's Call::Exit => { ... }
             for a in group.iter().flat_map(|v| &self.var_alts[*v as usize]).filter(|a| !exit_alt_done.contains(a)) {
                 let is_called = self.opcodes[*a as usize].contains(&OpCode::Exit(*a));
-                let (v, alt) = &self.parsing_table.alts[*a as usize];
+                let (v, alt) = &self.alts[*a as usize];
                 let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
                     self.full_alt_str(*a, None, false)
                 } else {
-                    alt.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
+                    alt.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                 };
                 let comment = format!("// {alt_str} ({})", if is_called { "not used" } else { "never called" });
                 if is_called {
@@ -2162,7 +2186,7 @@ impl ParserGen {
 
     /// Adds the wrapper source code related to the Ctx types
     fn source_wrapper_ctx<const VERBOSE: bool>(&self, src: &mut Vec<String>) -> Vec<Option<Vec<AltId>>> {
-        let mut nt_contexts: Vec<Option<Vec<AltId>>> = vec![None; self.parsing_table.num_nt];
+        let mut nt_contexts: Vec<Option<Vec<AltId>>> = vec![None; self.num_nt];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<AltId>>::new();
             // fetches the NT that have alt data
@@ -2180,7 +2204,7 @@ impl ParserGen {
             }
             for &nt in group {
                 if let Some(alts) = group_names.get(&nt) {
-                    let flags = self.parsing_table.flags[nt as usize];
+                    let flags = self.flags[nt as usize];
                     if VERBOSE {
                         print!("- {}: flags {}", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(flags).join(" "));
                         if let Some(gn) = group_names.get(&nt) {
@@ -2265,7 +2289,7 @@ impl ParserGen {
                     src_types.push(TYPE_DERIVE.to_string());
                     src_types.push(format!("pub struct {}();", self.get_nt_type(v)));
                 } else {
-                    let top_parent = self.parsing_table.get_top_parent(v);
+                    let top_parent = self.get_top_parent(v);
                     src.push(format!("/// Computed `{}` array in `{} -> {}`",
                                      grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
                                      Symbol::NT(top_parent).to_str(self.get_symbol_table()),
@@ -2374,7 +2398,7 @@ impl ParserGen {
 
         let mut has_skel_init = false;
         let init_fn_name = format!("init_{npl}");
-        if self.parsing_table.parent[nt].is_none() {
+        if self.parent[nt].is_none() {
             init_nt_done.insert(var);
             if is_rrec_lform {
                 span_init.insert(var);
@@ -2519,7 +2543,7 @@ impl ParserGen {
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
         let &SourceInputContext {
-            parent_has_value, parent_nt, pinfo, syns, ambig_op_alts
+            parent_has_value, parent_nt, syns, ambig_op_alts
         } = ctx;
         let SourceState { nt_contexts, exit_alt_done, exit_fixer, .. } = state;
         let WrapperSources { src_listener_decl, src_skel, src_exit, src_wrapper_impl, .. } = sources;
@@ -2628,11 +2652,11 @@ impl ParserGen {
             let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, flags, no_method, None);
             if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
             let comments = exit_alts.iter().map(|f| {
-                let (v, pf) = &self.parsing_table.alts[*f as usize];
+                let (v, pf) = &self.alts[*f as usize];
                 if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
                     format!("// {}", self.full_alt_str(*f, None, false))
                 } else {
-                    format!("// {}", pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize]))
+                    format!("// {}", pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize]))
                 }
             }).to_vec();
             src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
@@ -2643,7 +2667,7 @@ impl ParserGen {
                     let (_, choices) = self.make_match_choices(dup_alts, &fn_name, 0, no_method, Some(*a_id));
                     let comments = dup_alts.iter()
                         .map(|a| {
-                            let (v, alt) = &pinfo.alts[*a as usize];
+                            let (v, alt) = &self.alts[*a as usize];
                             format!("// {} (duplicate of {a_id})", alt.to_rule_str(*v, self.get_symbol_table(), 0))
                         }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
@@ -2689,7 +2713,7 @@ impl ParserGen {
                     if VERBOSE {
                         println!("    - ALTERNATIVE {a}: {} -> {}",
                                  Symbol::NT(var).to_str(self.get_symbol_table()),
-                                 self.parsing_table.alts[a as usize].1.to_str(self.get_symbol_table()));
+                                 self.alts[a as usize].1.to_str(self.get_symbol_table()));
                     }
                     let last_alt_id_maybe = if last_alt_ids.is_empty() { None } else { Some(last_alt_ids.remove(0)) };
                     if !is_single {
@@ -2740,13 +2764,13 @@ impl ParserGen {
                 src_wrapper_impl.push("    }".to_string());
             }
             for a in last_it_alts {
-                assert_eq!(flags, pinfo.flags[nt]);
+                assert_eq!(flags, self.flags[nt]);
                 // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
                 // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
                 let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
                     Some(var)
                 } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                    pinfo.parent[nt]
+                    self.parent[nt]
                 } else {
                     None
                 };
@@ -2758,11 +2782,11 @@ impl ParserGen {
                         if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
                         src_listener_decl.push("    #[allow(unused_variables)]".to_string());
                         src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
-                        let (v, pf) = &self.parsing_table.alts[a as usize];
+                        let (v, pf) = &self.alts[a as usize];
                         let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
                             self.full_alt_str(a, None, false)
                         } else {
-                            pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
+                            pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                         };
                         src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
                         exit_alt_done.insert(a);
@@ -3103,7 +3127,7 @@ impl ParserGen {
             idx.extend(group.iter().zip(tree_ids));
             for &child in group.iter() {
                 tree.attach_child(
-                    self.parsing_table.parent[child as usize]
+                    self.parent[child as usize]
                         .map(|p| idx[&p])
                         .unwrap_or(root),
                     idx[&child]);
@@ -3132,13 +3156,13 @@ impl ParserGen {
             vec!["  NT".to_string(), "  name".to_string(), " val".to_string(), /*"  parent".to_string(),*/ "  flags".to_string(), String::new()]];
         for (v, line) in indented {
             let nt = v as usize;
-            // let parent = self.parsing_table.parent[nt].map(|p| Symbol::NT(p).to_str(self.get_symbol_table())).unwrap_or_else(||String::new());
+            // let parent = self.parent[nt].map(|p| Symbol::NT(p).to_str(self.get_symbol_table())).unwrap_or_else(||String::new());
             cols.push(vec![
                 format!("| {v:3}"),
                 format!("| {line}"),
                 if self.nt_values[nt] { "| y".to_string() } else { "|".to_string() },
                 // format!("| {parent}"),
-                format!("| {}", ruleflag::to_string(self.parsing_table.flags[nt]).join(", ")),
+                format!("| {}", ruleflag::to_string(self.flags[nt]).join(", ")),
                 "|".to_string(),
             ]);
         }
@@ -3166,7 +3190,7 @@ impl ParserGen {
             let nt = v as usize;
             for &alt_id in &self.var_alts[nt] {
                 let a_id = alt_id as usize;
-                let alt = &self.parsing_table.alts[a_id].1;
+                let alt = &self.alts[a_id].1;
                 let opcodes = self.opcodes[a_id].iter().map(|o| o.to_str_quote(self.get_symbol_table())).join(" ");
                 let item_ops = self.item_ops.get(a_id)
                     .map(|ops| ops.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "))
@@ -3202,10 +3226,10 @@ impl ParserGen {
 
     pub fn print_items(&self, indent: usize, show_symbols: bool, show_span: bool) {
         let tbl = self.get_symbol_table();
-        let fields = (0..self.parsing_table.alts.len())
+        let fields = (0..self.alts.len())
             .map(|a| {
                 let a_id = a as AltId;
-                let (v, alt) = &self.parsing_table.alts[a];
+                let (v, alt) = &self.alts[a];
                 let ops = &self.opcodes[a];
                 let it = &self.item_ops[a_id as usize];
                 let mut cols = vec![];
@@ -3239,10 +3263,10 @@ impl ParserGen {
     pub fn print_flags(&self, indent: usize) {
         let tbl: Option<&SymbolTable> = self.get_symbol_table();
         let prefix = format!("{:width$}//", "", width = indent);
-        let nt_flags = self.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
+        let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
             if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
         ).join("\n");
-        let parents = self.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
+        let parents = self.parent.iter().index().filter_map(|(c, &par)|
             par.map(|p| format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl)))
         ).join("\n");
         if !nt_flags.is_empty() {

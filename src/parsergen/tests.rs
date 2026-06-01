@@ -2600,7 +2600,7 @@ mod wrapper_source {
             builder.set_nt_value(has_value.clone());
             if VERBOSE {
                 println!("before, NT with value: {}",
-                         (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
+                         (0..builder.num_nt).into_iter().filter_map(|v|
                              if builder.nt_values[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
@@ -2618,24 +2618,24 @@ mod wrapper_source {
             let (result_src, ..) = builder.gen_source_code();
             if VERBOSE {
                 println!("after,  NT with value: {}",
-                         (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
+                         (0..builder.num_nt).into_iter().filter_map(|v|
                              if builder.nt_values[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
             let result_items = builder.item_ops.iter().enumerate()
                 .map(|(a_id, v)| (a_id as AltId, (builder.span_nbrs[a_id], v.clone())))
                 .collect::<BTreeMap<AltId, (SpanNbr, Vec<Symbol>)>>();
-            let result_alts = (0..builder.parsing_table.num_nt).filter_map(|v|
-                if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
+            let result_alts = (0..builder.num_nt).filter_map(|v|
+                if builder.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
             if VERBOSE {
-                let gather_alts = (0..(builder.parsing_table.num_nt as VarId)).map(|v| (v, builder.gather_alts(v))).to_vec();
+                let gather_alts = (0..(builder.num_nt as VarId)).map(|v| (v, builder.gather_alts(v))).to_vec();
                 println!("gather_alts:\n{}", gather_alts.iter().map(|(v, alts)| {
                     format!(
                         "- {} -> {}",
                         Symbol::NT(*v).to_str(builder.get_symbol_table()),
                         alts.iter().map(|a| {
-                            let (va, _) = builder.parsing_table.alts[*a as usize];
+                            let (va, _) = builder.alts[*a as usize];
                             format!("({}: {a})", Symbol::NT(va).to_str(builder.get_symbol_table()))
                         }).join(", "))
                 }).join("\n"));
@@ -2658,7 +2658,7 @@ mod wrapper_source {
                 println!("            ], {has_value_str}, btreemap![{}]),",
                     if result_alts.is_empty() { "".to_string() } else { result_alts.iter().map(|(v, a)| format!("{v} => vec![{}]", a.iter().join(", "))).join(", ") }
                 );
-                let nbr_alts = builder.parsing_table.alts.len();
+                let nbr_alts = builder.alts.len();
                 let original = (0..nbr_alts)
                     .filter_map(|i| builder.get_original_alt_str(i as AltId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
                     .join("\n");
@@ -2967,7 +2967,7 @@ mod wrapper_source {
             let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_full = vec![];
-            for (a_id, (_v, a)) in builder.parsing_table.alts.iter().index() {
+            for (a_id, (_v, a)) in builder.alts.iter().index() {
                 result_full.push(
                     format!("{}", if let Some(s) = a.get_origin().and_then(|_| Some(builder.full_alt_str(a_id, None, false))) {
                         format!("Some(r#\"{s}\"#)")
@@ -2980,7 +2980,7 @@ mod wrapper_source {
                 println!("            ({tr_id}, vec![", );
                 let cols = result_full.iter().enumerate()
                     .map(|(i, s_full)| {
-                        let (v, prod) = &builder.parsing_table.alts[i];
+                        let (v, prod) = &builder.alts[i];
                         vec![
                             "".to_string(),
                             format!("{s_full},"),

@@ -122,7 +122,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
     if verbose {
         builder.print_flags(4);
         println!("Parsing table of grammar '{}':", builder.get_name());
-        builder.get_parsing_table().print(builder.get_symbol_table(), 4);
+        builder.make_ll1_parsing_table().print(builder.get_symbol_table(), 4);
     }
     if !builder.get_log().has_no_errors() {
         return Err(builder.give_log());

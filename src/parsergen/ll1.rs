@@ -67,8 +67,16 @@ impl BuildFrom<ParserGen> for LLParserTables {
         if !parser_gen.has_no_errors() {
             panic!("creation of LL parser tables failed:{}", parser_gen.log);
         }
+        let parsing_table = LL1ParsingTable {
+            num_nt: parser_gen.num_nt,
+            num_t: parser_gen.num_t,
+            alts: parser_gen.alts,
+            table: parser_gen.table,
+            flags: parser_gen.flags,
+            parent: parser_gen.parent,
+        };
         LLParserTables::new(
-            parser_gen.parsing_table,
+            parsing_table,
             parser_gen.symbol_table.to_fixed_sym_table(),
             parser_gen.opcodes,
             parser_gen.init_opcodes,
