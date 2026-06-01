@@ -420,13 +420,13 @@ pub mod watcher_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 25;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 57;
-    const NBR_STATES: StateId = 71;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 57;
+    const NBR_STATES: LexStateId = 71;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          24,  24,  24,  24,  24,  24,  24,  24,  24,  23,   0,  24,  24,   0,  24,  24,   // 0-15
          24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,   // 16-31
@@ -459,7 +459,7 @@ pub mod watcher_lexer {
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::Mode(3), mode_state: Some(39), pop: false },
         Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
     ];
-    static STATE_TABLE: [StateId; 1776] = [
+    static STATE_TABLE: [LexStateId; 1776] = [
          57,   1,   2,   3,   4,   5,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 0
          71,  63,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 1
          71,  71,  71,  71,  71,  71,   6,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71,  71, // state 2

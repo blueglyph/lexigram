@@ -6,13 +6,13 @@ use crate::log::LogMsg;
 use crate::parser::{Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
 
 /// State index
-pub type StateId = u16;
+pub type LRStateId = u16;
 
 #[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub enum LRAction {
     #[default]
     Error,
-    Shift(StateId),
+    Shift(LRStateId),
     Reduce(AltId),
     Accept,
 }
@@ -33,7 +33,7 @@ pub struct LRParser {
     num_nt: usize,                      // doesn't include the goal NT
     num_t_full: usize,                  // includes the end symbol
     action: Vec<LRAction>,
-    goto: Vec<StateId>,
+    goto: Vec<LRStateId>,
     alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
 }
@@ -43,7 +43,7 @@ impl LRParser {
         num_nt: usize,
         num_t_full: usize,
         action: Vec<LRAction>,
-        goto: Vec<StateId>,
+        goto: Vec<LRStateId>,
         alt_nt_len: Vec<(VarId, u16, u16)>,
         symbol_table: FixedSymTable
     ) -> Self {
@@ -67,7 +67,7 @@ impl LRParser {
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
         let mut error = None;
-        let mut s: StateId = 0;
+        let mut s: LRStateId = 0;
         let mut stack_state = vec![s];
         let mut stack_t = vec![];
         let mut advance_stream = true;

@@ -238,7 +238,7 @@ fn type_size() {
     println!("- Terminal   : {:4} bytes", std::mem::size_of::<crate::lexer::Terminal>());
     println!("- ReType     : {:4} bytes", std::mem::size_of::<crate::dfa::ReType>());
     println!("- ReNode     : {:4} bytes", std::mem::size_of::<crate::dfa::ReNode>());
-    println!("- StateId    : {:4} bytes", std::mem::size_of::<crate::lexer::StateId>());
+    println!("- StateId    : {:4} bytes", std::mem::size_of::<crate::lexer::LexStateId>());
     println!("- TokenId    : {:4} bytes", std::mem::size_of::<crate::TokenId>());
     println!("- ModeId     : {:4} bytes", std::mem::size_of::<crate::lexer::ModeId>());
     println!("- ChannelId  : {:4} bytes", std::mem::size_of::<crate::lexer::ChannelId>());

@@ -12,7 +12,7 @@ use crate::TokenId;
 // ---------------------------------------------------------------------------------------------
 // Types used in lexer
 
-pub type StateId = usize;
+pub type LexStateId = usize;
 pub type ChannelId = u16;
 pub type ModeId = u16;
 
@@ -32,7 +32,7 @@ pub struct Terminal {
     pub action: ActionOption,
     pub channel: ChannelId,
     pub mode: ModeOption,
-    pub mode_state: Option<StateId>,
+    pub mode_state: Option<LexStateId>,
     pub pop: bool
 }
 
@@ -342,7 +342,7 @@ pub struct LexerErrorInfo {
     pub col: CaretCol,
     pub curr_char: Option<char>,
     pub group: GroupId,
-    pub state: StateId,
+    pub state: LexStateId,
     pub text: String,
 }
 
@@ -414,18 +414,18 @@ pub struct Lexer<'a, R> {
     pub(crate) pos: u64,
     pub(crate) cursor: Pos,
     pub(crate) tab_width: CaretCol,
-    pub(crate) state_stack: Vec<StateId>,
-    pub(crate) start_state: StateId,
+    pub(crate) state_stack: Vec<LexStateId>,
+    pub(crate) start_state: LexStateId,
     // parameters
     pub nbr_groups: u32,
-    pub initial_state: StateId,
-    pub first_end_state: StateId,   // accepting when state >= first_end_state
-    pub nbr_states: StateId,        // error if state >= nbr_states
+    pub initial_state: LexStateId,
+    pub first_end_state: LexStateId,   // accepting when state >= first_end_state
+    pub nbr_states: LexStateId,        // error if state >= nbr_states
     // tables
     pub ascii_to_group: &'a [GroupId],
     pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
-    pub state_table: &'a [StateId],
+    pub state_table: &'a [LexStateId],
     pub terminal_table: &'a [Terminal],  // token(state) = token_table[state - first_end_state]
 }
 
@@ -433,14 +433,14 @@ impl<'a, R: Read> Lexer<'a, R> {
     pub fn new(
         // parameters
         nbr_groups: u32,
-        initial_state: StateId,
-        first_end_state: StateId,   // accepting when state >= first_end_state
-        nbr_states: StateId,        // error if state >= nbr_states
+        initial_state: LexStateId,
+        first_end_state: LexStateId,   // accepting when state >= first_end_state
+        nbr_states: LexStateId,        // error if state >= nbr_states
         // tables
         ascii_to_group: &'a [GroupId],
         utf8_to_group: HashMap<char, GroupId>,
         seg_to_group: SegMap<GroupId>,
-        state_table: &'a [StateId],
+        state_table: &'a [LexStateId],
         terminal_table: &'a [Terminal],  // token(state) = token_table[state - first_end_state>]
     ) -> Self {
         Lexer {
@@ -557,7 +557,7 @@ impl<'a, R: Read> Lexer<'a, R> {
             let mut state = self.start_state;
             let mut first_pos = self.cursor;
             let mut last_pos = first_pos;
-            #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
+            #[cfg(debug_assertions)] let mut last_state: Option<LexStateId> = None;
             #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
             loop {

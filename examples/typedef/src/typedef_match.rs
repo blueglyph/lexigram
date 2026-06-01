@@ -326,13 +326,13 @@ pub mod typedef_match_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 13;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 4;
-    const NBR_STATES: StateId = 14;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 4;
+    const NBR_STATES: LexStateId = 14;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          11,  11,  11,  11,  11,  11,  11,  11,  11,   0,  12,  11,  11,  12,  11,  11,   // 0-15
          11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,   // 16-31
@@ -361,7 +361,7 @@ pub mod typedef_match_lexer {
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 183] = [
+    static STATE_TABLE: [LexStateId; 183] = [
           4,   5,   6,   7,   1,   8,   9,  10,  11,  14,  14,  14,   4, // state 0
          14,  14,  14,  14,  12,  14,  14,  14,  14,   2,  14,  14,  14, // state 1
           2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2, // state 2

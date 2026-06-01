@@ -10,7 +10,7 @@ use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::escape_string;
 use crate::{btreeset, indent_source, General, Normalized};
 use crate::char_reader::escape_char;
-use crate::lexer::{ModeId, ModeOption, StateId, Terminal};
+use crate::lexer::{ModeId, ModeOption, LexStateId, Terminal};
 use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
 use crate::segments::Segments;
@@ -362,7 +362,7 @@ impl DfaBuilder {
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().copied());
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
-        let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
+        let mut states = BTreeMap::<BTreeSet<Id>, LexStateId>::new();
         states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
         let mut conflicts = vec![];
@@ -477,7 +477,7 @@ impl DfaBuilder {
             };
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
-            let mut map = BTreeMap::<StateId, Segments>::new();
+            let mut map = BTreeMap::<LexStateId, Segments>::new();
             for (segment, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
                 if RM_LAZY_BRANCHES && !is_lazy_state && has_non_lazy_terminal && ids.iter().all(|id| lazy_followpos.contains(id)) {
@@ -556,8 +556,8 @@ impl DfaBuilder {
     }
 
     #[cfg(test)]
-    pub(crate) fn build_from_graph<T: IntoIterator<Item=(StateId, Terminal)>>(
-        &mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T,
+    pub(crate) fn build_from_graph<T: IntoIterator<Item=(LexStateId, Terminal)>>(
+        &mut self, graph: BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>, init_state: LexStateId, end_states: T,
     ) -> Option<Dfa<General>>
     {
         let mut dfa = Dfa::<General> {
@@ -677,10 +677,10 @@ impl BuildFrom<ReTree> for DfaBuilder {
 // ---------------------------------------------------------------------------------------------
 
 pub struct Dfa<T> {
-    state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-    initial_state: Option<StateId>,
-    end_states: BTreeMap<StateId, Terminal>,
-    first_end_state: Option<StateId>,
+    state_graph: BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>,
+    initial_state: Option<LexStateId>,
+    end_states: BTreeMap<LexStateId, Terminal>,
+    first_end_state: Option<LexStateId>,
     pub(crate) log: BufLog,
     _phantom: PhantomData<T>
 }
@@ -697,19 +697,19 @@ impl<T> Dfa<T> {
         }
     }
 
-    pub fn get_state_graph(&self) -> &BTreeMap<StateId, BTreeMap<Segments, StateId>> {
+    pub fn get_state_graph(&self) -> &BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>> {
         &self.state_graph
     }
 
-    pub fn get_initial_state(&self) -> &Option<StateId> {
+    pub fn get_initial_state(&self) -> &Option<LexStateId> {
         &self.initial_state
     }
 
-    pub fn get_end_states(&self) -> &BTreeMap<StateId, Terminal> {
+    pub fn get_end_states(&self) -> &BTreeMap<LexStateId, Terminal> {
         &self.end_states
     }
 
-    pub fn get_first_end_state(&self) -> &Option<StateId> {
+    pub fn get_first_end_state(&self) -> &Option<LexStateId> {
         &self.first_end_state
     }
 
@@ -725,7 +725,7 @@ impl<T> Dfa<T> {
             false
         } else {
             let mut last_end = self.end_states.contains_key(states[0]);
-            let mut last: StateId = 0;
+            let mut last: LexStateId = 0;
             for &st in states.iter().skip(1) {
                 let end = self.end_states.contains_key(st);
                 if (*st != last + 1) || (!end && last_end) {
@@ -746,9 +746,9 @@ impl<T> Dfa<T> {
             return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
         }
         self.log.add_note("normalizing DFA...");
-        let mut translate = BTreeMap::<StateId, StateId>::new();
-        let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
-        let mut end_states = BTreeMap::<StateId, Terminal>::new();
+        let mut translate = BTreeMap::<LexStateId, LexStateId>::new();
+        let mut state_graph = BTreeMap::<LexStateId, BTreeMap<Segments, LexStateId>>::new();
+        let mut end_states = BTreeMap::<LexStateId, Terminal>::new();
         let nbr_end = self.end_states.len();
         let mut non_end_id = 0;
         let mut end_id = self.state_graph.len() - nbr_end;
@@ -800,15 +800,15 @@ impl<T> Dfa<T> {
         // for example, when it's important to differentiate tokens.
         let separate_end_states = true;
         if VERBOSE { println!("-----------------------------------------------------------"); }
-        let mut groups = Vec::<BTreeSet<StateId>>::new();
-        let mut st_to_group = BTreeMap::<StateId, usize>::new();
+        let mut groups = Vec::<BTreeSet<LexStateId>>::new();
+        let mut st_to_group = BTreeMap::<LexStateId, usize>::new();
         let nbr_non_end_states = self.state_graph.len() - self.end_states.len();
         let mut last_non_end_id = 0;
         let first_ending_id = nbr_non_end_states + 1;
 
         // initial partition
         // - all non-end states
-        let mut group = BTreeSet::<StateId>::new();
+        let mut group = BTreeSet::<LexStateId>::new();
         for st in self.state_graph.keys().filter(|&st| !self.end_states.contains_key(st)) {
             group.insert(*st);
             st_to_group.insert(*st, 0);
@@ -822,7 +822,7 @@ impl<T> Dfa<T> {
         if separate_end_states {
             for st in self.end_states.keys() {
                 st_to_group.insert(*st, groups.len());
-                groups.push(BTreeSet::<StateId>::from([*st]));
+                groups.push(BTreeSet::<LexStateId>::from([*st]));
             }
         } else {
             st_to_group.extend(self.end_states.keys().map(|id| (*id, groups.len())));
@@ -831,7 +831,7 @@ impl<T> Dfa<T> {
         let mut last_ending_id = groups.len() - 1;
         let mut change = true;
         while change {
-            let mut changes = Vec::<(StateId, usize, usize)>::new();   // (state, old group, new group)
+            let mut changes = Vec::<(LexStateId, usize, usize)>::new();   // (state, old group, new group)
             for (id, p) in groups.iter().enumerate().filter(|(_, g)| !g.is_empty()) {
                 // do all states have the same destination group for the same symbol?
                 if VERBOSE { println!("group #{id}: {p:?}:"); }
@@ -873,7 +873,7 @@ impl<T> Dfa<T> {
             change = !changes.is_empty();
             for (st_id, old_group_id, new_group_id) in changes {
                 if new_group_id >= groups.len() {
-                    groups.push(BTreeSet::<StateId>::new());
+                    groups.push(BTreeSet::<LexStateId>::new());
                 }
                 assert!(groups[old_group_id].remove(&st_id));
                 groups[new_group_id].insert(st_id);
@@ -907,7 +907,7 @@ impl<T> Dfa<T> {
         }
         // stores the new states; note that tokens may be lost if `separate_end_states` is false
         // since we take the token of the first accepting state in the group
-        self.end_states = BTreeMap::<StateId, Terminal>::from_iter(
+        self.end_states = BTreeMap::<LexStateId, Terminal>::from_iter(
             groups.iter().enumerate()
                 .filter_map(|(group_id, states)| states.iter()
                     .find_map(|s| self.end_states.get(s).map(|terminal| {
@@ -915,16 +915,16 @@ impl<T> Dfa<T> {
                         if let Some(state) = &mut new_terminal.mode_state {
                             *state = st_to_group[state];
                         }
-                        (group_id as StateId, new_terminal)
+                        (group_id as LexStateId, new_terminal)
                     })))
         );
 
-        self.initial_state = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
+        self.initial_state = Some(st_to_group[&self.initial_state.unwrap()] as LexStateId);
         self.state_graph = self.state_graph.iter()
             .map(|(st_id, map_sym_st)| (
-                st_to_group[st_id] as StateId,
-                map_sym_st.iter().map(|(segs, st)| (segs.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
-            .collect::<BTreeMap::<StateId, BTreeMap<Segments, StateId>>>();
+                st_to_group[st_id] as LexStateId,
+                map_sym_st.iter().map(|(segs, st)| (segs.clone(), st_to_group[st] as LexStateId)).collect::<BTreeMap<_, _>>()))
+            .collect::<BTreeMap::<LexStateId, BTreeMap<Segments, LexStateId>>>();
         if VERBOSE {
             println!("new_graph:   {:?}", self.state_graph);
             println!("new_initial: {:?}", self.initial_state);
@@ -1066,18 +1066,18 @@ impl BuildFrom<DfaBuilder> for Dfa<General> {
 // ---------------------------------------------------------------------------------------------
 
 pub struct DfaTables {
-    state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-    initial_state: Option<StateId>,
-    end_states: BTreeMap<StateId, Terminal>,
-    first_end_state: Option<StateId>,
+    state_graph: BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>,
+    initial_state: Option<LexStateId>,
+    end_states: BTreeMap<LexStateId, Terminal>,
+    first_end_state: Option<LexStateId>,
 }
 
 impl DfaTables {
     pub fn new(
-        state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-        initial_state: Option<StateId>,
-        end_states: BTreeMap<StateId, Terminal>,
-        first_end_state: Option<StateId>,
+        state_graph: BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>,
+        initial_state: Option<LexStateId>,
+        end_states: BTreeMap<LexStateId, Terminal>,
+        first_end_state: Option<LexStateId>,
     ) -> Self {
         DfaTables { state_graph, initial_state, end_states, first_end_state }
     }
@@ -1215,8 +1215,8 @@ impl<T> Dfa<T> {
 }
 
 fn graph_to_code(
-    state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-    end_states: Option<&BTreeMap<StateId, Terminal>>,
+    state_graph: &BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>,
+    end_states: Option<&BTreeMap<LexStateId, Terminal>>,
     indent: usize,
 ) -> Vec<String> {
     let s = String::from_utf8(vec![32; indent]).unwrap();
@@ -1245,7 +1245,7 @@ fn graph_to_code(
 
 
 /// Debug function to display the graph of a Dfa.
-pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>, indent: usize) {
+pub fn print_graph(state_graph: &BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>, end_states: Option<&BTreeMap<LexStateId, Terminal>>, indent: usize) {
     let src = graph_to_code(state_graph, end_states, indent);
     println!("{}", src.join("\n"));
 }

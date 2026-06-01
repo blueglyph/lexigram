@@ -251,13 +251,13 @@ pub mod pandemonium_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 35;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 24;
-    const NBR_STATES: StateId = 76;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 24;
+    const NBR_STATES: LexStateId = 76;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          29,  29,  29,  29,  29,  29,  29,  29,  29,   0,  32,  29,  29,  32,  29,  29,   // 0-15
          29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,   // 16-31
@@ -328,7 +328,7 @@ pub mod pandemonium_lexer {
         Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 2661] = [
+    static STATE_TABLE: [LexStateId; 2661] = [
          24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  76,  36,  36,  36,  36,  36,  76,  76,  36,  36,  24,  36,  36, // state 0
           1,   1,   1,  22,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // state 1
          76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  68,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76,  76, // state 2

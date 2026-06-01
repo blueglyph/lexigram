@@ -1641,7 +1641,7 @@ fn dfa_normalize() {
 
 #[test]
 fn dfa_modes() {
-    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<Segments, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
+    let tests: Vec<(usize, BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>, BTreeMap<LexStateId, Terminal>)> = vec![
         (1, btreemap![
             // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
             // mode 1: (\*/<pop>|[0-9]*<skip>)

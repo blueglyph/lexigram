@@ -6,7 +6,7 @@ use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
 use lexigram_core::fixed_sym_table::SymInfoTable;
-use lexigram_core::parser::lr_parser::{LRAction, LRParser, StateId};
+use lexigram_core::parser::lr_parser::{LRAction, LRParser, LRStateId};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
@@ -171,11 +171,11 @@ impl ProdRuleSet<LR> {
         self.closure_lr0(s)
     }
 
-    pub fn calc_states_lr0(&self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
+    pub fn calc_states_lr0(&self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
         const VERBOSE: bool = false;
         let top_nt = self.start.unwrap();
         let mut states = vec![self.closure_lr0(vec![item!(top_nt, 0)])];
-        let mut set_states = HashMap::<Vec<LRItem>, StateId>::from_iter(states.iter().cloned().index::<StateId>().map(|(i, v)| (v, i)));
+        let mut set_states = HashMap::<Vec<LRItem>, LRStateId>::from_iter(states.iter().cloned().index::<LRStateId>().map(|(i, v)| (v, i)));
         let mut gotos = vec![btreemap![]];
         let mut reductions = vec![];
         loop {
@@ -197,7 +197,7 @@ impl ProdRuleSet<LR> {
                         if let Some(state_id) = set_states.get(&items) {
                             gotos[idx_state].insert(symbol.clone(), *state_id);
                         } else {
-                            let new_state_id = (states.len() + new_states.len()) as StateId;
+                            let new_state_id = (states.len() + new_states.len()) as LRStateId;
                             if VERBOSE {
                                 println!("| -> GOTO(items, {}) = {} => STATE = {new_state_id}", symbol.to_str(self.get_symbol_table()), self.items_to_str(&items));
                             }
@@ -231,18 +231,18 @@ impl ProdRuleSet<LR> {
                 gotos.iter().enumerate()
                     .map(|(i, g)| format!("\n- {i}: {}", g.iter().map(|(s, t)| format!("{} → {t}", s.to_str_quote(self.get_symbol_table()))).join(", "))).join(""));
         }
-        assert!(states.len() < StateId::MAX as usize, "too many states ({})", states.len());
+        assert!(states.len() < LRStateId::MAX as usize, "too many states ({})", states.len());
         (states, gotos, reductions)
     }
 
     #[cfg(any())]
     // not necessary unless lookahead is calculated from the reverse production symbols
     // (necessary to profile on bigger grammars to see if more performant)
-    fn calc_reverse_gotos(gotos: &[BTreeMap<Symbol, StateId>]) -> Vec<BTreeMap<Symbol, Vec<StateId>>> {
+    fn calc_reverse_gotos(gotos: &[BTreeMap<Symbol, LRStateId>]) -> Vec<BTreeMap<Symbol, Vec<LRStateId>>> {
         let mut rev_gotos = vec![btreemap![]; gotos.len()];
-        for (start, symb, dest) in gotos.iter().index::<StateId>().flat_map(|(start, g)| g.iter().map(move |(symb, dest)| (start, *symb, *dest))) {
+        for (start, symb, dest) in gotos.iter().index::<LRStateId>().flat_map(|(start, g)| g.iter().map(move |(symb, dest)| (start, *symb, *dest))) {
             rev_gotos[dest as usize].entry(symb)
-                .and_modify(|v: &mut Vec<StateId>| v.push(start))
+                .and_modify(|v: &mut Vec<LRStateId>| v.push(start))
                 .or_insert_with(|| vec![start]);
         }
         rev_gotos
@@ -252,7 +252,7 @@ impl ProdRuleSet<LR> {
     /// Manuel E. Bermudez, George Logothetis, "Simple computation of LALR(1) lookahead sets."
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
-    fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, StateId>>, Vec<(StateId, ItemId)>) {
+    fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
         const VERBOSE: bool = false;
         
         self.add_lr_goal_nt();
@@ -268,7 +268,7 @@ impl ProdRuleSet<LR> {
         let mut ts_p = vec![];                          // G' terminals
         let mut nt_to_nt_p = vec![vec![]; self.num_nt]; // nt_to_nt_p[nt] = vec![nt'0, nt'1, ...]
         let mut state_symb_p = vec![];                  // state_symb_p[state].get(symb) = Some(symb')
-        for (state, g) in gotos.iter().index::<StateId>() {
+        for (state, g) in gotos.iter().index::<LRStateId>() {
             let mut map = btreemap![];                  // maps each goto from that state to a symbol of G'
             for &symb in g.keys() {
                 match symb {
@@ -403,7 +403,7 @@ impl ProdRuleSet<LR> {
         let num_t_full = self.num_t + 1;    // includes the end symbol
         let num_states = states.len();
         let mut action = vec![LRAction::Error; num_t_full * num_states];
-        let mut goto = vec![num_states as StateId; num_nt * num_states];    // num_states value = error
+        let mut goto = vec![num_states as LRStateId; num_nt * num_states];    // num_states value = error
         for (s, map) in gotos.into_iter().enumerate() {
             for (symb, s_dest) in map {
                 match symb {
@@ -569,7 +569,7 @@ pub struct LRParsingTable {
     pub num_states: usize,
     pub alts: Vec<(VarId, Alternative)>,
     pub action: Vec<LRAction>,
-    pub goto: Vec<StateId>,
+    pub goto: Vec<LRStateId>,
     pub flags: Vec<u32>,                    // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>,         // NT -> parent NT
 }
@@ -582,8 +582,8 @@ impl LRParsingTable {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
         let mut lines = vec![];
         let &LRParsingTable { num_nt, num_t_full, num_states, ref action, ref goto, .. } = self;
-        let max_sw = (num_states as StateId - 1).ilog10() as usize + 1;
-        let max_sws = LRAction::Shift(num_states as StateId - 1).to_string().len()
+        let max_sw = (num_states as LRStateId - 1).ilog10() as usize + 1;
+        let max_sws = LRAction::Shift(num_states as LRStateId - 1).to_string().len()
             .max(LRAction::Reduce(self.alts.len() as AltId - 1).to_string().len());
         let max_ntw = (num_states as VarId - 1).ilog10() as usize + 1;
         let t_str = (0..num_t_full as TokenId).map(|t| self.symbol(t).to_str_quote(symbol_table)).to_vec();

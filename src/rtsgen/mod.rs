@@ -583,13 +583,13 @@ pub mod rtsgen_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 46;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 30;
-    const NBR_STATES: StateId = 64;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 30;
+    const NBR_STATES: LexStateId = 64;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          33,  33,  33,  33,  33,  33,  33,  33,  33,  22,  44,  33,  33,  44,  33,  33,   // 0-15
          33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,   // 16-31
@@ -646,7 +646,7 @@ pub mod rtsgen_lexer {
         Terminal { action: ActionOption::Token(22), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 2945] = [
+    static STATE_TABLE: [LexStateId; 2945] = [
          30,   1,  31,  32,  33,  34,  35,  36,   2,   3,  37,   4,  38,  39,  40,  41,  42,  43,  44,   5,  45,  46,  30,  64,  64,  64,  40,  40,  40,  40,  43,  64,  43,  64,  43,  43,  43,  43,  43,  43,  40,  64,  43,  64,  30,  43, // state 0
          20,  64,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  64,  20,  21,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  64,  20, // state 1
          64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  49,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64,  64, // state 2

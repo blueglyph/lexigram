@@ -646,13 +646,13 @@ mod config_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 39;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 12;
-    const NBR_STATES: StateId = 113;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 12;
+    const NBR_STATES: LexStateId = 113;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          37,  37,  37,  37,  37,  37,  37,  37,  37,  24,  38,  37,  37,  38,  37,  37,   // 0-15
          37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,   // 16-31
@@ -772,7 +772,7 @@ mod config_lexer {
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 4408] = [
+    static STATE_TABLE: [LexStateId; 4408] = [
          12,   1,  13,   2,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  12, 113, 113, 113,  18,  18,  18,  18,  18, 113,  18,  18,  18, 113,  12, // state 0
           8, 113,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 113,   8,   9,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8, 113, // state 1
         113, 113, 113, 111, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113,  10, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, 113, // state 2

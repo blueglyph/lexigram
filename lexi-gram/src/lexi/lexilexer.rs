@@ -5,13 +5,13 @@
 
 use std::collections::HashMap;
 use std::io::Read;
-use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+use lexigram_lib::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
 use lexigram_lib::segmap::{GroupId, Seg, SegMap};
 
 const NBR_GROUPS: u32 = 49;
-const INITIAL_STATE: StateId = 0;
-const FIRST_END_STATE: StateId = 21;
-const NBR_STATES: StateId = 96;
+const INITIAL_STATE: LexStateId = 0;
+const FIRST_END_STATE: LexStateId = 21;
+const NBR_STATES: LexStateId = 96;
 static ASCII_TO_GROUP: [GroupId; 128] = [
      38,  38,  38,  38,  38,  38,  38,  38,  38,  28,  48,  38,  38,  48,  38,  38,   // 0-15
      38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,   // 16-31
@@ -105,7 +105,7 @@ static TERMINAL_TABLE: [Terminal;75] = [
     Terminal { action: ActionOption::Token(32), channel: 0, mode: ModeOption::None, mode_state: None, pop: true },
     Terminal { action: ActionOption::Token(30), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
 ];
-static STATE_TABLE: [StateId; 4705] = [
+static STATE_TABLE: [LexStateId; 4705] = [
      21,   1,  22,  23,  24,  25,  26,  27,  28,   2,  29,  30,  31,  32,  33,   3,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  21,  96,  32,  32,  32,  32,  96,  32,  96,  96,  96,  32,  32,  32,  32,  32,  32,  32,  32,  32,  21, // state 0
       6,  96,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  96,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  96, // state 1
      96,  96,  96,  96,   4,  96,  96,  96,  96,  87,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96, // state 2

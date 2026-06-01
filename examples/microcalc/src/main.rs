@@ -185,13 +185,13 @@ pub mod microcalc_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 39;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 5;
-    const NBR_STATES: StateId = 60;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 5;
+    const NBR_STATES: LexStateId = 60;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          29,  29,  29,  29,  29,  29,  29,  29,  29,   0,  34,  29,  29,  34,  29,  29,   // 0-15
          29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  29,   // 16-31
@@ -265,7 +265,7 @@ pub mod microcalc_lexer {
         Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 2341] = [
+    static STATE_TABLE: [LexStateId; 2341] = [
           5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  60,  15,  20,  60,  20,  20,  20,  20,   5,  20,  20,  20,  20, // state 0
           1,   1,   1,   1,   2,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // state 1
           1,   1,   1,   1,   2,   1,   1,   1,  57,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, // state 2

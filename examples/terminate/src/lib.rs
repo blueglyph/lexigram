@@ -308,13 +308,13 @@ pub mod terminate_lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 23;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 20;
-    const NBR_STATES: StateId = 48;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 20;
+    const NBR_STATES: LexStateId = 48;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          20,  20,  20,  20,  20,  20,  20,  20,  20,  16,   0,  20,  20,   1,  20,  20,   // 0-15
          20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,   // 16-31
@@ -361,7 +361,7 @@ pub mod terminate_lexer {
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
         Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::Mode(0), mode_state: Some(0), pop: false },
     ];
-    static STATE_TABLE: [StateId; 1105] = [
+    static STATE_TABLE: [LexStateId; 1105] = [
          20,  21,   1,   2,   3,   4,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 0
          48,  48,  22,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 1
          48,  48,  48,  48,  48,  48,  10,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 2

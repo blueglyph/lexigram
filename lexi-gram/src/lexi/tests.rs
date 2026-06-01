@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::io::Read;
 use lexigram_lib::char_reader::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX};
-use lexigram_lib::lexer::StateId;
+use lexigram_lib::lexer::LexStateId;
 use lexigram_lib::lexer::Lexer;
 use lexigram_lib::segments::Segments;
 
@@ -123,7 +123,7 @@ const TXT6: &str = r#"
 /// Returns the set of characters that are valid at the given lexer state.
 ///
 /// Note: This function can be quite slow, as it must test every possibility.
-pub fn get_valid_segments<'a, R: Read>(lexer: &Lexer<'a, R>, state: StateId) -> Segments {
+pub fn get_valid_segments<'a, R: Read>(lexer: &Lexer<'a, R>, state: LexStateId) -> Segments {
     if state >= lexer.first_end_state {
         Segments::dot()     // accepting state
     } else {

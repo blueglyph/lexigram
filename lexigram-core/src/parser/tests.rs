@@ -49,13 +49,13 @@ mod lexer {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use crate::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use crate::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use crate::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 15;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 1;
-    const NBR_STATES: StateId = 17;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 1;
+    const NBR_STATES: LexStateId = 17;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          15,  15,  15,  15,  15,  15,  15,  15,  15,   0,   0,  15,  15,   0,  15,  15,   // 0-15
          15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,  15,   // 16-31
@@ -88,7 +88,7 @@ mod lexer {
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 256] = [
+    static STATE_TABLE: [LexStateId; 256] = [
           1,   2,   3,   4,   5,   6,   7,   8,   9,   5,   5,   5,   5,   5,   5, // state 0
           1,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 1 <skip>
          17,   2,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17,  17, // state 2 <end:7>

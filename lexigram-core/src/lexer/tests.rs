@@ -62,13 +62,13 @@ mod lex {
 
     use std::collections::HashMap;
     use std::io::Read;
-    use crate::lexer::{ActionOption, Lexer, ModeOption, StateId, Terminal};
+    use crate::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
     use crate::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 25;
-    const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 50;
-    const NBR_STATES: StateId = 86;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 50;
+    const NBR_STATES: LexStateId = 86;
     static ASCII_TO_GROUP: [GroupId; 128] = [
          25,  25,  25,  25,  25,  25,  25,  25,  25,  10,  10,  25,  25,  10,  25,  25,   // 0-15
          25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  25,   // 16-31
@@ -121,7 +121,7 @@ mod lex {
         Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::Push(2), mode_state: Some(26), pop: false },
         Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: true },
     ];
-    static STATE_TABLE: [StateId; 2151] = [
+    static STATE_TABLE: [LexStateId; 2151] = [
          50,  51,   1,  30,  52,  53,  54,  55,  86,  52,  50,  86,  86,  52,  52,  52,  52,  52,  52,  52,  52,  52,  86,  52,  86, // state 0
          86,  86,  86,  86,  86,  86,  86,  86,   4,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86, // state 1
          86,  86,  86,  86,  68,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86, // state 2

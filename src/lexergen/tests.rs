@@ -94,7 +94,7 @@ fn lexgen_symbol_tables() {
 #[test]
 fn lexgen_symbol_tables_corner() {
     let tests: Vec<(u32,
-                    BTreeMap<StateId, BTreeMap<Segments, StateId>>,    // graph
+                    BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>,    // graph
                     BTreeMap<String, GroupId>,                          // ASCII (each string is a group of chars)
                     BTreeMap<String, GroupId>,                          // UTF-8 (each string is a group of chars)
                     BTreeMap<Seg, GroupId>)>                            // what didn't fit in UTF-8
@@ -106,7 +106,7 @@ fn lexgen_symbol_tables_corner() {
             0 => branch!()
         ], btreemap![], btreemap![], btreemap![]),
         (32, btreemap![
-            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Segments::new(Seg(x*16, x*16+15)), x as StateId))),
+            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Segments::new(Seg(x*16, x*16+15)), x as LexStateId))),
             1 => branch!(), 2 => branch!(), 3 => branch!(), 4 => branch!(), 5 => branch!(), 6 => branch!(), 7 => branch!(), 8 => branch!(),
             9 => branch!(), 10 => branch!(), 11 => branch!(), 12 => branch!(), 13 => branch!(), 14 => branch!(), 15 => branch!()
         ],
@@ -118,9 +118,9 @@ fn lexgen_symbol_tables_corner() {
     const VERBOSE: bool = false;
     for (test_id, (left, g, ascii, utf8, seg)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("Test {test_id}:"); }
-        let end_states = g.values().flat_map(|x| x.values()).cloned().collect::<BTreeSet<StateId>>();
+        let end_states = g.values().flat_map(|x| x.values()).cloned().collect::<BTreeSet<LexStateId>>();
         let mut dfa_builder = DfaBuilder::new();
-        let dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>())
+        let dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<LexStateId, Terminal>>())
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_log().get_messages_str()));
         let dfa = dfa.normalize();
         let lexgen = LexerGen::build_from_dfa(dfa, left);

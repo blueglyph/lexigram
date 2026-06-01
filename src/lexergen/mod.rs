@@ -12,7 +12,7 @@ use lexigram_core::CollectJoin;
 use crate::dfa::print_graph;
 use crate::{indent_source, Normalized, SymbolTable, TokenId};
 use crate::char_reader::escape_char;
-use crate::lexer::{ActionOption, Lexer, StateId, Terminal};
+use crate::lexer::{ActionOption, Lexer, LexStateId, Terminal};
 use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource, TryBuildFrom};
 use crate::segments::Segments;
@@ -31,14 +31,14 @@ use super::dfa::*;
 pub struct LexerTables {
     // parameters
     nbr_groups: u32,
-    initial_state: StateId,
-    first_end_state: StateId,   // accepting when state >= first_end_state
-    nbr_states: StateId,        // error if state >= nbr_states
+    initial_state: LexStateId,
+    first_end_state: LexStateId,   // accepting when state >= first_end_state
+    nbr_states: LexStateId,        // error if state >= nbr_states
     // tables
     ascii_to_group: Vec<GroupId>,
     utf8_to_group: HashMap<char, GroupId>,
     seg_to_group: SegMap<GroupId>,
-    state_table: Vec<StateId>,
+    state_table: Vec<LexStateId>,
     terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
 }
 
@@ -46,14 +46,14 @@ impl LexerTables {
     pub fn new(
         // parameters
         nbr_groups: u32,
-        initial_state: StateId,
-        first_end_state: StateId,   // accepting when state >= first_end_state
-        nbr_states: StateId,        // error if state >= nbr_states
+        initial_state: LexStateId,
+        first_end_state: LexStateId,   // accepting when state >= first_end_state
+        nbr_states: LexStateId,        // error if state >= nbr_states
         // tables
         ascii_to_group: Vec<GroupId>,
         utf8_to_group: HashMap<char, GroupId>,
         seg_to_group: SegMap<GroupId>,
-        state_table: Vec<StateId>,
+        state_table: Vec<LexStateId>,
         terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
     ) -> Self {
         LexerTables {
@@ -149,14 +149,14 @@ pub struct LexerGen {
     pub options: LexerGenOptions,
     pub max_utf8_chars: u32,
     pub nbr_groups: u32,
-    pub initial_state: StateId,
-    pub first_end_state: StateId,   // accepting when state >= first_end_state
-    pub nbr_states: StateId,        // error if state >= nbr_states
+    pub initial_state: LexStateId,
+    pub first_end_state: LexStateId,   // accepting when state >= first_end_state
+    pub nbr_states: LexStateId,        // error if state >= nbr_states
     // tables:
     pub ascii_to_group: Vec<GroupId>,
     pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
-    pub state_table: Vec<StateId>,
+    pub state_table: Vec<LexStateId>,
     pub terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
     pub symbol_table: Option<SymbolTable>,
     // internal
@@ -363,13 +363,13 @@ impl LexerGen {
         // Create source code:
         source.push("use std::collections::HashMap;".to_string());
         source.push("use std::io::Read;".to_string());
-        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, StateId, Terminal}};", self.options.lib_crate));
+        source.push(format!("use {}::lexer::{{ActionOption, Lexer, ModeOption, LexStateId, Terminal}};", self.options.lib_crate));
         source.push(format!("use {}::segmap::{{GroupId, Seg, SegMap}};", self.options.lib_crate));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
-        source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
-        source.push(format!("const FIRST_END_STATE: StateId = {};", self.first_end_state));
-        source.push(format!("const NBR_STATES: StateId = {};", self.nbr_states));
+        source.push(format!("const INITIAL_STATE: LexStateId = {};", self.initial_state));
+        source.push(format!("const FIRST_END_STATE: LexStateId = {};", self.first_end_state));
+        source.push(format!("const NBR_STATES: LexStateId = {};", self.nbr_states));
         let mut groups = vec![BTreeSet::new(); self.nbr_groups as usize];
         source.push("static ASCII_TO_GROUP: [GroupId; 128] = [".to_string());
         for i in 0..8_usize {
@@ -414,7 +414,7 @@ impl LexerGen {
             ));
         }
         source.push("];".to_string());
-        source.push(format!("static STATE_TABLE: [StateId; {}] = [", self.state_table.len()));
+        source.push(format!("static STATE_TABLE: [LexStateId; {}] = [", self.state_table.len()));
         for i in 0..self.nbr_states {
             source.push(format!("    {}, // state {}{}",
                 (0..self.nbr_groups as usize).map(|j| format!("{:3}", self.state_table[i * self.nbr_groups as usize + j])).join(", "),
@@ -481,14 +481,14 @@ impl Default for LexerGenOptions {
 // Supporting functions
 
 // todo: option to split ASCII range?
-fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<Segments> {
+fn partition_symbols(g: &BTreeMap<LexStateId, BTreeMap<Segments, LexStateId>>) -> Vec<Segments> {
     const VERBOSE: bool = false;
     let mut groups = Vec::new();
     #[cfg(test)] if VERBOSE { print_graph(g, None, 4); }
     #[allow(clippy::for_kv_map)]
     for (_state, branches) in g {
         // branches from a given state
-        let mut map = BTreeMap::<StateId, Segments>::new();
+        let mut map = BTreeMap::<LexStateId, Segments>::new();
         for (segments, destination) in branches {
             if let Some(i) = map.get_mut(destination) {
                 i.extend(&mut segments.iter());
