@@ -125,7 +125,8 @@ fn prs_calc_lr_table() {
         let msg = format!("## ERROR ## test {test_id}, start={start}");
         let mut lr = TestRules(test_id).to_prs_lr().unwrap();
         lr.set_start(start);
-        let fail = if let Ok((parsing_table, states)) = lr.make_parsing_table_with_states_lalr() {
+        let (parsing_table, states) = lr.make_parsing_table_with_states_lalr();
+        let fail = if lr.has_no_errors() {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
                 let text = lr.log.get_messages().map(|m| m.to_string()).filter(|s| s.contains("calc_table")).to_vec();
@@ -204,8 +205,11 @@ mod parse {
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use lexigram_core::parser::{Call, ListenerWrapper, Symbol};
     use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
+    use lexigram_core::parser::lr_parser::LRParser;
     use crate::grammar::tests::TestRules;
-    use crate::SymbolTable;
+    use crate::{SymbolTable, LALR};
+    use crate::build::BuildFrom;
+    use crate::parsergen::lr::LRParserTables;
 
     #[test]
     fn make_parser_lalr() {
@@ -268,9 +272,10 @@ mod parse {
             if VERBOSE {
                 //lalr1.get_symbol_table().unwrap().dump("symbol table:");
                 lalr1.print_alts();
-                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().unwrap().to_str(lalr1.get_symbol_table()).join("\n"));
+                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().to_str(lalr1.get_symbol_table()).join("\n"));
             }
-            let mut parser = lalr1.make_parser_lalr().expect("failed to make LALR parser");
+            let ptables = LRParserTables::build_from(lalr1);
+            let mut parser: LRParser<LALR> = ptables.make_parser();
             for (input, expected_errors) in sequences {
                 let expected_errors = expected_errors.map(|v| v.to_vec());
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }

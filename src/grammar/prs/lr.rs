@@ -5,8 +5,7 @@ use lexigram_core::log::{LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
-use lexigram_core::fixed_sym_table::SymInfoTable;
-use lexigram_core::parser::lr_parser::{LRAction, LRParser, LRStateId};
+use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
@@ -392,12 +391,12 @@ impl ProdRuleSet<LR> {
         (states, gotos, reductions)
     }
 
-    pub fn make_parsing_table_with_states_lalr(&mut self) -> Result<(LRParsingTable, Vec<Vec<LRItem>>), ()> {
+    pub(crate) fn make_parsing_table_with_states_lalr(&mut self) -> (LRParsingTable, Vec<Vec<LRItem>>) {
         const VERBOSE: bool = false;
         self.log.add_note("- calculating LALR parsing table...");
         let (states, gotos, reductions) = self.calc_states_lalr();
         if !self.log.has_no_errors() {
-            return Err(());
+            return (LRParsingTable::default(), states);
         }
         let num_nt = self.num_nt - 1;       // doesn't include the goal NT
         let num_t_full = self.num_t + 1;    // includes the end symbol
@@ -496,39 +495,14 @@ impl ProdRuleSet<LR> {
         if VERBOSE {
             println!("Table:\n{}", table.to_str(self.get_symbol_table()).join("\n"));
         }
-        Ok((table, states))
+        (table, states)
     }
 
-    pub fn make_parsing_table_lalr(&mut self) -> Result<LRParsingTable, ()> {
-        self.make_parsing_table_with_states_lalr()
-            .map(|(table, _)| table)
-    }
-
-    /// Temporary method to create a parser
-    pub fn make_parser_lalr(&mut self) -> Result<LRParser, ()> {
-        let table = self.make_parsing_table_lalr()?;
-        let mut symtable = self.symbol_table.clone().ok_or(())?;
-        symtable.add_terminal("<$>", Some("<$>"));
-        symtable.add_terminal("<empty>", Some("<empty>"));
-        Ok(LRParser::new(
-            table.num_nt,
-            table.num_t_full,
-            table.action,
-            table.goto,
-            table.alts.into_iter()
-                .enumerate()
-                .map(|(i, (nt, alt))| (
-                    // nonterminal index:
-                    nt,
-                    // number of symbols in production alternative:
-                    u16::try_from(if alt.is_sym_empty() { 0 } else { alt.len() })
-                        .expect(&format!("alt[{i}] too long:\n{}", alt.to_str(self.get_symbol_table()))),
-                    // number of (variable) terminals containing data:
-                    alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
-                ))
-                .to_vec(),
-            symtable.to_fixed_sym_table()
-        ))
+    /// Creates the LR parsing table for an LALR parser.
+    ///
+    /// If an error occurred during the process, it's reported in the log.
+    pub fn make_parsing_table_lalr(&mut self) -> LRParsingTable {
+        self.make_parsing_table_with_states_lalr().0
     }
 }
 
@@ -562,7 +536,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct LRParsingTable {
     pub num_nt: usize,                      // doesn't include the goal NT
     pub num_t_full: usize,                  // includes the end symbol

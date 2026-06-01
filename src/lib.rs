@@ -71,13 +71,17 @@ pub const LIB_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Debug)]
 pub struct General;
 
-/// - `ProdRuleSet<LR>` have no ambiguity.
+/// `ProdRuleSet<LL>` has rules that aren't left-recursive and are left-factorized.
+#[derive(Clone, Debug)]
+pub struct LL1;
+
+/// `ProdRuleSet<LR>` is used to create bottom-up parsers.
 #[derive(Clone, Debug)]
 pub struct LR;
 
-/// - `ProdRuleSet<LL>` aren't left-recursive and are left-factorized.
+/// [`LRParserTables<LALR>`](parsergen::lr::LRParserTables<LALR>) is built from `ProdRuleSet<LR>`
 #[derive(Clone, Debug)]
-pub struct LL1;
+pub struct LALR;
 
 /// Unit type used as generic parameter to indicate normalized form.
 ///

@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::marker::PhantomData;
 use crate::{AltId, CollectJoin, TokenId, VarId};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::lexer::{Pos, PosSpan};
@@ -29,25 +30,26 @@ impl Display for LRAction {
 }
 
 /// Parser object. The [new(...)](LRParser::new) method creates a new instance.
-pub struct LRParser {
-    num_nt: usize,                      // doesn't include the goal NT
-    num_t_full: usize,                  // includes the end symbol
-    action: Vec<LRAction>,
-    goto: Vec<LRStateId>,
-    alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
-    symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
+pub struct LRParser<'a, T> {
+    num_nt: usize,                          // doesn't include the goal NT
+    num_t_full: usize,                      // includes the end symbol
+    action: &'a [LRAction],
+    goto: &'a [LRStateId],
+    alt_nt_len: &'a [(VarId, u16, u16)],    // alt_id -> (nt, # symbols in alt, # terminals in alt)
+    symbol_table: FixedSymTable,            // must include terminals <$> and <empty> at the end
+    _phantom: PhantomData<T>,
 }
 
-impl LRParser {
+impl<'a, T> LRParser<'a, T> {
     pub fn new(
         num_nt: usize,
         num_t_full: usize,
-        action: Vec<LRAction>,
-        goto: Vec<LRStateId>,
-        alt_nt_len: Vec<(VarId, u16, u16)>,
+        action: &'a [LRAction],
+        goto: &'a [LRStateId],
+        alt_nt_len: &'a [(VarId, u16, u16)],
         symbol_table: FixedSymTable
     ) -> Self {
-        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table }
+        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, _phantom: PhantomData }
     }
 
     /// Parses the entire `stream`, calling the (listener) [wrapper](ListenerWrapper) with the

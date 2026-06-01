@@ -35,7 +35,7 @@ use crate::{TokenId, VarId};
 /// nt[1] = "term".to_string();
 /// nt[2] = "expr_1".to_string(); // generated when removing the left recursion
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct FixedSymTable {
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     nt: Vec<String>,                    // nt to nonterminal identifier

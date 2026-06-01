@@ -21,6 +21,7 @@ use crate::segments::Segments;
 use crate::segmap::Seg;
 
 pub(crate) mod tests;
+pub mod lr;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -113,6 +114,9 @@ impl BuildFrom<ParserGen> for LLParserTables {
     /// Creates a [`LLParserTables`], from which a parser can be created dynamically with
     /// [`parser_table.make_parser()`](LLParserTables::make_parser).
     fn build_from(parser_gen: ParserGen) -> Self {
+        if !parser_gen.has_no_errors() {
+            panic!("creation of LL parser tables failed:{}", parser_gen.log);
+        }
         LLParserTables::new(
             parser_gen.parsing_table,
             parser_gen.symbol_table.to_fixed_sym_table(),
