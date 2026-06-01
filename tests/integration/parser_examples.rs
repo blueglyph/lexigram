@@ -197,3 +197,61 @@ pub(crate) mod listener5 {
     // [write_source_code_for_integration_listener5]
     // -------------------------------------------------------------------------
 }
+
+#[allow(unused)]
+pub(crate) mod lr_parser_601 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener6]
+
+    use lexigram_lib::{LALR, VarId, fixed_sym_table::FixedSymTable, parser::lr_parser::{LRAction, LRParser, LRStateId}};
+
+    static NUM_NT: usize = 1;
+    static NUM_T_FULL: usize = 5;
+    static ACTION: [LRAction; 40] = [LRAction::Error, LRAction::Error, LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Error, LRAction::Reduce(3), LRAction::Shift(4), LRAction::Shift(5), LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Error, LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Reduce(0), LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Shift(4), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Reduce(1)];
+    static GOTO: [LRStateId; 8] = [3, 8, 8, 8, 6, 7, 8, 8];
+    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [(0, 3, 0), (0, 3, 0), (0, 1, 1), (0, 1, 1), (1, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [("Mul", Some("*")), ("Add", Some("+")), ("Num", None), ("Id", None)];
+    static SYMBOL_TABLE_NT: [&str; 2] = ["e", "<goal>"];
+
+    pub fn build_parser(n: u32) -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
+
+    // [write_source_code_for_integration_listener6]
+    // -------------------------------------------------------------------------
+}
+
+#[allow(unused)]
+pub(crate) mod lr_parser_2000 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener7]
+
+    use lexigram_lib::{LALR, VarId, fixed_sym_table::FixedSymTable, parser::lr_parser::{LRAction, LRParser, LRStateId}};
+
+    static NUM_NT: usize = 5;
+    static NUM_T_FULL: usize = 3;
+    static ACTION: [LRAction; 42] = [LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Shift(4), LRAction::Error, LRAction::Error, LRAction::Shift(7), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Reduce(4), LRAction::Shift(9), LRAction::Error, LRAction::Shift(10), LRAction::Error, LRAction::Error, LRAction::Reduce(6), LRAction::Reduce(6), LRAction::Error, LRAction::Error, LRAction::Reduce(4), LRAction::Error, LRAction::Error, LRAction::Shift(13), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Reduce(5), LRAction::Reduce(5), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(2)];
+    static GOTO: [LRStateId; 70] = [3, 14, 14, 14, 14, 14, 5, 6, 14, 14, 14, 8, 6, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 11, 12, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14];
+    static ALT_NT_LEN: [(VarId, u16, u16); 8] = [(0, 3, 0), (0, 3, 0), (0, 3, 0), (1, 2, 0), (2, 1, 0), (3, 1, 0), (4, 0, 0), (5, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 2] = [("A", Some("a")), ("B", Some("b"))];
+    static SYMBOL_TABLE_NT: [&str; 6] = ["s", "a", "b", "c", "d", "<goal>"];
+
+    pub fn build_parser(n: u32) -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
+
+    // [write_source_code_for_integration_listener7]
+    // -------------------------------------------------------------------------
+}

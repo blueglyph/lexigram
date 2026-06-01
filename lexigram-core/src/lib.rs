@@ -20,6 +20,12 @@ pub type VarId = u16;
 /// ID of a rule alternative. We use the same type as [VarId] because they're very similar quantities.
 pub type AltId = VarId;
 
+#[derive(Clone, Debug)]
+pub struct LL1;
+
+#[derive(Clone, Debug)]
+pub struct LALR;
+
 // ---------------------------------------------------------------------------------------------
 // General helper traits
 

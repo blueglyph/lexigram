@@ -26,7 +26,7 @@ pub mod ll1;
 pub(crate) mod tests;
 
 pub use ll1::LLParserTables;
-
+use crate::parsergen::lr::alts_to_alt_nt_len;
 // ---------------------------------------------------------------------------------------------
 
 pub(crate) fn symbol_to_code(s: &Symbol) -> String {
@@ -853,6 +853,7 @@ impl ParserGen {
     ///     ```
     fn add_opcode_hooks(&mut self) {
         const VERBOSE: bool = false;
+        if self.options.parser_type != ParserType::LL1 { return }
         self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
         let num_nt = self.num_nt;
@@ -1762,6 +1763,13 @@ impl ParserGen {
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
+        match self.options.parser_type {
+            ParserType::LL1 => self.source_build_parser_ll1(),
+            ParserType::LALR => self.source_build_parser_lalr(),
+        }
+    }
+
+    fn source_build_parser_ll1(&mut self) -> Vec<String> {
         static BASE_PARSER_LIBS: [&str; 5] = [
             "::VarId",
             "::AltId",
@@ -1774,7 +1782,7 @@ impl ParserGen {
             "::parser::Symbol",
         ];
 
-        self.log.add_note("generating build_parser source...");
+        self.log.add_note("generating LL1 build_parser source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
         self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
@@ -1870,6 +1878,44 @@ impl ParserGen {
             "}}".to_string(),
         ]);
         src
+    }
+
+    fn source_build_parser_lalr(&mut self) -> Vec<String> {
+        static BASE_PARSER_LIBS: [&str; 6] = [
+            "::VarId",
+            "::LALR",
+            "::fixed_sym_table::FixedSymTable",
+            "::parser::lr_parser::LRAction",
+            "::parser::lr_parser::LRParser",
+            "::parser::lr_parser::LRStateId",
+        ];
+        self.log.add_note("generating LALR build_parser source...");
+        let num_nt_table = self.symbol_table.get_num_nt();
+        let num_t_table = self.symbol_table.get_num_t(); // includes <$> and <empty>
+        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        self.log.add_note(format!(
+            "- creating parsor tables: {num_t_table} terminals (including $ and empty), {num_nt_table} nonterminals, {} actions, {} gotos, {} productions",
+            self.action.len(), self.goto.len(), self.alts.len()));
+        let alt_nt_len = alts_to_alt_nt_len(&self.alts, &self.symbol_table);
+        vec![
+            format!("static NUM_NT: usize = {};", self.num_nt),
+            format!("static NUM_T_FULL: usize = {};", self.num_t_full),
+            format!("static ACTION: [LRAction; {}] = [{}];", self.action.len(), self.action.iter().map(|a| format!("LRAction::{a:?}")).join(", ")),
+            format!("static GOTO: [LRStateId; {}] = {:?};", self.goto.len(), self.goto),
+            format!("static ALT_NT_LEN: [(VarId, u16, u16); {}] = {:?};", alt_nt_len.len(), alt_nt_len),
+            format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = {:?};", self.symbol_table.get_terminals().to_vec()),
+            format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = {:?};", self.symbol_table.get_nonterminals().to_vec()),
+            String::new(),
+            "pub fn build_parser(n: u32) -> LRParser<'static, LALR> {".to_string(),
+            "    LRParser::new(".to_string(),
+            "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
+            "        FixedSymTable::new(".to_string(),
+            "            SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
+            "            SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
+            "        )".to_string(),
+            "    )".to_string(),
+            "}".to_string(),
+        ]
     }
 
     fn get_info_type(&self, infos: &[ItemInfo], info: &ItemInfo) -> String {

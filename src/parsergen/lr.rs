@@ -3,9 +3,10 @@ use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use lexigram_core::log::LogStatus;
 use lexigram_core::parser::lr_parser::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
+use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
 use crate::grammar::ProdRuleSet;
-use crate::{LALR, LR};
+use crate::{SymbolTable, LALR, LR};
 
 /// Tables and parameters used to create a [`LRParser`]. This type is used as a return object from the parser generator,
 /// when the LRParser must be created dynamically; for example, in tests or in situations where the grammar isn't
@@ -50,6 +51,21 @@ impl<T> LRParserTables<T> {
 
 // ---------------------------------------------------------------------------------------------
 
+pub fn alts_to_alt_nt_len(alts: &Vec<(VarId, Alternative)>, symtable: &SymbolTable) -> Vec<(VarId, u16, u16)> {
+    alts.into_iter()
+        .enumerate()
+        .map(|(i, (nt, alt))| (
+            // nonterminal index:
+            *nt,
+            // number of symbols in production alternative:
+            u16::try_from(if alt.is_sym_empty() { 0 } else { alt.len() })
+                .expect(&format!("alt[{i}] too long:\n{}", alt.to_str(Some(symtable)))),
+            // number of (variable) terminals containing data:
+            alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
+        ))
+        .to_vec()
+}
+
 impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
     fn build_from(mut source: ProdRuleSet<LR>) -> Self {
         let table = source.make_parsing_table_lalr();
@@ -66,18 +82,7 @@ impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
             table.num_t_full,
             table.action,
             table.goto,
-            table.alts.into_iter()
-                .enumerate()
-                .map(|(i, (nt, alt))| (
-                    // nonterminal index:
-                    nt,
-                    // number of symbols in production alternative:
-                    u16::try_from(if alt.is_sym_empty() { 0 } else { alt.len() })
-                        .expect(&format!("alt[{i}] too long:\n{}", alt.to_str(source.get_symbol_table()))),
-                    // number of (variable) terminals containing data:
-                    alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
-                ))
-                .to_vec(),
+            alts_to_alt_nt_len(&table.alts, &symtable),
             symtable.to_fixed_sym_table(),
         )
     }

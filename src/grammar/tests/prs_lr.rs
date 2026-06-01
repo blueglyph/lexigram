@@ -234,7 +234,6 @@ mod parse {
             fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
-
         }
 
         let tests = vec![
