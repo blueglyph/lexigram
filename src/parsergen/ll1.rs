@@ -16,8 +16,7 @@ use crate::parsergen::ParserGen;
 /// tables because they don't exist in static form.
 pub struct LLParserTables {
     num_nt: usize,
-    num_t: usize,
-    // parsing_table: LLParsingTable,
+    num_t_full: usize,
     alt_var: Vec<VarId>,
     alts: Vec<Alternative>,
     opcodes: Vec<Vec<OpCode>>,
@@ -39,16 +38,16 @@ impl LLParserTables {
     ) -> Self {
         assert!(parsing_table.num_nt > start as usize);
         let num_nt = parsing_table.num_nt;
-        let num_t = parsing_table.num_t;
+        let num_t_full = parsing_table.num_t_full;
         let table = parsing_table.table;
         let (factor_var, alts): (Vec<_>, Vec<_>) = parsing_table.alts.into_iter().unzip();
-        LLParserTables { num_nt, num_t, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
+        LLParserTables { num_nt, num_t_full, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
     }
 
     pub fn make_parser(&self) -> LLParser<'_> {
         LLParser::new(
             self.num_nt,
-            self.num_t,
+            self.num_t_full,
             self.alt_var.as_slice(),
             if self.include_alts { self.alts.clone() } else { vec![] },
             self.opcodes.clone(),
@@ -69,7 +68,7 @@ impl BuildFrom<ParserGen> for LLParserTables {
         }
         let parsing_table = LL1ParsingTable {
             num_nt: parser_gen.num_nt,
-            num_t: parser_gen.num_t,
+            num_t_full: parser_gen.num_t_full,
             alts: parser_gen.alts,
             table: parser_gen.table,
             flags: parser_gen.flags,

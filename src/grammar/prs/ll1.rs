@@ -48,10 +48,10 @@ impl ProdRuleSet<LL1> {
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
         let error_pop = error_skip + 1;         // table entry for syntactic error; recovery by popping T or NT from stack
         let num_nt = self.num_nt;
-        let num_t = self.num_t + 1;
-        let end = (num_t - 1) as VarId; // index of end symbol
+        let num_t_full = self.num_t + 1;
+        let end = (num_t_full - 1) as VarId; // index of end symbol
         let mut used_t = HashSet::<Symbol>::new();
-        let mut table: Vec<Vec<AltId>> = vec![vec![]; num_nt * num_t];
+        let mut table: Vec<Vec<AltId>> = vec![vec![]; num_nt * num_t_full];
         for (a_id, (nt_id, alt)) in alts.iter().index() {
             used_t.extend(alt.iter().filter(|s| s.is_t()));
             if VERBOSE { println!("- {a_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
@@ -65,14 +65,14 @@ impl ProdRuleSet<LL1> {
                         has_empty = true;
                         for s in &self.follow[*nt_id as usize] {
                             match s {
-                                Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, a_id),
-                                Symbol::End     => add_table(&mut table, num_t, *nt_id, end, a_id),
+                                Symbol::T(t_id) => add_table(&mut table, num_t_full, *nt_id, *t_id, a_id),
+                                Symbol::End     => add_table(&mut table, num_t_full, *nt_id, end, a_id),
                                 _ => {}
                             }
                         }
                     }
                     Symbol::T(t_id) => {
-                        add_table(&mut table, num_t, *nt_id, t_id, a_id);
+                        add_table(&mut table, num_t_full, *nt_id, t_id, a_id);
                     }
                     Symbol::NT(_) => {}
                     Symbol::End => {
@@ -81,18 +81,18 @@ impl ProdRuleSet<LL1> {
                 }
             }
             if has_empty && has_end {
-                add_table(&mut table, num_t, *nt_id, end, end);
+                add_table(&mut table, num_t_full, *nt_id, end, end);
             }
         }
         // creates the table and removes ambiguities
         let mut final_table = Vec::<AltId>::new();
         for nt_id in 0..num_nt {
-            for t_id in 0..num_t {
-                let pos = nt_id * num_t + t_id;
+            for t_id in 0..num_t_full {
+                let pos = nt_id * num_t_full + t_id;
                 final_table.push(match table[pos].len() {
                     0 => {
                         if error_recovery {
-                            let sym_t = if t_id < num_t - 1 { Symbol::T(t_id as TokenId) } else { Symbol::End };
+                            let sym_t = if t_id < num_t_full - 1 { Symbol::T(t_id as TokenId) } else { Symbol::End };
                             if self.follow[nt_id].contains(&sym_t) || self.first[nt_id].contains(&sym_t) {
                                 error_pop
                             } else {
@@ -119,7 +119,7 @@ impl ProdRuleSet<LL1> {
                             table[pos] = greedies;
                             chosen
                         } else {
-                            let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id * num_t + j]).collect::<HashSet<_>>();
+                            let row = (0..num_t_full).filter(|j| *j != t_id).flat_map(|j| &table[nt_id * num_t_full + j]).collect::<HashSet<_>>();
                             let chosen = *table[pos].iter().find(|a| !row.contains(a)).unwrap_or(&table[pos][0]);
                             self.log.add_warning(
                                 format!("- calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
@@ -136,13 +136,13 @@ impl ProdRuleSet<LL1> {
                 });
             }
         }
-        if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] < error_skip)) {
+        if !(0..num_t_full - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t_full + t_id] < error_skip)) {
             self.log.add_error("- calc_table: no terminal used in the table".to_string());
         }
         for (_, a) in &mut alts {
             a.flags &= !ruleflag::GREEDY;
         }
-        let table = LL1ParsingTable { num_nt, num_t, alts, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() };
+        let table = LL1ParsingTable { num_nt, num_t_full, alts, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() };
         self.log.add_info("parsing table:");
         self.log.extend_messages(
             table.to_str(self.get_symbol_table()).into_iter()
@@ -264,7 +264,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
 #[derive(Debug)]
 pub struct LL1ParsingTable {
     pub num_nt: usize,
-    pub num_t: usize,               // includes the end $ symbol
+    pub num_t_full: usize,               // includes the end $ symbol
     pub alts: Vec<(VarId, Alternative)>,
     pub table: Vec<AltId>,
     pub flags: Vec<u32>,            // NT -> flags (+ or * normalization)
@@ -273,7 +273,7 @@ pub struct LL1ParsingTable {
 
 impl LL1ParsingTable {
     pub fn new() -> Self {
-        LL1ParsingTable { num_nt: 0, num_t: 0, alts: vec![], table: vec![], flags: vec![], parent: vec![] }
+        LL1ParsingTable { num_nt: 0, num_t_full: 0, alts: vec![], table: vec![], flags: vec![], parent: vec![] }
     }
 }
 
@@ -285,7 +285,7 @@ impl Default for LL1ParsingTable {
 
 impl LL1ParsingTable {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
-        let LL1ParsingTable { num_nt, num_t, alts, table, .. } = self;
+        let LL1ParsingTable { num_nt, num_t_full: num_t, alts, table, .. } = self;
         let error_skip = alts.len() as AltId;
         let error_pop = error_skip + 1;
         let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();

@@ -1390,7 +1390,7 @@ fn prs_calc_table() {
         let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
-        let LL1ParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
+        let LL1ParsingTable { num_nt, num_t_full: num_t, alts, table, .. } = &parsing_table;
         if VERBOSE {
             ll1.print_flags();
         }

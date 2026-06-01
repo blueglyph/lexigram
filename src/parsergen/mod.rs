@@ -170,7 +170,7 @@ pub struct ParserGenOptions {
 pub struct ParserGen {
     // LL1-specific fields
     num_nt: usize,
-    num_t: usize,               // includes the end $ symbol
+    num_t_full: usize,               // includes the end $ symbol
     alts: Vec<(VarId, Alternative)>,
     table: Vec<AltId>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
@@ -227,7 +227,7 @@ impl ParserGen {
         let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = ll1_rules;
         let mut builder = ParserGen {
             num_nt: parsing_table.num_nt,
-            num_t: parsing_table.num_t,
+            num_t_full: parsing_table.num_t_full,
             alts: parsing_table.alts,
             table: parsing_table.table,
             flags: parsing_table.flags,
@@ -340,7 +340,7 @@ impl ParserGen {
     pub fn make_ll1_parsing_table(&self) -> LL1ParsingTable {
         LL1ParsingTable {
             num_nt: self.num_nt,
-            num_t: self.num_t,
+            num_t_full: self.num_t_full,
             alts: self.alts.clone(),
             table: self.table.clone(),
             flags: self.flags.clone(),
@@ -773,7 +773,7 @@ impl ParserGen {
         self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
         let num_nt = self.num_nt;
-        let num_t = self.num_t;
+        let num_t = self.num_t_full;
         let err = self.alts.len() as AltId;
         if VERBOSE {
             self.make_ll1_parsing_table().print(self.get_symbol_table(), 0);
