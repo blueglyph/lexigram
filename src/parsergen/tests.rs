@@ -30,7 +30,9 @@ mod gen_integration {
     use crate::parsergen::{ParserGen, ParserType};
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
 
-    fn get_source(tr_id: u32, indent: usize, include_alts: bool, parser_type: ParserType, name: String) -> String {
+    fn get_source(tr_id: u32, indent: usize, include_alts: bool, gen_wrapper: bool, parser_type: ParserType, name: String) -> String {
+        const VERBOSE: bool = false;
+
         let rules = TestRules(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
         assert_eq!(rules.get_log().num_errors(), 0, "building {tr_id} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let mut builder = match parser_type {
@@ -45,22 +47,26 @@ mod gen_integration {
         };
         builder.set_include_alts(include_alts);
         builder.use_full_lib(true);
-        builder.set_gen_wrapper(false);
+        builder.set_gen_wrapper(gen_wrapper);
         builder.set_indent(indent);
-        builder.gen_source_code().0
+        let src = builder.gen_source_code().0;
+        if VERBOSE {
+            println!("{}", builder.log);
+        }
+        src
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(u32, usize, bool, ParserType, &'a str, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(u32, usize, bool, bool, ParserType, &'a str, &'a str)> {
         match id {
             // those parsers are also used in other tests:
-            //        rules indent alts   type              tag name                                        name
-            1 => Some(( 580,   4,  true,  ParserType::LL1,  "write_source_code_for_integration_listener1",  "Expr")),
-            2 => Some(( 640,   4,  true,  ParserType::LL1,  "write_source_code_for_integration_listener2",  "Expr")),
-            3 => Some(( 641,   4,  true,  ParserType::LL1,  "write_source_code_for_integration_listener3",  "Expr")),
-            4 => Some(( 642,   4,  true,  ParserType::LL1,  "write_source_code_for_integration_listener4",  "Expr")),
-            5 => Some(( 862,   4,  true,  ParserType::LL1,  "write_source_code_for_integration_listener5",  "Expr")),
-            6 => Some(( 601,   4,  false, ParserType::LALR, "write_source_code_for_integration_listener6",  "Expr")),
-            7 => Some((2000,   4,  false, ParserType::LALR, "write_source_code_for_integration_listener7",  "Test")),
+            //        rules ind. alts   wrapper type              tag name                                        name
+            1 => Some(( 580, 4,  true,  false,  ParserType::LL1,  "write_source_code_for_integration_listener1",  "Expr")),
+            2 => Some(( 640, 4,  true,  false,  ParserType::LL1,  "write_source_code_for_integration_listener2",  "Expr")),
+            3 => Some(( 641, 4,  true,  false,  ParserType::LL1,  "write_source_code_for_integration_listener3",  "Expr")),
+            4 => Some(( 642, 4,  true,  false,  ParserType::LL1,  "write_source_code_for_integration_listener4",  "Expr")),
+            5 => Some(( 862, 4,  true,  false,  ParserType::LL1,  "write_source_code_for_integration_listener5",  "Expr")),
+            6 => Some(( 120, 4,  false, false,  ParserType::LL1,  "write_source_code_for_integration_listener6",  "Expr")),
+            7 => Some(( 122, 4,  false, true,   ParserType::LALR, "write_source_code_for_integration_listener7",  "Test")),
             _ => None
         }
     }
@@ -72,8 +78,8 @@ mod gen_integration {
 
     fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
-        if let Some((tr_id, indent, include_alts, parser_type, tag, name)) = get_test_data(id) {
-            let source = get_source(tr_id, indent, include_alts, parser_type, name.to_string());
+        if let Some((tr_id, indent, include_alts, gen_wrapper, parser_type, tag, name)) = get_test_data(id) {
+            let source = get_source(tr_id, indent, include_alts, gen_wrapper, parser_type, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
@@ -492,47 +498,6 @@ mod parser_source {
             let parser = pt.make_parser();
             let alts = parser.get_alts();
             assert_eq!(alts.is_empty(), !include_alts, "unexpected: include_alts = {include_alts}, alts = {alts:?}");
-        }
-    }
-}
-
-mod parser_lalr_source {
-    // use std::collections::HashMap;
-    // use lexigram_core::parser::Symbol;
-    // use lexigram_core::TokenId;
-    use crate::grammar::tests::TestRules;
-    use crate::parsergen::ParserGen;
-
-    #[test]
-    fn gen_lr_parser() {
-        const VERBOSE: bool = true;
-        let tests = [
-            (2000, 0),
-            (601, 0)
-        ];
-        for (grammar_id, start) in tests {
-            if VERBOSE { println!("{:=<80}\ntest {grammar_id}, start: {start}", ""); }
-            let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
-            lalr1.set_start(start);
-            // let symtab = lalr1.symbol_table.clone();
-            // let symbols = (0..lalr1.get_num_t() as TokenId)
-            //     .map(|t| (Symbol::T(t).to_str(lalr1.get_symbol_table()), t))
-            //     .collect::<HashMap<_, _>>();
-            if VERBOSE {
-                //lalr1.get_symbol_table().unwrap().dump("symbol table:");
-                lalr1.print_alts();
-                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().to_str(lalr1.get_symbol_table()).join("\n"));
-            }
-            // let ptables = LRParserTables::build_from(lalr1);
-            // let mut parser: LRParser<LALR> = ptables.make_parser();
-            let mut builder = ParserGen::build_from_rules_lr(lalr1, "simple".to_string());
-            let src_parser = builder.source_build_parser();
-            let mut src = builder.source_use();
-            src.push(String::new());
-            src.extend(src_parser);
-            if VERBOSE {
-                println!("Source:\n{}", src.join("\n"));
-            }
         }
     }
 }
