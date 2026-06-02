@@ -1298,5 +1298,21 @@ impl<T> ProdRuleSet<T> {
                      )
         ).join("\n"));
     }
+
+    #[cfg(test)]
+    pub fn get_original_str(&self, indent: usize) -> String {
+        let symtab = self.get_symbol_table();
+        self.origin.trees.iter().index::<VarId>()
+            .filter_map(|(v, t)|
+                if !t.is_empty() {
+                    Some(format!("{: <w$}// {} -> {}", "",
+                                 Symbol::NT(v).to_str(symtab),
+                                 grtree_to_str(t, None, None, Some(v), symtab, false),
+                                 w=indent))
+                } else {
+                    None
+                })
+            .join("\n")
+    }
 }
 

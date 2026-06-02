@@ -2,24 +2,6 @@
 
 #![cfg(test)]
 
-use iter_index::IndexerIterator;
-use lexigram_core::CollectJoin;
-use crate::grammar::{grtree_to_str, ProdRuleSet};
-use crate::parser::Symbol;
-use crate::{VarId, LL1};
-
-fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
-    let symtab = ll1.get_symbol_table();
-    ll1.origin.trees.iter().index::<VarId>()
-        .filter_map(|(v, t)|
-            if !t.is_empty() {
-                Some(format!("{: <w$}// {} -> {}", "", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, Some(v), symtab, false), w=indent))
-            } else {
-                None
-            })
-        .join("\n")
-}
-
 mod gen_integration {
     use lexigram_core::CollectJoin;
     use crate::grammar::ProdRuleSet;
@@ -183,7 +165,6 @@ pub mod opcodes {
     use crate::grammar::tests::TestRules;
     use crate::parser::{OpCode, LLParser};
     use crate::parsergen::{ParserGen, LLParserTables};
-    use crate::parsergen::tests::get_original_str;
 
     fn get_alts_str(parser: &LLParser) -> Vec<String> {
         let pv = parser.get_alt_var();
@@ -452,7 +433,7 @@ pub mod opcodes {
             if VERBOSE {
                 ll1.print_prs_summary();
             }
-            let original_str = get_original_str(&ll1, 12);
+            let original_str = ll1.get_original_str(12);
             let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
@@ -512,7 +493,6 @@ mod wrapper_source {
     use crate::parsergen::{NTValue, ParserGen};
     use lexigram_core::log::{LogReader, LogStatus};
     use crate::parsergen::SpanNbr;
-    use crate::parsergen::tests::get_original_str;
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
     use lexigram_core::CollectJoin;
 
@@ -2606,7 +2586,7 @@ mod wrapper_source {
                     continue;
                 }
             }
-            let original_str = get_original_str(&ll1, 12);
+            let original_str = ll1.get_original_str(12);
             let mut builder = ParserGen::build_from_rules_ll1(ll1, "Test".to_string());
             builder.set_gen_span_params(true);
             builder.set_include_alts(true);
@@ -2979,7 +2959,7 @@ mod wrapper_source {
                 .map(|opt| if let Some(s) = opt { format!("Some(r#\"{s}\"#)") } else { "None".to_string() })
                 .to_vec();
             let ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
-            let original_str = get_original_str(&ll1, 12);
+            let original_str = ll1.get_original_str(12);
             let builder = ParserGen::build_from_rules_ll1(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_full = vec![];
