@@ -304,7 +304,7 @@ fn write_lexiparser_source(replace_source: bool) {
     builder.add_lib("super::lexiparser_types::*");
     builder.use_full_lib(true);
     if VERBOSE {
-        builder.make_item_ops();
+        builder.calc_item_ops();
         builder.print_flags(0);
         builder.print_items(0, false, false);
     }

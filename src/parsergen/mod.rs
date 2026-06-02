@@ -344,8 +344,8 @@ impl ParserGen {
             self.nt_parent[top_var_id].push(var_id as VarId);
         }
         self.apply_options();
-        self.make_opcodes();
-        self.make_span_nbrs();
+        self.calc_opcodes();
+        self.calc_span_nbrs();
     }
 
     pub fn set_options(&mut self, options: ParserGenOptions) {
@@ -693,7 +693,7 @@ impl ParserGen {
         }
     }
 
-    fn make_opcodes(&mut self) {
+    fn calc_opcodes(&mut self) {
         const VERBOSE: bool = false;
         self.log.add_note("- making opcodes...");
         self.opcodes.clear();
@@ -911,7 +911,7 @@ impl ParserGen {
         }
     }
 
-    fn make_span_nbrs(&mut self) {
+    fn calc_span_nbrs(&mut self) {
         self.log.add_note("- making spans...");
         let mut span_nbrs = vec![0 as SpanNbr; self.alts.len()];
         for (alt_id, (var_id, _)) in self.alts.iter().enumerate() {
@@ -1047,7 +1047,7 @@ impl ParserGen {
         }
     }
 
-    pub(crate) fn make_item_ops(&mut self) {
+    pub(crate) fn calc_item_ops(&mut self) {
         const VERBOSE: bool = false;
         self.calc_nt_value();
         self.log.add_note("- making item ops...");
@@ -1731,7 +1731,7 @@ impl ParserGen {
             vec![]
         };
         let (src_types, src_listener) = if self.options.gen_wrapper {
-            self.make_item_ops();
+            self.calc_item_ops();
             let (src_wrapper, src_types, src_listener) = self.source_wrapper();
             tmp_parts.push(src_wrapper);
             (

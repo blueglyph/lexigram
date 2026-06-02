@@ -554,7 +554,7 @@ mod wrapper_source {
     #[allow(unused_doc_comments)]
     #[allow(unused_variables)]
     #[allow(unused_mut)]
-    /// Tests [ParserGen::source_build_parser], [ParserGen::source_wrapper], [ParserGen::source_use], and [ParserGen::make_item_ops].
+    /// Tests [ParserGen::source_build_parser], [ParserGen::source_wrapper], [ParserGen::source_use], and [ParserGen::calc_item_ops].
     fn build_items(mut enable_test_source: bool, mut tests_all: bool, mut replace_source: bool) {
         let tests: Vec<(
             u32,                                    // TestRules #
