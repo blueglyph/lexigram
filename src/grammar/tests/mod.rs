@@ -94,6 +94,10 @@ impl TestRules {
             117 => vec![r#"a -> X B (B)* Z;"#],
             118 => vec![r#"a -> "var" Id ("," Id)* ";";"#],
 
+            120 => vec![r#"a -> A Id ("," Id)* C;"#],
+            121 => vec![r#"a -> A b* C; b -> Id;"#],
+            122 => vec![r#"a -> A b+ C; b -> Id;"#],
+
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
             152 => vec![r#"a -> A (B | b C b B C | E)* F; b -> D;"#],

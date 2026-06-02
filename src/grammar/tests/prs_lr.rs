@@ -83,26 +83,70 @@ fn prs_calc_lr_table() {
             "conflict for state 4, terminal A: s7/r2",
         ]),
         (102, 0, 0, &[
+            // a -> A B* C;
+            // - 0: a -> A a_1 C
+            // - 1: a_1 -> a_1 B
+            // - 2: a_1 -> ε
+            // - 3: <goal> -> a
             r#"  | A  B  C   $  | a a_1"#,
             r#"--+--------------+------"#,
             r#"0 | s1 -  -   -  | 2  - "#,
-            r#"1 | -  s3 r2  -  | -  4 "#,
+            r#"1 | -  r2 r2  -  | -  3 "#,
             r#"2 | -  -  -  acc | -  - "#,
-            r#"3 | -  s3 r2  -  | -  5 "#,
-            r#"4 | -  -  s6  -  | -  - "#,
-            r#"5 | -  -  r1  -  | -  - "#,
-            r#"6 | -  -  -  r0  | -  - "#,
+            r#"3 | -  s4 s5  -  | -  - "#,
+            r#"4 | -  r1 r1  -  | -  - "#,
+            r#"5 | -  -  -  r0  | -  - "#,
         ], &[]),
         (103, 0, 0, &[
+            // a -> A B+ C;
+            // - 0: a -> A a_1 C
+            // - 1: a_1 -> a_1 B
+            // - 2: a_1 -> B
+            // - 3: <goal> -> a
             r#"  | A  B  C   $  | a a_1"#,
             r#"--+--------------+------"#,
             r#"0 | s1 -  -   -  | 2  - "#,
             r#"1 | -  s3 -   -  | -  4 "#,
             r#"2 | -  -  -  acc | -  - "#,
-            r#"3 | -  s3 r2  -  | -  5 "#,
-            r#"4 | -  -  s6  -  | -  - "#,
-            r#"5 | -  -  r1  -  | -  - "#,
+            r#"3 | -  r2 r2  -  | -  - "#,
+            r#"4 | -  s5 s6  -  | -  - "#,
+            r#"5 | -  r1 r1  -  | -  - "#,
             r#"6 | -  -  -  r0  | -  - "#,
+        ], &[]),
+        (121, 0, 0, &[
+            // a -> A b+ C; b -> Id;
+            // - 0: a -> A a_1 C
+            // - 1: b -> Id
+            // - 2: a_1 -> a_1 b
+            // - 3: a_1 -> ε
+            // - 4: <goal> -> a
+            r#"  | A  C  Id  $  | a b a_1"#,
+            r#"--+--------------+--------"#,
+            r#"0 | s1 -  -   -  | 2 -  - "#,
+            r#"1 | -  r3 r3  -  | - -  3 "#,
+            r#"2 | -  -  -  acc | - -  - "#,
+            r#"3 | -  s4 s5  -  | - 6  - "#,
+            r#"4 | -  -  -  r0  | - -  - "#,
+            r#"5 | -  r1 r1  -  | - -  - "#,
+            r#"6 | -  r2 r2  -  | - -  - "#,
+        ], &[]),
+        (122, 0, 0, &[
+            // a -> A b+ C; b -> Id;
+            // - 0: a -> A a_1 C
+            // - 1: b -> Id
+            // - 2: a_1 -> a_1 b
+            // - 3: a_1 -> b
+            // - 4: <goal> -> a
+            r#"  | A  C  Id  $  | a b a_1"#,
+            r#"--+--------------+--------"#,
+            r#"0 | s1 -  -   -  | 2 -  - "#,
+            r#"1 | -  -  s3  -  | - 4  5 "#,
+            r#"2 | -  -  -  acc | - -  - "#,
+            r#"3 | -  r1 r1  -  | - -  - "#,
+            r#"4 | -  r3 r3  -  | - -  - "#,
+            r#"5 | -  s6 s3  -  | - 7  - "#,
+            r#"6 | -  -  -  r0  | - -  - "#,
+            r#"7 | -  r2 r2  -  | - -  - "#,
         ], &[]),
         /* template:
         (, 0, 0, &[
@@ -114,7 +158,7 @@ fn prs_calc_lr_table() {
     const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
-    const SHOW_STATES: bool = true;
+    const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_conflict) in TESTS {
         // if !matches!(test_id, 601) { continue }
@@ -213,8 +257,6 @@ mod parse {
 
     #[test]
     fn make_parser_lalr() {
-        const VERBOSE: bool = false;
-
         struct Stub<'a> {
             log: BufLog,
             symtab: Option<&'a SymbolTable>,
@@ -252,15 +294,27 @@ mod parse {
             (601, 0, 3, 2, vec![
                 ("1 + 2 * 3", None),
             ]),
-
+            (102, 0, 1, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (103, 0, 1, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (121, 0, 2, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (122, 0, 2, 999, vec![
+                ("A x y z C", None),
+            ]),
             /*
             (, 0, id, num, vec![
                 ("", None),
             ]),
             */
         ];
-
+        const VERBOSE: bool = false;
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+            if !matches!(grammar_id, 102|103|121|122) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
             let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
             lalr1.set_start(start);
