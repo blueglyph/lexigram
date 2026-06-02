@@ -2526,6 +2526,9 @@ impl ParserGen {
         state               : &mut SourceState,
         sources             : &mut WrapperSources
     ) {
+        if self.options.parser_type != ParserType::LL1 {
+            return;
+        }
         let &SourceInputContext { ambig_op_alts, .. } = ctx;
         let SourceState { init_nt_done, span_init, .. } = state;
         let WrapperSources { src_listener_decl, src_skel, src_init, src_wrapper_impl, .. } = sources;
@@ -3012,37 +3015,39 @@ impl ParserGen {
         src.push("            self.stack_t.append(&mut t_data);".to_string());
         src.push("        }".to_string());
         src.push("        match call {".to_string());
-        src.push("            Call::Enter => {".to_string());
-        if self.options.gen_span_params {
-            // adds span accumulator inits, using Segments to regroup them
-            let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
-            seg_span.normalize();
-            let pattern = seg_span.into_iter().map(|Seg(a, b)| {
-                if a == b {
-                    a.to_string()
-                } else if b == a + 1 {
-                    format!("{a} | {b}")
-                } else {
-                    format!("{a} ..= {b}")
+        if self.options.parser_type == ParserType::LL1 {
+            src.push("            Call::Enter => {".to_string());
+            if self.options.gen_span_params {
+                // adds span accumulator inits, using Segments to regroup them
+                let mut seg_span = Segments::from_iter(span_init.into_iter().map(|v| Seg(v as u32, v as u32)));
+                seg_span.normalize();
+                let pattern = seg_span.into_iter().map(|Seg(a, b)| {
+                    if a == b {
+                        a.to_string()
+                    } else if b == a + 1 {
+                        format!("{a} | {b}")
+                    } else {
+                        format!("{a} ..= {b}")
+                    }
+                }).join(" | ");
+                if !pattern.is_empty() {
+                    src.push(format!("                if matches!(nt, {pattern}) {{"));
+                    src.push("                    self.stack_span.push(PosSpan::empty());".to_string());
+                    src.push("                }".to_string());
                 }
-            }).join(" | ");
-            if !pattern.is_empty() {
-                src.push(format!("                if matches!(nt, {pattern}) {{"));
-                src.push("                    self.stack_span.push(PosSpan::empty());".to_string());
-                src.push("                }".to_string());
             }
+            src.push("                match nt {".to_string());
+            /*
+                                                  0 => self.listener.init_a(),                // A
+                                                  1 => self.init_a_iter(),                    // AIter1
+                                                  2 => {}                                     // A_1
+            */
+            src.extend(columns_to_str(src_init, Some(vec![64, 0])));
+            src.push("                    _ => panic!(\"unexpected enter nonterminal id: {nt}\")".to_string());
+            src.push("                }".to_string());
+            src.push("            }".to_string());
+            src.push("            Call::Loop => {}".to_string());
         }
-        src.push("                match nt {".to_string());
-        /*
-                                              0 => self.listener.init_a(),                // A
-                                              1 => self.init_a_iter(),                    // AIter1
-                                              2 => {}                                     // A_1
-        */
-        src.extend(columns_to_str(src_init, Some(vec![64, 0])));
-        src.push("                    _ => panic!(\"unexpected enter nonterminal id: {nt}\")".to_string());
-        src.push("                }".to_string());
-        src.push("            }".to_string());
-        src.push("            Call::Loop => {}".to_string());
         src.push("            Call::Exit => {".to_string());
         src.push("                match alt_id {".to_string());
         /*
@@ -3074,6 +3079,9 @@ impl ParserGen {
         src.push("                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),".to_string());
         src.push("                }".to_string());
         src.push("            }".to_string());
+        if self.options.parser_type != ParserType::LL1 {
+            src.push(r#"            _ => panic!("unexpected call {call:?}, nt {nt}, alt_id {alt_id}")"#.to_string());
+        }
         src.push("        }".to_string());
         src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
         src.push("        if self.verbose {".to_string());
