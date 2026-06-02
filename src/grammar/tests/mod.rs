@@ -428,6 +428,13 @@ impl TestRules {
     pub fn to_prs_lr(self) -> Option<ProdRuleSet<LR>> {
         self.to_prs_general().map(|prs| prs.build_into())
     }
+    
+    pub fn to_prs_lr_with_start(self, start: VarId) -> Option<ProdRuleSet<LR>> {
+        self.to_prs_general().map(|mut prs| {
+            prs.set_start(start);
+            prs.build_into()
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
