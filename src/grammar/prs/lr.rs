@@ -509,7 +509,7 @@ impl ProdRuleSet<LR> {
 impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
-            rules.remove_ambiguity();
+            rules.adapt_loops();
             rules.transfer_alt_flags();
             rules.check_flags();
         }

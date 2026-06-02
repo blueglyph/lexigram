@@ -952,8 +952,14 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prules.len();
     }
 
-    pub(crate) fn remove_ambiguity(&mut self) {
-        self.log.add_note("TODO: remove_ambiguity");
+    pub(crate) fn adapt_loops(&mut self) {
+        self.log.add_note("adapting loops...");
+        for (prule, flags) in self.prules.iter_mut().zip(&self.flags) {
+            if flags & ruleflag::CHILD_REPEAT != 0 {
+                let nt = prule[0].pop().unwrap();
+                prule[0].insert(0, nt);
+            }
+        }
     }
 
     /// Moves the flags of the mask from the alternatives to the NT flags
