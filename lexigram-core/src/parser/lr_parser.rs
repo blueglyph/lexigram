@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use crate::{AltId, CollectJoin, TokenId, VarId};
-use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::fixed_sym_table::{FixedSymTable};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::LogMsg;
 use crate::parser::{Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
@@ -95,14 +95,12 @@ impl<'a, T> LRParser<'a, T> {
                 });
                 advance_stream = false;
                 if error.is_some() { break }
-                if stream_sym < token_eof && self.symbol_table.is_token_data(stream_sym) {
-                    stack_t.push(stream_str.clone());
-                }
             }
             if VERBOSE {
                 println!(
-                    "states [{}] -> {s}, input: token {} = {stream_str:?}",
+                    "states [{}] -> {s}, stack_t [{}], input: token {} = {stream_str:?}",
                     stack_state.iter().map(|s| s.to_string()).join(" "),
+                    stack_t.iter().map(|s| format!("{s:?}")).join(", "),
                     Symbol::T(stream_sym).to_str(Some(&self.symbol_table))
                 );
             }
@@ -110,6 +108,7 @@ impl<'a, T> LRParser<'a, T> {
                 LRAction::Shift(new_s) => {
                     if VERBOSE { println!("- shift({new_s})"); }
                     stack_state.push(new_s);
+                    stack_t.push(std::mem::take(&mut stream_str));
                     s = new_s;
                     advance_stream = true;
                 }
