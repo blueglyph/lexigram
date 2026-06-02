@@ -696,6 +696,23 @@ impl ParserGen {
     fn calc_opcodes(&mut self) {
         const VERBOSE: bool = false;
         self.log.add_note("- making opcodes...");
+        if self.options.parser_type == ParserType::LALR {
+            self.opcodes = self.alts.iter()
+                .map(|(nt, Alternative { v, .. })| {
+                    let mut ops = v.iter().filter_map(|s| if !s.is_empty() { Some(OpCode::from(s.clone())) } else { None })
+                        .rev()
+                        .to_vec();
+                    if self.flags[*nt as usize] & ruleflag::CHILD_REPEAT != 0 {
+                        let op = ops.last_mut();
+                        if matches!(op, Some(OpCode::NT(nt2)) if nt == nt2) {
+                            *op.unwrap() = OpCode::Loop(*nt);
+                        }
+                    }
+                    ops
+                })
+                .to_vec();
+            return;
+        }
         self.opcodes.clear();
         self.init_opcodes = vec![OpCode::End, OpCode::NT(self.start)];
         for (alt_id, (var_id, alt)) in self.alts.iter().index() {
