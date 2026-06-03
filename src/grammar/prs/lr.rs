@@ -492,9 +492,11 @@ impl ProdRuleSet<LR> {
             flags: self.flags.clone(),
             parent: self.parent.clone(),
         };
+        let table_str = table.to_str(self.get_symbol_table()).join("\n");
         if VERBOSE {
-            println!("Table:\n{}", table.to_str(self.get_symbol_table()).join("\n"));
+            println!("Table:\n{table_str}");
         }
+        self.log.add_note(format!("Parsing table:\n{table_str}"));
         (table, states)
     }
 
@@ -573,11 +575,12 @@ impl LRParsingTable {
             (0..num_t_full).map(|t| format!("{:^w$}", t_str[t], w = t_len[t])).join(" "),
             (0..num_nt).map(|nt| format!("{:^w$}", nt_str[nt], w = nt_len[nt])).join(" "),
             w = max_sw));
-        lines.push(format!(
+        let line = format!(
             "{:-<w$}-+-{:-<t$}-+-{:-<nt$}", "", "", "",
             t = num_t_full + t_len.iter().sum::<usize>() - 1,
             nt = num_nt + nt_len.iter().sum::<usize>() - 1,
-            w = max_sw));
+            w = max_sw);
+        lines.push(line.clone());
         for s in 0..num_states {
             let action_s = (0..num_t_full).map(|t| format!("{:^w$}", action[s * num_t_full + t].to_string(), w = t_len[t])).join(" ");
             let goto_s = (0..num_nt).map(|nt| {
@@ -586,6 +589,7 @@ impl LRParsingTable {
             }).join(" ");
             lines.push(format!("{s:>w$} | {action_s} | {goto_s}", w = max_sw));
         }
+        lines.push(line);
         lines
     }
 }
