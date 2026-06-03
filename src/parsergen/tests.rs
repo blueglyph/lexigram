@@ -207,7 +207,7 @@ pub(super) mod wrapper_source {
         bool,                                       // use super::super::wrapper_code::...?
         u16,                                        // start NT
         BTreeMap<VarId, String>,                    // NT types
-        Vec<(SpanNbr, Vec<Symbol>, Vec<OpCode>)>,   // expected span, opcodes, items for each alt
+        Vec<(Vec<OpCode>, SpanNbr, Vec<Symbol>)>,   // expected opcodes, span, items for each alt
         NTValue,                                    // which symbols have a value
         BTreeMap<VarId, Vec<AltId>>,                // expected alt groups
     );
@@ -325,7 +325,7 @@ pub(super) mod wrapper_source {
                          ).join(", "));
             }
             let result_items = builder.item_ops.iter().enumerate()
-                .map(|(a_id, v)| (builder.span_nbrs[a_id], v.clone(), builder.opcodes[a_id].clone()))
+                .map(|(a_id, v)| (builder.opcodes[a_id].clone(), builder.span_nbrs[a_id], v.clone()))
                 .to_vec();
             let result_alts = (0..builder.num_nt).filter_map(|v|
                 if builder.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
@@ -360,7 +360,7 @@ pub(super) mod wrapper_source {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("            {v} => \"{s}\".to_string(),")).join("\n"));
                 }
                 println!("        ], vec![");
-                builder.print_items(12, true, true);
+                builder.print_items(12, true);
                 let has_value_str = match &has_value {
                     NTValue::SetIds(s) => format!("NTValue::SetIds(vec![{}])", s.iter().map(|s| s.to_string()).join(", ")),
                     NTValue::SetNames(s) => format!("NTValue::SetNames(vec![{}])", s.iter().map(|s| format!("{s:?}")).join(", ")),

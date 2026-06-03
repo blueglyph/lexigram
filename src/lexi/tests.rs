@@ -306,7 +306,7 @@ fn write_lexiparser_source(replace_source: bool) {
     if VERBOSE {
         builder.calc_item_ops();
         builder.print_flags(0);
-        builder.print_items(0, false, false);
+        builder.print_items(0, false);
     }
     builder.set_indent(4);
     let (result_src, ..) = builder.gen_source_code();

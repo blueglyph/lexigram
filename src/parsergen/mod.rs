@@ -3377,7 +3377,7 @@ impl ParserGen {
         self.log.extend_messages(txt.into_iter().map(LogMsg::Info));
     }
 
-    pub fn print_items(&self, indent: usize, show_symbols: bool, show_span: bool) {
+    pub fn print_items(&self, indent: usize, show_symbols: bool) {
         let tbl = self.get_symbol_table();
         let fields = (0..self.alts.len())
             .map(|a| {
@@ -3387,17 +3387,12 @@ impl ParserGen {
                 let it = &self.item_ops[a_id as usize];
                 let mut cols = vec![];
                 if show_symbols {
+                    cols.push(format!("(strip![{}],", ops.iter().map(|o| o.to_macro_item()).join(", ")));
                     let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
-                    let value = if show_span {
-                        assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
-                        format!("({}, {symbols}", self.span_nbrs[a_id as usize])
-                    } else {
-                        symbols
-                    };
-                    cols.push(format!("{value},"));
+                    assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
+                    cols.push(format!("{}, {symbols}),", self.span_nbrs[a_id as usize]));
                 }
                 cols.extend([
-                    format!("strip![{}]),", ops.iter().map(|o| o.to_macro_item()).join(", ")),
                     format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!("| {}", ops.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!(
