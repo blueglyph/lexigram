@@ -2300,8 +2300,8 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 5, t 1],                   1, symbols![t 1]),       //  5: value -> Num                 | ◄5 Num!                 | 1 | Num
         ], NTValue::Default, btreemap![0 => vec![0, 1], 1 => vec![2], 2 => vec![3], 3 => vec![4, 5]]),
 
-        /*
-        (, false, false, false, 0, btreemap![], btreemap![], NTValue::Default, btreemap![]),
+        /* template:
+        (, false, false, false, 0, btreemap![], vec![], NTValue::Default, btreemap![]),
         */
     ]
 }
