@@ -3308,15 +3308,13 @@ impl ParserGen {
     pub fn nt_info_str(&self) -> Vec<String> {
         let indented = self.get_indented_nt();
         let mut cols = vec![
-            vec!["  NT".to_string(), "  name".to_string(), " val".to_string(), /*"  parent".to_string(),*/ "  flags".to_string(), String::new()]];
+            vec!["  NT".to_string(), "  name".to_string(), " val".to_string(), "  flags".to_string(), String::new()]];
         for (v, line) in indented {
             let nt = v as usize;
-            // let parent = self.parent[nt].map(|p| Symbol::NT(p).to_str(self.get_symbol_table())).unwrap_or_else(||String::new());
             cols.push(vec![
                 format!("| {v:3}"),
                 format!("| {line}"),
                 if self.nt_values[nt] { "| y".to_string() } else { "|".to_string() },
-                // format!("| {parent}"),
                 format!("| {}", ruleflag::to_string(self.flags[nt]).join(", ")),
                 "|".to_string(),
             ]);
@@ -3392,13 +3390,14 @@ impl ParserGen {
                     let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
                     let value = if show_span {
                         assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
-                        format!("({}, {symbols})", self.span_nbrs[a_id as usize])
+                        format!("({}, {symbols}", self.span_nbrs[a_id as usize])
                     } else {
                         symbols
                     };
-                    cols.push(format!("{a_id} => {value},"));
+                    cols.push(format!("{value},"));
                 }
                 cols.extend([
+                    format!("strip![{}]),", ops.iter().map(|o| o.to_macro_item()).join(", ")),
                     format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!("| {}", ops.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!(
@@ -3409,7 +3408,7 @@ impl ParserGen {
                 ]);
                 cols
             }).to_vec();
-        let widths = if show_symbols { vec![40, 0, 0, 0, 0] } else { vec![16, 0, 0, 0, 0] };
+        let widths = if show_symbols { vec![40, 0, 0, 0, 0, 0] } else { vec![16, 0, 0, 0, 0, 0] };
         for l in columns_to_str(fields, Some(widths)) {
             println!("{:indent$}{l}", "", indent = indent)
         }

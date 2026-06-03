@@ -160,307 +160,6 @@ mod gen_integration {
     }
 }
 
-pub mod opcodes {
-    use lexigram_core::{strip, CollectJoin};
-    use crate::build::BuildFrom;
-    use crate::parser::Symbol;
-    use crate::{columns_to_str, VarId};
-    use crate::grammar::tests::TestRules;
-    use crate::parser::{OpCode, LLParser};
-    use crate::parsergen::{ParserGen, LLParserTables};
-
-    fn get_alts_str(parser: &LLParser) -> Vec<String> {
-        let pv = parser.get_alt_var();
-        let pf = parser.get_alts();
-        pv.iter().enumerate().map(|(id, v)|
-            format!("{id:2}: {} -> {}",
-                    Symbol::NT(*v).to_str(parser.get_symbol_table()),
-                    if let Some(a) = pf.get(id) { a.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(alternative)".to_string() }
-            )
-        ).collect()
-    }
-
-    fn print_opcodes(parser: &LLParser) {
-        let alts = get_alts_str(&parser);
-        if !alts.is_empty() {
-            let indent = 16;
-            let opcodes = alts.into_iter().zip(parser.get_opcodes()).map(|(s, ops)|
-                vec![
-                    format!("strip![{}],", ops.iter().map(|o| o.to_macro_item()).join(", ")),
-                    format!("// {s}"),
-                    format!("- {}", ops.into_iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ")),
-                ]
-            ).to_vec();
-            for l in columns_to_str(opcodes, Some(vec![40, 0, 0])) {
-                println!("{:indent$}{l}", "", indent = indent)
-            }
-        }
-    }
-
-    #[test]
-    fn parser_opcodes() {
-        // terminal:     t (static) or t! (contains a string)
-        // non-terminal: ►A
-        // exit:         ◄2 (alternative #2)
-        // loop:         ●1 (alternative #1)
-        let tests: Vec<(u32, VarId, Vec<Vec<OpCode>>)> = vec![
-            // ----------------------------------------------------------------- basic rules
-            // a -> A b
-            // b -> B
-            (11, 0, vec![
-                strip![exit 0, nt 1, t 0],              //  0: a -> A b - ◄0 ►b A!
-                strip![exit 1, t 1],                    //  1: b -> B   - ◄1 B!
-            ]),
-            // a -> A | B
-            (2, 0, vec![
-                strip![exit 0, t 0],                    //  0: a -> A - ◄0 A!
-                strip![exit 1, t 1],                    //  1: a -> B - ◄1 B!
-            ]),
-            // ----------------------------------------------------------------- +_or_*
-            // a -> A B* C
-            (102, 0, vec![
-                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A a_1 C - ◄0 C! ►a_1 A!
-                strip![loop 1, exit 1, t 1],            //  1: a_1 -> B a_1 - ●a_1 ◄1 B!
-                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
-            ]),
-            // a -> A B+ C
-            (103, 0, vec![
-                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A a_1 C - ◄0 C! ►a_1 A!
-                strip![nt 2, t 1],                      //  1: a_1 -> B a_2 - ►a_2 B!
-                strip![loop 1, exit 2],                 //  2: a_2 -> a_1   - ●a_1 ◄2
-                strip![exit 3],                         //  3: a_2 -> ε     - ◄3
-            ]),
-            // a -> (A (b ",")* ";")* C
-            // b -> B
-            (106, 0, vec![
-                strip![exit 0, t 3, nt 3],              //  0: a -> a_2 C         - ◄0 C! ►a_2
-                strip![exit 1, t 4],                    //  1: b -> B             - ◄1 B!
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: a_1 -> b , a_1     - ●a_1 ◄2 , ►b
-                strip![exit 3],                         //  3: a_1 -> ε           - ◄3
-                strip![loop 3, exit 4, t 2, nt 2, t 0], //  4: a_2 -> A a_1 ; a_2 - ●a_2 ◄4 ; ►a_1 A!
-                strip![exit 5],                         //  5: a_2 -> ε           - ◄5
-            ]),
-            // a -> (A (b ",")+ ";")+ C
-            // b -> B
-            (107, 0, vec![
-                strip![exit 0, t 3, nt 3],              //  0: a -> a_2 C         - ◄0 C! ►a_2
-                strip![exit 1, t 4],                    //  1: b -> B             - ◄1 B!
-                strip![nt 4, t 1, nt 1],                //  2: a_1 -> b , a_3     - ►a_3 , ►b
-                strip![nt 5, t 2, nt 2, t 0],           //  3: a_2 -> A a_1 ; a_4 - ►a_4 ; ►a_1 A!
-                strip![loop 2, exit 4],                 //  4: a_3 -> a_1         - ●a_1 ◄4
-                strip![exit 5],                         //  5: a_3 -> ε           - ◄5
-                strip![loop 3, exit 6],                 //  6: a_4 -> a_2         - ●a_2 ◄6
-                strip![exit 7],                         //  7: a_4 -> ε           - ◄7
-            ]),
-            // a -> (A | B)*
-            (150, 0, vec![
-                strip![exit 0, nt 1],                   //  0: a -> a_1     - ◄0 ►a_1
-                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1 - ●a_1 ◄1 A!
-                strip![loop 1, exit 2, t 1],            //  2: a_1 -> B a_1 - ●a_1 ◄2 B!
-                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
-            ]),
-            // ----------------------------------------------------------------- +_or_* <L>
-            // a -> A (<L=i> B)* C
-            (200, 0, vec![
-                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A i C - ◄0 C! ►i A!
-                strip![loop 1, exit 1, t 1],            //  1: i -> B i   - ●i ◄1 B!
-                strip![exit 2],                         //  2: i -> ε     - ◄2
-            ]),
-            // a -> A (<L=i> B)+ C
-            (201, 0, vec![
-                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A i C - ◄0 C! ►i A!
-                strip![nt 2, t 1],                      //  1: i -> B a_1 - ►a_1 B!
-                strip![loop 1, exit 2],                 //  2: a_1 -> i   - ●i ◄2
-                strip![exit 3],                         //  3: a_1 -> ε   - ◄3
-            ]),
-            // ----------------------------------------------------------------- right_rec
-            // expr -> Num "^" expr | Num
-            (302, 0, vec![
-                strip![nt 1, t 0],                      //  0: expr -> Num expr_1 - ►expr_1 Num!
-                strip![exit 1, nt 0, t 1],              //  1: expr_1 -> ^ expr   - ◄1 ►expr ^
-                strip![exit 2],                         //  2: expr_1 -> ε        - ◄2
-            ]),
-            // ----------------------------------------------------------------- right_rec <L>
-            // expr -> <L> Num "^" expr | Num
-            (402, 0, vec![
-                strip![nt 1, t 0],                      //  0: expr -> Num expr_1 - ►expr_1 Num!
-                strip![loop 0, exit 1, t 1],            //  1: expr_1 -> ^ expr   - ●expr ◄1 ^
-                strip![exit 2],                         //  2: expr_1 -> ε        - ◄2
-            ]),
-            // ----------------------------------------------------------------- left_rec
-            // a -> a "b" | a "c" | "a"
-            (501, 0, vec![
-                strip![nt 1, exit 0, t 2],              //  0: a -> a a_1   - ►a_1 ◄0 a
-                strip![loop 1, exit 1, t 0],            //  1: a_1 -> b a_1 - ●a_1 ◄1 b
-                strip![loop 1, exit 2, t 1],            //  2: a_1 -> c a_1 - ●a_1 ◄2 c
-                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
-            ]),
-            // ----------------------------------------------------------------- left_rec + right_rec
-            // e -> e "!" | "-" e | Num
-            (580, 0, vec![
-                strip![exit 0, nt 0, t 1],              //  0: e -> - e     - ◄0 ►e -
-                strip![nt 1, exit 1, t 2],              //  1: e -> Num e_1 - ►e_1 ◄1 Num!
-                strip![loop 1, exit 2, t 0],            //  2: e_1 -> ! e_1 - ●e_1 ◄2 !
-                strip![exit 3],                         //  3: e_1 -> ε     - ◄3
-            ]),
-            // ----------------------------------------------------------------- left_rec + ambig
-            // e -> e "+" e | Num
-            (600, 0, vec![
-                strip![nt 1, exit 0, nt 2],             //  0: e -> e_2 e_1     - ►e_1 ◄0 ►e_2
-                strip![loop 1, exit 1, nt 2, t 0],      //  1: e_1 -> + e_2 e_1 - ●e_1 ◄1 ►e_2 +
-                strip![exit 2],                         //  2: e_1 -> ε         - ◄2
-                strip![exit 3, t 1],                    //  3: e_2 -> Num       - ◄3 Num!
-            ]),
-            // e -> e "*" e | e "+" e | "!" e | Num
-            (603, 0, vec![
-                strip![nt 1, exit 0, nt 4],             //  0: e -> e_4 e_1     - ►e_1 ◄0 ►e_4
-                strip![loop 1, exit 1, nt 4, t 0],      //  1: e_1 -> * e_4 e_1 - ●e_1 ◄1 ►e_4 *
-                strip![loop 1, exit 2, nt 2, t 1],      //  2: e_1 -> + e_2 e_1 - ●e_1 ◄2 ►e_2 +
-                strip![exit 3],                         //  3: e_1 -> ε         - ◄3
-                strip![nt 3, exit 4, nt 4],             //  4: e_2 -> e_4 e_3   - ►e_3 ◄4 ►e_4
-                strip![loop 3, exit 5, nt 4, t 0],      //  5: e_3 -> * e_4 e_3 - ●e_3 ◄5 ►e_4 *
-                strip![exit 6],                         //  6: e_3 -> ε         - ◄6
-                strip![exit 7, nt 0, t 2],              //  7: e_4 -> ! e       - ◄7 ►e !
-                strip![exit 8, t 3],                    //  8: e_4 -> Num       - ◄8 Num!
-            ]),
-            // e -> e "*" e | e "+" e | e "!" | Num
-            (609, 0, vec![
-                strip![nt 1, exit 0, nt 4],             //  0: e -> e_4 e_1     - ►e_1 ◄0 ►e_4
-                strip![loop 1, exit 1, nt 4, t 0],      //  1: e_1 -> * e_4 e_1 - ●e_1 ◄1 ►e_4 *
-                strip![loop 1, exit 2, nt 2, t 1],      //  2: e_1 -> + e_2 e_1 - ●e_1 ◄2 ►e_2 +
-                strip![loop 1, exit 3, t 2],            //  3: e_1 -> ! e_1     - ●e_1 ◄3 !
-                strip![exit 4],                         //  4: e_1 -> ε         - ◄4
-                strip![nt 3, exit 5, nt 4],             //  5: e_2 -> e_4 e_3   - ►e_3 ◄5 ►e_4
-                strip![loop 3, exit 6, nt 4, t 0],      //  6: e_3 -> * e_4 e_3 - ●e_3 ◄6 ►e_4 *
-                strip![exit 7],                         //  7: e_3 -> ε         - ◄7
-                strip![exit 8, t 3],                    //  8: e_4 -> Num       - ◄8 Num!
-            ]),
-            // ----------------------------------------------------------------- left_fact
-            // a -> A | A B
-            (700, 0, vec![
-                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
-                strip![exit 1, t 1],                    //  1: a_1 -> B   - ◄1 B!
-                strip![exit 2],                         //  2: a_1 -> ε   - ◄2
-            ]),
-            // a -> A B C | B B C | B C | B B A
-            (704, 0, vec![
-                strip![exit 0, t 2, t 1, t 0],          //  0: a -> A B C   - ◄0 C! B! A!
-                strip![nt 1, t 1],                      //  1: a -> B a_1   - ►a_1 B!
-                strip![nt 2, t 1],                      //  2: a_1 -> B a_2 - ►a_2 B!
-                strip![exit 3, t 2],                    //  3: a_1 -> C     - ◄3 C!
-                strip![exit 4, t 0],                    //  4: a_2 -> A     - ◄4 A!
-                strip![exit 5, t 2],                    //  5: a_2 -> C     - ◄5 C!
-            ]),
-            // ----------------------------------------------------------------- mix
-            // a -> A* B a | C
-            (810, 0, vec![
-                strip![exit 0, nt 0, t 1, nt 1],        //  0: a -> a_1 B a - ◄0 ►a B! ►a_1
-                strip![exit 1, t 2],                    //  1: a -> C       - ◄1 C!
-                strip![loop 1, exit 2, t 0],            //  2: a_1 -> A a_1 - ●a_1 ◄2 A!
-                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
-            ]),
-            // a -> A+ B a | C
-            (811, 0, vec![
-                strip![exit 0, nt 0, t 1, nt 1],        //  0: a -> a_1 B a - ◄0 ►a B! ►a_1
-                strip![exit 1, t 2],                    //  1: a -> C       - ◄1 C!
-                strip![nt 2, t 0],                      //  2: a_1 -> A a_2 - ►a_2 A!
-                strip![loop 1, exit 3],                 //  3: a_2 -> a_1   - ●a_1 ◄3
-                strip![exit 4],                         //  4: a_2 -> ε     - ◄4
-            ]),
-            // a -> a A* C | B
-            (820, 0, vec![
-                strip![nt 2, exit 0, t 2],              //  0: a -> B a_2       - ►a_2 ◄0 B!
-                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1     - ●a_1 ◄1 A!
-                strip![exit 2],                         //  2: a_1 -> ε         - ◄2
-                strip![loop 2, exit 3, t 1, nt 1],      //  3: a_2 -> a_1 C a_2 - ●a_2 ◄3 C! ►a_1
-                strip![exit 4],                         //  4: a_2 -> ε         - ◄4
-            ]),
-            // a -> a A+ C | B
-            (821, 0, vec![
-                strip![nt 2, exit 0, t 2],              //  0: a -> B a_2       - ►a_2 ◄0 B!
-                strip![nt 3, t 0],                      //  1: a_1 -> A a_3     - ►a_3 A!
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: a_2 -> a_1 C a_2 - ●a_2 ◄2 C! ►a_1
-                strip![exit 3],                         //  3: a_2 -> ε         - ◄3
-                strip![loop 1, exit 4],                 //  4: a_3 -> a_1       - ●a_1 ◄4
-                strip![exit 5],                         //  5: a_3 -> ε         - ◄5
-            ]),
-            // a -> (A B | A C)*
-            (840, 0, vec![
-                strip![exit 0, nt 1],                   //  0: a -> a_1     - ◄0 ►a_1
-                strip![nt 2, t 0],                      //  1: a_1 -> A a_2 - ►a_2 A!
-                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
-                strip![loop 1, exit 3, t 1],            //  3: a_2 -> B a_1 - ●a_1 ◄3 B!
-                strip![loop 1, exit 4, t 2],            //  4: a_2 -> C a_1 - ●a_1 ◄4 C!
-            ]),
-            // a -> A B a | A C a | D
-            (860, 0, vec![
-                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
-                strip![exit 1, t 3],                    //  1: a -> D     - ◄1 D!
-                strip![exit 2, nt 0, t 1],              //  2: a_1 -> B a - ◄2 ►a B!
-                strip![exit 3, nt 0, t 2],              //  3: a_1 -> C a - ◄3 ►a C!
-            ]),
-            // a -> A B a <L> | A C a <L> | D
-            (861, 0, vec![
-                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
-                strip![exit 1, t 3],                    //  1: a -> D     - ◄1 D!
-                strip![loop 0, exit 2, t 1],            //  2: a_1 -> B a - ●a ◄2 B!
-                strip![loop 0, exit 3, t 2],            //  3: a_1 -> C a - ●a ◄3 C!
-            ]),
-            // a -> a A | B C | B D
-            (870, 0, vec![
-                strip![nt 2, t 1],                      //  0: a -> B a_2   - ►a_2 B!
-                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1 - ●a_1 ◄1 A!
-                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
-                strip![nt 1, exit 3, t 2],              //  3: a_2 -> C a_1 - ►a_1 ◄3 C!
-                strip![nt 1, exit 4, t 3],              //  4: a_2 -> D a_1 - ►a_1 ◄4 D!
-            ]),
-            // a -> a A B | a A C | D
-            (871, 0, vec![
-                strip![nt 1, exit 0, t 3],              //  0: a -> D a_1   - ►a_1 ◄0 D!
-                strip![nt 2, t 0],                      //  1: a_1 -> A a_2 - ►a_2 A!
-                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
-                strip![loop 1, exit 3, t 1],            //  3: a_2 -> B a_1 - ●a_1 ◄3 B!
-                strip![loop 1, exit 4, t 2],            //  4: a_2 -> C a_1 - ●a_1 ◄4 C!
-            ]),
-            /* template:
-            (, 0, vec![
-            ]),
-            */
-        ];
-        const VERBOSE: bool = false;
-        const TESTS_ALL: bool = false;
-        let mut num_errors = 0;
-        for (test_id, (tr_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {tr_id}, start {start_nt}:", ""); }
-            let ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
-            if VERBOSE {
-                ll1.print_prs_summary();
-            }
-            let original_str = ll1.get_original_str(12);
-            let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
-            let parser = parser_tables.make_parser();
-            if VERBOSE {
-                println!("Final alts and opcodes:\n{original_str}");
-                println!("            ({tr_id}, {start_nt}, vec![");
-                print_opcodes(&parser);
-                println!("            ]),");
-            }
-            let err_msg = format!("test {test_id} {tr_id}/{start_nt} failed");
-            if TESTS_ALL {
-                if parser.get_opcodes() != &expected_opcodes {
-                    num_errors += 1;
-                    println!("## ERROR: {err_msg}");
-                }
-            } else {
-                assert_eq!(parser.get_opcodes(), &expected_opcodes, "{err_msg}");
-            }
-        }
-        if TESTS_ALL {
-            assert_eq!(num_errors, 0, "{num_errors} tests have failed");
-        }
-    }
-}
-
 mod parser_source {
     use crate::grammar::tests::TestRules;
     use lexigram_core::log::{LogReader, LogStatus};
@@ -498,18 +197,19 @@ pub(super) mod wrapper_source {
     use crate::parsergen::SpanNbr;
     use crate::file_utils::{get_tagged_source, replace_tagged_source};
     use lexigram_core::CollectJoin;
+    use lexigram_core::parser::OpCode;
 
     /// fields of each test in [build_items()]
     pub type BuildItemsTestEntry = (
-        u32,                                    // TestRules #
-        bool,                                   // test sources?
-        bool,                                   // test sources include parser?
-        bool,                                   // use super::super::wrapper_code::...?
-        u16,                                    // start NT
-        BTreeMap<VarId, String>,                // NT types
-        BTreeMap<u16, (SpanNbr, Vec<Symbol>)>,  // expected items
-        NTValue,                                // which symbols have a value
-        BTreeMap<VarId, Vec<AltId>>,            // expected alt groups
+        u32,                                        // TestRules #
+        bool,                                       // test sources?
+        bool,                                       // test sources include parser?
+        bool,                                       // use super::super::wrapper_code::...?
+        u16,                                        // start NT
+        BTreeMap<VarId, String>,                    // NT types
+        Vec<(SpanNbr, Vec<Symbol>, Vec<OpCode>)>,   // expected span, opcodes, items for each alt
+        NTValue,                                    // which symbols have a value
+        BTreeMap<VarId, Vec<AltId>>,                // expected alt groups
     );
 
     /// test specifications for [build_items()]
@@ -541,6 +241,7 @@ pub(super) mod wrapper_source {
         const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const SHOW_ANSWER: bool = false;
 
         // override options
         // enable_test_source = true;
@@ -624,8 +325,8 @@ pub(super) mod wrapper_source {
                          ).join(", "));
             }
             let result_items = builder.item_ops.iter().enumerate()
-                .map(|(a_id, v)| (a_id as AltId, (builder.span_nbrs[a_id], v.clone())))
-                .collect::<BTreeMap<AltId, (SpanNbr, Vec<Symbol>)>>();
+                .map(|(a_id, v)| (builder.span_nbrs[a_id], v.clone(), builder.opcodes[a_id].clone()))
+                .to_vec();
             let result_alts = (0..builder.num_nt).filter_map(|v|
                 if builder.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
@@ -640,16 +341,25 @@ pub(super) mod wrapper_source {
                             format!("({}: {a})", Symbol::NT(va).to_str(builder.get_symbol_table()))
                         }).join(", "))
                 }).join("\n"));
-                println!("{original_str}");
-                // builder.print_flags(12);
-                let infos = builder.nt_info_str();
-                println!("        //");
-                println!("{}", infos.into_iter().map(|s| format!("        // {s}")).join("\n"));
-                println!("        ({tr_id}, {test_source}, {test_source_parser}, {start_nt}, btreemap![", );
+            }
+            if VERBOSE || SHOW_ANSWER {
+                if *rule_iter == 1 {
+                    if !VERBOSE { println!(); }
+                    println!("{original_str}");
+                    println!("        //");
+                    let infos = builder.nt_info_str();
+                    println!("{}", infos.into_iter().map(|s| format!("        // {s}")).join("\n"));
+                } else {
+                    println!(
+                        "        // {}",
+                        builder.symbol_table.get_nonterminals().enumerate()
+                            .map(|(nt, s)| format!("{s}: {}", if builder.nt_values[nt] { 'y' } else { 'n' })).join(", "));
+                }
+                println!("        ({tr_id}, {test_source}, {test_source_parser}, {use_wrapper_code}, {start_nt}, btreemap![", );
                 if !result_nt_type.is_empty() {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("            {v} => \"{s}\".to_string(),")).join("\n"));
                 }
-                println!("        ], btreemap![");
+                println!("        ], vec![");
                 builder.print_items(12, true, true);
                 let has_value_str = match &has_value {
                     NTValue::SetIds(s) => format!("NTValue::SetIds(vec![{}])", s.iter().map(|s| s.to_string()).join(", ")),
@@ -659,6 +369,8 @@ pub(super) mod wrapper_source {
                 println!("        ], {has_value_str}, btreemap![{}]),",
                     if result_alts.is_empty() { "".to_string() } else { result_alts.iter().map(|(v, a)| format!("{v} => vec![{}]", a.iter().join(", "))).join(", ") }
                 );
+            }
+            if VERBOSE {
                 let nbr_alts = builder.alts.len();
                 let original = (0..nbr_alts)
                     .filter_map(|i| builder.get_original_alt_str(i as AltId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
@@ -702,10 +414,11 @@ pub(super) mod wrapper_source {
             if tests_all {
                 if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {
                     num_errors += 1;
-                    println!("## ERROR: {err_msg}{}{}{}",
-                             if result_items != expected_items { ", items mismatch" } else { "" },
-                             if result_alts != expected_alts { ", alts mismatch" } else { "" },
-                             if result_nt_type != nt_type { ", result type mismatch" } else { "" });
+                    println!(
+                        "## ERROR: {err_msg}{}{}{}",
+                        if result_items != expected_items { ", items mismatch" } else { "" },
+                        if result_alts != expected_alts { ", alts mismatch" } else { "" },
+                        if result_nt_type != nt_type { ", result type mismatch" } else { "" });
                 }
                 if (test_source && !cfg!(miri) && enable_test_source && Some(&result_src) != expected_src.as_ref()) || builder_has_errors {
                     if builder_has_errors {
@@ -729,7 +442,7 @@ pub(super) mod wrapper_source {
                 assert_eq!(result_items, expected_items, "{err_msg}, different items");
                 assert_eq!(result_alts, expected_alts, "{err_msg}, different alts");
                 assert_eq!(result_nt_type, nt_type, "{err_msg}, different NT types");
-                if !cfg!(miri) && enable_test_source {
+                if !cfg!(miri) && enable_test_source && test_source {
                     assert!(!builder_has_errors, "{} errors reported by source builder", builder.log.num_errors());
                     if replace_source && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() && !builder_has_errors {
                         replace_tagged_source(wrapper_filename, &test_name, &result_src).expect("replacement failed");
