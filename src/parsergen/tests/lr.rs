@@ -86,6 +86,26 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a  | ►a         | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
+        // =========================================================================== +_or_* sep_list
+
+        // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
+        // type -> Id
+        //
+        //   NT    name   val   flags
+        // +-------------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*          |
+        // |   2 | . a_1 | y  | child_+_or_*, sep_list |
+        // |   1 | type  | y  |                        |
+        // +-------------------------------------------+
+        (109, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![t 4, nt 2, nt 1, t 2, t 0, t 1, t 0], 4, symbols![t 0, nt 2]),       //  0: a -> Id "(" Id ":" type a_1 ")" | ")" ►a_1 ►type ":" Id! "(" Id! | 4    | Id a_1
+            (strip![t 0],                                 1, symbols![t 0]),             //  1: type -> Id                      | Id!                            | 1    | Id
+            (strip![nt 1, t 2, t 0, t 3, loop 2],         5, symbols![nt 2, t 0, nt 1]), //  2: a_1 -> a_1 "," Id ":" type      | ►type ":" Id! "," ●a_1         | 5, 3 | a_1 Id type
+            (strip![],                                    1, symbols![nt 2]),            //  3: a_1 -> ε                        |                                | 1    | a_1
+            (strip![nt 0],                                1, symbols![]),                //  4: <goal> -> a                     | ►a                             | 1    |
+        ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
         // =========================================================================== +_or_* <L>
         // a -> A (<L=i> B)* C
         //

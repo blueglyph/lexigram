@@ -153,6 +153,16 @@ pub enum ParserType {
     LALR,
 }
 
+impl ParserType {
+    pub fn is_ll(&self) -> bool {
+        *self == ParserType::LL1
+    }
+
+    pub fn is_lr(&self) -> bool {
+        *self == ParserType::LALR
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ParserGenOptions {
     pub nt_value: NTValue,
@@ -696,7 +706,7 @@ impl ParserGen {
     fn calc_opcodes(&mut self) {
         const VERBOSE: bool = false;
         self.log.add_note("- making opcodes...");
-        if self.options.parser_type == ParserType::LALR {
+        if self.options.parser_type.is_lr() {
             self.opcodes = self.alts.iter()
                 .map(|(nt, Alternative { v, .. })| {
                     let mut ops = v.iter().filter_map(|s| if !s.is_empty() { Some(OpCode::from(s.clone())) } else { None })
@@ -870,7 +880,7 @@ impl ParserGen {
     ///     ```
     fn add_opcode_hooks(&mut self) {
         const VERBOSE: bool = false;
-        if self.options.parser_type != ParserType::LL1 { return }
+        if !self.options.parser_type.is_ll() { return }
         self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
         let num_nt = self.num_nt;
@@ -1289,6 +1299,7 @@ impl ParserGen {
         //     - for each p_alt and postion (here, p_alt = 0 and pos = 3),
         //       - remove [pos - pattern_len..pos] from items[p_alt] -> [3 - 2..3] = [1..3] => [Id a_1] is left
         const VERBOSE: bool = false;
+        let is_lr = self.options.parser_type.is_lr();
         if VERBOSE {
             let log = std::mem::take(&mut self.log);
             self.item_ops = items.iter().cloned().to_vec();
@@ -1345,7 +1356,7 @@ impl ParserGen {
                         // verifies if enough symbols match
                         p_pos -= 1; // easier to skip the child nonterminal, since it may or may not have a value
                         let c_alt = &self.alts[c_alt_id].1.v;
-                        let mut c_pos = c_alt.len() - 2; // safe: there's at least another symbol before `c_sym` (per design)
+                        let mut c_pos = c_alt.len() - if is_lr { 1 } else { 2 }; // safe: there's at least another symbol before `c_sym` (per design)
                         let p_pos0 = p_pos;
                         let mut span_nbr = 0;
                         while !pattern.is_empty() {
@@ -2526,7 +2537,7 @@ impl ParserGen {
         state               : &mut SourceState,
         sources             : &mut WrapperSources
     ) {
-        if self.options.parser_type != ParserType::LL1 {
+        if !self.options.parser_type.is_ll() {
             return;
         }
         let &SourceInputContext { ambig_op_alts, .. } = ctx;
@@ -3015,7 +3026,7 @@ impl ParserGen {
         src.push("            self.stack_t.append(&mut t_data);".to_string());
         src.push("        }".to_string());
         src.push("        match call {".to_string());
-        if self.options.parser_type == ParserType::LL1 {
+        if self.options.parser_type.is_ll() {
             src.push("            Call::Enter => {".to_string());
             if self.options.gen_span_params {
                 // adds span accumulator inits, using Segments to regroup them
@@ -3079,7 +3090,7 @@ impl ParserGen {
         src.push("                    Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),".to_string());
         src.push("                }".to_string());
         src.push("            }".to_string());
-        if self.options.parser_type != ParserType::LL1 {
+        if !self.options.parser_type.is_ll() {
             src.push(r#"            _ => panic!("unexpected call {call:?}, nt {nt}, alt_id {alt_id}")"#.to_string());
         }
         src.push("        }".to_string());
