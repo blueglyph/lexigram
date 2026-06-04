@@ -1934,7 +1934,7 @@ impl ParserGen {
             format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = {:?};", self.symbol_table.get_terminals().to_vec()),
             format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = {:?};", self.symbol_table.get_nonterminals().to_vec()),
             String::new(),
-            "pub fn build_parser(n: u32) -> LRParser<'static, LALR> {".to_string(),
+            "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
             "    LRParser::new(".to_string(),
             "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
             "        FixedSymTable::new(".to_string(),
@@ -2712,7 +2712,7 @@ impl ParserGen {
         sources             : &mut WrapperSources
     ) {
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
-
+        let is_lr = self.options.parser_type.is_lr();
         let &SourceInputContext {
             parent_has_value, parent_nt, syns, ambig_op_alts
         } = ctx;
@@ -2853,12 +2853,24 @@ impl ParserGen {
                 src_wrapper_impl.push(String::new());
                 src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { ", alt_id: AltId" } else { "" }));
             }
+            let lr_init_alt_ids_maybe = if is_lr && is_plus {
+                let pattern = self.gather_alts(nt as VarId).into_iter()
+                    .filter(|id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
+                    .map(|id| id.to_string())
+                    .join(" | ");
+                Some(format!("        if matches!(alt_id, {pattern}) {{ self.init_{npl}(); }}"))
+            } else {
+                None
+            };
             if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
                 if has_value {
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
                     let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false);
                     src_wrapper_impl.extend(src_val);
                     let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
+                    if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
+                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                    }
                     src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
                     src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
                     src_wrapper_impl.push("        };".to_string());
@@ -2920,6 +2932,9 @@ impl ParserGen {
                     }
                 }
                 if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                    if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
+                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                    }
                     src_wrapper_impl.push(
                         format!("        let Some(EnumSynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
                     src_wrapper_impl.push(
@@ -2944,7 +2959,7 @@ impl ParserGen {
                 } else {
                     pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                 };
-                if self.options.parser_type.is_lr() && is_child_repeat_lform {
+                if is_lr && is_child_repeat_lform {
                     src_exit.push(vec![format!("                    {a} => self.{fn_init_name}(),"), format!("// {alt_str}")]);
                     exit_alt_done.insert(a);
                 } else {

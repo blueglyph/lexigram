@@ -433,9 +433,7 @@ pub(crate) mod listener7 {
 
         fn exit_a1(&mut self, alt_id: AltId) {
             let b = self.stack.pop().unwrap().get_b();
-            if alt_id == 3 {
-                self.init_a1();
-            }
+            if matches!(alt_id, 3) { self.init_a1(); }
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
