@@ -954,10 +954,14 @@ impl<T> ProdRuleSet<T> {
 
     pub(crate) fn adapt_loops(&mut self) {
         self.log.add_note("adapting loops...");
-        for (prule, flags) in self.prules.iter_mut().zip(&self.flags) {
+        for (nt, (prule, flags)) in self.prules.iter_mut().zip(&self.flags).index::<VarId>() {
             if flags & ruleflag::CHILD_REPEAT != 0 {
-                let nt = prule[0].pop().unwrap();
-                prule[0].insert(0, nt);
+                for alt in prule {
+                    if alt.last() == Some(&Symbol::NT(nt)) {
+                        alt.pop();
+                        alt.insert(0, Symbol::NT(nt));
+                    }
+                }
             }
         }
     }

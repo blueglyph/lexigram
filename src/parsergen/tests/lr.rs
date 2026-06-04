@@ -86,8 +86,6 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a  | ►a         | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // =========================================================================== +_or_* sep_list
-
         // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
         // type -> Id
         //
@@ -105,6 +103,39 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![],                                    1, symbols![nt 2]),            //  3: a_1 -> ε                        |                                | 1    | a_1
             (strip![nt 0],                                1, symbols![]),                //  4: <goal> -> a                     | ►a                             | 1    |
         ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+        // a -> (A | B)*
+        //
+        //   NT    name   val   flags
+        // +----------------------------------+
+        // |   0 | a     | y  | parent_+_or_* |
+        // |   1 | . a_1 | y  | child_+_or_*  |
+        // +----------------------------------+
+        (150, false, false, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![nt 1]),      //  0: a -> a_1     | ►a_1    | 1 | a_1
+            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]), //  1: a_1 -> a_1 A | A! ●a_1 | 2 | a_1 A
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]), //  2: a_1 -> a_1 B | B! ●a_1 | 2 | a_1 B
+            (strip![],                              1, symbols![nt 1]),      //  3: a_1 -> ε     |         | 1 | a_1
+            (strip![nt 0],                          1, symbols![]),          //  4: <goal> -> a  | ►a      | 1 |
+        ], NTValue::Default, btreemap![0 => vec![0]]),
+
+        // a -> (A | B)+
+        //
+        //   NT    name   val   flags
+        // +----------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*, plus |
+        // |   1 | . a_1 | y  | child_+_or_*, plus  |
+        // +----------------------------------------+
+        (151, false, false, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![nt 1]),      //  0: a -> a_1     | ►a_1    | 1 | a_1
+            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]), //  1: a_1 -> a_1 A | A! ●a_1 | 2 | a_1 A
+            (strip![t 0],                           2, symbols![nt 1, t 0]), //  2: a_1 -> A     | A!      | 2 | a_1 A
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]), //  3: a_1 -> a_1 B | B! ●a_1 | 2 | a_1 B
+            (strip![t 1],                           2, symbols![nt 1, t 1]), //  4: a_1 -> B     | B!      | 2 | a_1 B
+            (strip![nt 0],                          1, symbols![]),          //  5: <goal> -> a  | ►a      | 1 |
+        ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // =========================================================================== +_or_* <L>
         // a -> A (<L=i> B)* C
