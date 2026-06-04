@@ -1447,7 +1447,7 @@ pub(crate) mod rules_201_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
-        V1 { b: String, last_iteration: bool },
+        V1 { b: String },
     }
 
     #[derive(Debug)]
@@ -1604,9 +1604,8 @@ pub(crate) mod rules_201_1 {
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 1;
             let b = self.stack_t.pop().unwrap();
-            let ctx = CtxI::V1 { b, last_iteration };
+            let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             if matches!(alt_id, 2) { self.init_i(); }
@@ -1847,9 +1846,9 @@ pub(crate) mod rules_251_1 {
     #[derive(Debug)]
     pub enum CtxI {
         /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
-        V1 { a: String, last_iteration: bool },
+        V1 { a: String },
         /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
-        V2 { b: String, last_iteration: bool },
+        V2 { b: String },
     }
 
     #[derive(Debug)]
@@ -2008,14 +2007,12 @@ pub(crate) mod rules_251_1 {
         fn exit_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 2 | 1 => {
-                    let last_iteration = alt_id == 1;
                     let a = self.stack_t.pop().unwrap();
-                    (2, CtxI::V1 { a, last_iteration })
+                    (2, CtxI::V1 { a })
                 }
                 4 | 3 => {
-                    let last_iteration = alt_id == 3;
                     let b = self.stack_t.pop().unwrap();
-                    (2, CtxI::V2 { b, last_iteration })
+                    (2, CtxI::V2 { b })
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };

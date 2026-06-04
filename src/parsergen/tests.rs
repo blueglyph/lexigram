@@ -260,8 +260,9 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, has_value, expected_alts
             ) = test_entry;
-            // if !matches!(tr_id, 216..=219) { continue }
+            // if !matches!(tr_id, 201) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
+            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let (mut builder, original_str) = match parser_type {
                 ParserType::LL1 => {
                     let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(start_nt);
@@ -269,7 +270,6 @@ pub(super) mod wrapper_source {
                     let ll1 = ll1_maybe.unwrap();
                     let symtab = ll1.get_symbol_table();
                     if VERBOSE {
-                        println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", "");
                         println!("/*");
                         symtab.unwrap().dump("symbol table:");
                         println!("Terminals: {}", ll1.get_symbol_table().unwrap()

@@ -201,7 +201,6 @@ impl From<Symbol> for OpCode {
     }
 }
 
-#[cfg(feature = "test_utils")]
 impl OpCode {
     pub fn to_macro_item(&self) -> String {
         match self {
