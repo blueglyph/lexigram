@@ -1,5 +1,5 @@
 #![cfg(test)]
-#![cfg(any())]
+
 use lexigram_core::strip;
 use crate::{btreemap, symbols};
 use crate::parsergen::{NTValue, ParserType};
@@ -453,7 +453,7 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         // |   2 | .   a_2 |    | child_left_fact                      |
         // |   3 | .   a_3 |    | child_left_fact                      |
         // +-----------------------------------------------------------+
-        (151, false, false, true, 0, btreemap![
+        (151, true, false, false, 0, btreemap![
         ], vec![
             (strip![exit 0, nt 1],                  1, symbols![nt 1]),      //  0: a -> a_1     | ◄0 ►a_1 | 1 | a_1
             (strip![nt 2, t 0],                     0, symbols![]),          //  1: a_1 -> A a_2 | ►a_2 A! | 0 |

@@ -1986,19 +1986,23 @@ impl ParserGen {
     }
 
     /// Generates the match cases for the "Call::Exit" in the `switch` method.
-    fn make_match_choices(&self, alts: &[AltId], name: &str, flags: u32, no_method: bool, force_id: Option<AltId>) -> (bool, Vec<String>) {
+    fn make_match_choices(&self, alts: &[AltId], name: &str, init_name: &str, flags: u32, no_method: bool, force_id: Option<AltId>) -> (bool, Vec<String>) {
         assert!(!alts.is_empty(), "alts cannot be empty");
-        // If + <L> child, the two alts are identical. We keep the two alts anyway because it's more coherent
+        let is_lr = self.options.parser_type.is_lr();
+
+        // If + <L> child, the two alts are identical, except for LR. We keep the two alts for LL because it's more coherent
         // for the rest of the flow. At the end, when we generate the wrapper method, we'll discard the 2nd alternative and use
         // the `alt_id` parameter to determine whether it's the last iteration or not.
-        // We do discard the 2nd, empty alternative immediately for a non-<L> * child because there's no associated context.
-        let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
+        // In LL, we discard the 2nd, empty alternative immediately for a non-<L> * child because there's no associated context;
+        // in LR, we call the init method.
+        // no_method is true for non-<L> repeat children with no value (nothing to accumulate in a vector)
+        let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
 
         // + children always have 2*n left-factorized children, each couple with identical item_ops (one for the loop, one for the last iteration).
         // So in non-<L> +, we need more than 2 alts to need the alt_id parameter. In other cases, we need more than one
         // alt (after removing the possible discarded one) to require the alt_id parameter.
-        let is_plus_no_lform = flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
-        let is_alt_id_threshold = if is_plus_no_lform { 2 } else { 1 };
+        let is_plus_no_lform = flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
+        let is_alt_id_threshold = if is_plus_no_lform && !is_lr { 2 } else { 1 };
         let is_alt_id = force_id.is_none() && alts.len() - discarded > is_alt_id_threshold;
 
         let mut choices = Vec::<String>::new();
@@ -2021,7 +2025,11 @@ impl ParserGen {
             }
         }
         if discarded == 1 {
-            choices.push(format!("                    {} => {{}}", alts.last().unwrap()));
+            if is_lr {
+                choices.push(format!("                    {} => self.{init_name}(),", alts.last().unwrap()));
+            } else {
+                choices.push(format!("                    {} => {{}}", alts.last().unwrap()));
+            }
         }
         (is_alt_id, choices)
     }
@@ -2537,9 +2545,10 @@ impl ParserGen {
         state               : &mut SourceState,
         sources             : &mut WrapperSources
     ) {
-        if !self.options.parser_type.is_ll() {
-            return;
-        }
+        let is_ll = self.options.parser_type.is_ll();
+        // if !self.options.parser_type.is_ll() {
+        //     return;
+        // }
         let &SourceInputContext { ambig_op_alts, .. } = ctx;
         let SourceState { init_nt_done, span_init, .. } = state;
         let WrapperSources { src_listener_decl, src_skel, src_init, src_wrapper_impl, .. } = sources;
@@ -2559,23 +2568,25 @@ impl ParserGen {
         let mut has_skel_init = false;
         let init_fn_name = format!("init_{npl}");
         if self.parent[nt].is_none() {
-            init_nt_done.insert(var);
-            if is_rrec_lform {
-                span_init.insert(var);
-            }
-            if is_rrec_lform && has_value {
-                src_wrapper_impl.push(String::new());
-                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
-                src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
-                has_skel_init = true;
-                src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
-                src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
-                src_wrapper_impl.push("    }".to_string());
-            } else {
-                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
-                src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+            if is_ll {
+                init_nt_done.insert(var);
+                if is_rrec_lform {
+                    span_init.insert(var);
+                }
+                if is_rrec_lform && has_value {
+                    src_wrapper_impl.push(String::new());
+                    src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                    src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                    has_skel_init = true;
+                    src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
+                    src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
+                    src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
+                    src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                    src_wrapper_impl.push("    }".to_string());
+                } else {
+                    src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                    src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+                }
             }
         } else if flags & ruleflag::CHILD_REPEAT != 0 {
             if !is_sep_list {
@@ -2679,7 +2690,7 @@ impl ParserGen {
         } else {
             // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
         }
-        if has_skel_init {
+        if has_skel_init && is_ll {
             if has_value {
                 src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
             }
@@ -2750,6 +2761,7 @@ impl ParserGen {
             } else {
                 self.gather_alts(nt as VarId)
             };
+            // last_it_alts: ε child lrec or ε child *<L>
             let (last_it_alts, exit_alts) = all_exit_alts.into_iter()
                 .partition::<Vec<_>, _>(|f|
                     (flags & ruleflag::CHILD_L_RECURSION != 0
@@ -2809,7 +2821,8 @@ impl ParserGen {
             }
             let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
             let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
-            let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, flags, no_method, None);
+            let fn_init_name = format!("init_{npl}");
+            let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, &fn_init_name, flags, no_method, None);
             if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
             let comments = exit_alts.iter().map(|f| {
                 let (v, pf) = &self.alts[*f as usize];
@@ -2824,7 +2837,7 @@ impl ParserGen {
                 for (a_id, dup_alts) in ambig_op_alts.values().rev().filter_map(|v| if v.len() > 1 { v.split_first() } else { None }) {
                     // note: is_alt_id must be true because we wouldn't get duplicate alternatives otherwise in an ambiguous rule
                     //       (it's duplicated to manage the priority between several alternatives, which are all in the first NT)
-                    let (_, choices) = self.make_match_choices(dup_alts, &fn_name, 0, no_method, Some(*a_id));
+                    let (_, choices) = self.make_match_choices(dup_alts, &fn_name, &fn_init_name, 0, no_method, Some(*a_id));
                     let comments = dup_alts.iter()
                         .map(|a| {
                             let (v, alt) = &self.alts[*a as usize];
@@ -2925,37 +2938,42 @@ impl ParserGen {
             }
             for a in last_it_alts {
                 assert_eq!(flags, self.flags[nt]);
-                // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
-                // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
-                let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
-                    Some(var)
-                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                    self.parent[nt]
+                let (v, pf) = &self.alts[a as usize];
+                let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
+                    self.full_alt_str(a, None, false)
                 } else {
-                    None
+                    pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                 };
-                if let Some(owner) = owner_maybe {
-                    if self.nt_values[owner as usize] {
-                        let (variant, _, fnname) = &self.nt_name[owner as usize];
-                        let typ = self.get_nt_type(owner);
-                        let varname = if is_child_repeat_lform { "acc" } else { fnname };
-                        if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
-                        src_listener_decl.push("    #[allow(unused_variables)]".to_string());
-                        src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
-                        let (v, pf) = &self.alts[a as usize];
-                        let alt_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS {
-                            self.full_alt_str(a, None, false)
-                        } else {
-                            pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
-                        };
-                        src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
-                        exit_alt_done.insert(a);
-                        src_wrapper_impl.push(String::new());
-                        src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
-                        src_wrapper_impl.push(format!("        let EnumSynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
-                                                      if syns.len() > 1 { " else { panic!() }" } else { "" }));
-                        src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
-                        src_wrapper_impl.push("    }".to_string());
+                if self.options.parser_type.is_lr() && is_child_repeat_lform {
+                    src_exit.push(vec![format!("                    {a} => self.{fn_init_name}(),"), format!("// {alt_str}")]);
+                    exit_alt_done.insert(a);
+                } else {
+                    // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
+                    // (rrec <L> and child_+ <L> don't need it because the context indicates the end alternative)
+                    let owner_maybe = if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM {
+                        Some(var)
+                    } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                        self.parent[nt]
+                    } else {
+                        None
+                    };
+                    if let Some(owner) = owner_maybe {
+                        if self.nt_values[owner as usize] {
+                            let (variant, _, fnname) = &self.nt_name[owner as usize];
+                            let typ = self.get_nt_type(owner);
+                            let varname = if is_child_repeat_lform { "acc" } else { fnname };
+                            if VERBOSE { println!("    exitloop{fnname}({varname}) owner = {}", Symbol::NT(owner).to_str(self.get_symbol_table())); }
+                            src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                            src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, {varname}: &mut {typ}) {{}}"));
+                            src_exit.push(vec![format!("                    {a} => self.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
+                            exit_alt_done.insert(a);
+                            src_wrapper_impl.push(String::new());
+                            src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
+                            src_wrapper_impl.push(format!("        let EnumSynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
+                                                          if syns.len() > 1 { " else { panic!() }" } else { "" }));
+                            src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
+                            src_wrapper_impl.push("    }".to_string());
+                        }
                     }
                 }
             }
