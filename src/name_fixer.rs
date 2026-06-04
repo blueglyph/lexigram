@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::HashSet;
+use std::hash::Hash;
 
 /// Dictionary-based helper that adapts names to guarantee they're unique.
 #[derive(Clone, Debug)]
@@ -38,6 +39,10 @@ impl NameFixer {
     /// method to pre-fill existing names.
     pub fn add(&mut self, name: String) {
         self.dic.insert(name);
+    }
+
+    pub fn extend<T: Eq + Hash + Into<String>, I: IntoIterator<Item = T>>(&mut self, names: I) {
+        self.dic.extend(names.into_iter().map(|s| s.into()))
     }
 
     /// Removes a name from the internal dictionary. Returns `true` if the name was in the dictionary.
@@ -243,5 +248,15 @@ mod tests {
             assert_eq!(result_lower, expected_lower);
             assert_eq!(result_upper, expected_upper);
         }
+    }
+
+    #[test]
+    fn test_extend() {
+        let mut fixer = NameFixer::new();
+        fixer.extend(["a", "b", "c"]);
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a1");
+        assert_eq!(fixer.get_unique_name("b".to_string()), "b1");
+        assert_eq!(fixer.get_unique_name("c".to_string()), "c1");
+        assert_eq!(fixer.get_unique_name("d".to_string()), "d");
     }
 }
