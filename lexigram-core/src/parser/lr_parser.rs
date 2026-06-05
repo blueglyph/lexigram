@@ -111,6 +111,7 @@ impl<'a, T> LRParser<'a, T> {
                     if self.symbol_table.is_token_data(stream_sym) {
                         stack_t.push(std::mem::take(&mut stream_str));
                     }
+                    wrapper.push_span(stream_span.take());
                     s = new_s;
                     advance_stream = true;
                 }
