@@ -252,15 +252,12 @@ fn prs_calc_lr_table() {
 }
 
 mod parse {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
-    use lexigram_core::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use lexigram_core::parser::{Call, ListenerWrapper, Symbol};
-    use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
+    use lexigram_core::{AltId, CollectJoin, VarId};
     use lexigram_core::parser::lr_parser::LRParser;
     use crate::grammar::tests::TestRules;
-    use crate::{SymbolTable, LALR};
+    use crate::{make_stream, SymbolTable, LALR};
     use crate::build::BuildFrom;
     use crate::parsergen::lr::LRParserTables;
 
@@ -328,11 +325,7 @@ mod parse {
             let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
             lalr1.set_start(start);
             let symtab = lalr1.symbol_table.clone();
-            let symbols = (0..lalr1.get_num_t() as TokenId)
-                .map(|t| (Symbol::T(t).to_str(lalr1.get_symbol_table()), t))
-                .collect::<HashMap<_, _>>();
             if VERBOSE {
-                //lalr1.get_symbol_table().unwrap().dump("symbol table:");
                 lalr1.print_alts();
                 println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().to_str(lalr1.get_symbol_table()).join("\n"));
             }
@@ -341,23 +334,7 @@ mod parse {
             for (input, expected_errors) in sequences {
                 let expected_errors = expected_errors.map(|v| v.to_vec());
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                    let pos = Pos(1, i);
-                    let pos_span = PosSpan::new(pos, pos);
-                    if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), pos_span)
-                    } else {
-                        if w.chars().next().unwrap().is_ascii_digit() {
-                            (num_id, w.to_string(), pos_span)
-                        } else {
-                            (id_id, w.to_string(), pos_span)
-                        }
-                    }
-                }).inspect(|(token, str, pos)|{
-                    if VERBOSE {
-                        println!(">> token {token}: {str:?} at {pos}");
-                    }
-                });
+                let stream = make_stream(input, symtab.as_ref().unwrap().get_terminals(), true, id_id, num_id, VERBOSE);
                 let mut listener = Stub { log: BufLog::new(), symtab: symtab.as_ref() };
                 let errors = match parser.parse_stream(&mut listener, stream) {
                     Ok(_) => {

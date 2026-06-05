@@ -506,7 +506,7 @@ pub(crate) mod listener7 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, 2, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 2, 999, VERBOSE);
                 let mut listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {

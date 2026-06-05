@@ -614,7 +614,25 @@ pub(crate) mod rules_109_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 109 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 3;
+    static NUM_T_FULL: usize = 6;
+    static ACTION: [LRAction; 84] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(4), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(9), LRAction::Shift(10), LRAction::Error, LRAction::Shift(11), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Shift(12), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error];
+    static GOTO: [LRStateId; 42] = [2, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 7, 14, 14, 14, 14, 14, 14, 8, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 14, 14, 14, 14];
+    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [(0, 7, 2), (1, 1, 1), (2, 5, 1), (2, 0, 0), (3, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 5] = [("Id", None), ("LPar", Some("(")), ("Colon", Some(":")), ("Comma", Some(",")), ("RPar", Some(")"))];
+    static SYMBOL_TABLE_NT: [&str; 4] = ["a", "type", "a_1", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {

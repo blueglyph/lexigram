@@ -44,6 +44,10 @@ impl LLParserTables {
         LLParserTables { num_nt, num_t_full, alt_var: factor_var, alts, opcodes, init_opcodes, table, symbol_table, start, include_alts }
     }
 
+    pub fn get_symbol_table(&self) -> &FixedSymTable {
+        &self.symbol_table
+    }
+    
     pub fn make_parser(&self) -> LLParser<'_> {
         LLParser::new(
             self.num_nt,

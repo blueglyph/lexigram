@@ -189,13 +189,22 @@ pub fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
 /// let mut wrapper = Wrapper::new(listener, false);
 /// let result = parser.parse_stream(&mut wrapper, stream);
 /// ```
-pub fn make_stream<S, T>(input: &str, tokens: T, id: TokenId, num: TokenId, verbose: bool) -> impl Iterator<Item=ParserToken>
+pub fn make_stream<S, T>(input: &str, tokens: T, include_tnames: bool, id: TokenId, num: TokenId, verbose: bool) -> impl Iterator<Item=ParserToken>
 where
     S: std::hash::Hash + Eq + std::borrow::Borrow<str>,
     T: IntoIterator<Item=(S, Option<S>)>,
 {
     let symbols = tokens.into_iter().index::<TokenId>()
-        .map(|(t, (s, _))| (s, t))
+        .filter_map(|(t, (s, fixed_maybe))|
+            if let Some(fixed) = fixed_maybe {
+                Some((fixed, t))
+            } else {
+                if include_tnames {
+                    Some((s, t))
+                } else {
+                    None
+                }
+            })
         .collect::<HashMap<_, _>>();
     let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(move |(i, w)| {
         let pos = Pos(1, i);

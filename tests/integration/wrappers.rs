@@ -148,12 +148,9 @@ mod rules_153_1 {
 }
 
 mod rules_580_1 {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
     use lexigram_core::CollectJoin;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::make_stream;
+    use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_580_1::*;
     use crate::out::wrapper_code::code_580_1::*;
@@ -219,25 +216,10 @@ mod rules_580_1 {
         let num_id = 2;
 
         let mut parser = build_parser();
-        let table = parser.get_symbol_table().unwrap();
-        let symbols = (0..table.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-            .collect::<HashMap<_, _>>();
+        let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string(), pos_span)
-                    } else {
-                        panic!("IDs not supported")
-                    }
-                }
-            });
+            let stream = make_stream(input, table.get_terminals(), true, 9999, num_id, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             match parser.parse_stream(&mut wrapper, stream) {
@@ -526,12 +508,9 @@ mod test_precedence {
 }
 
 mod rules_640_1 {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
     use lexigram_core::CollectJoin;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::make_stream;
+    use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_640_1::*;
     use crate::integration::parser_examples::listener2::build_parser;
@@ -613,26 +592,10 @@ mod rules_640_1 {
         let id_id = 4;
 
         let mut parser = build_parser();
-        let table = parser.get_symbol_table().unwrap();
-        let symbols = (0..table.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-            .collect::<HashMap<_, _>>();
+        let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        // (num_id, w.to_string(), pos_span)
-                        panic!("numbers not supported")
-                    } else {
-                        (id_id, w.to_string(), pos_span)
-                    }
-                }
-            });
+            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -659,12 +622,9 @@ mod rules_640_1 {
 }
 
 mod rules_641_1 {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
     use lexigram_core::CollectJoin;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::make_stream;
+    use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_641_1::*;
     use crate::integration::parser_examples::listener3::build_parser;
@@ -746,26 +706,10 @@ mod rules_641_1 {
         let id_id = 4;
 
         let mut parser = build_parser();
-        let table = parser.get_symbol_table().unwrap();
-        let symbols = (0..table.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-            .collect::<HashMap<_, _>>();
+        let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        // (num_id, w.to_string(), pos_span)
-                        panic!("numbers not supported")
-                    } else {
-                        (id_id, w.to_string(), pos_span)
-                    }
-                }
-            });
+            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -792,12 +736,9 @@ mod rules_641_1 {
 }
 
 mod rules_642_1 {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
     use lexigram_core::CollectJoin;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::make_stream;
+    use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use crate::out::wrapper_source::rules_642_1::*;
     use crate::integration::parser_examples::listener4::build_parser;
@@ -879,26 +820,10 @@ mod rules_642_1 {
         let id_id = 4;
 
         let mut parser = build_parser();
-        let table = parser.get_symbol_table().unwrap();
-        let symbols = (0..table.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-            .collect::<HashMap<_, _>>();
+        let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        // (num_id, w.to_string(), pos_span)
-                        panic!("numbers not supported")
-                    } else {
-                        (id_id, w.to_string(), pos_span)
-                    }
-                }
-            });
+            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -924,13 +849,9 @@ mod rules_642_1 {
     }
 }
 
-
 mod rules_862_1 {
-    use std::collections::HashMap;
-    use iter_index::IndexerIterator;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::make_stream;
+    use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, Logger};
     use crate::out::wrapper_source::rules_862_1::*;
     use crate::out::wrapper_code::code_862_1::*;
@@ -998,25 +919,10 @@ mod rules_862_1 {
         let num_id = 0;
 
         let mut parser = build_parser();
-        let table = parser.get_symbol_table().unwrap();
-        let symbols = (0..table.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-            .collect::<HashMap<_, _>>();
+        let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string(), pos_span)
-                    } else {
-                        panic!("'{w}' input not recognized")
-                    }
-                }
-            });
+            let stream = make_stream(input, table.get_terminals(), true, 9999, num_id, VERBOSE);
             let listener = ExprListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let result = match parser.parse_stream(&mut wrapper, stream) {
@@ -1040,4 +946,3 @@ mod rules_862_1 {
         }
     }
 }
-

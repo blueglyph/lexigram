@@ -15,7 +15,7 @@ use std::ops::Deref;
 use iter_index::IndexerIterator;
 use lexigram_core::{CollectJoin, TokenId};
 use lexigram_core::lexer::{CaretCol, Pos, PosSpan};
-use crate::{btreemap, prule, General, SymbolTable, LL1};
+use crate::{btreemap, make_stream, prule, General, SymbolTable, LL1};
 use crate::grammar::{gnode, GrNode, GrTree, ProdRuleSet, RuleTreeSet, Symbol, VarId};
 use crate::grammar::tests::prs;
 use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
@@ -596,26 +596,11 @@ fn parser_parse_stream_id() {
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let ll1 = ll_id.build_prs(test_id, start, false);
-        let symbols = (0..ll1.get_num_t() as TokenId)
-            .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
-            .collect::<HashMap<_, _>>();
         let parser_tables = LLParserTables::build_from(ParserGen::build_from_rules_ll1(ll1, "Test".to_string()));
         let mut parser = parser_tables.make_parser();
         for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string(), pos_span)
-                    } else {
-                        (id_id, w.to_string(), pos_span)
-                    }
-                }
-            });
+            let stream = make_stream(input, parser_tables.get_symbol_table().get_terminals(), true, id_id, num_id, VERBOSE);
             let mut listener = Stub(BufLog::new());
             let errors = match parser.parse_stream(&mut listener, stream) {
                 Ok(_) => {
