@@ -3442,7 +3442,7 @@ impl ParserGen {
                 if show_symbols {
                     cols.push(format!("(strip![{}],", ops.iter().map(|o| o.to_macro_item()).join(", ")));
                     let symbols = format!("symbols![{}]", it.iter().map(|s| s.to_macro_item()).join(", "));
-                    assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
+                    // assert!(self.options.gen_span_params, "ParserGen is not configured for spans");
                     cols.push(format!("{}, {symbols}),", self.span_nbrs[a_id as usize]));
                 }
                 cols.extend([

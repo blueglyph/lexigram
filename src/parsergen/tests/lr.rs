@@ -7,7 +7,7 @@ use crate::parsergen::tests::wrapper_source::{build_items, BuildItemsTestEntry, 
 
 const WRAPPER_FILENAME: &str = "tests/out_lr/wrapper_source.rs";
 
-fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
+fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
     vec![
         // BuildItemsTestEntry fields for each test:
         // - TestRules #
@@ -43,7 +43,7 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         // |   0 | s    | y  |       |
         // |   1 | val  | y  |       |
         // +-------------------------+
-        (13, true, false, false, 0, btreemap![
+        (13, true, true, false, 0, btreemap![
             0 => "SynS".to_string(),
             1 => "SynVal".to_string(),
         ], vec![
@@ -95,7 +95,7 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         // |   2 | . a_1 | y  | child_+_or_*, sep_list |
         // |   1 | type  | y  |                        |
         // +-------------------------------------------+
-        (109, true, false, false, 0, btreemap![
+        (109, true, true, false, 0, btreemap![
         ], vec![
             (strip![t 4, nt 2, nt 1, t 2, t 0, t 1, t 0], 4, symbols![t 0, nt 2]),       //  0: a -> Id "(" Id ":" type a_1 ")" | ")" ►a_1 ►type ":" Id! "(" Id! | 4    | Id a_1
             (strip![t 0],                                 1, symbols![t 0]),             //  1: type -> Id                      | Id!                            | 1    | Id
@@ -103,6 +103,24 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![],                                    1, symbols![nt 2]),            //  3: a_1 -> ε                        |                                | 1    | a_1
             (strip![nt 0],                                1, symbols![]),                //  4: <goal> -> a                     | ►a                             | 1    |
         ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+        // a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")"
+        //
+        //   NT    name   val   flags
+        // +-------------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*          |
+        // |   1 | . a_1 | y  | child_+_or_*, sep_list |
+        // |   2 | . a_2 | y  | child_+_or_*, sep_list |
+        // +-------------------------------------------+
+        (111, false, false, false, 0, btreemap![
+        ], vec![
+            (strip![t 4, nt 2, t 0, t 3, nt 1, t 0, t 1, t 0], 6, symbols![t 0, nt 1, nt 2]), //  0: a -> Id "(" Id a_1 "/" Id a_2 ")" | ")" ►a_2 Id! "/" ►a_1 Id! "(" Id! | 6    | Id a_1 a_2
+            (strip![t 0, t 2, loop 1],                         3, symbols![nt 1, t 0]),       //  1: a_1 -> a_1 "," Id                 | Id! "," ●a_1                      | 3, 1 | a_1 Id
+            (strip![],                                         1, symbols![nt 1]),            //  2: a_1 -> ε                          |                                   | 1    | a_1
+            (strip![t 0, t 2, loop 2],                         3, symbols![nt 2, t 0]),       //  3: a_2 -> a_2 "," Id                 | Id! "," ●a_2                      | 3, 1 | a_2 Id
+            (strip![],                                         1, symbols![nt 2]),            //  4: a_2 -> ε                          |                                   | 1    | a_2
+            (strip![nt 0],                                     1, symbols![]),                //  5: <goal> -> a                       | ►a                                | 1    |
+        ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> (A | B)*
         //
@@ -244,7 +262,7 @@ fn check_build_items() {
         replace_source: false,
         parser_type: ParserType::LALR,
         wrapper_filename: WRAPPER_FILENAME,
-        tests: get_ll1_tests(),
+        tests: get_lr_tests(),
     };
     build_items(spec);
 }
@@ -258,7 +276,7 @@ fn write_build_items() {
         replace_source: true,
         parser_type: ParserType::LALR,
         wrapper_filename: WRAPPER_FILENAME,
-        tests: get_ll1_tests(),
+        tests: get_lr_tests(),
     };
     build_items(spec);
 }
