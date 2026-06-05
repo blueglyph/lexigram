@@ -39,7 +39,7 @@ instruction:
 */
 
 #![cfg(test)]
-#[cfg(feature = "generated_tests")]
+#![cfg(feature = "generated_tests")]
 
 mod lexer {
     // [lexer_source]
