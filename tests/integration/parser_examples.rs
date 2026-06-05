@@ -457,8 +457,8 @@ pub(crate) mod listener7 {
         use lexigram_core::CollectJoin;
         use lexigram_core::lexer::{CaretCol, Pos};
         use lexigram_core::log::BufLog;
-        use lexigram_core::parser::Symbol;
-        use lexigram_lib::symbols;
+        use lexigram_core::parser::{ParserToken, Symbol};
+        use lexigram_lib::{make_stream, symbols};
         use super::*;
 
         struct Listener {
@@ -504,30 +504,9 @@ pub(crate) mod listener7 {
                 ("x", true, None),
             ];
             let mut parser = build_parser();
-            let symbols = SYMBOL_TABLE_T.into_iter().index::<TokenId>()
-                .map(|(t, (s, v))| (s, t))
-                .collect::<HashMap<_, _>>();
-            let num_id = 999;
-            let id_id = 2;
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
-                    let pos = Pos(1, i);
-                    let pos_span = PosSpan::new(pos, pos);
-                    if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), pos_span)
-                    } else {
-                        if w.chars().next().unwrap().is_ascii_digit() {
-                            (num_id, w.to_string(), pos_span)
-                        } else {
-                            (id_id, w.to_string(), pos_span)
-                        }
-                    }
-                }).inspect(|(token, str, pos)|{
-                    if VERBOSE {
-                        println!(">> token {token}: {str:?} at {pos}");
-                    }
-                });
+                let stream = make_stream(input, SYMBOL_TABLE_T, 2, 999, VERBOSE);
                 let mut listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
