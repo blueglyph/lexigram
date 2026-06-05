@@ -915,10 +915,11 @@ pub(crate) mod rules_109_1 {
         fn init_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let type1 = self.stack.pop().unwrap().get_type();
-            let id = self.stack_t.pop().unwrap();
-            let val = SynA1Item { id, type1 };
-            self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
+            // let type1 = self.stack.pop().unwrap().get_type();
+            // let id = self.stack_t.pop().unwrap();
+            // let val = SynA1Item { id, type1 };
+            // self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
+            self.stack.push(EnumSynValue::A1(SynA1(vec![])));
         }
 
         fn exit_a1(&mut self) {
@@ -948,11 +949,11 @@ pub(crate) mod rules_109_1 {
 
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)]
-    pub struct SynA();
+    pub struct SynA(Vec<(String, String)>);
 
     /// User-defined type for `type`
     #[derive(Debug, PartialEq)]
-    pub struct SynType();
+    pub struct SynType(String);
 
     mod test {
         use lexigram_core::CollectJoin;
@@ -980,20 +981,22 @@ pub(crate) mod rules_109_1 {
 
             fn exit(&mut self, a: SynA, span: PosSpan) {
                 if self.show_calls { println!("exit({a:?}, {span})"); }
+                let SynA(values) = a;
+                self.list = Some(values);
             }
 
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
                 // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
-                let CtxA::V1 { id, star } = ctx;
-                SynA()
+                let CtxA::V1 { id, star: SynA1(values) } = ctx;
+                SynA(values.into_iter().map(|SynA1Item { id, type1: SynType(t) }| (id, t)).collect())
             }
 
             fn exit_type(&mut self, ctx: CtxType, spans: Vec<PosSpan>) -> SynType {
                 if self.show_calls { println!("exit_type({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
                 // type -> Id
                 let CtxType::V1 { id } = ctx;
-                SynType()
+                SynType(id)
             }
         }
 
