@@ -48,8 +48,8 @@ impl FixedSymTable {
 
     // -------------------------------------------------------------------------
 
-    pub fn get_terminals(&self) -> impl Iterator<Item = &(String, Option<String>)> {
-        self.t.iter()
+    pub fn get_terminals(&self) -> impl Iterator<Item = (&str, Option<&str>)> {
+        self.t.iter().map(|(s, t)| (s.as_str(), t.as_ref().map(|ts| ts.as_str())))
     }
 
     pub fn get_num_t(&self) -> usize {
@@ -58,8 +58,8 @@ impl FixedSymTable {
 
     // -------------------------------------------------------------------------
 
-    pub fn get_nonterminals(&self) -> impl Iterator<Item = &String> {
-        self.nt.iter()
+    pub fn get_nonterminals(&self) -> impl Iterator<Item = &str> {
+        self.nt.iter().map(|s| s.as_str())
     }
 
     pub fn get_num_nt(&self) -> usize {

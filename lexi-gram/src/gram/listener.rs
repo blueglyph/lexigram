@@ -51,7 +51,7 @@ impl<'ls> GramListener<'ls> {
         // copies the NT and T from the symbol table
         let symbols = symbol_table.get_terminals()
             .index::<VarId>()
-            .map(|(t, (s, _))| (s.clone(), Symbol::T(t)))
+            .map(|(t, (s, _))| (s.to_string(), Symbol::T(t)))
             .collect::<HashMap<_,_>>();
         assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain nonterminals");
         GramListener {

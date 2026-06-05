@@ -96,8 +96,8 @@ impl SymbolTable {
         }
     }
 
-    pub fn get_terminals(&self) -> impl Iterator<Item = &(String, Option<String>)> {
-        self.t.iter()
+    pub fn get_terminals(&self) -> impl Iterator<Item = (&str, Option<&str>)> {
+        self.t.iter().map(|(s, t)| (s.as_str(), t.as_ref().map(|ts| ts.as_str())))
     }
 
     pub fn get_num_t(&self) -> usize {
@@ -149,8 +149,8 @@ impl SymbolTable {
         self.names.get(name).cloned()
     }
 
-    pub fn get_nonterminals(&self) -> impl Iterator<Item = &String> {
-        self.nt.iter()
+    pub fn get_nonterminals(&self) -> impl Iterator<Item = &str> {
+        self.nt.iter().map(|s| s.as_str())
     }
 
     pub fn get_num_nt(&self) -> usize {
@@ -362,13 +362,13 @@ mod tests {
         let tnames = vec![("a", Some("aa")), ("b", Some("bb")), ("a", Some("A")), ("c", None), ("d", None)];
         st.extend_terminals(tnames);
         assert_eq!(st.get_num_t(), 5);
-        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        let result = st.get_terminals().to_vec();
         assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb")), ("a1", Some("A")), ("c", None), ("d", None)]);
         for name in vec!["a1", "c", "d"] {
             assert_eq!(st.fixer_t.contains(name), true);
         }
         st.downsize_num_t(2);
-        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        let result = st.get_terminals().to_vec();
         assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb"))]);
         assert_eq!(st.get_num_t(), 2);
         for name in vec!["a1", "c", "d"] {
@@ -376,7 +376,7 @@ mod tests {
         }
         let extra_tnames = vec![("a", Some("A")), ("c", None), ("d", None)];
         st.extend_terminals(extra_tnames);
-        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        let result = st.get_terminals().to_vec();
         assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb")), ("a1", Some("A")), ("c", None), ("d", None)]);
     }
 }

@@ -474,7 +474,7 @@ impl ParserGen {
                 }
                 NTValue::SetNames(names) => {
                     let name_to_id = self.symbol_table.get_nonterminals().index::<VarId>()
-                        .map(|(v, name)| (name.as_str(), v))
+                        .map(|(v, name)| (name, v))
                         .collect::<HashMap<&str, VarId>>();
                     for name in names {
                         match name.as_str() {

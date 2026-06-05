@@ -293,7 +293,6 @@ fn t_names() {
             // let expected_t = expected_t.into_iter().map(|(n, v_maybe)| (n.to_string(), v_maybe.map(|v| v.to_string()))).to_vec();
             let result_t = rts.get_symbol_table().unwrap()
                 .get_terminals()
-                .map(|(n, v_maybe)| (n.as_str(), v_maybe.as_ref().map(|s| s.as_str())))
                 .to_vec();
             if result_t != expected_t {
                 errors += 1;

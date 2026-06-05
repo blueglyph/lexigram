@@ -678,7 +678,7 @@ mod simple {
             }
             let sym_table = listener.make_symbol_table();
             let terminal_hooks = listener.terminal_hooks.iter().cloned().collect::<HashSet<_>>();
-            let result_terminals = sym_table.get_terminals().cloned().to_vec();
+            let result_terminals = sym_table.get_terminals().to_vec();
             if VERBOSE {
                 println!(
                     "Hooks: {}",
@@ -692,7 +692,6 @@ mod simple {
                         .join("\n"));
             }
             assert_eq!(listener.terminal_hooks, expected_hooks, "{text}: mismatch hooks");
-            let expected_terminals = expected_terminals.into_iter().map(|(s, t)| (s.to_string(), t.map(|st| st.to_string()))).to_vec();
             assert_eq!(result_terminals, expected_terminals, "{text}: mismatch terminals");
             let SymbolicDfa { dfa, .. } = lexi.build_into();
             if VERBOSE {
