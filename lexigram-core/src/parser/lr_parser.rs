@@ -101,7 +101,7 @@ impl<'a, T> LRParser<'a, T> {
                     "states [{}] -> {s}, stack_t [{}], input: token {} = {stream_str:?}",
                     stack_state.iter().map(|s| s.to_string()).join(" "),
                     stack_t.iter().map(|s| format!("{s:?}")).join(", "),
-                    Symbol::T(stream_sym).to_str(Some(&self.symbol_table))
+                    Symbol::T(stream_sym).to_str(sym_table)
                 );
             }
             match self.action[stream_sym as usize + s as usize * self.num_t_full] {
