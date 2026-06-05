@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use crate::{AltId, CollectJoin, TokenId, VarId};
-use crate::fixed_sym_table::{FixedSymTable};
+use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::LogMsg;
 use crate::parser::{Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
@@ -108,7 +108,9 @@ impl<'a, T> LRParser<'a, T> {
                 LRAction::Shift(new_s) => {
                     if VERBOSE { println!("- shift({new_s})"); }
                     stack_state.push(new_s);
-                    stack_t.push(std::mem::take(&mut stream_str));
+                    if self.symbol_table.is_token_data(stream_sym) {
+                        stack_t.push(std::mem::take(&mut stream_str));
+                    }
                     s = new_s;
                     advance_stream = true;
                 }
