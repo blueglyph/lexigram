@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
-use lexigram_core::log::{LogStatus, Logger};
+use lexigram_core::log::{LogMsg, LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
@@ -514,6 +514,10 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
             rules.adapt_loops();
             rules.transfer_alt_flags();
             rules.check_flags();
+            rules.log.add_note("final rule set:");
+            rules.log.extend_messages(
+                rules.prs_alt_origins_str().into_iter().map(LogMsg::Note)
+            );
         }
         ProdRuleSet::<LR> {
             prules: rules.prules,
