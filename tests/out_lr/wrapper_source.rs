@@ -2129,18 +2129,29 @@ pub(crate) mod rules_200_1 {
 // ================================================================================
 
 pub(crate) mod rules_201_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-
-    /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
-    #[derive(Debug, PartialEq)]
-    pub struct SynI();
-
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_core::CollectJoin;
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 4;
+    static ACTION: [LRAction; 28] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0)];
+    static GOTO: [LRStateId; 14] = [2, 7, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7];
+    static ALT_NT_LEN: [(VarId, u16, u16); 4] = [(0, 3, 2), (1, 2, 1), (1, 1, 1), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [("A", None), ("B", None), ("C", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "i", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2269,7 +2280,19 @@ pub(crate) mod rules_201_1 {
         }
     }
 
+    const STR_BEFORE_ANSI: &str = "\u{1b}[1;36m";
+    const STR_AFTER_ANSI: &str = "\u{1b}[0m";
+
     impl<T: TestListener> Wrapper<T> {
+        fn stacks(&self) -> String {
+            format!(
+                "stack: [{}], stack_t: [{}], stack_span: [{}]",
+                self.stack.iter().map(|v| format!("{v:?}")).join(", "),
+                self.stack_t.iter().map(|v| format!("{v:?}")).join(", "),
+                self.stack_span.iter().map(|v| v.to_string()).join(", "),
+            )
+        }
+
         pub fn new(listener: T, verbose: bool) -> Self {
             Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
         }
@@ -2291,6 +2314,7 @@ pub(crate) mod rules_201_1 {
         }
 
         fn exit_a(&mut self) {
+            if self.verbose { println!("{STR_BEFORE_ANSI}exit_a(): IN  {}{STR_AFTER_ANSI}", self.stacks()); }
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
@@ -2299,26 +2323,146 @@ pub(crate) mod rules_201_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
+            if self.verbose { println!("{STR_BEFORE_ANSI}exit_a(): OUT {}{STR_AFTER_ANSI}", self.stacks()); }
         }
 
         fn init_i(&mut self) {
+            if self.verbose { println!("{STR_BEFORE_ANSI}init_i(): IN  {}{STR_AFTER_ANSI}", self.stacks()); }
             let val = self.listener.init_i();
             self.stack.push(EnumSynValue::I(val));
+            self.stack_span.insert(self.stack_span.len() - 1, PosSpan::empty());
+            if self.verbose { println!("{STR_BEFORE_ANSI}init_i(): OUT {}{STR_AFTER_ANSI}", self.stacks()); }
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
+            if self.verbose { println!("{STR_BEFORE_ANSI}exit_i(): IN  {}{STR_AFTER_ANSI}", self.stacks()); }
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { b };
+            if matches!(alt_id, 2) { self.init_i(); }
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            if matches!(alt_id, 2) { self.init_i(); }
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
+            if self.verbose { println!("{STR_BEFORE_ANSI}exit_i(): OUT {}{STR_AFTER_ANSI}", self.stacks()); }
         }
     }
 
     // [wrapper source for rule 201 #1, start a]
     // ------------------------------------------------------------
+    /// User-defined type for `a`
+    type SynA = Vec<String>;
+
+    /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
+    type SynI = Vec<String>;
+
+    mod test {
+        use lexigram_core::CollectJoin;
+        use lexigram_core::log::BufLog;
+        use lexigram_lib::make_stream;
+        use super::*;
+
+        struct Listener {
+            log: BufLog,
+            list: Option<Vec<String>>,
+            span_a: PosSpan,
+            span_b: PosSpan,
+            span_c: PosSpan,
+            spans_b: Vec<PosSpan>,
+            show_calls: bool,
+        }
+
+        impl Listener {
+            fn new() -> Self {
+                Listener {
+                    log: BufLog::new(),
+                    list: None,
+                    span_a: Default::default(),
+                    span_b: Default::default(),
+                    span_c: Default::default(),
+                    spans_b: vec![],
+                    show_calls: true,
+                }
+            }
+        }
+
+        const STR_BEFORE_ANSI: &str = "\u{1b}[1;32m";
+        const STR_AFTER_ANSI: &str = "\u{1b}[0m";
+
+        #[allow(unused)]
+        impl TestListener for Listener {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA, span: PosSpan) {
+                if self.show_calls { println!("exit({a:?}, {span})"); }
+                self.list = Some(a);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA, mut spans: Vec<PosSpan>) -> SynA {
+                // a -> A B+ C
+                let CtxA::V1 { a, plus: values, c } = ctx;
+                self.span_c = spans.pop().unwrap();
+                self.span_b = spans.pop().unwrap();
+                self.span_a = spans.pop().unwrap();
+                values
+            }
+
+            fn init_i(&mut self) -> SynI {
+                println!("{STR_BEFORE_ANSI}init_i(){STR_AFTER_ANSI}");
+                vec![]
+            }
+
+            fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, mut spans: Vec<PosSpan>) {
+                println!("{STR_BEFORE_ANSI}exit_i(acc = {acc:?}, spans = [{}]){STR_AFTER_ANSI}", spans.iter().map(|s| s.to_string()).join(", "));
+                let CtxI::V1 { b } = ctx;
+                acc.push(b);
+                self.spans_b.push(std::mem::take(&mut spans[1]));
+            }
+        }
+
+        #[test]
+        fn test() {
+            const VERBOSE: bool = true;
+
+            // a -> A B+ C
+            let sequences = vec![
+                ("A b0 b1 b2 C", false, Some(vec!["b0", "b1", "b2"]), vec!["1:1", "1:2-4", "1:5"], vec!["1:2", "1:3", "1:4"]),
+                ("x", true, None, vec!["<empty>", "<empty>", "<empty>"], vec![]),
+            ];
+            let mut parser = build_parser();
+            for (input, expected_error, expected_list, expected_spans, expected_spans_b) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let listener = Listener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
+                let is_error = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        false
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        true
+                    }
+                };
+                let listener = wrapper.give_listener();
+                let result = &listener.list;
+                if VERBOSE { println!("list = {result:?}"); }
+                assert_eq!(is_error, expected_error, "parser error with input {input:?}");
+                let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
+                assert_eq!(result, &expected_list, "mismatch result with input {input:?}");
+                let result_spans = [listener.span_a, listener.span_b, listener.span_c].into_iter().map(|s| s.to_string()).to_vec();
+                let result_spans_b = listener.spans_b.iter().map(|s| s.to_string()).to_vec();
+                if VERBOSE {
+                    println!("spans: {result_spans:?}");
+                    println!("spans_b: {}", listener.spans_b.iter().map(|s| s.to_string()).join(", "));
+                }
+                assert_eq!(result_spans, expected_spans, "wrong spans with input {input:?}");
+                assert_eq!(result_spans_b, expected_spans_b, "wrong spans_b with input {input:?}");
+            }
+        }
+    }
 }
 
 // ================================================================================
