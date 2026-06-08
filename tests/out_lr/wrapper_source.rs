@@ -344,14 +344,28 @@ pub(crate) mod rules_13_1 {
 // ================================================================================
 
 pub(crate) mod rules_102_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-
     // ------------------------------------------------------------
     // [wrapper source for rule 102 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 4;
+    static ACTION: [LRAction; 24] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Shift(4), LRAction::Shift(5), LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0)];
+    static GOTO: [LRStateId; 12] = [2, 6, 6, 3, 6, 6, 6, 6, 6, 6, 6, 6];
+    static ALT_NT_LEN: [(VarId, u16, u16); 4] = [(0, 3, 2), (1, 2, 1), (1, 0, 0), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [("A", None), ("B", None), ("C", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "a_1", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -512,34 +526,139 @@ pub(crate) mod rules_102_1 {
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(EnumSynValue::A1(val));
+            self.stack_span.push(PosSpan::empty());
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
     // [wrapper source for rule 102 #1, start a]
     // ------------------------------------------------------------
+
+    /// User-defined type for `a`
+    type SynA = Vec<String>;
+
+    mod test {
+        use lexigram_core::CollectJoin;
+        use lexigram_core::log::BufLog;
+        use lexigram_lib::make_stream;
+        use super::*;
+
+        struct Listener {
+            log: BufLog,
+            list: Option<Vec<String>>,
+            span_a: PosSpan,
+            span_b: PosSpan,
+            span_c: PosSpan,
+            show_calls: bool,
+        }
+
+        impl Listener {
+            fn new() -> Self {
+                Listener {
+                    log: BufLog::new(),
+                    list: None,
+                    span_a: Default::default(),
+                    span_b: Default::default(),
+                    span_c: Default::default(),
+                    show_calls: true,
+                }
+            }
+        }
+
+        #[allow(unused)]
+        impl TestListener for Listener {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA, span: PosSpan) {
+                if self.show_calls { println!("exit({a:?}, {span})"); }
+                self.list = Some(a);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA, mut spans: Vec<PosSpan>) -> SynA {
+                // a -> A Id ("," Id)* C
+                let CtxA::V1 { a, star: SynA1(values), c } = ctx;
+                self.span_c = spans.pop().unwrap();
+                self.span_b = spans.pop().unwrap();
+                self.span_a = spans.pop().unwrap();
+                values
+            }
+        }
+
+        #[test]
+        fn test() {
+            const VERBOSE: bool = true;
+
+            // a -> A B* C
+            let sequences = vec![
+                ("A b0 b1 b2 C", false, Some(vec!["b0", "b1", "b2"]), vec!["1:1", "1:2-4", "1:5"]),
+                ("x", true, None, vec!["<empty>", "<empty>", "<empty>"]),
+            ];
+            let mut parser = build_parser();
+            for (input, expected_error, expected_list, expected_spans) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let listener = Listener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
+                let is_error = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        false
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        true
+                    }
+                };
+                let listener = wrapper.give_listener();
+                let result = &listener.list;
+                if VERBOSE { println!("list = {result:?}"); }
+                assert_eq!(is_error, expected_error, "parser error with input {input:?}");
+                let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
+                assert_eq!(result, &expected_list, "mismatch result with input {input:?}");
+                let result_spans = [listener.span_a, listener.span_b, listener.span_c].into_iter().map(|s| s.to_string()).to_vec();
+                if VERBOSE { println!("spans: {result_spans:?}"); }
+                assert_eq!(result_spans, expected_spans, "wrong spans with input {input:?}");
+            }
+        }
+    }
 }
 
 // ================================================================================
 
 pub(crate) mod rules_103_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-
     // ------------------------------------------------------------
     // [wrapper source for rule 103 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 4;
+    static ACTION: [LRAction; 28] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0)];
+    static GOTO: [LRStateId; 14] = [2, 7, 7, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7];
+    static ALT_NT_LEN: [(VarId, u16, u16); 4] = [(0, 3, 2), (1, 2, 1), (1, 1, 1), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [("A", None), ("B", None), ("C", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "a_1", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -700,22 +819,113 @@ pub(crate) mod rules_103_1 {
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(EnumSynValue::A1(val));
+            self.stack_span.push(PosSpan::empty());
         }
 
         fn exit_a1(&mut self, alt_id: AltId) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             if matches!(alt_id, 2) { self.init_a1(); }
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
     // [wrapper source for rule 103 #1, start a]
     // ------------------------------------------------------------
+
+    /// User-defined type for `a`
+    type SynA = Vec<String>;
+
+    mod test {
+        use lexigram_core::CollectJoin;
+        use lexigram_core::log::BufLog;
+        use lexigram_lib::make_stream;
+        use super::*;
+
+        struct Listener {
+            log: BufLog,
+            list: Option<Vec<String>>,
+            span_a: PosSpan,
+            span_b: PosSpan,
+            span_c: PosSpan,
+            show_calls: bool,
+        }
+
+        impl Listener {
+            fn new() -> Self {
+                Listener {
+                    log: BufLog::new(),
+                    list: None,
+                    span_a: Default::default(),
+                    span_b: Default::default(),
+                    span_c: Default::default(),
+                    show_calls: true,
+                }
+            }
+        }
+
+        #[allow(unused)]
+        impl TestListener for Listener {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA, span: PosSpan) {
+                if self.show_calls { println!("exit({a:?}, {span})"); }
+                self.list = Some(a);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA, mut spans: Vec<PosSpan>) -> SynA {
+                // a -> A B+ C
+                let CtxA::V1 { a, plus: SynA1(values), c } = ctx;
+                self.span_c = spans.pop().unwrap();
+                self.span_b = spans.pop().unwrap();
+                self.span_a = spans.pop().unwrap();
+                values
+            }
+        }
+
+        #[test]
+        fn test() {
+            const VERBOSE: bool = true;
+
+            // a -> A B+ C
+            let sequences = vec![
+                ("A b0 b1 b2 C", false, Some(vec!["b0", "b1", "b2"]), vec!["1:1", "1:2-4", "1:5"]),
+                ("x", true, None, vec!["<empty>", "<empty>", "<empty>"]),
+            ];
+            let mut parser = build_parser();
+            for (input, expected_error, expected_list, expected_spans) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let listener = Listener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
+                let is_error = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        false
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        true
+                    }
+                };
+                let listener = wrapper.give_listener();
+                let result = &listener.list;
+                if VERBOSE { println!("list = {result:?}"); }
+                assert_eq!(is_error, expected_error, "parser error with input {input:?}");
+                let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
+                assert_eq!(result, &expected_list, "mismatch result with input {input:?}");
+                let result_spans = [listener.span_a, listener.span_b, listener.span_c].into_iter().map(|s| s.to_string()).to_vec();
+                if VERBOSE { println!("spans: {result_spans:?}"); }
+                assert_eq!(result_spans, expected_spans, "wrong spans with input {input:?}");
+            }
+        }
+    }
 }
 
 // ================================================================================
@@ -915,11 +1125,10 @@ pub(crate) mod rules_109_1 {
         fn init_a1(&mut self) {
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            // let type1 = self.stack.pop().unwrap().get_type();
-            // let id = self.stack_t.pop().unwrap();
-            // let val = SynA1Item { id, type1 };
-            // self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
-            self.stack.push(EnumSynValue::A1(SynA1(vec![])));
+            let type1 = self.stack.pop().unwrap().get_type();
+            let id = self.stack_t.pop().unwrap();
+            let val = SynA1Item { id, type1 };
+            self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
         }
 
         fn exit_a1(&mut self) {
@@ -1219,10 +1428,10 @@ pub(crate) mod rules_120_1 {
         }
 
         fn init_a1(&mut self) {
-            // let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            // self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            // let id = self.stack_t.pop().unwrap();
-            self.stack.push(EnumSynValue::A1(SynA1(vec![])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let id = self.stack_t.pop().unwrap();
+            self.stack.push(EnumSynValue::A1(SynA1(vec![id])));
         }
 
         fn exit_a1(&mut self) {
