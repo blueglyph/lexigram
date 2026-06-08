@@ -5,7 +5,11 @@ use crate::{btreemap, symbols};
 use crate::parsergen::{NTValue, ParserType};
 use crate::parsergen::tests::wrapper_source::{build_items, BuildItemsTestEntry, BuildItemsTestSpec};
 
-const WRAPPER_FILENAME: &str = "tests/out_lr/wrapper_source.rs";
+// List in decreasing order of test parser number of the file were they're generated:
+static WRAPPER_FILENAMES: &[(u32, &str)] = &[
+//  (  N, "tests/out_lr/wrapper_source1.rs"),   //       n >= N are generated here
+    (  0, "tests/out_lr/wrapper_source.rs"),    //   N > n >= 0
+];
 
 fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
     vec![
@@ -312,7 +316,7 @@ fn check_build_items() {
         tests_all: true,
         replace_source: false,
         parser_type: ParserType::LALR,
-        wrapper_filename: WRAPPER_FILENAME,
+        wrapper_filenames: WRAPPER_FILENAMES,
         tests: get_lr_tests(),
     };
     build_items(spec);
@@ -326,7 +330,7 @@ fn write_build_items() {
         tests_all: true,
         replace_source: true,
         parser_type: ParserType::LALR,
-        wrapper_filename: WRAPPER_FILENAME,
+        wrapper_filenames: WRAPPER_FILENAMES,
         tests: get_lr_tests(),
     };
     build_items(spec);

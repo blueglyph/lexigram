@@ -152,7 +152,7 @@ mod rules_580_1 {
     use lexigram_lib::make_stream;
     use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
-    use crate::out::wrapper_source::rules_580_1::*;
+    use crate::out::wrapper_source2::rules_580_1::*;
     use crate::out::wrapper_code::code_580_1::*;
     use crate::integration::wrappers::level_string::LevelString;
     use crate::integration::parser_examples::listener1::build_parser;
@@ -249,7 +249,7 @@ pub mod precedence_type {
     use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_core::log::BufLog;
-    use lexigram_lib::parser::{ListenerWrapper, LLParser, ParserError, ParserToken};
+    use lexigram_lib::parser::{LLParser, ListenerWrapper, ParserError, ParserToken};
     use crate::integration::wrappers::level_string::LevelString;
 
     const TOK_NUM: TokenId = 3;
@@ -299,8 +299,10 @@ mod test_precedence {
     use lexigram_lib::parser::ParserError;
     use super::precedence_type::{TestApi, Tester};
     #[allow(unused_imports)]
-    use crate::out::wrapper_source::{rules_603_1, rules_604_1, rules_605_1, rules_606_1, rules_607_1, rules_608_1, rules_609_1, rules_610_1,
-                                     rules_611_1, rules_612_1, rules_613_1, rules_614_1, rules_630_1, rules_631_1, rules_632_1};
+    use crate::out::wrapper_source2::{rules_603_1, rules_604_1, rules_605_1, rules_606_1, rules_607_1, rules_608_1, rules_609_1, rules_610_1,
+                                     rules_611_1, rules_612_1, rules_613_1, rules_614_1};
+    #[allow(unused_imports)]
+    use crate::out::wrapper_source3::{rules_630_1, rules_631_1, rules_632_1};
 
     #[test]
     fn test() {
@@ -512,7 +514,7 @@ mod rules_640_1 {
     use lexigram_lib::make_stream;
     use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
-    use crate::out::wrapper_source::rules_640_1::*;
+    use crate::out::wrapper_source3::rules_640_1::*;
     use crate::integration::parser_examples::listener2::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 
@@ -626,7 +628,7 @@ mod rules_641_1 {
     use lexigram_lib::make_stream;
     use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
-    use crate::out::wrapper_source::rules_641_1::*;
+    use crate::out::wrapper_source3::rules_641_1::*;
     use crate::integration::parser_examples::listener3::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 
@@ -740,7 +742,7 @@ mod rules_642_1 {
     use lexigram_lib::make_stream;
     use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, LogStatus, Logger};
-    use crate::out::wrapper_source::rules_642_1::*;
+    use crate::out::wrapper_source3::rules_642_1::*;
     use crate::integration::parser_examples::listener4::build_parser;
     use crate::integration::wrappers::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 
@@ -853,7 +855,7 @@ mod rules_862_1 {
     use lexigram_lib::make_stream;
     use lexigram_lib::lexer::PosSpan;
     use lexigram_core::log::{BufLog, Logger};
-    use crate::out::wrapper_source::rules_862_1::*;
+    use crate::out::wrapper_source3::rules_862_1::*;
     use crate::out::wrapper_code::code_862_1::*;
     use crate::integration::parser_examples::listener5::build_parser;
 

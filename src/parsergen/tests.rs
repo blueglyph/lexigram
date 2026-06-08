@@ -218,7 +218,7 @@ pub(super) mod wrapper_source {
         pub tests_all: bool,
         pub replace_source: bool,
         pub parser_type: ParserType,
-        pub wrapper_filename: &'a str,
+        pub wrapper_filenames: &'a [(u32, &'a str)],
         pub tests: Vec<BuildItemsTestEntry>
     }
 
@@ -232,7 +232,7 @@ pub(super) mod wrapper_source {
             mut tests_all,
             mut replace_source,
             parser_type,
-            wrapper_filename,
+            wrapper_filenames,
             tests
         } = spec;
 
@@ -263,6 +263,10 @@ pub(super) mod wrapper_source {
             // if !matches!(tr_id, 109|120) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
+            let wrapper_filename = wrapper_filenames.into_iter()
+                .filter_map(|(n, s)| if tr_id >= *n { Some(s) } else { None })
+                .next()
+                .expect(&format!("No wrapper filename for test {tr_id} and {parser_type:?}"));
             let (mut builder, original_str) = match parser_type {
                 ParserType::LL1 => {
                     let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(start_nt);
