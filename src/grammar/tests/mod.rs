@@ -83,9 +83,9 @@ impl TestRules {
             // sep_list
             109 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)* ")"; type -> Id;"#],
             110 => vec![r#"a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")"; type -> Id;"#],
+            // multiple sep_list
             111 => vec![r#"a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")";"#],
-            // no sep_list for +
-            112 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#],
+            112 => vec![r#"a -> "let" Id ("," Id)* "=" Num ("," Num)* ";";"#],
             // split potential sep_list cases
             113 => vec![r#"a -> X B ("," B)* B? Z;"#],
             114 => vec![r#"a -> X? B ("," B)* Z;"#],
@@ -93,10 +93,13 @@ impl TestRules {
             116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one
             117 => vec![r#"a -> X B (B)* Z;"#],
             118 => vec![r#"a -> "var" Id ("," Id)* ";";"#],
+            // no sep_list for +
+            119 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#],
 
             120 => vec![r#"a -> A Id ("," Id)* C;"#],
             121 => vec![r#"a -> A b* C; b -> Id;"#],
             122 => vec![r#"a -> A b+ C; b -> Id;"#],
+
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
