@@ -168,6 +168,7 @@ impl TestRules {
             502 => vec![r#"e -> f | e "." Id;"#,
                         r#"f -> Id;"#],
             503 => vec![r#"a -> a B | A;"#],
+            504 => vec![r#"a -> a A | a B | C | D;"#],
             550 => vec![r#"a -> a A | ε;"#],
             551 => vec![r#"a -> a A | ε | ε;"#],
             552 => vec![r#"e -> e "-" t | t; t -> Id | "(" e ")";"#],

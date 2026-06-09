@@ -218,7 +218,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // |   0 | a    | y  | parent_+_or_*        |
         // |   1 | . i  | y  | child_+_or_*, L-form |
         // +----------------------------------------+
-        (200, true, false, false, 0, btreemap![
+        (200, true, true, false, 0, btreemap![
         ], vec![
             (strip![t 2, nt 1, t 0],                3, symbols![t 0, nt 1, t 2]), //  0: a -> A i C  | C! ►i A! | 3 | A i C
             (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]),      //  1: i -> i B    | B! ●i    | 2 | i B
@@ -301,6 +301,21 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![t 1],                           1, symbols![t 1]),       //  1: a -> A      | A!    | 1 | A
             (strip![nt 0],                          1, symbols![]),          //  2: <goal> -> a | ►a    | 1 |
         ], NTValue::Default, btreemap![0 => vec![0, 1]]),
+
+        // a -> a A | a B | C | D
+        //
+        //   NT    name  val   flags
+        // +-------------------------+
+        // |   0 | a    | y  |       |
+        // +-------------------------+
+        (504, true, true, false, 0, btreemap![
+        ], vec![
+            (strip![t 0, nt 0],                     2, symbols![nt 0, t 0]), //  0: a -> a A    | A! ►a | 2 | a A
+            (strip![t 1, nt 0],                     2, symbols![nt 0, t 1]), //  1: a -> a B    | B! ►a | 2 | a B
+            (strip![t 2],                           1, symbols![t 2]),       //  2: a -> C      | C!    | 1 | C
+            (strip![t 3],                           1, symbols![t 3]),       //  3: a -> D      | D!    | 1 | D
+            (strip![nt 0],                          1, symbols![]),          //  4: <goal> -> a | ►a    | 1 |
+        ], NTValue::Default, btreemap![0 => vec![0, 1, 2, 3]]),
 
         // ===========================================================================
         /* template:
