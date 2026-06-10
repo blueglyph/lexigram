@@ -210,6 +210,25 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),          //  5: <goal> -> a  | ►a      | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
+        // a -> (A | A B | C)+
+        //
+        //   NT    name   val   flags               
+        // +----------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*, plus |
+        // |   1 | . a_1 | y  | child_+_or_*, plus  |
+        // +----------------------------------------+
+        (155, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![nt 1]),           //  0: a -> a_1       | ►a_1       | 1 | a_1
+            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]),      //  1: a_1 -> a_1 A   | A! ●a_1    | 2 | a_1 A
+            (strip![t 0],                           2, symbols![nt 1, t 0]),      //  2: a_1 -> A       | A!         | 2 | a_1 A
+            (strip![t 1, t 0, loop 1],              3, symbols![nt 1, t 0, t 1]), //  3: a_1 -> a_1 A B | B! A! ●a_1 | 3 | a_1 A B
+            (strip![t 1, t 0],                      3, symbols![nt 1, t 0, t 1]), //  4: a_1 -> A B     | B! A!      | 3 | a_1 A B
+            (strip![t 2, loop 1],                   2, symbols![nt 1, t 2]),      //  5: a_1 -> a_1 C   | C! ●a_1    | 2 | a_1 C
+            (strip![t 2],                           2, symbols![nt 1, t 2]),      //  6: a_1 -> C       | C!         | 2 | a_1 C
+            (strip![nt 0],                          1, symbols![]),               //  7: <goal> -> a    | ►a         | 1 | 
+        ], NTValue::Default, btreemap![0 => vec![0]]),
+
         // =========================================================================== +_or_* <L>
         // a -> A (<L=i> B)* C
         //

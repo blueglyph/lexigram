@@ -2119,7 +2119,7 @@ impl ParserGen {
         nu: &str,
         is_init: bool,
         alt_id_name: &str
-    ) -> (Vec<String>, String)
+    ) -> (Vec<String>, String, Vec<String>)
     {
         // ex:
         //     let type1 = self.stack.pop().unwrap().get_type();
@@ -2129,6 +2129,7 @@ impl ParserGen {
         //     self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         //
         let mut src_val = vec![];
+        let mut src_span = vec![];
         let val_name = if endpoints.len() > 1 {
             // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
             src_val.push(format!("        let {} = match {alt_id_name} {{", self.gen_match_item("val".to_string(), || "n".to_string())));
@@ -2143,10 +2144,10 @@ impl ParserGen {
                 src_val.push(format!("                {return_value}"));
                 src_val.push("            }".to_string());
             }
-            src_val.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in fn {fn_name}\"),"));
+            src_val.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\"),"));
             src_val.push("        };".to_string());
             if self.options.gen_span_params {
-                src_val.extend(Self::source_update_span("n"));
+                src_span.extend(Self::source_update_span("n"));
             }
             "val".to_string()
         } else {
@@ -2158,7 +2159,7 @@ impl ParserGen {
                 } else {
                     self.span_nbrs[a_id as usize]
                 };
-                src_val.extend(Self::source_update_span(&span_nbr.to_string()));
+                src_span.extend(Self::source_update_span(&span_nbr.to_string()));
             }
             let infos = &item_info[a_id as usize];
             let (src_let, src_struct) = Self::source_lets(infos, nt_name, "        ", None, alt_id_name);
@@ -2172,7 +2173,7 @@ impl ParserGen {
                 "val".to_string()
             }
         };
-        (src_val, val_name)
+        (src_val, val_name, src_span)
     }
 
     /// Generates the wrapper source code and returns
@@ -2289,6 +2290,7 @@ impl ParserGen {
                 // the other variables of the same type (in ambiguous rules, they repeat the same operators)
                 let is_ambig_redundant = is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child;
                 let has_value = self.nt_values[nt];
+                let mut init_needs_param = false;
 
                 // Call::Enter
                 self.source_wrapper_init::<VERBOSE>(
@@ -2297,6 +2299,7 @@ impl ParserGen {
                     flags,
                     has_value,
                     is_ambig_1st_child,
+                    &mut init_needs_param,
                     &mut state,
                     &mut sources
                 );
@@ -2309,6 +2312,7 @@ impl ParserGen {
                     has_value,
                     is_ambig_1st_child,
                     is_ambig_redundant,
+                    init_needs_param,
                     &mut state,
                     &mut sources
                 );
@@ -2545,13 +2549,11 @@ impl ParserGen {
         flags               : u32,
         has_value           : bool,
         is_ambig_1st_child  : bool,
+        init_needs_param    : &mut bool,
         state               : &mut SourceState,
         sources             : &mut WrapperSources
     ) {
         let is_ll = self.options.parser_type.is_ll();
-        // if !self.options.parser_type.is_ll() {
-        //     return;
-        // }
         let &SourceInputContext { ambig_op_alts, .. } = ctx;
         let SourceState { init_nt_done, span_init, .. } = state;
         let WrapperSources { src_listener_decl, src_skel, src_init, src_wrapper_impl, .. } = sources;
@@ -2573,7 +2575,7 @@ impl ParserGen {
         if self.parent[nt].is_none() {
             if is_ll {
                 init_nt_done.insert(var);
-                if is_rrec_lform {
+                if is_rrec_lform && is_ll {
                     span_init.insert(var);
                 }
                 if is_rrec_lform && has_value {
@@ -2592,14 +2594,40 @@ impl ParserGen {
                 }
             }
         } else if flags & ruleflag::CHILD_REPEAT != 0 {
-            if !is_sep_list {
+            if !is_sep_list && is_ll {
                 span_init.insert(var);
             }
             if has_value || is_sep_list {
+                let mut trailing_init = vec![];
+                if !is_ll && !is_sep_list {
+                    if is_plus {
+                        let alts = self.var_alts[nt].iter().filter_map(|a| {
+                            let alt_a = &self.alts[*a as usize].1;
+                            if alt_a.get(0) != Some(&sym_nt) {
+                                Some((*a, self.span_nbrs[*a as usize] - 1))
+                            } else {
+                                None
+                            }
+                        }).to_vec();
+                        let n0 = &alts[0].1;
+                        *init_needs_param = alts.iter().any(|(_, n)| n != n0);
+                        if *init_needs_param {
+                            trailing_init.push("        let n = match alt_id {".to_string());
+                            trailing_init.extend(alts.iter().map(|(a, n)| format!("            {a} => {n},")));
+                            trailing_init.push(format!(r#"            _ => panic!("alt_id = {{alt_id}} unexpected in method {init_fn_name}")"#));
+                            trailing_init.push("        };".to_string());
+                            trailing_init.push("        self.stack_span.insert(self.stack_span.len() - n, PosSpan::empty());".to_string());
+                        } else {
+                            trailing_init.push(format!("        self.stack_span.insert(self.stack_span.len() - {n0}, PosSpan::empty());"));
+                        }
+                    } else {
+                        trailing_init.push("        self.stack_span.push(PosSpan::empty());".to_string());
+                    }
+                }
                 init_nt_done.insert(var);
                 src_wrapper_impl.push(String::new());
                 src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
-                src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self) {{"));
+                src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self{}) {{", if *init_needs_param { ", alt_id: AltId" } else { "" }));
                 if is_lform {
                     if is_sep_list {
                         let all_exit_alts = if is_ambig_1st_child {
@@ -2675,13 +2703,15 @@ impl ParserGen {
                     // fetch values from stack to init the list with the first value that was outside the repetition:
                     // first α in α (β α)*
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
-                    let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &init_fn_name, nu, true, "alt_id");
+                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &init_fn_name, nu, true, "alt_id");
                     src_wrapper_impl.extend(src_val);
                     src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
+                    src_wrapper_impl.extend(src_span);
                 } else {
                     src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                     src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
                 }
+                src_wrapper_impl.extend(trailing_init);
                 src_wrapper_impl.push("    }".to_string());
             } else if is_lform {
                 init_nt_done.insert(var);
@@ -2711,6 +2741,7 @@ impl ParserGen {
         has_value           : bool,
         is_ambig_1st_child  : bool,
         is_ambig_redundant  : bool,
+        init_needs_param    : bool,
         state               : &mut SourceState,
         sources             : &mut WrapperSources
     ) {
@@ -2770,7 +2801,9 @@ impl ParserGen {
                     .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
                     .map(|id| id.to_string())
                     .join(" | ");
-                Some(format!("        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}(); }}"))
+                Some(format!(
+                    "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
+                    if init_needs_param { &alt_id_name } else { "" }))
             } else {
                 None
             };
@@ -2874,7 +2907,7 @@ impl ParserGen {
             if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
                 if has_value {
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
-                    let (src_val, val_name) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, &alt_id_name);
+                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, &alt_id_name);
                     src_wrapper_impl.extend(src_val);
                     let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
                     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
@@ -2884,6 +2917,7 @@ impl ParserGen {
                     src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
                     src_wrapper_impl.push("        };".to_string());
                     src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
+                    src_wrapper_impl.extend(src_span);
                 }
             } else {
                 assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
@@ -2923,9 +2957,13 @@ impl ParserGen {
                     };
                     if is_single {
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
+                        if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                            if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
+                                src_wrapper_impl.push(lr_init_alt_ids.to_string());
+                            }
+                        }
                         if self.options.gen_span_params {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
-
                         }
                     } else {
                         let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string());
@@ -2934,16 +2972,18 @@ impl ParserGen {
                     }
                 }
                 if !is_single {
-                    src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in fn {fn_name}\")"));
+                    src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
+                    // if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                    //     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
+                    //         src_wrapper_impl.push(lr_init_alt_ids);
+                    //     }
+                    // }
                     if self.options.gen_span_params {
                         src_wrapper_impl.extend(Self::source_update_span("n"));
                     }
                 }
                 if (is_rrec_lform | is_child_repeat_lform) && f_valued {
-                    if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
-                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
-                    }
                     src_wrapper_impl.push(
                         format!("        let Some(EnumSynValue::{fnu}(acc)) = self.stack.last_mut() else {{ panic!() }};"));
                     src_wrapper_impl.push(
