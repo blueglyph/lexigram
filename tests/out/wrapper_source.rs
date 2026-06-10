@@ -1455,13 +1455,13 @@ pub(crate) mod rules_102_1 {
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -1653,13 +1653,13 @@ pub(crate) mod rules_103_1 {
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack_t.pop().unwrap();
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -1862,8 +1862,6 @@ pub(crate) mod rules_104_1 {
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a_2 = self.stack_t.pop().unwrap();
             let b1 = self.stack_t.pop().unwrap();
             let b_2 = self.stack.pop().unwrap().get_b();
@@ -1874,6 +1872,8 @@ pub(crate) mod rules_104_1 {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2087,8 +2087,6 @@ pub(crate) mod rules_105_1 {
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a_2 = self.stack_t.pop().unwrap();
             let b1 = self.stack_t.pop().unwrap();
             let b_2 = self.stack.pop().unwrap().get_b();
@@ -2099,6 +2097,8 @@ pub(crate) mod rules_105_1 {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2320,13 +2320,13 @@ pub(crate) mod rules_106_1 {
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let b = self.stack.pop().unwrap().get_b();
             let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(b);
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn init_a2(&mut self) {
@@ -2335,8 +2335,6 @@ pub(crate) mod rules_106_1 {
         }
 
         fn exit_a2(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let star = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
             let val = SynA2Item { a, star };
@@ -2344,6 +2342,8 @@ pub(crate) mod rules_106_1 {
                 panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2554,13 +2554,13 @@ pub(crate) mod rules_106_2 {
         }
 
         fn exit_a2(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let a = self.stack_t.pop().unwrap();
             let Some(EnumSynValue::A2(SynA2(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA2 item on wrapper stack");
             };
             star_acc.push(a);
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -2938,17 +2938,15 @@ pub(crate) mod rules_109_1 {
         }
 
         fn init_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
             self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
@@ -2956,6 +2954,8 @@ pub(crate) mod rules_109_1 {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_type(&mut self) {
@@ -3174,17 +3174,15 @@ pub(crate) mod rules_110_1 {
         }
 
         fn init_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
             self.stack.push(EnumSynValue::A1(SynA1(vec![val])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_a1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
@@ -3192,6 +3190,8 @@ pub(crate) mod rules_110_1 {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_type(&mut self) {
@@ -3407,12 +3407,12 @@ pub(crate) mod rules_150_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -3626,12 +3626,12 @@ pub(crate) mod rules_151_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 
@@ -3864,12 +3864,12 @@ pub(crate) mod rules_152_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
@@ -4149,12 +4149,12 @@ pub(crate) mod rules_153_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
             };
-            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
             plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_b(&mut self) {
