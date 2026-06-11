@@ -1396,7 +1396,7 @@ mod config_parser {
                 6 => {
                     (0, CtxParser::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_parser")
+                _ => panic!("unexpected alt id {alt_id} in method exit_parser")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1412,7 +1412,7 @@ mod config_parser {
                 8 => {
                     (0, CtxOptions::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_options")
+                _ => panic!("unexpected alt id {alt_id} in method exit_options")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1476,7 +1476,7 @@ mod config_parser {
                     let star = self.stack.pop().unwrap().get_io_option1();
                     (5, CtxIoOption::V5 { star })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_io_option")
+                _ => panic!("unexpected alt id {alt_id} in method exit_io_option")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1485,20 +1485,20 @@ mod config_parser {
         }
 
         fn init_io_option1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             self.stack.push(EnumSynValue::IoOption1(SynIoOption1(vec![value])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_io_option1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             let Some(EnumSynValue::IoOption1(SynIoOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynIoOption1 item on wrapper stack");
             };
             star_acc.push(value);
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_tag_opt(&mut self, alt_id: AltId) {
@@ -1510,7 +1510,7 @@ mod config_parser {
                 18 => {
                     (0, CtxTagOpt::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_tag_opt")
+                _ => panic!("unexpected alt id {alt_id} in method exit_tag_opt")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1572,7 +1572,7 @@ mod config_parser {
                     let value = self.stack.pop().unwrap().get_value();
                     (3, CtxGlobalOption::V5 { value })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_global_option")
+                _ => panic!("unexpected alt id {alt_id} in method exit_global_option")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1581,37 +1581,37 @@ mod config_parser {
         }
 
         fn init_global_option1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             self.stack.push(EnumSynValue::GlobalOption1(SynGlobalOption1(vec![value])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_global_option1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             let Some(EnumSynValue::GlobalOption1(SynGlobalOption1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynGlobalOption1 item on wrapper stack");
             };
             star_acc.push(value);
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn init_global_option2(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             self.stack.push(EnumSynValue::GlobalOption2(SynGlobalOption2(vec![value])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_global_option2(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             let Some(EnumSynValue::GlobalOption2(SynGlobalOption2(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynGlobalOption2 item on wrapper stack");
             };
             star_acc.push(value);
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_value(&mut self, alt_id: AltId) {
@@ -1635,7 +1635,7 @@ mod config_parser {
                 31 => {
                     (1, CtxValue::V5)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_value")
+                _ => panic!("unexpected alt id {alt_id} in method exit_value")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1658,7 +1658,7 @@ mod config_parser {
                     let star = self.stack.pop().unwrap().get_nt_value1();
                     (4, CtxNtValue::V4 { star })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_nt_value")
+                _ => panic!("unexpected alt id {alt_id} in method exit_nt_value")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1667,20 +1667,20 @@ mod config_parser {
         }
 
         fn init_nt_value1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             self.stack.push(EnumSynValue::NtValue1(SynNtValue1(vec![value])));
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_nt_value1(&mut self) {
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let value = self.stack.pop().unwrap().get_value();
             let Some(EnumSynValue::NtValue1(SynNtValue1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynNtValue1 item on wrapper stack");
             };
             star_acc.push(value);
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 

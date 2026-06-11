@@ -718,7 +718,7 @@ pub mod terminate_parser {
                 6 => {
                     (1, CtxLine::V4)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_line")
+                _ => panic!("unexpected alt id {alt_id} in method exit_line")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -748,7 +748,7 @@ pub mod terminate_parser {
                     let header = self.stack_t.pop().unwrap();
                     (2, CtxMessage::V4 { header, message })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_message")
+                _ => panic!("unexpected alt id {alt_id} in method exit_message")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

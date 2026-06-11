@@ -495,7 +495,7 @@ pub(crate) mod lexiparser {
                     let star = self.stack.pop().unwrap().get_file1();
                     CtxFile::V2 { star }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_file")
+                _ => panic!("unexpected alt id {alt_id} in method exit_file")
             };
             let val = self.listener.exit_file(ctx);
             self.stack.push(EnumSynValue::File(val));
@@ -528,7 +528,7 @@ pub(crate) mod lexiparser {
                     let rule = self.stack.pop().unwrap().get_rule();
                     CtxFileItem::V3 { rule }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
+                _ => panic!("unexpected alt id {alt_id} in method exit_file_item")
             };
             let val = self.listener.exit_file_item(ctx);
             self.stack.push(EnumSynValue::FileItem(val));
@@ -586,7 +586,7 @@ pub(crate) mod lexiparser {
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::V3 { id, match1 }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
+                _ => panic!("unexpected alt id {alt_id} in method exit_rule")
             };
             let val = self.listener.exit_rule(ctx);
             self.stack.push(EnumSynValue::Rule(val));
@@ -639,7 +639,7 @@ pub(crate) mod lexiparser {
                     let id = self.stack_t.pop().unwrap();
                     CtxAction::V7 { id }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_action")
+                _ => panic!("unexpected alt id {alt_id} in method exit_action")
             };
             let val = self.listener.exit_action(ctx);
             self.stack.push(EnumSynValue::Action(val));
@@ -718,7 +718,7 @@ pub(crate) mod lexiparser {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::V2 { item }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
+                _ => panic!("unexpected alt id {alt_id} in method exit_repeat_item")
             };
             let val = self.listener.exit_repeat_item(ctx);
             self.stack.push(EnumSynValue::RepeatItem(val));
@@ -755,7 +755,7 @@ pub(crate) mod lexiparser {
                     let charlit = self.stack_t.pop().unwrap();
                     CtxItem::V3 { charlit }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_item")
+                _ => panic!("unexpected alt id {alt_id} in method exit_item")
             };
             let val = self.listener.exit_item(ctx);
             self.stack.push(EnumSynValue::Item(val));
@@ -774,7 +774,7 @@ pub(crate) mod lexiparser {
                     let fixedset = self.stack_t.pop().unwrap();
                     CtxCharSet::V3 { fixedset }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
+                _ => panic!("unexpected alt id {alt_id} in method exit_char_set")
             };
             let val = self.listener.exit_char_set(ctx);
             self.stack.push(EnumSynValue::CharSet(val));
@@ -808,7 +808,7 @@ pub(crate) mod lexiparser {
                     let setchar = self.stack_t.pop().unwrap();
                     CtxCharSetOne::V2 { setchar }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
+                _ => panic!("unexpected alt id {alt_id} in method exit_char_set_one")
             };
             let val = self.listener.exit_char_set_one(ctx);
             self.stack.push(EnumSynValue::CharSetOne(val));

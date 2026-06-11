@@ -867,7 +867,7 @@ pub mod watcher_parser {
                 19 => {
                     (3, CtxLog::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_log1")
+                _ => panic!("unexpected alt id {alt_id} in method exit_log1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -903,7 +903,7 @@ pub mod watcher_parser {
                 5 => {
                     (2, CtxCategory::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_category")
+                _ => panic!("unexpected alt id {alt_id} in method exit_category")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -918,7 +918,7 @@ pub mod watcher_parser {
                 7 => {
                     (2, CtxRightRecursive::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_right_recursive")
+                _ => panic!("unexpected alt id {alt_id} in method exit_right_recursive")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -947,7 +947,7 @@ pub mod watcher_parser {
                 12 => {
                     (1, CtxLine::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_line")
+                _ => panic!("unexpected alt id {alt_id} in method exit_line")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -981,7 +981,7 @@ pub mod watcher_parser {
                     let header = self.stack_t.pop().unwrap();
                     (2, CtxMessage::V5 { header, message })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_message")
+                _ => panic!("unexpected alt id {alt_id} in method exit_message")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

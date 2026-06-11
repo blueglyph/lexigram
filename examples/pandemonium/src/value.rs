@@ -1478,7 +1478,7 @@ pub mod pandemonium_parser {
                     let sep_list_opt = self.stack.pop().unwrap().get_sep_list_opt();
                     (2, CtxExample::V14 { sep_list_opt })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_example")
+                _ => panic!("unexpected alt id {alt_id} in method exit_example")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1665,7 +1665,7 @@ pub mod pandemonium_parser {
                     let num = self.stack_t.pop().unwrap();
                     (4, SynStarA1Item::V2 { num, id })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_star_a1"),
+                _ => panic!("unexpected alt id {alt_id} in method exit_star_a1"),
             };
             let Some(EnumSynValue::StarA1(SynStarA1(star_acc))) = self.stack.last_mut() else {
                 panic!("expected SynStarA1 item on wrapper stack");
@@ -1701,7 +1701,7 @@ pub mod pandemonium_parser {
                     let num = self.stack_t.pop().unwrap();
                     (4, SynPlusA1Item::V2 { num, id })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_plus_a1"),
+                _ => panic!("unexpected alt id {alt_id} in method exit_plus_a1"),
             };
             let Some(EnumSynValue::PlusA1(SynPlusA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynPlusA1 item on wrapper stack");
@@ -1737,7 +1737,7 @@ pub mod pandemonium_parser {
                     let num = self.stack_t.pop().unwrap();
                     (4, CtxLStarAI::V2 { num, id })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_l_star_a_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_l_star_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1778,7 +1778,7 @@ pub mod pandemonium_parser {
                     let num = self.stack_t.pop().unwrap();
                     (4, CtxLPlusAI::V2 { num, id, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_l_plus_a_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_l_plus_a_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1828,7 +1828,7 @@ pub mod pandemonium_parser {
                     let id = self.stack_t.pop().unwrap();
                     (4, CtxSepListOpt::V1 { id, star })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_sep_list_opt")
+                _ => panic!("unexpected alt id {alt_id} in method exit_sep_list_opt")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1867,7 +1867,7 @@ pub mod pandemonium_parser {
                 40 => {
                     (1, CtxRrecI::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_rrec_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_rrec_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1889,7 +1889,7 @@ pub mod pandemonium_parser {
                 42 => {
                     (2, CtxLRrecI::V2)
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_l_rrec_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_l_rrec_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1948,7 +1948,7 @@ pub mod pandemonium_parser {
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V6 { amb_i: [amb_i_1, amb_i_2] })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_amb_i1")
+                _ => panic!("unexpected alt id {alt_id} in method exit_amb_i1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -1974,7 +1974,7 @@ pub mod pandemonium_parser {
                     let num = self.stack_t.pop().unwrap();
                     (1, CtxAmbI::V9 { num })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_amb_i6")
+                _ => panic!("unexpected alt id {alt_id} in method exit_amb_i6")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

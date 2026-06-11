@@ -1202,7 +1202,7 @@ pub mod rtsgen_parser {
                     let terminal = self.stack_t.pop().unwrap();
                     CtxDeclTerminal::V2 { terminal }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_decl_terminal")
+                _ => panic!("unexpected alt id {alt_id} in method exit_decl_terminal")
             };
             let val = self.listener.exit_decl_terminal(ctx);
             self.stack.push(EnumSynValue::DeclTerminal(val));
@@ -1232,7 +1232,7 @@ pub mod rtsgen_parser {
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::V1 { rule_nt, rts_expr }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
+                _ => panic!("unexpected alt id {alt_id} in method exit_rule")
             };
             let val = self.listener.exit_rule(ctx);
             self.stack.push(EnumSynValue::Rule(val));
@@ -1248,7 +1248,7 @@ pub mod rtsgen_parser {
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxRuleNt::V2 { nonterminal }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_rule_nt")
+                _ => panic!("unexpected alt id {alt_id} in method exit_rule_nt")
             };
             let val = self.listener.exit_rule_nt(ctx);
             self.stack.push(EnumSynValue::RuleNt(val));
@@ -1280,7 +1280,7 @@ pub mod rtsgen_parser {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRtsExpr::V6 { item }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_rts_expr")
+                _ => panic!("unexpected alt id {alt_id} in method exit_rts_expr")
             };
             let val = self.listener.exit_rts_expr(ctx);
             self.stack.push(EnumSynValue::RtsExpr(val));
@@ -1330,7 +1330,7 @@ pub mod rtsgen_parser {
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::V5 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr1")
+                _ => panic!("unexpected alt id {alt_id} in method exit_prs_expr1")
             };
             let val = self.listener.exit_prs_expr(ctx);
             self.stack.push(EnumSynValue::PrsExpr(val));
@@ -1346,7 +1346,7 @@ pub mod rtsgen_parser {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxPrsExpr::V7 { item }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_prs_expr6")
+                _ => panic!("unexpected alt id {alt_id} in method exit_prs_expr6")
             };
             let val = self.listener.exit_prs_expr(ctx);
             self.stack.push(EnumSynValue::PrsExpr(val));
@@ -1391,7 +1391,7 @@ pub mod rtsgen_parser {
                 29 => {
                     CtxItem::V10
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_item")
+                _ => panic!("unexpected alt id {alt_id} in method exit_item")
             };
             let val = self.listener.exit_item(ctx);
             self.stack.push(EnumSynValue::Item(val));

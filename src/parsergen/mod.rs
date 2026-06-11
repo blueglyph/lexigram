@@ -2599,7 +2599,7 @@ impl ParserGen {
             }
             if has_value || is_sep_list {
                 let mut trailing_init = vec![];
-                if !is_ll && !is_sep_list {
+                if self.options.gen_span_params && !is_ll && !is_sep_list {
                     if is_plus {
                         let alts = self.var_alts[nt].iter().filter_map(|a| {
                             let alt_a = &self.alts[*a as usize].1;
@@ -2974,11 +2974,6 @@ impl ParserGen {
                 if !is_single {
                     src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
-                    // if (is_rrec_lform | is_child_repeat_lform) && f_valued {
-                    //     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
-                    //         src_wrapper_impl.push(lr_init_alt_ids);
-                    //     }
-                    // }
                     if self.options.gen_span_params {
                         src_wrapper_impl.extend(Self::source_update_span("n"));
                     }

@@ -767,7 +767,7 @@ pub mod microcalc_parser {
                 3 => {
                     CtxFunParams::V2
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_fun_params")
+                _ => panic!("unexpected alt id {alt_id} in method exit_fun_params")
             };
             let val = self.listener.exit_fun_params(ctx);
             self.stack.push(EnumSynValue::FunParams(val));
@@ -851,7 +851,7 @@ pub mod microcalc_parser {
                     let id = self.stack_t.pop().unwrap();
                     CtxInstruction::V5 { id, fun_args }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
+                _ => panic!("unexpected alt id {alt_id} in method exit_instruction")
             };
             let val = self.listener.exit_instruction(ctx);
             self.stack.push(EnumSynValue::Instruction(val));
@@ -914,7 +914,7 @@ pub mod microcalc_parser {
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     CtxExpr::V13 { expr: [expr_1, expr_2] }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
+                _ => panic!("unexpected alt id {alt_id} in method exit_expr1")
             };
             let val = self.listener.exit_expr(ctx);
             self.stack.push(EnumSynValue::Expr(val));
@@ -947,7 +947,7 @@ pub mod microcalc_parser {
                     let id = self.stack_t.pop().unwrap();
                     CtxExpr::V16 { id }
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_expr8")
+                _ => panic!("unexpected alt id {alt_id} in method exit_expr8")
             };
             let val = self.listener.exit_expr(ctx);
             self.stack.push(EnumSynValue::Expr(val));
@@ -962,7 +962,7 @@ pub mod microcalc_parser {
                 14 => {
                     CtxFunArgs::V2
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_fun_args")
+                _ => panic!("unexpected alt id {alt_id} in method exit_fun_args")
             };
             let val = self.listener.exit_fun_args(ctx);
             self.stack.push(EnumSynValue::FunArgs(val));

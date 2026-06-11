@@ -385,7 +385,7 @@ impl<T: GramParserListener> Wrapper<T> {
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 (5, CtxRule::V1 { rule_name, prod })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
+            _ => panic!("unexpected alt id {alt_id} in method exit_rule")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -441,13 +441,13 @@ impl<T: GramParserListener> Wrapper<T> {
     }
 
     fn exit_prod_alt1(&mut self) {
-        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
-        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         let prod_factor = self.stack.pop().unwrap().get_prod_factor();
         let Some(EnumSynValue::ProdAlt1(SynProdAlt1(star_acc))) = self.stack.last_mut() else {
             panic!("expected SynProdAlt1 item on wrapper stack");
         };
         star_acc.push(prod_factor);
+        let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
     }
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {
@@ -468,7 +468,7 @@ impl<T: GramParserListener> Wrapper<T> {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 (1, CtxProdFactor::V4 { prod_atom })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_prod_factor")
+            _ => panic!("unexpected alt id {alt_id} in method exit_prod_factor")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -499,7 +499,7 @@ impl<T: GramParserListener> Wrapper<T> {
                 let prod = self.stack.pop().unwrap().get_prod();
                 (3, CtxProdAtom::V6 { prod })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_prod_atom")
+            _ => panic!("unexpected alt id {alt_id} in method exit_prod_atom")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

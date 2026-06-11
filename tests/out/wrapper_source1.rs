@@ -2786,7 +2786,7 @@ pub(crate) mod rules_211_1 {
                     let a = self.stack_t.pop().unwrap();
                     (4, CtxA::V2 { a, c: [c_1, c_2], star })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in method exit_a")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -3249,7 +3249,7 @@ pub(crate) mod rules_250_1 {
                     let b = self.stack_t.pop().unwrap();
                     (2, CtxI::V2 { b })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -3468,7 +3468,7 @@ pub(crate) mod rules_251_1 {
                     let b = self.stack_t.pop().unwrap();
                     (2, CtxI::V2 { b, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -3721,7 +3721,7 @@ pub(crate) mod rules_252_1 {
                     let b_1 = self.stack.pop().unwrap().get_b();
                     (6, CtxJ::V1 { b: [b_1, b_2], c: [c_1, c_2], b1, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_j")
+                _ => panic!("unexpected alt id {alt_id} in method exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -3745,7 +3745,7 @@ pub(crate) mod rules_252_1 {
                     let f = self.stack_t.pop().unwrap();
                     (2, SynA1Item::V2 { f })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
+                _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
@@ -4006,7 +4006,7 @@ pub(crate) mod rules_253_1 {
                     let plus = self.stack.pop().unwrap().get_a1();
                     (3, CtxI::V1 { plus, e, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -4033,7 +4033,7 @@ pub(crate) mod rules_253_1 {
                     let d = self.stack_t.pop().unwrap();
                     (2, SynA1Item::V2 { d })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_a1"),
+                _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
@@ -4287,7 +4287,7 @@ pub(crate) mod rules_254_1 {
                     let f = self.stack_t.pop().unwrap();
                     (2, CtxI::V2 { f })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -4319,7 +4319,7 @@ pub(crate) mod rules_254_1 {
                     let d = self.stack_t.pop().unwrap();
                     (2, CtxJ::V2 { d })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_j")
+                _ => panic!("unexpected alt id {alt_id} in method exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -4575,7 +4575,7 @@ pub(crate) mod rules_256_1 {
                     let b = self.stack_t.pop().unwrap();
                     (5, CtxI::V2 { b, a, c, b1, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -4834,7 +4834,7 @@ pub(crate) mod rules_258_1 {
                     let a = self.stack_t.pop().unwrap();
                     (2, CtxI::V1 { a })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -4867,7 +4867,7 @@ pub(crate) mod rules_258_1 {
                     let e = self.stack_t.pop().unwrap();
                     (2, CtxJ::V1 { e })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_j")
+                _ => panic!("unexpected alt id {alt_id} in method exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -5132,7 +5132,7 @@ pub(crate) mod rules_259_1 {
                     let a = self.stack_t.pop().unwrap();
                     (3, CtxI::V2 { a, b, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_i")
+                _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -5163,7 +5163,7 @@ pub(crate) mod rules_259_1 {
                     let e = self.stack_t.pop().unwrap();
                     (3, CtxJ::V2 { e, f, last_iteration })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_j")
+                _ => panic!("unexpected alt id {alt_id} in method exit_j")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

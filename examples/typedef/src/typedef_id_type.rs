@@ -763,7 +763,7 @@ pub mod typedef_id_type_parser {
                     let inst = self.stack.pop().unwrap().get_inst();
                     (1, CtxStmt::V2 { inst })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_stmt")
+                _ => panic!("unexpected alt id {alt_id} in method exit_stmt")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -783,7 +783,7 @@ pub mod typedef_id_type_parser {
                     let type1 = self.stack_t.pop().unwrap();
                     (4, CtxDecl::V2 { type1, id })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_decl")
+                _ => panic!("unexpected alt id {alt_id} in method exit_decl")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -825,7 +825,7 @@ pub mod typedef_id_type_parser {
                     let expr = self.stack.pop().unwrap().get_expr();
                     (3, CtxInst::V2 { expr })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_inst")
+                _ => panic!("unexpected alt id {alt_id} in method exit_inst")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -845,7 +845,7 @@ pub mod typedef_id_type_parser {
                     let expr_1 = self.stack.pop().unwrap().get_expr();
                     (3, CtxExpr::V3 { expr: [expr_1, expr_2] })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
+                _ => panic!("unexpected alt id {alt_id} in method exit_expr1")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -867,7 +867,7 @@ pub mod typedef_id_type_parser {
                     let num = self.stack_t.pop().unwrap();
                     (1, CtxExpr::V5 { num })
                 }
-                _ => panic!("unexpected alt id {alt_id} in fn exit_expr2")
+                _ => panic!("unexpected alt id {alt_id} in method exit_expr2")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

@@ -281,7 +281,7 @@ impl<T: Test1Listener> Wrapper<T> {
                 let expr = self.stack.pop().unwrap().get_expr();
                 (3, CtxInstruction::V2 { expr })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_instruction")
+            _ => panic!("unexpected alt id {alt_id} in method exit_instruction")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -321,7 +321,7 @@ impl<T: Test1Listener> Wrapper<T> {
                 let expr_1 = self.stack.pop().unwrap().get_expr();
                 (3, CtxExpr::V7 { expr: [expr_1, expr_2] })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_expr1")
+            _ => panic!("unexpected alt id {alt_id} in method exit_expr1")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -347,7 +347,7 @@ impl<T: Test1Listener> Wrapper<T> {
                 let num = self.stack_t.pop().unwrap();
                 (1, CtxExpr::V10 { num })
             }
-            _ => panic!("unexpected alt id {alt_id} in fn exit_expr6")
+            _ => panic!("unexpected alt id {alt_id} in method exit_expr6")
         };
         let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
         self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
