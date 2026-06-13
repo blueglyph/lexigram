@@ -10,7 +10,7 @@
 //! There aren't any original references in rules built by [build_prs], so those cannot be used everywhere;
 //! for example, it would be a problem for code in the [parsergen](crate::parsergen) module.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use iter_index::IndexerIterator;
 use lexigram_core::{CollectJoin, TokenId};
@@ -59,11 +59,76 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
+        28 => { // A -> a (b c)* d;
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let plus = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(plus), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
+            tree.add(Some(cc), gnode!(t 3));
+
+        }
+        30 => { // A -> a (b / c)+ d;
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let plus = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(plus), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.add(Some(cc), gnode!(t 3));
+
+        }
+        31 => { // A -> (a (b / c)+)+ d;
+            let cc = tree.add_root(gnode!(&));
+            let plus = tree.add(Some(cc), gnode!(+));
+            let cc1 = tree.add(Some(plus), gnode!(&));
+            tree.add(Some(cc1), gnode!(t 0));
+            let plus1 = tree.add(Some(cc1), gnode!(+));
+            tree.addc_iter(Some(plus1), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.add(Some(cc), gnode!(t 3));
+
+        }
         100 => { // A -> a ()*
             let cc = tree.add_root(gnode!(&));
             // tree.add_iter(Some(cc), [gnode!(t 0), gnode!(*)]);
             tree.add(Some(cc), gnode!(t 0));
             tree.addc_iter(Some(cc), gnode!(*), []);
+        }
+        130 => { // A -> a (b / c / e)+ d;
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let plus = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(plus), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2), gnode!(/), gnode!(t 4)]);
+            tree.add(Some(cc), gnode!(t 3));
+
+        }
+        131 => { // A -> a (b / c | e)+ d;
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let plus = tree.add(Some(cc), gnode!(+));
+            let or1 = tree.add(Some(plus), gnode!(|));
+            tree.addc_iter(Some(or1), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.add(Some(or1), gnode!(t 4));
+            tree.add(Some(cc), gnode!(t 3));
+        }
+        132 => { // A -> a / b;
+            let cc = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(&), [gnode!(t 0), gnode!(/), gnode!(t 1)]);
+        }
+        133 => { // A -> (a / b)*;
+            let star = tree.add_root(gnode!(*));
+            tree.addc_iter(Some(star), gnode!(&), [gnode!(t 0), gnode!(/), gnode!(t 1)]);
+        }
+        134 => { // A -> a / b | c;
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(/), gnode!(t 1)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2)]);
+        }
+        135 => { // A -> a (b / c | e / f)+ d;
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let plus = tree.add(Some(cc), gnode!(+));
+            let or1 = tree.add(Some(plus), gnode!(|));
+            tree.addc_iter(Some(or1), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.addc_iter(Some(or1), gnode!(&), [gnode!(t 4), gnode!(/), gnode!(t 5)]);
+            tree.add(Some(cc), gnode!(t 3));
         }
         _ => {}
     }
@@ -628,4 +693,40 @@ fn test_empty_repeat() {
     let prs = T::RTS(100).try_build_prs(0, true);
     let error = prs.log.get_errors().find(|s| s.to_string().contains("* must have one child; found none"));
     assert!(error.is_some(), "didn't find the expected error:\n{}", prs.log);
+}
+
+#[test]
+fn test_sep() {
+    const VERBOSE: bool = true;
+    static TESTS: &[(u32, &[&str])] = &[
+        (28, &[]),
+        (30, &[]),
+        (31, &[]),
+        (130, &[
+            "only one separator / is allowed inside + repetitions: A -> a ( ►► b / c / e ◄◄ )+ d"
+        ]),
+        (131, &[
+            "separators / can't be mixed with OR productions inside + repetitions: A -> a (b / c |  ►► e ◄◄ )+ d"
+        ]),
+        (132, &[
+            "separators / are supported only inside + repetitions: A -> a / b"
+        ]),
+        (133, &[
+            "separators / are allowed only inside + repetitions: A -> ( ►► a / b ◄◄ )*"
+        ]),
+        (134, &[
+            "separators / are allowed only inside + repetitions: A ->  ►► a / b ◄◄  | c"
+        ]),
+        (135, &[
+            "separators / can't be mixed with OR productions inside + repetitions: A -> a (b / c |  ►► e / f ◄◄ )+ d",
+        ]),
+    ];
+    for &(rts_id, expected_errors) in TESTS {
+        if VERBOSE { println!("{:=<80}\ntest {rts_id}", ""); }
+        let prs = T::RTS(rts_id).try_build_prs(0, true);
+        if VERBOSE { println!("{}", prs.log); }
+        let expected_errors = expected_errors.into_iter().cloned().collect::<HashSet<&str>>();
+        let errors = prs.log.get_errors().map(|e| e.get_inner_str()).collect::<HashSet<&str>>();
+        assert_eq!(errors, expected_errors, "test {rts_id} failed");
+    }
 }

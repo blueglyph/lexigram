@@ -33,6 +33,7 @@ pub enum GrNode {
     Maybe,
     Plus,
     Star,
+    Sep,
     /// L-form attribute of an alternative or a `+` / `*` repetition expression.
     /// - `+` and `*` expressions are either folded or iterative (also called "low latency", since the listener is
     ///   called back immediately after parsing each item, whereas the folded form is only called once all the
@@ -76,6 +77,7 @@ impl Display for GrNode {
             GrNode::Maybe => write!(f, "?"),
             GrNode::Plus => write!(f, "+"),
             GrNode::Star => write!(f, "*"),
+            GrNode::Sep => write!(f, "/"),
             GrNode::LForm(v) => write!(f, "<L={v}>"),
             GrNode::RAssoc => write!(f, "<R>"),
             GrNode::PrecEq => write!(f, "<P>"),
@@ -102,6 +104,7 @@ impl GrNode {
             GrNode::Maybe     => "gnode!(?)".to_string(),
             GrNode::Plus      => "gnode!(+)".to_string(),
             GrNode::Star      => "gnode!(*)".to_string(),
+            GrNode::Sep       => "gnode!(/)".to_string(),
             GrNode::LForm(v)  => format!("gnode!(L {v})"),
             GrNode::RAssoc    => "gnode!(R)".to_string(),
             GrNode::PrecEq    => "gnode!(P)".to_string(),
@@ -207,6 +210,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
             0 => {
                 match node.deref() {
                     GrNode::Symbol(s) => (PR_ATOM, s.to_str_quote(symbol_table)),
+                    GrNode::Sep => (PR_ATOM, "/".to_string()),
                     GrNode::LForm(var) => (PR_ATOM, if simplified || nt == Some(*var) { "<L>".to_string() } else { format!("<L={}>", Symbol::NT(*var).to_str(symbol_table)) }),
                     GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                     GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
@@ -275,7 +279,7 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
         GrNode::Concat => (vec![root], false),
         GrNode::Or => (tree.children(root).to_owned(), true),
         // we don't handle those cases:
-        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_)
+        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::Sep | GrNode::LForm(_)
         | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance | GrNode::Greedy => { return None }
     };
     let terms_len = terms.len();
@@ -346,7 +350,7 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
         GrNode::Symbol(s) => s.is_empty(),
         GrNode::Concat => false, // an empty `&` is simplified to `ε` above // matches!(tree.children(root), &[i] if tree.get(i).is_empty()),
         GrNode::Or => false, // an empty `|` is simplified to `ε` above
-        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance | GrNode::Greedy => false,
+        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::Sep | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance | GrNode::Greedy => false,
     };
     Some((is_empty, had_empty_term))
 }
@@ -1286,6 +1290,7 @@ pub mod macros {
         (?) => { $crate::grammar::GrNode::Maybe };
         (+) => { $crate::grammar::GrNode::Plus };
         (*) => { $crate::grammar::GrNode::Star };
+        (/) => { $crate::grammar::GrNode::Sep };
         (L $id:expr) => { $crate::grammar::GrNode::LForm($id) };
         (R) => { $crate::grammar::GrNode::RAssoc };
         (P) => { $crate::grammar::GrNode::PrecEq };

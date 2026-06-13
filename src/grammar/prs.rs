@@ -1147,39 +1147,48 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
     fn build_from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Alternative {
+        #[derive(Clone, Copy, PartialEq, Debug)]
+        enum Separator {
+            None,
+            One(usize),
+            TooMany,
+        }
+
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> (Alternative, Separator) {
             let mut flags: u32 = 0;
+            let mut sep = Separator::None;
             let alt = tree.children(parent_id).iter()
                 .map(|id| tree.get(*id))
-                .filter(|node| {
-                    match **node {
+                .enumerate()
+                .filter_map(|(i, node)| {
+                    match *node {
+                        GrNode::Sep => {
+                            sep = if sep == Separator::None { Separator::One(i) } else { Separator::TooMany };
+                            None
+                        }
                         GrNode::RAssoc => {
                             flags |= ruleflag::R_ASSOC;
-                            false
+                            None
                         }
                         GrNode::LForm(_) => {
                             flags |= ruleflag::L_FORM;
-                            false
+                            None
                         }
                         GrNode::PrecEq => {
                             flags |= ruleflag::PREC_EQ;
-                            false
+                            None
                         }
                         GrNode::Greedy => {
                             flags |= ruleflag::GREEDY;
-                            false
+                            None
                         }
-                        _ => true,
-                    }
-                })
-                .map(|node| {
-                    match node {
-                        GrNode::Symbol(s) => *s,
+                        GrNode::Symbol(s) => Some(s),
                         x => panic!("unexpected symbol {x} under &")
                     }
                 }).to_vec();
-            Alternative::new(alt).with_flags(flags)
+            (Alternative::new(alt).with_flags(flags), sep)
         }
+
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
         prules.symbol_table = rules.symbol_table;
@@ -1194,9 +1203,11 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             return prules;
         }
         prules.origin = Origin::<VarId, FromPRS>::from_trees_mut(&mut rules.origin.trees);
+        let mut errors = HashSet::new();
         for (var, tree) in rules.trees.iter().index() {
+            let var_flags = prules.flags[var as usize];
             if !tree.is_empty() {
-                let root = tree.get_root().expect("tree {var} has no root");
+                let root = tree.get_root().expect(&format!("tree {var} has no root"));
                 let root_sym = tree.get(root);
                 let mut prule = match root_sym {
                     GrNode::Symbol(s) => {
@@ -1207,26 +1218,86 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         vec![alt]
                     },
                     GrNode::Concat => {
-                        let mut alt = children_to_vec(tree, root);
+                        let (mut alt, sep) = children_to_vec(tree, root);
+                        if sep != Separator::None {
+                            let symtab = prules.get_symbol_table();
+                            let rule_str = if let Some(t) = prules.origin.get_tree(var) {
+                                format!("{} -> {}", Symbol::NT(var).to_str(symtab), grtree_to_str(t, None, None, None, symtab, true))
+                            } else {
+                                format!("{} -> {}", Symbol::NT(var).to_str(symtab), grtree_to_str(tree, None, None, None, symtab, true))
+                            };
+                            if !errors.contains(&rule_str) {
+                                prules.log.add_error(format!("separators / are supported only inside + repetitions: {rule_str}"));
+                                errors.insert(rule_str);
+                            }
+                        }
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
                             alt.origin = Some((v, ch));
                         }
                         vec![alt]
                     },
-                    GrNode::Or => tree.children(root).iter()
-                        .map(|id| {
-                            let child = tree.get(*id);
-                            let mut alt = if let GrNode::Symbol(s) = child {
-                                Alternative::new(vec![*s])
-                            } else {
-                                assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
-                                children_to_vec(tree, *id)
-                            };
-                            if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
-                                alt.origin = Some((v, ch));
-                            }
-                            alt
-                        }).to_vec(),
+                    GrNode::Or => {
+                        let mut sep_item = None;
+                        let alts = tree.children(root).iter()
+                            .map(|id| {
+                                let child = tree.get(*id);
+                                let mut alt = if let GrNode::Symbol(s) = child {
+                                    Alternative::new(vec![*s])
+                                } else {
+                                    assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
+                                    let (mut a, s) = children_to_vec(tree, *id);
+                                    let is_plus = var_flags & ruleflag::CHILD_REPEAT_PLUS == ruleflag::CHILD_REPEAT_PLUS;
+                                    let is_indep = a.iter().all(|s| *s != Symbol::NT(var));
+                                    if s != Separator::None || sep_item.is_some() {
+                                        if let Separator::One(sep_n) = s && is_plus && (sep_item.is_none() || is_indep) {
+                                            // `a -> (α / β)+`: `a_1 -> α β a_1 | α β`
+                                            if !is_indep {
+                                                // swaps α and β in `a_1 -> α β a_1` => `a_1 -> β α a_1`
+                                                a.v.pop();
+                                                let item = a.v.drain(..sep_n).to_vec();
+                                                a.v.extend(item.clone());
+                                                a.v.push(Symbol::NT(var));
+                                                sep_item = Some(item);
+                                            } else {
+                                                // remove α β `a_1 -> α β` => `a_1 -> ε`
+                                                a.v.clear();
+                                                a.v.push(Symbol::Empty);
+                                            }
+                                        } else {
+                                            let symtab = prules.get_symbol_table();
+                                            let rule_str = if let Some(&(vo, ido)) = rules.origin.map.get(&(var, *id)) {
+                                                let t = prules.origin.get_tree(vo).unwrap();
+                                                format!("{} -> {}", Symbol::NT(vo).to_str(symtab), grtree_to_str(t, None, Some(ido), None, symtab, true))
+                                            } else {
+                                                format!("{} -> {}", Symbol::NT(var).to_str(symtab), grtree_to_str(tree, None, None, None, symtab, true))
+                                            };
+                                            if !errors.contains(&rule_str) {
+                                                prules.log.add_error(format!(
+                                                    "{} inside + repetitions: {rule_str}",
+                                                    if s == Separator::TooMany {
+                                                        "only one separator / is allowed"
+                                                    } else if sep_item.is_some() {
+                                                        "separators / can't be mixed with OR productions"
+                                                    } else {
+                                                        "separators / are allowed only"
+                                                    }
+                                                ));
+                                                errors.insert(rule_str);
+                                            }
+                                        }
+                                    }
+                                    a
+                                };
+                                if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
+                                    alt.origin = Some((v, ch));
+                                }
+                                alt
+                            }).to_vec();
+                        if let Some(item) = sep_item {
+                            //todo!("insert item in prods that include `var`")
+                        }
+                        alts
+                    },
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var).to_str(prules.get_symbol_table()))
                 };
                 if prule.iter().any(|f| f.flags & ruleflag::L_FORM != 0) {
