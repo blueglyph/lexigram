@@ -1189,7 +1189,8 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             (Alternative::new(alt).with_flags(flags), sep)
         }
 
-        let mut prules = Self::with_capacity(rules.trees.len());
+        let num_nt = rules.trees.len();
+        let mut prules = Self::with_capacity(num_nt);
         prules.start = rules.start;
         prules.symbol_table = rules.symbol_table;
         prules.flags = rules.flags;
@@ -1204,7 +1205,11 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         }
         prules.origin = Origin::<VarId, FromPRS>::from_trees_mut(&mut rules.origin.trees);
         let mut errors = HashSet::new();
+        let mut items = vec![];
+        let mut groups = vec![vec![]; num_nt];
         for (var, tree) in rules.trees.iter().index() {
+            let top_parent = prules.get_top_parent(var);
+            groups[top_parent as usize].push(var);
             let var_flags = prules.flags[var as usize];
             if !tree.is_empty() {
                 let root = tree.get_root().expect(&format!("tree {var} has no root"));
@@ -1294,7 +1299,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                                 alt
                             }).to_vec();
                         if let Some(item) = sep_item {
-                            //todo!("insert item in prods that include `var`")
+                            items.push((top_parent, var, item));
                         }
                         alts
                     },
@@ -1325,6 +1330,21 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 prules.prules.push(prule);
             } else {
                 prules.prules.push(ProdRule::new()); // empty
+            }
+        }
+        // sep items: `a -> (α / β)+` normalized to `a -> a_1; a_1 -> α β a_1 | α β`
+        // `a_1 -> α β a_1 | α β` was changed to `a_1 -> β α a_1 | ε`; now we insert α in a => `a -> α a_1`
+        for (top_parent, child_sep, item) in items {
+            let symb_child_sep = Symbol::NT(child_sep);
+            for &children in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
+                for a in &mut prules.prules[children as usize] {
+                    let pos_maybe = a.iter().position(|s| *s == symb_child_sep);
+                    if let Some(pos) = pos_maybe {
+                        let trail = a.drain(pos..).to_vec();
+                        a.extend(item.clone());
+                        a.extend(trail);
+                    }
+                }
             }
         }
         prules.calc_num_symbols();

@@ -67,21 +67,21 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 3));
 
         }
-        30 => { // A -> a (b / c)+ d;
+        30 => { // A -> a (b e / c)+ d;
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let plus = tree.add(Some(cc), gnode!(+));
-            tree.addc_iter(Some(plus), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.addc_iter(Some(plus), gnode!(&), [gnode!(t 1), gnode!(t 4), gnode!(/), gnode!(t 2)]);
             tree.add(Some(cc), gnode!(t 3));
 
         }
-        31 => { // A -> (a (b / c)+)+ d;
+        31 => { // A -> (a (b e / c)+)+ d;
             let cc = tree.add_root(gnode!(&));
             let plus = tree.add(Some(cc), gnode!(+));
             let cc1 = tree.add(Some(plus), gnode!(&));
             tree.add(Some(cc1), gnode!(t 0));
             let plus1 = tree.add(Some(cc1), gnode!(+));
-            tree.addc_iter(Some(plus1), gnode!(&), [gnode!(t 1), gnode!(/), gnode!(t 2)]);
+            tree.addc_iter(Some(plus1), gnode!(&), [gnode!(t 1), gnode!(t 4), gnode!(/), gnode!(t 2)]);
             tree.add(Some(cc), gnode!(t 3));
 
         }
@@ -697,36 +697,75 @@ fn test_empty_repeat() {
 
 #[test]
 fn test_sep() {
-    const VERBOSE: bool = true;
-    static TESTS: &[(u32, &[&str])] = &[
-        (28, &[]),
-        (30, &[]),
-        (31, &[]),
+    const VERBOSE: bool = false;
+    const VERBOSE_SOLUTION: bool = false;
+    static TESTS: &[(u32, &[&str], &[&str])] = &[
+        (28, &[
+            "A -> a A_1 d",
+            "A_1 -> b c A_1",
+            "A_1 -> ε",
+        ], &[
+        ]),
+        (30, &[
+            "A -> a b e A_1 d",
+            "A_1 -> c b e A_1",
+            "A_1 -> ε",
+        ], &[
+        ]),
+        (31, &[
+            "A -> A_2 d",
+            "A_1 -> c b e A_1",
+            "A_1 -> ε",
+            "A_2 -> a b e A_1 A_3",
+            "A_3 -> A_2",
+            "A_3 -> ε",
+        ], &[
+        ]),
         (130, &[
-            "only one separator / is allowed inside + repetitions: A -> a ( ►► b / c / e ◄◄ )+ d"
+        ], &[
+            "only one separator / is allowed inside + repetitions: A -> a ( ►► b / c / e ◄◄ )+ d",
         ]),
         (131, &[
-            "separators / can't be mixed with OR productions inside + repetitions: A -> a (b / c |  ►► e ◄◄ )+ d"
+        ], &[
+            "separators / can't be mixed with OR productions inside + repetitions: A -> a (b / c |  ►► e ◄◄ )+ d",
         ]),
         (132, &[
-            "separators / are supported only inside + repetitions: A -> a / b"
+        ], &[
+            "separators / are supported only inside + repetitions: A -> a / b",
         ]),
         (133, &[
-            "separators / are allowed only inside + repetitions: A -> ( ►► a / b ◄◄ )*"
+        ], &[
+            "separators / are allowed only inside + repetitions: A -> ( ►► a / b ◄◄ )*",
         ]),
         (134, &[
-            "separators / are allowed only inside + repetitions: A ->  ►► a / b ◄◄  | c"
+        ], &[
+            "separators / are allowed only inside + repetitions: A ->  ►► a / b ◄◄  | c",
         ]),
         (135, &[
+        ], &[
             "separators / can't be mixed with OR productions inside + repetitions: A -> a (b / c |  ►► e / f ◄◄ )+ d",
         ]),
     ];
-    for &(rts_id, expected_errors) in TESTS {
-        if VERBOSE { println!("{:=<80}\ntest {rts_id}", ""); }
+    for &(rts_id, expected_alts, expected_errors) in TESTS {
+        if VERBOSE && !VERBOSE_SOLUTION { println!("{:=<80}\ntest {rts_id}", ""); }
         let prs = T::RTS(rts_id).try_build_prs(0, true);
-        if VERBOSE { println!("{}", prs.log); }
+        let alts = if prs.has_no_errors() {
+            prs.get_alts().map(|(v, a)| format!("{}", a.to_rule_str(v, prs.get_symbol_table(), 0))).to_vec()
+        } else {
+            vec![]
+        };
         let expected_errors = expected_errors.into_iter().cloned().collect::<HashSet<&str>>();
         let errors = prs.log.get_errors().map(|e| e.get_inner_str()).collect::<HashSet<&str>>();
-        assert_eq!(errors, expected_errors, "test {rts_id} failed");
+        if VERBOSE_SOLUTION {
+            print!("        ({rts_id}, &[{}\n        ], &[", alts.iter().map(|s| format!("\n            {s:?},")).join(""));
+            println!("{}\n        ]),", errors.iter().map(|s| format!("\n            {s:?},")).join(""));
+        }
+        if VERBOSE && !VERBOSE_SOLUTION {
+            println!("{}", prs.log);
+        }
+        if errors.is_empty() {
+            assert_eq!(alts, expected_alts, "test {rts_id} failed: alt mismatch");
+        }
+        assert_eq!(errors, expected_errors, "test {rts_id} failed: error mismatch");
     }
 }
