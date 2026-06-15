@@ -1336,6 +1336,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         // `a_1 -> α β a_1 | α β` was changed to `a_1 -> β α a_1 | ε`; now we insert α in a => `a -> α a_1`
         for (top_parent, child_sep, item) in items {
             let symb_child_sep = Symbol::NT(child_sep);
+            prules.flags[child_sep as usize] &= !ruleflag::CHILD_PLUS;
             for &children in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
                 for a in &mut prules.prules[children as usize] {
                     let pos_maybe = a.iter().position(|s| *s == symb_child_sep);

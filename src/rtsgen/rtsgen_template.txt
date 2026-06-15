@@ -133,14 +133,16 @@ impl RtsGenListener for Listener {
             CtxItem::V5 { tx } => {}
             // item -> Empty
             CtxItem::V6 { empty } => {}
+            // item -> "/"
+            CtxItem::V7 => {}
             // item -> LTag
-            CtxItem::V7 { ltag } => {}
+            CtxItem::V8 { ltag } => {}
             // item -> "<P>"
-            CtxItem::V8 => {}
-            // item -> "<R>"
             CtxItem::V9 => {}
-            // item -> "<G>"
+            // item -> "<R>"
             CtxItem::V10 => {}
+            // item -> "<G>"
+            CtxItem::V11 => {}
         }
         SynItem()
     }

@@ -81,7 +81,8 @@ impl TestRules {
             107 => vec![r#"a -> (A (b ",")+ ";")+ C; b -> B;"#],
             108 => vec![r#"a -> A "B"* C;"#],
             // sep_list
-            109 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)* ")"; type -> Id;"#],
+            109 => vec![r#"a -> Id "(" (Id ":" type / ",")+ ")"; type -> Id;"#],
+            // 109 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)* ")"; type -> Id;"#],
             110 => vec![r#"a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")"; type -> Id;"#],
             // multiple sep_list
             111 => vec![r#"a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")";"#],

@@ -22,6 +22,7 @@ Concat                  : '&';
 Or                      : '|';
 Plus                    : '+';
 Star                    : '*';
+Separator               : '/';
 Question                : '?';
 
 Empty                   : 'ε' | '€' | '{}';

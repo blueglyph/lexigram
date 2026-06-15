@@ -60,6 +60,7 @@ item:
 |   TerminalCst
 |   Tx
 |   Empty
+|   Separator   // easier to assemble if we put that here (needs semantical validation anyway)
 |   LTag
 |   PTag
 |   RTag

@@ -1158,9 +1158,9 @@ impl RuleTreeSet<General> {
         exclude_nt.insert(qvar);
         self.flags.resize(rvar as usize, 0);
         self.parent.resize(rvar as usize, None);
-        let plus_flag = if is_plus { ruleflag::REPEAT_PLUS } else { 0 };
+        let plus_flag = if is_plus { ruleflag::CHILD_PLUS } else { 0 };
         self.flags[qvar as usize] = ruleflag::CHILD_REPEAT | plus_flag;
-        self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
+        self.flags[var as usize] |= ruleflag::PARENT_REPEAT;
         self.parent[qvar as usize] = Some(var);
         if use_rtree {
             if VERBOSE { println!("rtree: NT[{rvar}] {} -> {}", Symbol::NT(rvar).to_str(self.get_symbol_table()), grtree_to_str(&rtree, None, None, Some(rvar), self.get_symbol_table(), false)); }

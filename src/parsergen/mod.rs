@@ -1142,8 +1142,8 @@ impl ParserGen {
                             }
                         };
                         sym_maybe.and_then(|s| {
-                            const REP_MASK: u32 = ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM;
-                            const CHILD_STAR: u32 = ruleflag::CHILD_REPEAT | ruleflag::L_FORM;
+                            const REP_MASK: u32 = ruleflag::CHILD_REPEAT_PLUS_LFORM;
+                            const CHILD_STAR: u32 = ruleflag::CHILD_REPEAT_LFORM;
                             let has_value = self.sym_has_value(&s);
                             if has_value
                                 // for now, leaves child* nonterminals used in another nonterminal (the parent),
@@ -1319,7 +1319,7 @@ impl ParserGen {
                     let alts = &self.var_alts[var as usize];
                     let flags = self.flags[var as usize];
                     // takes only len() == 2 to reject complex cases like a -> A B C (B C | D)*
-                    if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
+                    if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
                         Some((var, alts[0] as usize, flags))
                     } else {
                         None
@@ -1547,7 +1547,7 @@ impl ParserGen {
                 if nt_flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                     // collects the alt endpoints that correspond to each choice (one or several choices if | is used inside the repeat),
                     // each alt endpoint corresponding to the data in item_info
-                    let is_plus = nt_flags & ruleflag::REPEAT_PLUS != 0;
+                    let is_plus = nt_flags & ruleflag::CHILD_PLUS != 0;
                     let mut endpoints = self.gather_alts(*var);
                     if VERBOSE { println!("** {} endpoints: {endpoints:?} ", Symbol::NT(*var).to_str(self.get_symbol_table())); }
                     if is_plus {
@@ -1598,14 +1598,14 @@ impl ParserGen {
                                     if false {
                                         // we don't use this any more
                                         let mut plus_name = inside_alt.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
-                                        plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                        plus_name.push_str(if flag & ruleflag::CHILD_PLUS != 0 { "_plus" } else { "_star" });
                                         plus_name
                                     } else if is_nt_child_repeat && indices.is_empty() {
                                         // iterator variable in a + * loop (visible with <L>, for ex)
-                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
+                                        if flag & ruleflag::CHILD_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
                                     } else {
                                         // reference to a + * result
-                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                        if flag & ruleflag::CHILD_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
                                     }
                                 } else {
                                     nt_name[*vs as usize].clone().1
@@ -1631,7 +1631,7 @@ impl ParserGen {
 
                     // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
                     // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
-                    let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
+                    let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT_PLUS | ruleflag::L_FORM) &&
                         is_alt_sym_empty;
 
                     let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
@@ -1680,7 +1680,7 @@ impl ParserGen {
                                     index,
                                 }
                             }).to_vec();
-                        if self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS)
+                        if self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT_PLUS_LFORM)
                             && self.options.parser_type.is_ll()
                         {
                             // we add the flag telling the listener whether it's the last iteration or not
@@ -1998,12 +1998,12 @@ impl ParserGen {
         // In LL, we discard the 2nd, empty alternative immediately for a non-<L> * child because there's no associated context;
         // in LR, we call the init method.
         // no_method is true for non-<L> repeat children with no value (nothing to accumulate in a vector)
-        let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
+        let discarded = if !no_method && flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT { 1 } else { 0 };
 
         // + children always have 2*n left-factorized children, each couple with identical item_ops (one for the loop, one for the last iteration).
         // So in non-<L> +, we need more than 2 alts to need the alt_id parameter. In other cases, we need more than one
         // alt (after removing the possible discarded one) to require the alt_id parameter.
-        let is_plus_no_lform = flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
+        let is_plus_no_lform = flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT_PLUS;
         let is_alt_id_threshold = if is_plus_no_lform && !is_lr { 2 } else { 1 };
         let is_alt_id = force_id.is_none() && alts.len() - discarded > is_alt_id_threshold;
 
@@ -2563,7 +2563,7 @@ impl ParserGen {
         let is_sep_list = flags & ruleflag::SEP_LIST != 0;
         let is_lform = flags & ruleflag::L_FORM != 0;
         let is_rrec_lform = is_lform && flags & ruleflag::R_RECURSION != 0;
-        let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+        let is_plus = flags & ruleflag::CHILD_PLUS != 0;
         let (nu, nl, npl) = &self.nt_name[nt];
         if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
                               sym_nt.to_str(self.get_symbol_table()),
@@ -2638,7 +2638,7 @@ impl ParserGen {
                         let exit_alts = all_exit_alts.into_iter()
                             .filter(|f|
                                 (flags & ruleflag::CHILD_L_RECURSION == 0
-                                    && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) != ruleflag::CHILD_REPEAT_LFORM)
+                                    && flags & (ruleflag::CHILD_REPEAT_PLUS | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT_LFORM)
                                 || !self.is_alt_sym_empty(*f)
                             );
                         let (mut last_alt_ids, exit_info_alts): (Vec<AltId>, Vec<AltId>) = exit_alts.into_iter()
@@ -2753,7 +2753,7 @@ impl ParserGen {
         let SourceState { nt_contexts, exit_alt_done, exit_fixer, .. } = state;
         let WrapperSources { src_listener_decl, src_skel, src_exit, src_wrapper_impl, .. } = sources;
         let nt = var as usize;
-        let is_plus = flags & ruleflag::REPEAT_PLUS != 0;
+        let is_plus = flags & ruleflag::CHILD_PLUS != 0;
         let is_parent = nt == parent_nt;
         let is_child_repeat_lform = self.nt_has_all_flags(var, ruleflag::CHILD_REPEAT_LFORM);
         let (nu, _nl, npl) = &self.nt_name[nt];
@@ -2762,7 +2762,7 @@ impl ParserGen {
         if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACT == 0 {
             let mut has_skel_exit = false;
             let mut has_skel_exit_return = false;
-            let is_child_plus = flags & (ruleflag::REPEAT_PLUS | ruleflag::CHILD_REPEAT) == ruleflag::REPEAT_PLUS | ruleflag::CHILD_REPEAT;
+            let is_child_plus = flags & ruleflag::CHILD_REPEAT_PLUS == ruleflag::CHILD_REPEAT_PLUS;
             let (pnu, _pnl, pnpl) = &self.nt_name[parent_nt];
             if VERBOSE { println!("    {nu} (parent {pnu})"); }
             let no_method = !has_value && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
@@ -2816,7 +2816,7 @@ impl ParserGen {
             let (last_it_alts, exit_alts) = all_exit_alts.into_iter()
                 .partition::<Vec<_>, _>(|f|
                     (flags & ruleflag::CHILD_L_RECURSION != 0
-                        || flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT_LFORM)
+                        || flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT_LFORM)
                     && self.is_alt_sym_empty(*f));
             if VERBOSE {
                 println!("    no_method: {no_method}, exit alts: {}", exit_alts.iter().join(", "));

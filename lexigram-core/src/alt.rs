@@ -42,11 +42,11 @@ pub mod ruleflag {
     /// Left-recursive, ambiguous parent NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const PARENT_AMBIGUITY: u32 = 1024;
-    /// Star or Plus repeat parent alternative.
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
+    /// Parent alternative with one or several + / * children
+    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`. [super::super::]
     pub const PARENT_REPEAT: u32 = 2048;
-    /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
-    pub const REPEAT_PLUS: u32 = 4096;
+    /// Combined with CHILD_REPEAT for child of (...)+
+    pub const CHILD_PLUS: u32 = 4096;
     /// GREEDY alternative: is expected to generate an ambiguity in the parsing table
     pub const GREEDY: u32 = 8192;
     /// Precedence identical to previous alternative (only valid for binary left-/right-associative)
@@ -62,7 +62,8 @@ pub mod ruleflag {
     pub const ALTERNATIVE_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
     pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
     pub const CHILD_REPEAT_LFORM: u32 = CHILD_REPEAT | L_FORM;
-    pub const CHILD_REPEAT_PLUS: u32 = CHILD_REPEAT | REPEAT_PLUS;
+    pub const CHILD_REPEAT_PLUS: u32 = CHILD_REPEAT | CHILD_PLUS;
+    pub const CHILD_REPEAT_PLUS_LFORM: u32 = CHILD_REPEAT_PLUS | L_FORM;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 16] = [
@@ -72,13 +73,13 @@ pub mod ruleflag {
             (CHILD_AMBIGUITY            , "child_amb"),
             (CHILD_INDEPENDENT_AMBIGUITY, "child_ind_amb"),
             (PARENT_L_FACTOR            , "parent_left_fact"),
-            (CHILD_L_FACT, "child_left_fact"),
+            (CHILD_L_FACT               , "child_left_fact"),
             (L_FORM                     , "L-form"),
             (R_ASSOC                    , "R-assoc"),
             (PARENT_L_RECURSION         , "parent_left_rec"),
             (PARENT_AMBIGUITY           , "parent_amb"),
             (PARENT_REPEAT              , "parent_+_or_*"),
-            (REPEAT_PLUS                , "plus"),
+            (CHILD_PLUS                 , "plus"),
             (GREEDY                     , "greedy"),
             (PREC_EQ                    , "prec_eq"),
             (SEP_LIST                   , "sep_list"),
