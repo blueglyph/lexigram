@@ -43,7 +43,7 @@ pub mod ruleflag {
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const PARENT_AMBIGUITY: u32 = 1024;
     /// Parent alternative with one or several + / * children
-    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`. [super::super::]
+    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const PARENT_REPEAT: u32 = 2048;
     /// Combined with CHILD_REPEAT for child of (...)+
     pub const CHILD_PLUS: u32 = 4096;

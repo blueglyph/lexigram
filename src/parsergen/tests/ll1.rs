@@ -992,6 +992,25 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 2],                        1, symbols![nt 1]),      //  2: i -> ε              | ◄2                  | 1    | i
         ], NTValue::SetIds(vec![1]), btreemap![0 => vec![0]]),
 
+        // a -> A (<L=i> B)* C+ D
+        //
+        //   NT    name     val   flags
+        // +-----------------------------------------------------------+
+        // |   0 | a       | y  | parent_+_or_*                        |
+        // |   1 | . i     | y  | child_+_or_*, L-form                 |
+        // |   2 | . a_1   | y  | child_+_or_*, parent_left_fact, plus |
+        // |   3 | .   a_2 |    | child_left_fact                      |
+        // +-----------------------------------------------------------+
+        (221, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![exit 0, t 3, nt 2, nt 1, t 0],  4, symbols![t 0, nt 1, nt 2, t 3]), //  0: a -> A i a_1 D | ◄0 D! ►a_1 ►i A! | 4 | A i a_1 D
+            (strip![loop 1, exit 1, t 1],           2, symbols![nt 1, t 1]),            //  1: i -> B i       | ●i ◄1 B!         | 2 | i B
+            (strip![exit 2],                        1, symbols![nt 1]),                 //  2: i -> ε         | ◄2               | 1 | i
+            (strip![nt 3, t 2],                     0, symbols![]),                     //  3: a_1 -> C a_2   | ►a_2 C!          | 0 |
+            (strip![loop 2, exit 4],                2, symbols![nt 2, t 2]),            //  4: a_2 -> a_1     | ●a_1 ◄4          | 2 | a_1 C
+            (strip![exit 5],                        2, symbols![nt 2, t 2]),            //  5: a_2 -> ε       | ◄5               | 2 | a_1 C
+        ], NTValue::Default, btreemap![0 => vec![0]]),
+
         // --------------------------------------------------------------------------- norm+/* <L> alternatives
         // a -> (<L=i> A | B)*
         //
