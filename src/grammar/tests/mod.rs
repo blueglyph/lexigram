@@ -100,7 +100,7 @@ impl TestRules {
             120 => vec![r#"a -> A Id ("," Id)* C;"#],
             121 => vec![r#"a -> A b* C; b -> Id;"#],
             122 => vec![r#"a -> A b+ C; b -> Id;"#],
-
+            123 => vec![r#"a -> A B* C+ D;"#],
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
