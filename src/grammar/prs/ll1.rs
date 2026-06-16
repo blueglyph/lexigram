@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::collections::HashSet;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;

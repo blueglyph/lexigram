@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::log::LogStatus;
 use crate::grammar::lr::LRParsingTable;

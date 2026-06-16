@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::marker::PhantomData;
 use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use lexigram_core::log::LogStatus;

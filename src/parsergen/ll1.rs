@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 use lexigram_core::alt::Alternative;
 use lexigram_core::parser::{LLParser, OpCode};
 use lexigram_core::{AltId, VarId};

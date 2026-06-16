@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use crate::{AltId, CollectJoin, TokenId, VarId};

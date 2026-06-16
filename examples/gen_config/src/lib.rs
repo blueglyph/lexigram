@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
 // =============================================================================================
 // Generates the source of the microcalc parser
 
