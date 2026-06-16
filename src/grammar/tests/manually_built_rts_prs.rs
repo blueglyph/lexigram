@@ -203,6 +203,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prules = &mut rules.prules;
+    rules.sep_info = Some(vec![]);
     let start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
@@ -706,12 +707,18 @@ fn test_sep() {
             "A_1 -> ε",
         ], &[
         ]),
+        // A -> a (b e / c)+ d;
         (30, &[
             "A -> a b e A_1 d",
             "A_1 -> c b e A_1",
             "A_1 -> ε",
         ], &[
         ]),
+        // A -> (a (b e / c)+)+ d
+        //
+        // A -> A_2 d
+        // A_1 -> b e / c A_1 | b e / c
+        // A_2 -> a A_1 A_2 | a A_1
         (31, &[
             "A -> A_2 d",
             "A_1 -> c b e A_1",

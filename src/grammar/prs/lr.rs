@@ -352,6 +352,7 @@ impl ProdRuleSet<LR> {
             first: vec![],
             follow: vec![],
             original_start: None,
+            sep_info: None,
             _phantom: Default::default(),
         };
         g_p.calc_first();
@@ -537,6 +538,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
             first: rules.first,
             follow: rules.follow,
             original_start: None,
+            sep_info: rules.sep_info,
             _phantom: PhantomData,
         }
     }

@@ -70,7 +70,8 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         vec![None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)],
         Some(0),
         ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
-        hashmap![]
+        hashmap![],
+        vec![]
     );
 
     // [gramparser_stage_2]

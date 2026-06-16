@@ -97,6 +97,15 @@ pub struct ProdRuleSetOptions {
     pub disable_warning_unused_nt_t: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct SepInfo {        // original: a -> γ (α / β)+ δ  normalized: a -> γ a_1 δ; a_1 -> ..α.. β a_1 | α β
+    nt_parent: VarId,       // ID(a)
+    alt_id_parent: AltId,   // alt is ProdRuleSet::prules[nt_parent][alt_id_parent]
+    nt_child: VarId,        // ID(a_1)
+    pos_child: usize,       // pos of a_1 in a
+    item_len: usize,        // length(α)
+}
+
 impl Default for ProdRuleSetOptions {
     fn default() -> Self {
         ProdRuleSetOptions {
@@ -123,6 +132,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) first: Vec<HashSet<Symbol>>,
     pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
+    pub(crate) sep_info: Option<Vec<SepInfo>>,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -539,6 +549,43 @@ impl<T> ProdRuleSet<T> {
         self.follow = follow;
     }
 
+    /// Sep repetition: `a -> γ (α / β)+ δ`, where `α` is the item and `β` the separator,
+    /// was normalized to:
+    /// ```ignore
+    /// a -> γ a_1 δ
+    /// a_1 -> α β a_1 | α β
+    /// ```
+    ///
+    /// Now,
+    /// * we insert item `α` in a => `a -> γ α a_1 δ`
+    /// * we change `a_1 -> α β a_1 | α β` to `a_1 -> β α a_1 | ε`;
+    pub(crate) fn apply_sep_info_ll1(&mut self) {
+        let sep_info = self.sep_info.take().unwrap();
+        for SepInfo { nt_parent, alt_id_parent, nt_child, pos_child, item_len } in sep_info {
+            let alt_child = &mut self.prules[nt_child as usize];
+            let item = if !alt_child[1].is_sym_empty() {
+                // removes α β `a_1 -> α β` => `a_1 -> ε`
+                alt_child[1].clear();
+                alt_child[1].push(Symbol::Empty);
+
+                // swaps α and β in `a_1 -> α β a_1` => `a_1 -> β α a_1`
+                alt_child[0].pop();
+                let item = alt_child[0].drain(..item_len).to_vec();
+                alt_child[0].extend(item.clone());
+                alt_child[0].push(Symbol::NT(nt_child));
+                item
+            } else {
+                alt_child[0][alt_child[0].len() - 1 - item_len..alt_child[0].len() - 1].iter().cloned().to_vec()
+            };
+
+            // inserts item `α` in a => `a -> γ α a_1 δ`
+            let alt_parent = &mut self.prules[nt_parent as usize][alt_id_parent as usize];
+            let trail = alt_parent.drain(pos_child..).to_vec();
+            alt_parent.extend(item);
+            alt_parent.extend(trail);
+        }
+    }
+
     /// Eliminates recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
     /// ```eq
     /// A -> αi A | A βj | A γk A | δl
@@ -560,6 +607,7 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
+        assert!(self.sep_info.is_none(), "sep info hasn't been applied");
         self.log.add_note("removing left / binary recursion in grammar...");
         self.check_num_nt_coherency();
         if VERBOSE {
@@ -1091,6 +1139,7 @@ impl ProdRuleSet<General> {
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
+            sep_info: None,
             _phantom: PhantomData
         }
     }
@@ -1109,6 +1158,7 @@ pub struct ProdRuleSetTables {
     start: Option<VarId>,
     options: ProdRuleSetOptions,
     nt_conversion: HashMap<VarId, NTConversion>,
+    sep_info: Vec<SepInfo>,
 }
 
 impl ProdRuleSetTables {
@@ -1123,6 +1173,7 @@ impl ProdRuleSetTables {
         start: Option<VarId>,
         options: ProdRuleSetOptions,
         nt_conversion: HashMap<VarId, NTConversion>,
+        sep_info: Vec<SepInfo>,
     ) -> Self {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
@@ -1131,6 +1182,7 @@ impl ProdRuleSetTables {
             prules,
             origin, t, nt, flags, parent, start, options,
             nt_conversion,
+            sep_info
         }
     }
 
@@ -1242,7 +1294,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         vec![alt]
                     },
                     GrNode::Or => {
-                        let mut sep_item = None;
+                        let mut sep_item_len_maybe = None;
                         let alts = tree.children(root).iter()
                             .map(|id| {
                                 let child = tree.get(*id);
@@ -1250,23 +1302,14 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                                     Alternative::new(vec![*s])
                                 } else {
                                     assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
-                                    let (mut a, s) = children_to_vec(tree, *id);
+                                    let (a, s) = children_to_vec(tree, *id);
                                     let is_plus = var_flags & ruleflag::CHILD_REPEAT_PLUS == ruleflag::CHILD_REPEAT_PLUS;
                                     let is_indep = a.iter().all(|s| *s != Symbol::NT(var));
-                                    if s != Separator::None || sep_item.is_some() {
-                                        if let Separator::One(sep_n) = s && is_plus && (sep_item.is_none() || is_indep) {
+                                    if s != Separator::None || sep_item_len_maybe.is_some() {
+                                        if let Separator::One(sep_n) = s && is_plus && (sep_item_len_maybe.is_none() || is_indep) {
                                             // `a -> (α / β)+`: `a_1 -> α β a_1 | α β`
                                             if !is_indep {
-                                                // swaps α and β in `a_1 -> α β a_1` => `a_1 -> β α a_1`
-                                                a.v.pop();
-                                                let item = a.v.drain(..sep_n).to_vec();
-                                                a.v.extend(item.clone());
-                                                a.v.push(Symbol::NT(var));
-                                                sep_item = Some(item);
-                                            } else {
-                                                // remove α β `a_1 -> α β` => `a_1 -> ε`
-                                                a.v.clear();
-                                                a.v.push(Symbol::Empty);
+                                                sep_item_len_maybe = Some(sep_n)
                                             }
                                         } else {
                                             let symtab = prules.get_symbol_table();
@@ -1281,7 +1324,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                                                     "{} inside + repetitions: {rule_str}",
                                                     if s == Separator::TooMany {
                                                         "only one separator / is allowed"
-                                                    } else if sep_item.is_some() {
+                                                    } else if sep_item_len_maybe.is_some() {
                                                         "separators / can't be mixed with OR productions"
                                                     } else {
                                                         "separators / are allowed only"
@@ -1298,8 +1341,8 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                                 }
                                 alt
                             }).to_vec();
-                        if let Some(item) = sep_item {
-                            items.push((top_parent, var, item));
+                        if let Some(item_len) = sep_item_len_maybe {
+                            items.push((top_parent, var, item_len));
                         }
                         alts
                     },
@@ -1334,20 +1377,27 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         }
         // sep items: `a -> (α / β)+` normalized to `a -> a_1; a_1 -> α β a_1 | α β`
         // `a_1 -> α β a_1 | α β` was changed to `a_1 -> β α a_1 | ε`; now we insert α in a => `a -> α a_1`
-        for (top_parent, child_sep, item) in items {
+        let mut sep_info = vec![];
+        for (top_parent, child_sep, item_len) in items {
             let symb_child_sep = Symbol::NT(child_sep);
             prules.flags[child_sep as usize] &= !ruleflag::CHILD_PLUS;
-            for &children in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
-                for a in &mut prules.prules[children as usize] {
+            for &child_parent in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
+                for (alt_id, a) in prules.prules[child_parent as usize].iter().index() {
                     let pos_maybe = a.iter().position(|s| *s == symb_child_sep);
                     if let Some(pos) = pos_maybe {
-                        let trail = a.drain(pos..).to_vec();
-                        a.extend(item.clone());
-                        a.extend(trail);
+                        sep_info.push(SepInfo {
+                            nt_parent: child_parent,
+                            alt_id_parent: alt_id,
+                            nt_child: child_sep,
+                            pos_child: pos,
+                            item_len: item_len,
+                        });
+                        prules.log.add_note(format!("sep: {:?}", sep_info.last().unwrap()));
                     }
                 }
             }
         }
+        prules.sep_info = Some(sep_info);
         prules.calc_num_symbols();
         prules
     }

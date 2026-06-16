@@ -100,7 +100,8 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         vec![None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(9), Some(12), Some(13), Some(16), Some(5), Some(5), Some(14), Some(15), Some(17), Some(22), Some(23), Some(25), Some(26), Some(26)],
         Some(0),
         ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
-        hashmap![]
+        hashmap![],
+        vec![]
     );
 
     // [lexiparser_stage_2]

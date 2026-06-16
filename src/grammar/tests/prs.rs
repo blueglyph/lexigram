@@ -34,6 +34,7 @@ impl<T> ProdRuleSet<T> {
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
+            sep_info: None,
             _phantom: PhantomData
         }
     }
@@ -409,6 +410,7 @@ fn prs_remove_recursion() {
     test_prs_transforms(
         tests,
         |mut prs| {
+            prs.apply_sep_info_ll1();
             prs.remove_recursion();
             prs
         },

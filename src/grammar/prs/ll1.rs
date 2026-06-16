@@ -196,7 +196,8 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    vec![{}],", self.parent.iter().map(|p_maybe| format!("{p_maybe:?}")).join(", ")));
         source.push(format!("    {:?},", self.start));
         source.push(format!("    {:?},", self.options));
-        source.push(format!("    hashmap![{}]", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
+        source.push(format!("    hashmap![{}],", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
+        source.push(format!("    vec![{}]", self.sep_info.iter().map(|i| format!("{i:?}")).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
     }
@@ -223,6 +224,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
+            sep_info: Some(source.sep_info),
             _phantom: PhantomData,
         }
     }
@@ -231,6 +233,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
 impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
+            rules.apply_sep_info_ll1();
             rules.remove_recursion();
             rules.left_factorize();
             rules.transfer_alt_flags();
@@ -256,6 +259,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             first: rules.first,
             follow: rules.follow,
             original_start: None,
+            sep_info: rules.sep_info,
             _phantom: PhantomData,
         }
     }
