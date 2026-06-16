@@ -82,22 +82,21 @@ impl TestRules {
             108 => vec![r#"a -> A "B"* C;"#],
             // sep_list
             109 => vec![r#"a -> Id "(" (Id ":" type / ",")+ ")"; type -> Id;"#],
-            // 109 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)* ")"; type -> Id;"#],
-            110 => vec![r#"a -> Id "(" (Id ":" type ("," Id ":" type)*)? ")"; type -> Id;"#],
+            110 => vec![r#"a -> Id "(" ((Id ":" type / ",")+)? ")"; type -> Id;"#],
             // multiple sep_list
-            111 => vec![r#"a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")";"#],
-            112 => vec![r#"a -> "let" Id ("," Id)* "=" Num ("," Num)* ";";"#],
+            111 => vec![r#"a -> Id "(" (Id / ",")+ "/" (Id / ",")+ ")";"#],
+            112 => vec![r#"a -> "let" (Id / ",")+ "=" (Num / ",")+ ";";"#],
             // split potential sep_list cases
-            113 => vec![r#"a -> X B ("," B)* B? Z;"#],
-            114 => vec![r#"a -> X? B ("," B)* Z;"#],
-            115 => vec![r#"a -> X Y? B ("," B)* Z;"#],
-            116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one
-            117 => vec![r#"a -> X B (B)* Z;"#],
-            118 => vec![r#"a -> "var" Id ("," Id)* ";";"#],
+            113 => vec![r#"a -> X (B / ",")+ B? Z;"#],
+            114 => vec![r#"a -> X? (B / ",")+ Z;"#],
+            115 => vec![r#"a -> X Y? (B / ",")+ Z;"#],
+            116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one // TODO: remove
+            117 => vec![r#"a -> X B (B)* Z;"#],         // TODO: remove
+            118 => vec![r#"a -> "var" (Id / ",")+ ";";"#],
             // no sep_list for +
-            119 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#],
+            119 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#], // TODO: remove
 
-            120 => vec![r#"a -> A Id ("," Id)* C;"#],
+            120 => vec![r#"a -> A (Id / ",")+ C;"#],
             121 => vec![r#"a -> A b* C; b -> Id;"#],
             122 => vec![r#"a -> A b+ C; b -> Id;"#],
             123 => vec![r#"a -> A B* C+ D;"#],

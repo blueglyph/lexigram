@@ -2983,7 +2983,7 @@ pub(crate) mod rules_110_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> Id "(" Id ":" type ("," Id ":" type)* ")"`
+        /// `a -> Id "(" (Id ":" type / ",")+ ")"`
         V1 { id: String, star: SynA1 },
         /// `a -> Id "(" ")"`
         V2 { id: String },
@@ -2994,10 +2994,10 @@ pub(crate) mod rules_110_1 {
         V1 { id: String },
     }
 
-    /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")" | Id "(" ")"`
+    /// Computed `(Id ":" type / ",")+` array in `a -> Id "("  ►► (Id ":" type / ",")+ ◄◄  ")" | Id "(" ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `"," Id ":" type` item in `a -> Id "(" Id ":" type ( ►► "," Id ":" type ◄◄ )* ")" | Id "(" ")"`
+    /// `Id ":" type / ","` item in `a -> Id "(" ( ►► Id ":" type / "," ◄◄ )+ ")" | Id "(" ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub id: String, pub type1: SynType }
 

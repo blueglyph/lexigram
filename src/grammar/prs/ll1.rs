@@ -197,7 +197,7 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    {:?},", self.start));
         source.push(format!("    {:?},", self.options));
         source.push(format!("    hashmap![{}],", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
-        source.push(format!("    vec![{}]", self.sep_info.iter().map(|i| format!("{i:?}")).join(", ")));
+        source.push(format!("    vec![{}]", self.sep_info.as_ref().unwrap().iter().map(|i| format!("{i:?}")).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
     }

@@ -102,7 +102,6 @@ pub struct SepInfo {        // original: a -> γ (α / β)+ δ  normalized: a ->
     nt_parent: VarId,       // ID(a)
     alt_id_parent: AltId,   // alt is ProdRuleSet::prules[nt_parent][alt_id_parent]
     nt_child: VarId,        // ID(a_1)
-    pos_child: usize,       // pos of a_1 in a
     item_len: usize,        // length(α)
 }
 
@@ -560,8 +559,7 @@ impl<T> ProdRuleSet<T> {
     /// * we insert item `α` in a => `a -> γ α a_1 δ`
     /// * we change `a_1 -> α β a_1 | α β` to `a_1 -> β α a_1 | ε`;
     pub(crate) fn apply_sep_info_ll1(&mut self) {
-        let sep_info = self.sep_info.take().unwrap();
-        for SepInfo { nt_parent, alt_id_parent, nt_child, pos_child, item_len } in sep_info {
+        for &SepInfo { nt_parent, alt_id_parent, nt_child, item_len } in self.sep_info.as_ref().unwrap() {
             let alt_child = &mut self.prules[nt_child as usize];
             let item = if !alt_child[1].is_sym_empty() {
                 // removes α β `a_1 -> α β` => `a_1 -> ε`
@@ -580,9 +578,35 @@ impl<T> ProdRuleSet<T> {
 
             // inserts item `α` in a => `a -> γ α a_1 δ`
             let alt_parent = &mut self.prules[nt_parent as usize][alt_id_parent as usize];
+            let pos_child = alt_parent.iter().position(|s| *s == Symbol::NT(nt_child)).unwrap();
             let trail = alt_parent.drain(pos_child..).to_vec();
             alt_parent.extend(item);
             alt_parent.extend(trail);
+        }
+    }
+
+    /// Sep repetition: `a -> γ (α / β)+ δ`, where `α` is the item and `β` the separator,
+    /// was normalized to:
+    /// ```ignore
+    /// a -> γ a_1 δ
+    /// a_1 -> α β a_1 | α β
+    /// ```
+    ///
+    /// Now,
+    /// * we change `a_1 -> α β a_1 | α β` to `a_1 -> β α a_1 | α`;
+    pub(crate) fn apply_sep_info_lr(&mut self) {
+        for &SepInfo { nt_child, item_len, .. } in self.sep_info.as_ref().unwrap() {
+            let alt_child = &mut self.prules[nt_child as usize];
+            if alt_child[1].len() > item_len {
+                // swaps α and β in `a_1 -> α β a_1` => `a_1 -> β α a_1`
+                alt_child[0].pop();
+                let item = alt_child[0].drain(..item_len).to_vec();
+                alt_child[0].extend(item.clone());
+                alt_child[0].push(Symbol::NT(nt_child));
+
+                // swaps α and β in `a_1 -> α β` => `a_1 -> α`
+                alt_child[1].drain(item_len..);
+            }
         }
     }
 
@@ -607,7 +631,6 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
-        assert!(self.sep_info.is_none(), "sep info hasn't been applied");
         self.log.add_note("removing left / binary recursion in grammar...");
         self.check_num_nt_coherency();
         if VERBOSE {
@@ -1383,14 +1406,12 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             prules.flags[child_sep as usize] &= !ruleflag::CHILD_PLUS;
             for &child_parent in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
                 for (alt_id, a) in prules.prules[child_parent as usize].iter().index() {
-                    let pos_maybe = a.iter().position(|s| *s == symb_child_sep);
-                    if let Some(pos) = pos_maybe {
+                    if a.iter().any(|s| *s == symb_child_sep) {
                         sep_info.push(SepInfo {
                             nt_parent: child_parent,
                             alt_id_parent: alt_id,
                             nt_child: child_sep,
-                            pos_child: pos,
-                            item_len: item_len,
+                            item_len,
                         });
                         prules.log.add_note(format!("sep: {:?}", sep_info.last().unwrap()));
                     }

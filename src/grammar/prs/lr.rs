@@ -514,6 +514,7 @@ impl ProdRuleSet<LR> {
 impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
+            rules.apply_sep_info_lr();
             rules.adapt_loops();
             rules.transfer_alt_flags();
             rules.check_flags();
