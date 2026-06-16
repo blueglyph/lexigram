@@ -125,17 +125,17 @@ impl TestRules {
             210 => vec![r#"a -> A (<L=i> "B")* C;"#],
             211 => vec![r#"a -> A (A | C) (B <L=i>)* C;"#],
             // sep_list
-            212 => vec![r#"a -> Id "(" Id ":" type (<L=i> "<" ">" Id ":" type)* ")"; type -> Id;"#],
-            213 => vec![r#"a -> Id "(" (Id ":" type (<L=i> "," Id ":" type)*)? ")"; type -> Id;"#],
-            214 => vec![r#"a -> Id "(" Id (<L=i> "," Id)* "/" Id (<L=j> "," Id)* ")";"#],
+            212 => vec![r#"a -> Id "(" (<L=i> Id ":" type / "<" ">")+ ")"; type -> Id;"#],
+            213 => vec![r#"a -> Id "(" ((<L=i> Id ":" type / ",")+)? ")"; type -> Id;"#],
+            214 => vec![r#"a -> Id "(" (<L=i> Id / ",")+ "/" (<L=j> Id / ",")+ ")";"#],
             // no sep_list for +
-            215 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"; type -> Id;"#],
+            215 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"; type -> Id;"#], // TODO: remove
             // split potential sep_list cases
-            216 => vec![r#"a -> X B (<L=i>"," B)* B? Z;"#],
-            217 => vec![r#"a -> X? B (<L=i>"," B)* Z;"#],
-            218 => vec![r#"a -> X Y? B (<L=i>"," B)* Z;"#],
-            219 => vec![r#"a -> X B? (<L=i>"," B)* Z;"#],   // no sep_list in this one
-            220 => vec![r#"a -> "var" Id (<L=i> "," Id)* ";";"#],
+            216 => vec![r#"a -> X (<L=i> B / ",")+ B? Z;"#],
+            217 => vec![r#"a -> X? (<L=i> B / ",")+ Z;"#],
+            218 => vec![r#"a -> X Y? (<L=i> B / ",")+ Z;"#],
+            219 => vec![r#"a -> X B? (<L=i>"," B)* Z;"#],   // no sep_list in this one // TODO: remove
+            220 => vec![r#"a -> "var" (<L=i> Id / ",")+ ";";"#],
             221 => vec![r#"a -> A (<L=i> B)* C+ D;"#],
 
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
@@ -298,9 +298,9 @@ impl TestRules {
                 r#"file_item ->        option | declaration | rule;"#,
                 r#"header ->           Lexicon Id Semicolon;"#,
                 r#"declaration ->      Mode Id Semicolon;"#,
-                r#"option ->           Channels Lbracket Id (Comma Id)* Rbracket;"#,
+                r#"option ->           Channels Lbracket (Id / Comma)+ Rbracket;"#,
                 r#"rule ->             Fragment Id Colon match Semicolon | Id Colon match (Arrow actions)? Semicolon;"#,
-                r#"actions ->          action (Comma action)*;"#,
+                r#"actions ->          (action / Comma)+;"#,
                 r#"action ->           Mode Lparen Id Rparen"#,
                 r#"                  | Push Lparen Id Rparen"#,
                 r#"                  | Pop"#,
@@ -309,7 +309,7 @@ impl TestRules {
                 r#"                  | Type Lparen Id Rparen"#,
                 r#"                  | Channel Lparen Id Rparen;"#,
                 r#"match ->            alt_items;"#,
-                r#"alt_items ->        alt_item (Or alt_item)*;"#,
+                r#"alt_items ->        (alt_item / Or)+;"#,
                 r#"alt_item ->         repeat_item+;"#,
                 r#"repeat_item ->      item Star Question? | item Plus Question? | item Question?;"#,
                 r#"item ->             Id"#,
@@ -324,7 +324,7 @@ impl TestRules {
             902 => vec![
                 r#"token Num, Id, Type;"#,
                 r#"program -> (<L=decl_i> decl)* (<L=inst_i> inst)+;"#,
-                r#"decl ->    Type Id (<L=id_i> "," Id)* ";""#,
+                r#"decl ->    Type (<L=id_i> Id / ",")+ ";""#,
                 r#"         | "typedef" Type Id ";";"#,
                 r#"inst ->    "let" Id "=" expr ";""#,
                 r#"         | "print" expr ";";"#,
@@ -337,7 +337,7 @@ impl TestRules {
                 r#"token Num, Id, Type;"#,
                 r#"program -> (<L=stmt_i> stmt)*;"#,
                 r#"stmt ->    decl | inst;"#,
-                r#"decl ->    Type Id ("," Id)* ";""#,
+                r#"decl ->    Type (Id / ",")+ ";""#,
                 r#"         | "typedef" Type Id ";";"#,
                 r#"inst ->    Id "=" expr ";""#,
                 r#"         | "print" expr ";";"#,

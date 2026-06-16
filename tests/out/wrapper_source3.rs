@@ -3727,7 +3727,7 @@ pub(crate) mod rules_901_1 {
     }
     #[derive(Debug)]
     pub enum CtxOption {
-        /// `option -> "channels" "{" Id ("," Id)* "}"`
+        /// `option -> "channels" "{" (Id / ",")+ "}"`
         V1 { star: SynOption1 },
     }
     #[derive(Debug)]
@@ -3741,7 +3741,7 @@ pub(crate) mod rules_901_1 {
     }
     #[derive(Debug)]
     pub enum CtxActions {
-        /// `actions -> action ("," action)*`
+        /// `actions -> (action / ",")+`
         V1 { star: SynActions1 },
     }
     #[derive(Debug)]
@@ -3768,7 +3768,7 @@ pub(crate) mod rules_901_1 {
     }
     #[derive(Debug)]
     pub enum CtxAltItems {
-        /// `alt_items -> alt_item ("|" alt_item)*`
+        /// `alt_items -> (alt_item / "|")+`
         V1 { star: SynAltItems1 },
     }
     #[derive(Debug)]
@@ -3830,13 +3830,13 @@ pub(crate) mod rules_901_1 {
     /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynFile1(pub Vec<SynFileItem>);
-    /// Computed `("," Id)*` array in `option -> "channels" "{" Id  ►► ("," Id)* ◄◄  "}"`
+    /// Computed `(Id / ",")+` array in `option -> "channels" "{"  ►► (Id / ",")+ ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynOption1(pub Vec<String>);
-    /// Computed `("," action)*` array in `actions -> action  ►► ("," action)* ◄◄ `
+    /// Computed `(action / ",")+` array in `actions ->  ►► (action / ",")+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynActions1(pub Vec<SynAction>);
-    /// Computed `("|" alt_item)*` array in `alt_items -> alt_item  ►► ("|" alt_item)* ◄◄ `
+    /// Computed `(alt_item / "|")+` array in `alt_items ->  ►► (alt_item / "|")+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItems1(pub Vec<SynAltItem>);
     /// Computed `repeat_item+` array in `alt_item ->  ►► repeat_item+ ◄◄ `
@@ -4570,19 +4570,19 @@ pub(crate) mod rules_902_1 {
     }
     #[derive(Debug)]
     pub enum CtxDecl {
-        /// `decl -> Type Id (<L> "," Id)* ";"`
+        /// `decl -> Type (<L> Id / ",")+ ";"`
         V1 { type1: String, star: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `Id` before `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// value of `Id` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxIdI {
-        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
@@ -4986,19 +4986,19 @@ pub(crate) mod rules_902_2 {
     }
     #[derive(Debug)]
     pub enum CtxDecl {
-        /// `decl -> Type Id (<L> "," Id)* ";"`
+        /// `decl -> Type (<L> Id / ",")+ ";"`
         V1 { type1: String },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `` before `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// value of `` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxIdI {
-        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]

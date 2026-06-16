@@ -2829,17 +2829,17 @@ pub(crate) mod rules_212_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> Id "(" Id ":" type (<L> "<" ">" Id ":" type)* ")"`
+        /// `a -> Id "(" (<L> Id ":" type / "<" ">")+ ")"`
         V1 { id: String, star: SynI },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
-        /// value of `Id type` before `<L> "<" ">" Id ":" type` iteration in `a -> Id "(" Id ":" type ( ►► <L> "<" ">" Id ":" type ◄◄ )* ")"`
+        /// value of `Id type` before `<L> Id ":" type / "<" ">"` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "<" ">" ◄◄ )+ ")"`
         V1 { id: String, type1: SynType },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> "<" ">" Id ":" type` iteration in `a -> Id "(" Id ":" type ( ►► <L> "<" ">" Id ":" type ◄◄ )* ")"`
+        /// `<L> Id ":" type / "<" ">"` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "<" ">" ◄◄ )+ ")"`
         V1 { id: String, type1: SynType },
     }
     #[derive(Debug)]

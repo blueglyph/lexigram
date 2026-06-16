@@ -1232,10 +1232,10 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> (Alternative, Separator) {
             let mut flags: u32 = 0;
             let mut sep = Separator::None;
+            let mut i = 0;
             let alt = tree.children(parent_id).iter()
                 .map(|id| tree.get(*id))
-                .enumerate()
-                .filter_map(|(i, node)| {
+                .filter_map(|node| {
                     match *node {
                         GrNode::Sep => {
                             sep = if sep == Separator::None { Separator::One(i) } else { Separator::TooMany };
@@ -1257,7 +1257,10 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                             flags |= ruleflag::GREEDY;
                             None
                         }
-                        GrNode::Symbol(s) => Some(s),
+                        GrNode::Symbol(s) => {
+                            i += 1;
+                            Some(s)
+                        },
                         x => panic!("unexpected symbol {x} under &")
                     }
                 }).to_vec();
