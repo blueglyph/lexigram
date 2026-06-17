@@ -7,7 +7,7 @@ use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
 use lexigram_core::alt::Alternative;
 use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
-use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet};
+use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet, SepInfo, SepNt, SepNtInfo};
 use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1, LR};
 use crate::fixed_sym_table::{SymInfoTable};
 use crate::alt::ruleflag;
@@ -193,6 +193,7 @@ pub struct ParserGen {
     alts: Vec<(VarId, Alternative)>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
+    sep_info: SepInfo,
     // LL1-specific parsing table fields:
     table: Vec<AltId>,
     // LR-specific parsing table fields:
@@ -251,13 +252,15 @@ impl ParserGen {
             var_alts[*var_id as usize].push(alt_id);
         }
         let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = ll1_rules;
+        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = ll1_rules;
+        let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
         let mut builder = ParserGen {
             num_nt: parsing_table.num_nt,
             num_t_full: parsing_table.num_t_full,
             alts: parsing_table.alts,
             flags: parsing_table.flags,
             parent: parsing_table.parent,
+            sep_info: SepInfo::Nt(sep_nt),
             table: parsing_table.table,
             num_states: 0,
             action: vec![],
@@ -308,7 +311,8 @@ impl ParserGen {
             var_alts[*var_id as usize].push(alt_id);
         }
         let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = lr_rules;
+        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = lr_rules;
+        let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
 
         let mut builder = ParserGen {
             num_nt: parsing_table.num_nt,
@@ -316,6 +320,7 @@ impl ParserGen {
             alts: parsing_table.alts,
             flags: parsing_table.flags,
             parent: parsing_table.parent,
+            sep_info: SepInfo::Nt(sep_nt),
             table: vec![],
             num_states: parsing_table.num_states,
             action: parsing_table.action,
@@ -1257,10 +1262,95 @@ impl ParserGen {
                     .join(", ")));
     }
 
+    fn calc_sep_info(&mut self, items: &[Vec<Symbol>]) {
+        const VERBOSE: bool = true;
+        let is_none = self.sep_info.is_none();
+        let SepInfo::Nt(sep_nt) = self.sep_info.take() else { panic!("{}", if is_none { "no sep_info" } else { "unprocessed sep_info" }) };
+        let mut sep_nt_alt = vec![];
+        for SepNt { nt_parent, nt_child, item_len } in sep_nt {
+            if VERBOSE { println!("- sep_nt: nt_parent: {nt_parent}, nt_child: {nt_child}, item_len: {item_len}"); }
+            let nt_top = self.get_top_parent(nt_child) as usize;
+            for &nt_group in self.nt_parent[nt_top].iter().filter(|&nt| *nt != nt_child) {
+                for &alt_id_inst in &self.var_alts[nt_group as usize] {
+                    if items[alt_id_inst as usize].iter().any(|s| *s == Symbol::NT(nt_child)) {
+                        sep_nt_alt.push(SepNtInfo { alt_id_inst, nt_child, item_len });
+                    }
+                }
+            }
+        }
+        self.sep_info = SepInfo::NtInfo(sep_nt_alt);
+    }
+
+    fn check_sep_list(&mut self, items: &mut [Vec<Symbol>]) {
+        //                                             span# item ops (actual)  (desired)
+        // - 109                                       ----------------------- --------------------
+        //   a -> Id "(" (Id ":" type / ",")+ ")"
+        //   - LL1: 0: a -> Id "(" Id ":" type a_1 ")" | 7 | Id Id type a_1    | 4    | Id a_1
+        //          2: . a_1 -> "," Id ":" type a_1    | 5 | a_1 Id type       | 5, 3 | a_1 Id type     + sep_list flag on a_1
+        //          3: . a_1 -> ε                      | 1 | a_1               | 1    | Id
+        //          1: type -> Id                      | 1 | Id                | 1    | a_1
+        //
+        //   - LR:  0: a -> Id "(" a_1 ")"             | 4 | Id a_1            | 4    | Id a_1
+        //          2: . a_1 -> a_1 "," Id ":" type    | 5 | a_1 Id type       | 5    | a_1 Id type     + sep_list flag on a_1
+        //          3: . a_1 -> Id ":" type            | 4 | a_1 Id type       | 4    | a_1 Id type
+        //          1: type -> Id                      | 1 | Id                | 1    | Id
+        // - 110
+        //   a -> Id "(" ((Id ":" type / ",")+)? ")"
+        //   - LL1: 0: a -> Id "(" a_2                 | 0 |                   | 0    |
+        //          1: type -> Id                      | 1 | Id                | 1    | Id
+        //          2: a_1 -> "," Id ":" type a_1      | 5 | a_1 Id type       | 5, 3 | a_1 Id type     + sep_list flag on a_1
+        //          3: a_1 -> ε                        | 1 | a_1               | 1    | a_1
+        //          4: a_2 -> Id ":" type a_1 ")"      | 7 | Id Id type a_1    | 4    | Id a_1
+        //          5: a_2 -> ")"                      | 3 | Id                | 3    | Id
+        //
+        // - 220
+        //   a -> "var" (<L=i> Id / ",")+ ";"
+        //   - LL1:    NT    name  val   flags
+        //           +--------------------------------------------------+
+        //           |   0 | a    | y  | parent_+_or_*                  |
+        //           |   1 | . i  |    | child_+_or_*, L-form, sep_list |
+        //           +--------------------------------------------------+
+        //          0: a -> "var" Id i ";"             | 4 | Id                | 3    |
+        //          1: i -> "," Id i                   | 3 | Id                | 3, 1 | Id              + sep_list flag on i
+        //          2: i -> ε                          | 1 |                   | 1    |
+        const VERBOSE: bool = false;
+        self.calc_sep_info(items);
+        let is_lr = self.options.parser_type.is_lr();
+        let SepInfo::NtInfo(sep_nt_info) = self.sep_info.take() else { panic!("unprocessed sep_info") };
+        for SepNtInfo { alt_id_inst, nt_child, item_len } in sep_nt_info {
+            if VERBOSE { println!("- sep_nt_info: alt_id_inst = {alt_id_inst}, nt_child = {nt_child}, item_len = {item_len} "); }
+            // verifies the separator has no value
+            let c0_alt_id = self.var_alts[nt_child as usize][0];                                            // 2
+            let alt_child0 = &self.alts[c0_alt_id as usize].1;
+            let sep_len = alt_child0.len() - item_len - 1;                                                  // 5 - 3 - 1 = 1: [","]
+            let sep_range = if is_lr { 1 .. sep_len + 1 } else { 0 .. sep_len };
+            let valuables = sep_range.map(|i| alt_child0[i]).filter(|s| self.sym_has_value(&s)).to_vec();
+            if !valuables.is_empty() {
+                let alt_str = self.full_alt_str(c0_alt_id, None, false);
+                self.log.add_error(format!(
+                    "separator used in {alt_str} contains valuable items: {}",
+                    valuables.into_iter().map(|s| s.to_str(self.get_symbol_table())).join(", ")));
+                continue
+            }
+            if !is_lr {
+                self.span_nbrs[alt_id_inst as usize] -= item_len as SpanNbr;                                // 7 -> 4
+                self.span_nbrs_sep_list.insert(c0_alt_id, item_len as SpanNbr);                             // 3
+                let c_len = if self.nt_values[nt_child as usize] { 1 } else { 0 };
+                let item_ops_len = items[c0_alt_id as usize].len() - c_len;                                 // 2: [Id, type]
+                let p_alt = &mut items[alt_id_inst as usize];
+                let c_pos = p_alt.iter().position(|s| *s == Symbol::NT(nt_child)).unwrap();
+                p_alt.drain(c_pos - item_ops_len..c_pos);
+            }
+            self.flags[nt_child as usize] |= ruleflag::SEP_LIST;
+
+        }
+    }
+
+    #[allow(unused)]
     /// Detects and transforms token-separated item lists of the form α (β α)*
     /// - α having valuable T/NT
     /// - β having no value (typ. fixed terminals)
-    fn check_sep_list(&mut self, items: &mut [Vec<Symbol>]) {
+    fn check_sep_list_old(&mut self, items: &mut [Vec<Symbol>]) {
         // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
         //
         // alt | rule alternative                 | items

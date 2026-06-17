@@ -16,7 +16,7 @@ use iter_index::IndexerIterator;
 use lexigram_core::{CollectJoin, TokenId};
 use lexigram_core::lexer::{CaretCol, Pos, PosSpan};
 use crate::{btreemap, make_stream, prule, General, SymbolTable, LL1};
-use crate::grammar::{gnode, GrNode, GrTree, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use crate::grammar::{gnode, GrNode, GrTree, ProdRuleSet, RuleTreeSet, SepInfo, Symbol, VarId};
 use crate::grammar::tests::prs;
 use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_core::parser::ListenerWrapper;
@@ -203,7 +203,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prules = &mut rules.prules;
-    rules.sep_info = Some(vec![]);
+    rules.sep_info = SepInfo::NtAlt(vec![]);
     let start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)

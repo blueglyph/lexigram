@@ -91,7 +91,7 @@ impl TestRules {
             114 => vec![r#"a -> X? (B / ",")+ Z;"#],
             115 => vec![r#"a -> X Y? (B / ",")+ Z;"#],
             116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one // TODO: remove
-            117 => vec![r#"a -> X B (B)* Z;"#],         // TODO: remove
+            117 => vec![r#"a -> X (B/)+ Z;"#],         // TODO: remove
             118 => vec![r#"a -> "var" (Id / ",")+ ";";"#],
             // no sep_list for +
             119 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#], // TODO: remove
@@ -100,6 +100,13 @@ impl TestRules {
             121 => vec![r#"a -> A b* C; b -> Id;"#],
             122 => vec![r#"a -> A b+ C; b -> Id;"#],
             123 => vec![r#"a -> A B* C+ D;"#],
+
+            // sep_list with valuable separator
+            124 => vec![r#"a -> A (Id / "." b X)+ C; b -> Y;"#],
+
+            // sep_list embedded in *+
+            125  => vec![r#"a -> A ( (Id / ",")+ )* B;"#],
+            126 => vec![r#"a -> A ( (Id / ",")+ )+ B;"#],
 
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
@@ -213,6 +220,8 @@ impl TestRules {
             650 => vec![r#"a -> a A a a | B;"#],
             651 => vec![r#"a -> a A a | ε;"#],
             652 => vec![r#"a -> a A a | ε | ε;"#],
+
+            680 => vec![r#"a -> a "*" a | a (Id / ".")+ a | a "+" a | Num;"#],
 
             // 7xx = lfact
             // -----------------------------------------------------------------------------

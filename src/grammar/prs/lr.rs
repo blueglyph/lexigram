@@ -9,7 +9,7 @@ use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
 use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
 use crate::build::BuildFrom;
-use crate::grammar::{ProdRule, ProdRuleSet};
+use crate::grammar::{ProdRule, ProdRuleSet, SepInfo};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};
 
 /// Dot position in a production rule (alternative). The symbol after the dot is at [value as usize], if it exists.
@@ -352,7 +352,7 @@ impl ProdRuleSet<LR> {
             first: vec![],
             follow: vec![],
             original_start: None,
-            sep_info: None,
+            sep_info: SepInfo::None,
             _phantom: Default::default(),
         };
         g_p.calc_first();

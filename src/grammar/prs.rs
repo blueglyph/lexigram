@@ -98,11 +98,49 @@ pub struct ProdRuleSetOptions {
 }
 
 #[derive(Clone, Debug)]
-pub struct SepInfo {        // original: a -> γ (α / β)+ δ  normalized: a -> γ a_1 δ; a_1 -> ..α.. β a_1 | α β
-    nt_parent: VarId,       // ID(a)
-    alt_id_parent: AltId,   // alt is ProdRuleSet::prules[nt_parent][alt_id_parent]
-    nt_child: VarId,        // ID(a_1)
-    item_len: usize,        // length(α)
+pub struct SepNtAlt {           // original: a -> γ (α / β)+ δ  normalized: a -> γ a_1 δ; a_1 -> ..α.. β a_1 | α β
+    pub nt_parent: VarId,       // ID(a)
+    pub alt_id_parent: AltId,   // alt is ProdRuleSet::prules[nt_parent][alt_id_parent]
+    pub nt_child: VarId,        // ID(a_1)
+    pub item_len: usize,        // length(α)
+}
+
+#[derive(Clone, Debug)]
+pub struct SepNt {              // original: a -> γ (α / β)+ δ  normalized: a -> γ a_1 δ; a_1 -> ..α.. β a_1 | α β
+    pub nt_parent: VarId,       // ID(a)
+    pub nt_child: VarId,        // ID(a_1)
+    pub item_len: usize,        // length(α)
+}
+
+#[derive(Clone, Debug)]
+pub struct SepNtInfo {          // original: a -> γ (α / β)+ δ  normalized: a -> γ a_1 δ; a_1 -> ..α.. β a_1 | α β
+    pub alt_id_inst: AltId,     // alt ID where an instance of nt_child is present
+    pub nt_child: VarId,        // ID(a_1)
+    pub item_len: usize,        // length(α)
+}
+
+#[derive(Clone, Default, Debug)]
+pub enum SepInfo {
+    #[default]
+    None,
+    NtAlt(Vec<SepNtAlt>),
+    Nt(Vec<SepNt>),
+    NtInfo(Vec<SepNtInfo>),
+}
+
+impl SepInfo {
+    pub fn is_none(&self) -> bool {
+        matches!(self, SepInfo::None)
+    }
+
+    pub fn take(&mut self) -> SepInfo {
+        match self {
+            SepInfo::None => SepInfo::None,
+            SepInfo::NtAlt(_) | SepInfo::Nt(_) | SepInfo::NtInfo(_) => {
+                take(self)
+            }
+        }
+    }
 }
 
 impl Default for ProdRuleSetOptions {
@@ -131,7 +169,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) first: Vec<HashSet<Symbol>>,
     pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
-    pub(crate) sep_info: Option<Vec<SepInfo>>,
+    pub(crate) sep_info: SepInfo,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -559,9 +597,13 @@ impl<T> ProdRuleSet<T> {
     /// * we insert item `α` in a => `a -> γ α a_1 δ`
     /// * we change `a_1 -> α β a_1 | α β` to `a_1 -> β α a_1 | ε`;
     pub(crate) fn apply_sep_info_ll1(&mut self) {
-        for &SepInfo { nt_parent, alt_id_parent, nt_child, item_len } in self.sep_info.as_ref().unwrap() {
+        let SepInfo::NtAlt(sep_nt_alt) = self.sep_info.take() else { panic!() };
+        let mut sep_nt = vec![];
+        for SepNtAlt { nt_parent, alt_id_parent, nt_child, item_len } in sep_nt_alt {
             let alt_child = &mut self.prules[nt_child as usize];
             let item = if !alt_child[1].is_sym_empty() {
+                sep_nt.push(SepNt { nt_parent, nt_child, item_len });
+
                 // removes α β `a_1 -> α β` => `a_1 -> ε`
                 alt_child[1].clear();
                 alt_child[1].push(Symbol::Empty);
@@ -583,6 +625,8 @@ impl<T> ProdRuleSet<T> {
             alt_parent.extend(item);
             alt_parent.extend(trail);
         }
+        // multiple nt_childs are now removed:
+        self.sep_info = SepInfo::Nt(sep_nt);
     }
 
     /// Sep repetition: `a -> γ (α / β)+ δ`, where `α` is the item and `β` the separator,
@@ -595,9 +639,13 @@ impl<T> ProdRuleSet<T> {
     /// Now,
     /// * we change `a_1 -> α β a_1 | α β` to `a_1 -> β α a_1 | α`;
     pub(crate) fn apply_sep_info_lr(&mut self) {
-        for &SepInfo { nt_child, item_len, .. } in self.sep_info.as_ref().unwrap() {
+        let SepInfo::NtAlt(sep_nt_alt) = self.sep_info.take() else { panic!() };
+        let mut sep_nt = vec![];
+        for SepNtAlt { nt_parent, nt_child, item_len, .. } in sep_nt_alt {
             let alt_child = &mut self.prules[nt_child as usize];
             if alt_child[1].len() > item_len {
+                sep_nt.push(SepNt { nt_parent, nt_child, item_len });
+
                 // swaps α and β in `a_1 -> α β a_1` => `a_1 -> β α a_1`
                 alt_child[0].pop();
                 let item = alt_child[0].drain(..item_len).to_vec();
@@ -608,6 +656,8 @@ impl<T> ProdRuleSet<T> {
                 alt_child[1].drain(item_len..);
             }
         }
+        // multiple nt_childs are now removed:
+        self.sep_info = SepInfo::Nt(sep_nt);
     }
 
     /// Eliminates recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
@@ -1162,7 +1212,7 @@ impl ProdRuleSet<General> {
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
-            sep_info: None,
+            sep_info: SepInfo::None,
             _phantom: PhantomData
         }
     }
@@ -1181,7 +1231,7 @@ pub struct ProdRuleSetTables {
     start: Option<VarId>,
     options: ProdRuleSetOptions,
     nt_conversion: HashMap<VarId, NTConversion>,
-    sep_info: Vec<SepInfo>,
+    sep_nt: Vec<SepNt>,
 }
 
 impl ProdRuleSetTables {
@@ -1196,7 +1246,7 @@ impl ProdRuleSetTables {
         start: Option<VarId>,
         options: ProdRuleSetOptions,
         nt_conversion: HashMap<VarId, NTConversion>,
-        sep_info: Vec<SepInfo>,
+        sep_info: Vec<SepNt>,
     ) -> Self {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
@@ -1205,7 +1255,7 @@ impl ProdRuleSetTables {
             prules,
             origin, t, nt, flags, parent, start, options,
             nt_conversion,
-            sep_info
+            sep_nt: sep_info
         }
     }
 
@@ -1403,25 +1453,25 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         }
         // sep items: `a -> (α / β)+` normalized to `a -> a_1; a_1 -> α β a_1 | α β`
         // `a_1 -> α β a_1 | α β` was changed to `a_1 -> β α a_1 | ε`; now we insert α in a => `a -> α a_1`
-        let mut sep_info = vec![];
+        let mut sep_nt_alt = vec![];
         for (top_parent, child_sep, item_len) in items {
             let symb_child_sep = Symbol::NT(child_sep);
             prules.flags[child_sep as usize] &= !ruleflag::CHILD_PLUS;
             for &child_parent in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
                 for (alt_id, a) in prules.prules[child_parent as usize].iter().index() {
                     if a.iter().any(|s| *s == symb_child_sep) {
-                        sep_info.push(SepInfo {
+                        sep_nt_alt.push(SepNtAlt {
                             nt_parent: child_parent,
                             alt_id_parent: alt_id,
                             nt_child: child_sep,
                             item_len,
                         });
-                        prules.log.add_note(format!("sep: {:?}", sep_info.last().unwrap()));
+                        prules.log.add_note(format!("sep: {:?}", sep_nt_alt.last().unwrap()));
                     }
                 }
             }
         }
-        prules.sep_info = Some(sep_info);
+        prules.sep_info = SepInfo::NtAlt(sep_nt_alt);
         prules.calc_num_symbols();
         prules
     }

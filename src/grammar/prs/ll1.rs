@@ -9,7 +9,7 @@ use lexigram_core::log::{BufLog, LogMsg, LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use crate::build::BuildFrom;
 use crate::{grammar, indent_source, General, SymbolTable, LL1};
-use crate::grammar::{calc_alt_first, ProdRuleSet, ProdRuleSetTables};
+use crate::grammar::{calc_alt_first, ProdRuleSet, ProdRuleSetTables, SepInfo};
 
 impl ProdRuleSet<LL1> {
     /// Creates the table for predictive top-down parsing.
@@ -197,7 +197,8 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    {:?},", self.start));
         source.push(format!("    {:?},", self.options));
         source.push(format!("    hashmap![{}],", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
-        source.push(format!("    vec![{}]", self.sep_info.as_ref().unwrap().iter().map(|i| format!("{i:?}")).join(", ")));
+        let SepInfo::Nt(sep_nt) = &self.sep_info else { panic!() };
+        source.push(format!("    vec![{}]", sep_nt.iter().map(|i| format!("{i:?}")).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
     }
@@ -224,7 +225,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,
-            sep_info: Some(source.sep_info),
+            sep_info: SepInfo::Nt(source.sep_nt),
             _phantom: PhantomData,
         }
     }
