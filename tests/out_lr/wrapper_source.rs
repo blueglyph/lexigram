@@ -931,6 +931,8 @@ pub(crate) mod rules_103_1 {
 // ================================================================================
 
 pub(crate) mod rules_109_1 {
+    use lexigram_core::CollectJoin;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 109 #1, start a]
 
@@ -938,9 +940,9 @@ pub(crate) mod rules_109_1 {
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 6;
-    static ACTION: [LRAction; 84] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(4), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(9), LRAction::Shift(10), LRAction::Error, LRAction::Shift(11), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Shift(12), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error];
-    static GOTO: [LRStateId; 42] = [2, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 7, 14, 14, 14, 14, 14, 14, 8, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 14, 14, 14, 14];
-    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [(0, 7, 2), (1, 1, 1), (2, 5, 1), (2, 0, 0), (3, 1, 0)];
+    static ACTION: [LRAction; 84] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(4), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(7), LRAction::Shift(8), LRAction::Error, LRAction::Shift(9), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(11), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(12), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(9), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error];
+    static GOTO: [LRStateId; 42] = [2, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 5, 14, 14, 14, 14, 14, 14, 14, 10, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 14, 14, 14, 14];
+    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [(0, 4, 1), (1, 1, 1), (2, 5, 1), (2, 3, 1), (3, 1, 0)];
     static SYMBOL_TABLE_T: [(&str, Option<&str>); 5] = [("Id", None), ("LPar", Some("(")), ("Colon", Some(":")), ("Comma", Some(",")), ("RPar", Some(")"))];
     static SYMBOL_TABLE_NT: [&str; 4] = ["a", "type", "a_1", "<goal>"];
 
@@ -956,7 +958,7 @@ pub(crate) mod rules_109_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> Id "(" Id ":" type ("," Id ":" type)* ")"`
+        /// `a -> Id "(" (Id ":" type / ",")+ ")"`
         V1 { id: String, star: SynA1 },
     }
     #[derive(Debug)]
@@ -965,10 +967,10 @@ pub(crate) mod rules_109_1 {
         V1 { id: String },
     }
 
-    /// Computed `("," Id ":" type)*` array in `a -> Id "(" Id ":" type  ►► ("," Id ":" type)* ◄◄  ")"`
+    /// Computed `(Id ":" type / ",")+` array in `a -> Id "("  ►► (Id ":" type / ",")+ ◄◄  ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `"," Id ":" type` item in `a -> Id "(" Id ":" type ( ►► "," Id ":" type ◄◄ )* ")"`
+    /// `Id ":" type / ","` item in `a -> Id "(" ( ►► Id ":" type / "," ◄◄ )+ ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub id: String, pub type1: SynType }
 
@@ -1026,9 +1028,9 @@ pub(crate) mod rules_109_1 {
             match call {
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // a -> Id "(" Id ":" type a_1 ")"
+                        0 => self.exit_a(),                         // a -> Id "(" a_1 ")"
                         2 => self.exit_a1(),                        // a_1 -> a_1 "," Id ":" type
-                        3 => self.init_a1(),                        // a_1 -> ε
+                        3 => self.init_a1(),                        // a_1 -> Id ":" type
                         1 => self.exit_type(),                      // type -> Id
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -1173,12 +1175,13 @@ pub(crate) mod rules_109_1 {
         struct Listener {
             log: BufLog,
             list: Option<Vec<(String, String)>>,
+            spans: Vec<String>,
             show_calls: bool,
         }
 
         impl Listener {
             fn new() -> Self {
-                Listener { log: BufLog::new(), list: None, show_calls: true }
+                Listener { log: BufLog::new(), list: None, spans: vec![], show_calls: true }
             }
         }
 
@@ -1198,6 +1201,7 @@ pub(crate) mod rules_109_1 {
                 if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
                 // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
                 let CtxA::V1 { id, star: SynA1(values) } = ctx;
+                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
                 SynA(values.into_iter().map(|SynA1Item { id, type1: SynType(t) }| (id, t)).collect())
             }
 
@@ -1213,14 +1217,14 @@ pub(crate) mod rules_109_1 {
         fn test() {
             const VERBOSE: bool = true;
 
-            // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
+            // a -> Id "(" (Id ":" type / ",")+ ")"
             // type -> Id
             let sequences = vec![
-                ("a ( b : bt , c : ct )", false, Some(vec![("b", "bt"), ("c", "ct")])),
-                ("x", true, None),
+                ("a ( b : bt , c : ct )", false, vec!["1:1, 1:2, 1:3-9, 1:10"], Some(vec![("b", "bt"), ("c", "ct")])),
+                ("x", true, vec![], None),
             ];
             let mut parser = build_parser();
-            for (input, expected_error, expected_list) in sequences {
+            for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
                 let stream = make_stream(input, SYMBOL_TABLE_T, true, 0, 999, VERBOSE);
                 let listener = Listener::new();
@@ -1239,7 +1243,10 @@ pub(crate) mod rules_109_1 {
                 if VERBOSE { println!("list = {result:?}"); }
                 assert_eq!(is_error, expected_error, "parser error with input {input:?}");
                 let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|(s, t)| (s.to_string(), t.to_string())).to_vec());
-                assert_eq!(result, &expected_list, "mismatch result with input {input:?}")
+                assert_eq!(result, &expected_list, "list mismatch with input {input:?}");
+                let spans =  &wrapper.get_listener().spans;
+                let expected_spans = expected_spans.into_iter().map(|s| s.to_string()).to_vec();
+                assert_eq!(spans, &expected_spans, "span mismatch with input {input:?}");
             }
         }
     }
@@ -2691,6 +2698,7 @@ pub(crate) mod rules_201_1 {
         use lexigram_core::log::BufLog;
         use lexigram_lib::make_stream;
         use super::*;
+
 
         struct Listener {
             log: BufLog,
