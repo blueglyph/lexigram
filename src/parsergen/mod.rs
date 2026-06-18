@@ -1291,8 +1291,8 @@ impl ParserGen {
         //          1: type -> Id                      | 1 | Id                | 1    | a_1
         //
         //   - LR:  0: a -> Id "(" a_1 ")"             | 4 | Id a_1            | 4    | Id a_1
-        //          2: . a_1 -> a_1 "," Id ":" type    | 5 | a_1 Id type       | 5    | a_1 Id type     + sep_list flag on a_1
-        //          3: . a_1 -> Id ":" type            | 4 | a_1 Id type       | 4    | a_1 Id type
+        //          2: . a_1 -> a_1 "," Id ":" type    | 5 | a_1 Id type       | 5, 3 | a_1 Id type     + sep_list flag on a_1
+        //          3: . a_1 -> Id ":" type            | 4 | a_1 Id type       | 4    | a_1 Id type     (item_ops not used)
         //          1: type -> Id                      | 1 | Id                | 1    | Id
         // - 110
         //   a -> Id "(" ((Id ":" type / ",")+)? ")"
@@ -1320,6 +1320,7 @@ impl ParserGen {
         for SepNtInfo { alt_id_inst, nt_child, item_len } in sep_nt_info {
             if VERBOSE { println!("- sep_nt_info: alt_id_inst = {alt_id_inst}, nt_child = {nt_child}, item_len = {item_len} "); }
             // verifies the separator has no value
+            let item_len_span = SpanNbr::try_from(item_len).expect(&format!("item_len = {item_len}"));
             let c0_alt_id = self.var_alts[nt_child as usize][0];                                            // 2
             let alt_child0 = &self.alts[c0_alt_id as usize].1;
             let sep_len = alt_child0.len() - item_len - 1;                                                  // 5 - 3 - 1 = 1: [","]
@@ -1332,9 +1333,10 @@ impl ParserGen {
                     valuables.into_iter().map(|s| s.to_str(self.get_symbol_table())).join(", ")));
                 continue
             }
+            // span of initial item; note that in LR, it's stored in the 1st alt but used in the 2nd
+            self.span_nbrs_sep_list.insert(c0_alt_id, item_len_span);                                       // , 3
             if !is_lr {
-                self.span_nbrs[alt_id_inst as usize] -= item_len as SpanNbr;                                // 7 -> 4
-                self.span_nbrs_sep_list.insert(c0_alt_id, item_len as SpanNbr);                             // 3
+                self.span_nbrs[alt_id_inst as usize] -= item_len_span;                                      // 7 -> 4
                 let c_len = if self.nt_values[nt_child as usize] { 1 } else { 0 };
                 let item_ops_len = items[c0_alt_id as usize].len() - c_len;                                 // 2: [Id, type]
                 let p_alt = &mut items[alt_id_inst as usize];
@@ -1535,6 +1537,7 @@ impl ParserGen {
                     assert_eq!(v, top_nt, "v = {}, top_nt = {}", Symbol::NT(v).to_str(self.get_symbol_table()), Symbol::NT(top_nt).to_str(self.get_symbol_table()));
                 }
             }
+            println!("    top_nt tree: {top_nt}: {}", self.origin.trees[top_nt as usize].to_str_index(None, self.get_symbol_table()));
         }
         let mut sorted = vec![];
         let mut ids = alts.iter().filter_map(|&alt_id| self.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
@@ -1646,12 +1649,14 @@ impl ParserGen {
                         endpoints = endpoints.chunks(2).map(|slice| slice[0]).to_vec();
                     } else {
                         // with *, the endpoint corresponding to the exit has no data
-                        endpoints.retain(|e| !self.alts[*e as usize].1.is_sym_empty());
+                        //endpoints.retain(|e| !self.alts[*e as usize].1.is_sym_empty());
+                        endpoints.pop();
                     }
                     assert!(!endpoints.is_empty());
                     let endpoints = self.sort_alt_ids(group[0], &endpoints);
                     child_repeat_endpoints.insert(*var, endpoints);
                 }
+                let last_alt_id = *self.var_alts[nt].last().unwrap();
                 for &alt_id in &self.var_alts[nt] {
                     let i = alt_id as usize;
                     if is_ambig_1st_child && self.alts[i].1.is_sym_empty() {
@@ -1716,21 +1721,23 @@ impl ParserGen {
                     // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
                     let is_hidden_repeat_child = self.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
 
-                    // <alt> -> ε
-                    let is_alt_sym_empty = self.is_alt_sym_empty(alt_id);
+                    // last * child is not in the endpoints. We don't simply check that the alt is empty because, in LR sep_list, the last
+                    // alt isn't empty (it's used as first loop iteration to collect the first item).
+                    let is_last_alt = alt_id == last_alt_id;
 
                     // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
                     // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
                     let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT_PLUS | ruleflag::L_FORM) &&
-                        is_alt_sym_empty;
+                        is_last_alt;
 
-                    let is_last_empty_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
-                        || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_alt_sym_empty;
+                    // is it the independent loop iteration, so the last one in LL or the first one in LR?
+                    let is_independant_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
+                        || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_last_alt;
 
-                    let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_last_empty_iteration;
+                    let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_independant_iteration;
                     if VERBOSE {
                         println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
-                            is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_last_empty_iteration} => has_context = {has_context}");
+                            is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_independant_iteration} => has_context = {has_context}");
                     }
                     if has_context {
                         alt_info_to_sort.entry(owner)
@@ -3263,8 +3270,9 @@ impl ParserGen {
         src.push("        }".to_string());
         src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
         src.push("        if self.verbose {".to_string());
-        src.push("            println!(\"> stack_t:   {}\", self.stack_t.join(\", \"));".to_string());
-        src.push("            println!(\"> stack:     {}\", self.stack.iter().map(|it| format!(\"{it:?}\")).collect::<Vec<_>>().join(\", \"));".to_string());
+        src.push(r#"            println!("> stack_t:   {}", self.stack_t.join(", "));"#.to_string());
+        src.push(r#"            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));"#.to_string());
+        // src.push(r#"            println!("> spans:     {}", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));"#.to_string());
         src.push("        }".to_string());
         src.push("    }".to_string());
         src.push(String::new());

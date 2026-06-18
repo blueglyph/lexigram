@@ -1051,6 +1051,23 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 5],                        2, symbols![nt 2, t 2]),            //  5: a_2 -> ε       | ◄5               | 2 | a_1 C
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
+        // a -> Id "(" (<L=i> Id ":" type / ",")+ ")"
+        // type -> Id
+        //
+        //   NT    name  val   flags
+        // +--------------------------------------------------+
+        // |   0 | a    | y  | parent_+_or_*                  |
+        // |   1 | . i  | y  | child_+_or_*, L-form, sep_list |
+        // |   2 | type | y  |                                |
+        // +--------------------------------------------------+
+        (222, true, true, false, 0, btreemap![
+        ], vec![
+            (strip![exit 0, t 4, nt 1, nt 2, t 2, t 0, t 1, t 0], 4, symbols![t 0, nt 1]),       //  0: a -> Id "(" Id ":" type i ")" | ◄0 ")" ►i ►type ":" Id! "(" Id! | 4    | Id i
+            (strip![loop 1, exit 1, nt 2, t 2, t 0, t 3],         5, symbols![nt 1, t 0, nt 2]), //  1: i -> "," Id ":" type i        | ●i ◄1 ►type ":" Id! ","         | 5, 3 | i Id type
+            (strip![exit 2],                                      1, symbols![nt 1]),            //  2: i -> ε                        | ◄2                              | 1    | i
+            (strip![exit 3, t 0],                                 1, symbols![t 0]),             //  3: type -> Id                    | ◄3 Id!                          | 1    | Id
+        ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),
+
         // --------------------------------------------------------------------------- norm+/* <L> alternatives
         // a -> (<L=i> A | B)*
         //

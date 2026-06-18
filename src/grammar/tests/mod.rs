@@ -145,6 +145,9 @@ impl TestRules {
             220 => vec![r#"a -> "var" (<L=i> Id / ",")+ ";";"#],
             221 => vec![r#"a -> A (<L=i> B)* C+ D;"#],
 
+            // equivalent 109
+            222 => vec![r#"a -> Id "(" (<L=i> Id ":" type / ",")+ ")"; type -> Id;"#],
+            
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
             252 => vec![r#"a -> A (      (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
