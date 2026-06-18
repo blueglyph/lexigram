@@ -90,11 +90,11 @@ impl TestRules {
             113 => vec![r#"a -> X (B / ",")+ B? Z;"#],
             114 => vec![r#"a -> X? (B / ",")+ Z;"#],
             115 => vec![r#"a -> X Y? (B / ",")+ Z;"#],
-            116 => vec![r#"a -> X B? ("," B)* Z;"#],   // no sep_list in this one // TODO: remove
-            117 => vec![r#"a -> X (B/)+ Z;"#],         // TODO: remove
+
             118 => vec![r#"a -> "var" (Id / ",")+ ";";"#],
-            // no sep_list for +
-            119 => vec![r#"a -> Id "(" Id ":" type ("," Id ":" type)+ ")"; type -> Id;"#], // TODO: remove
+
+            // model
+            119 => vec![r#"a -> X (B / ",")+ Z;"#],
 
             120 => vec![r#"a -> A (Id / ",")+ C;"#],
             121 => vec![r#"a -> A b* C; b -> Id;"#],
@@ -135,19 +135,21 @@ impl TestRules {
             212 => vec![r#"a -> Id "(" (<L=i> Id ":" type / "<" ">")+ ")"; type -> Id;"#],
             213 => vec![r#"a -> Id "(" ((<L=i> Id ":" type / ",")+)? ")"; type -> Id;"#],
             214 => vec![r#"a -> Id "(" (<L=i> Id / ",")+ "/" (<L=j> Id / ",")+ ")";"#],
-            // no sep_list for +
-            215 => vec![r#"a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"; type -> Id;"#], // TODO: remove
+
             // split potential sep_list cases
             216 => vec![r#"a -> X (<L=i> B / ",")+ B? Z;"#],
             217 => vec![r#"a -> X? (<L=i> B / ",")+ Z;"#],
             218 => vec![r#"a -> X Y? (<L=i> B / ",")+ Z;"#],
-            219 => vec![r#"a -> X B? (<L=i>"," B)* Z;"#],   // no sep_list in this one // TODO: remove
+
+            // model
+            219 => vec![r#"a -> X (<L=i> B / ",")+ Z;"#],
+
             220 => vec![r#"a -> "var" (<L=i> Id / ",")+ ";";"#],
             221 => vec![r#"a -> A (<L=i> B)* C+ D;"#],
 
             // equivalent 109
             222 => vec![r#"a -> Id "(" (<L=i> Id ":" type / ",")+ ")"; type -> Id;"#],
-            
+
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
             252 => vec![r#"a -> A (      (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],

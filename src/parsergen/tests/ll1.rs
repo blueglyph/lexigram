@@ -408,20 +408,6 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 4, t 3, nt 1],             3, symbols![t 0, nt 1, t 3]),      //  4: a_2 -> a_1 Z     | ◄4 Z! ►a_1     | 3 | X a_1 Z
         ], NTValue::Default, btreemap![0 => vec![3, 4]]),
 
-        // a -> X (B/)+ Z
-        //
-        //   NT    name   val   flags
-        // +-------------------------------------------+
-        // |   0 | a     | y  | parent_+_or_*          |
-        // |   1 | . a_1 | y  | child_+_or_*, sep_list |
-        // +-------------------------------------------+
-        (117, false, false, true, 0, btreemap![
-        ], vec![
-            (strip![exit 0, t 2, nt 1, t 1, t 0],   3, symbols![t 0, nt 1, t 2]), //  0: a -> X B a_1 Z | ◄0 Z! ►a_1 B! X! | 3    | X a_1 Z
-            (strip![loop 1, exit 1, t 1],           2, symbols![nt 1, t 1]),      //  1: a_1 -> B a_1   | ●a_1 ◄1 B!       | 2, 1 | a_1 B
-            (strip![exit 2],                        1, symbols![nt 1]),           //  2: a_1 -> ε       | ◄2               | 1    | a_1
-        ], NTValue::Default, btreemap![0 => vec![0]]),
-
         // a -> "var" (Id / ",")+ ";"
         //
         //   NT    name   val   flags
@@ -436,24 +422,19 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 2],                        1, symbols![nt 1]),      //  2: a_1 -> ε              | ◄2                    | 1    | a_1
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> Id "(" Id ":" type ("," Id ":" type)+ ")"
-        // type -> Id
+        // a -> X (B / ",")+ Z
         //
-        //   NT    name     val   flags
-        // +-----------------------------------------------------------+
-        // |   0 | a       | y  | parent_+_or_*, plus                  |
-        // |   2 | . a_1   | y  | child_+_or_*, parent_left_fact, plus |
-        // |   3 | .   a_2 |    | child_left_fact                      |
-        // |   1 | type    | y  |                                      |
-        // +-----------------------------------------------------------+
-        (119, false, false, true, 0, btreemap![
+        //   NT    name   val   flags
+        // +-------------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*          |
+        // |   1 | . a_1 | y  | child_+_or_*, sep_list |
+        // +-------------------------------------------+
+        (119, true, false, false, 0, btreemap![
         ], vec![
-            (strip![exit 0, t 4, nt 2, nt 1, t 2, t 0, t 1, t 0], 7, symbols![t 0, t 0, nt 1, nt 2]), //  0: a -> Id "(" Id ":" type a_1 ")" | ◄0 ")" ►a_1 ►type ":" Id! "(" Id! | 7 | Id Id type a_1
-            (strip![exit 1, t 0],                                 1, symbols![t 0]),                  //  1: type -> Id                      | ◄1 Id!                            | 1 | Id
-            (strip![nt 3, nt 1, t 2, t 0, t 3],                   0, symbols![]),                     //  2: a_1 -> "," Id ":" type a_2      | ►a_2 ►type ":" Id! ","            | 0 |
-            (strip![loop 2, exit 3],                              5, symbols![nt 2, t 0, nt 1]),      //  3: a_2 -> a_1                      | ●a_1 ◄3                           | 5 | a_1 Id type
-            (strip![exit 4],                                      5, symbols![nt 2, t 0, nt 1]),      //  4: a_2 -> ε                        | ◄4                                | 5 | a_1 Id type
-        ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
+            (strip![exit 0, t 3, nt 1, t 1, t 0],   3, symbols![t 0, nt 1, t 3]), //  0: a -> X B a_1 Z   | ◄0 Z! ►a_1 B! X! | 3    | X a_1 Z
+            (strip![loop 1, exit 1, t 1, t 2],      3, symbols![nt 1, t 1]),      //  1: a_1 -> "," B a_1 | ●a_1 ◄1 B! ","   | 3, 1 | a_1 B
+            (strip![exit 2],                        1, symbols![nt 1]),           //  2: a_1 -> ε         | ◄2               | 1    | a_1
+        ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> A B* C+ D
         //
@@ -919,25 +900,6 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 4],                                           1, symbols![nt 2]),            //  4: j -> ε                        | ◄4                               | 1    | j
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> Id "(" Id ":" type (<L=i> "," Id ":" type)+ ")"
-        // type -> Id
-        //
-        //   NT    name     val   flags
-        // +-------------------------------------------------------------------+
-        // |   0 | a       | y  | parent_+_or_*, plus                          |
-        // |   1 | . i     | y  | child_+_or_*, parent_left_fact, L-form, plus |
-        // |   3 | .   i_1 |    | child_left_fact                              |
-        // |   2 | type    | y  |                                              |
-        // +-------------------------------------------------------------------+
-        (215, false, false, true, 0, btreemap![
-        ], vec![
-            (strip![exit 0, t 4, nt 1, nt 2, t 2, t 0, t 1, t 0], 7, symbols![t 0, t 0, nt 2, nt 1]), //  0: a -> Id "(" Id ":" type i ")" | ◄0 ")" ►i ►type ":" Id! "(" Id! | 7 | Id Id type i
-            (strip![nt 3, nt 2, t 2, t 0, t 3],                   0, symbols![]),                     //  1: i -> "," Id ":" type i_1      | ►i_1 ►type ":" Id! ","          | 0 |
-            (strip![exit 2, t 0],                                 1, symbols![t 0]),                  //  2: type -> Id                    | ◄2 Id!                          | 1 | Id
-            (strip![loop 1, exit 3],                              5, symbols![nt 1, t 0, nt 2]),      //  3: i_1 -> i                      | ●i ◄3                           | 5 | i Id type
-            (strip![exit 4],                                      5, symbols![nt 1, t 0, nt 2]),      //  4: i_1 -> ε                      | ◄4                              | 5 | i Id type
-        ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![2]]),
-
         // a -> X (<L=i> B / ",")+ B? Z;
         //
         //   NT    name   val   flags
@@ -987,22 +949,19 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 4, t 4, nt 1, t 2],        3, symbols![t 0, nt 1, t 4]),      //  4: a_1 -> B i Z   | ◄4 Z! ►i B!    | 3    | X i Z
         ], NTValue::Default, btreemap![0 => vec![3, 4]]),
 
-        // a -> X B (<L=i> "," B)* Z | X (<L=i> "," B)* Z
+        // a -> X (<L=i> B / ",")+ Z
         //
-        //   NT    name   val   flags
-        // +----------------------------------------------------+
-        // |   0 | a     | y  | parent_left_fact, parent_+_or_* |
-        // |   1 | . i   | y  | child_+_or_*, L-form            |
-        // |   2 | . a_1 |    | child_left_fact                 |
-        // +----------------------------------------------------+
-        (219, false, false, true, 0, btreemap![
+        //   NT    name  val   flags
+        // +--------------------------------------------------+
+        // |   0 | a    | y  | parent_+_or_*                  |
+        // |   1 | . i  | y  | child_+_or_*, L-form, sep_list |
+        // +--------------------------------------------------+
+        (219, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 2, t 0],                     0, symbols![]),                    //  0: a -> X a_1   | ►a_1 X!      | 0 |
-            (strip![loop 1, exit 1, t 1, t 2],      3, symbols![nt 1, t 1]),           //  1: i -> "," B i | ●i ◄1 B! "," | 3 | i B
-            (strip![exit 2],                        1, symbols![nt 1]),                //  2: i -> ε       | ◄2           | 1 | i
-            (strip![exit 3, t 3, nt 1, t 1],        4, symbols![t 0, t 1, nt 1, t 3]), //  3: a_1 -> B i Z | ◄3 Z! ►i B!  | 4 | X B i Z
-            (strip![exit 4, t 3, nt 1],             3, symbols![t 0, nt 1, t 3]),      //  4: a_1 -> i Z   | ◄4 Z! ►i     | 3 | X i Z
-        ], NTValue::Default, btreemap![0 => vec![3, 4]]),
+            (strip![exit 0, t 3, nt 1, t 1, t 0],   3, symbols![t 0, nt 1, t 3]), //  0: a -> X B i Z | ◄0 Z! ►i B! X! | 3    | X i Z
+            (strip![loop 1, exit 1, t 1, t 2],      3, symbols![nt 1, t 1]),      //  1: i -> "," B i | ●i ◄1 B! ","   | 3, 1 | i B
+            (strip![exit 2],                        1, symbols![nt 1]),           //  2: i -> ε       | ◄2             | 1    | i
+        ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> "var" (<L=i> Id / ",")+ ";"
         //
