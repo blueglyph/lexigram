@@ -2093,9 +2093,11 @@ impl ParserGen {
         // for the rest of the flow. At the end, when we generate the wrapper method, we'll discard the 2nd alternative and use
         // the `alt_id` parameter to determine whether it's the last iteration or not.
         // In LL, we discard the 2nd, empty alternative immediately for a non-<L> * child because there's no associated context;
-        // in LR, we call the init method.
+        // in LR, we call the init method. We also remove the last choice in <L> sep because it's init (no need for alt_id in exit with 2 alternatives).
         // no_method is true for non-<L> repeat children with no value (nothing to accumulate in a vector)
-        let discarded = if !no_method && flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT { 1 } else { 0 };
+        let is_repeat_with_l_or_value = !no_method && flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT;
+        let is_lr_repeat_with_l_and_sep = is_lr && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::SEP_LIST) == ruleflag::CHILD_REPEAT_LFORM | ruleflag::SEP_LIST;
+        let discarded = if is_repeat_with_l_or_value || is_lr_repeat_with_l_and_sep { 1 } else { 0 };
 
         // + children always have 2*n left-factorized children, each couple with identical item_ops (one for the loop, one for the last iteration).
         // So in non-<L> +, we need more than 2 alts to need the alt_id parameter. In other cases, we need more than one

@@ -110,7 +110,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),                //  4: <goal> -> a                | ►a                     | 1    |
         ], NTValue::Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
-        // a -> Id "(" Id ("," Id)* "/" Id ("," Id)* ")"
+        // a -> Id "(" (Id / ",")+ "/" (Id / ",")+ ")"
         //
         //   NT    name   val   flags
         // +-------------------------------------------+
@@ -121,14 +121,14 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         (111, false, false, false, 0, btreemap![
         ], vec![
             (strip![t 4, nt 2, t 3, nt 1, t 1, t 0], 6, symbols![t 0, nt 1, nt 2]), //  0: a -> Id "(" a_1 "/" a_2 ")" | ")" ►a_2 "/" ►a_1 "(" Id! | 6    | Id a_1 a_2
-            (strip![t 0, t 2, loop 1],               3, symbols![nt 1, t 0]),       //  1: a_1 -> a_1 "," Id           | Id! "," ●a_1              | 3    | a_1 Id
-            (strip![t 0],                            1, symbols![nt 1, t 0]),       //  2: a_1 -> Id                   | Id!                       | 1, 1 | a_1 Id
-            (strip![t 0, t 2, loop 2],               3, symbols![nt 2, t 0]),       //  3: a_2 -> a_2 "," Id           | Id! "," ●a_2              | 3    | a_2 Id
-            (strip![t 0],                            1, symbols![nt 2, t 0]),       //  4: a_2 -> Id                   | Id!                       | 1, 1 | a_2 Id
+            (strip![t 0, t 2, loop 1],               3, symbols![nt 1, t 0]),       //  1: a_1 -> a_1 "," Id           | Id! "," ●a_1              | 3, 1 | a_1 Id
+            (strip![t 0],                            2, symbols![nt 1, t 0]),       //  2: a_1 -> Id                   | Id!                       | 2    | a_1 Id
+            (strip![t 0, t 2, loop 2],               3, symbols![nt 2, t 0]),       //  3: a_2 -> a_2 "," Id           | Id! "," ●a_2              | 3, 1 | a_2 Id
+            (strip![t 0],                            2, symbols![nt 2, t 0]),       //  4: a_2 -> Id                   | Id!                       | 2    | a_2 Id
             (strip![nt 0],                           1, symbols![]),                //  5: <goal> -> a                 | ►a                        | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> "let" Id ("," Id)* "=" Num ("," Num)* ";"
+        // a -> "let" (Id / ",")+ "=" (Num / ",")+ ";"
         //
         //   NT    name   val   flags
         // +-------------------------------------------+
@@ -138,12 +138,12 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // +-------------------------------------------+
         (112, false, false, false, 0, btreemap![
         ], vec![
-            (strip![t 5, nt 2, t 3, nt 1, t 0],     5, symbols![nt 1, nt 2]), //  0: a -> "let" Id a_1 "=" Num a_2 ";" | ";" ►a_2 "=" ►a_1 "let" | 5    | a_1 a_2
-            (strip![t 1, t 2, loop 1],              3, symbols![nt 1, t 1]),  //  1: a_1 -> a_1 "," Id                 | Id! "," ●a_1            | 3    | a_1 Id
-            (strip![t 1],                           1, symbols![nt 1, t 1]),  //  2: a_1 -> Id                         | Id!                     | 1, 1 | a_1 Id
-            (strip![t 4, t 2, loop 2],              3, symbols![nt 2, t 4]),  //  3: a_2 -> a_2 "," Num                | Num! "," ●a_2           | 3    | a_2 Num
-            (strip![t 4],                           1, symbols![nt 2, t 4]),  //  4: a_2 -> Id                         | Num!                    | 1, 1 | a_2 Num
-            (strip![nt 0],                          1, symbols![]),           //  5: <goal> -> a                       | ►a                      | 1    |
+            (strip![t 5, nt 2, t 3, nt 1, t 0],     5, symbols![nt 1, nt 2]), //  0: a -> "let" a_1 "=" a_2 ";" | ";" ►a_2 "=" ►a_1 "let" | 5    | a_1 a_2
+            (strip![t 1, t 2, loop 1],              3, symbols![nt 1, t 1]),  //  1: a_1 -> a_1 "," Id          | Id! "," ●a_1            | 3, 1 | a_1 Id
+            (strip![t 1],                           2, symbols![nt 1, t 1]),  //  2: a_1 -> Id                  | Id!                     | 2    | a_1 Id
+            (strip![t 4, t 2, loop 2],              3, symbols![nt 2, t 4]),  //  3: a_2 -> a_2 "," Num         | Num! "," ●a_2           | 3, 1 | a_2 Num
+            (strip![t 4],                           2, symbols![nt 2, t 4]),  //  4: a_2 -> Num                 | Num!                    | 2    | a_2 Num
+            (strip![nt 0],                          1, symbols![]),           //  5: <goal> -> a                | ►a                      | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> X (B / ",")+ Z
@@ -161,7 +161,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a      | ►a          | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> A Id ("," Id)* C
+        // a -> A (Id / ",")+ C
         //
         //   NT    name   val   flags
         // +-------------------------------------------+
@@ -170,10 +170,10 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // +-------------------------------------------+
         (120, true, true, false, 0, btreemap![
         ], vec![
-            (strip![t 3, nt 1, t 0],                    3, symbols![t 0, nt 1, t 3]), //  0: a -> A a_1 C      | C! ►a_1 A!   | 3    | A a_1 C
-            (strip![t 1, t 2, loop 1],                  3, symbols![nt 1, t 1]),      //  1: a_1 -> a_1 "," Id | Id! "," ●a_1 | 3    | a_1 Id
-            (strip![t 1],                               1, symbols![nt 1, t 1]),      //  2: a_1 -> Id         | Id!          | 1, 1 | a_1 Id
-            (strip![nt 0],                              1, symbols![]),               //  3: <goal> -> a       | ►a           | 1    |
+            (strip![t 3, nt 1, t 0],                3, symbols![t 0, nt 1, t 3]), //  0: a -> A a_1 C      | C! ►a_1 A!   | 3    | A a_1 C
+            (strip![t 1, t 2, loop 1],              3, symbols![nt 1, t 1]),      //  1: a_1 -> a_1 "," Id | Id! "," ●a_1 | 3, 1 | a_1 Id
+            (strip![t 1],                           2, symbols![nt 1, t 1]),      //  2: a_1 -> Id         | Id!          | 2    | a_1 Id
+            (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a       | ►a           | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> (A | B)*
@@ -273,6 +273,14 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![t 1],                           2, symbols![nt 1, t 1]),      //  2: i -> B       | B!        | 2    | i B
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a  | ►a        | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        // a: y, i: n, <goal>: n
+        (219, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![t 3, nt 1, t 0],                3, symbols![t 0, t 3]), //  0: a -> X i Z   | Z! ►i X!  | 3    | X Z
+            (strip![t 1, t 2, loop 1],              3, symbols![t 1]),      //  1: i -> i "," B | B! "," ●i | 3, 1 | B
+            (strip![t 1],                           2, symbols![t 1]),      //  2: i -> B       | B!        | 2    | B
+            (strip![nt 0],                          1, symbols![]),         //  3: <goal> -> a  | ►a        | 1    |
+        ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
         // a -> Id "(" (<L=i> Id ":" type / ",")+ ")"
         // type -> Id
@@ -286,8 +294,8 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         (222, true, true, false, 0, btreemap![
         ], vec![
             (strip![t 4, nt 1, t 1, t 0],           4, symbols![t 0, nt 1]),       //  0: a -> Id "(" i ")"      | ")" ►i "(" Id!       | 4    | Id i
-            (strip![nt 2, t 2, t 0, t 3, loop 1],   5, symbols![nt 1, t 0, nt 2]), //  1: i -> i "," Id ":" type | ►type ":" Id! "," ●i | 5    | i Id type
-            (strip![nt 2, t 2, t 0],                5, symbols![nt 1, t 0, nt 2]), //  2: i -> Id ":" type       | ►type ":" Id!        | 5, 3 | i Id type
+            (strip![nt 2, t 2, t 0, t 3, loop 1],   5, symbols![nt 1, t 0, nt 2]), //  1: i -> i "," Id ":" type | ►type ":" Id! "," ●i | 5, 3 | i Id type
+            (strip![nt 2, t 2, t 0],                4, symbols![nt 1, t 0, nt 2]), //  2: i -> Id ":" type       | ►type ":" Id!        | 4    | i Id type
             (strip![t 0],                           1, symbols![t 0]),             //  3: type -> Id             | Id!                  | 1    | Id
             (strip![nt 0],                          1, symbols![]),                //  4: <goal> -> a            | ►a                   | 1    |
         ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),

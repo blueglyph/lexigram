@@ -260,7 +260,7 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, has_value, expected_alts
             ) = test_entry;
-            if !matches!(tr_id, 119|219) { continue }
+            // if !matches!(tr_id, 119|219) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let wrapper_filename = wrapper_filenames.into_iter()
