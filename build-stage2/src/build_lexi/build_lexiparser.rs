@@ -6,7 +6,7 @@ use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::parsergen::{NTValue, ParserGen};
 use lexigram_lib::file_utils::replace_tagged_source;
-use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, ProdRuleSetOptions};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, ProdRuleSetOptions, SepNt};
 use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG, LEXI_TPL_FILENAME, TPL_LISTENER_TAG, TPL_TYPES_TAG};
@@ -32,15 +32,15 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         (Some(3), &[(gnode!(nt 4), &[]), (gnode!(nt 3), &[]), (gnode!(nt 5), &[]), (gnode!(|), &[0,1,2])]),
         (Some(3), &[(gnode!(t 18), &[]), (gnode!(t 27), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
         (Some(3), &[(gnode!(t 19), &[]), (gnode!(t 27), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
-        (Some(9), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(t 27), &[]), (gnode!(&), &[1,2]), (gnode!(t 16), &[]), (gnode!(t 5), &[]), (gnode!(t 27), &[]), (gnode!(inst), &[0]), (gnode!(t 12), &[]), (gnode!(&), &[4,5,6,7,8])]),
+        (Some(9), &[(gnode!(+), &[4]), (gnode!(t 27), &[]), (gnode!(/), &[]), (gnode!(t 2), &[]), (gnode!(&), &[1,2,3]), (gnode!(t 16), &[]), (gnode!(t 5), &[]), (gnode!(inst), &[0]), (gnode!(t 12), &[]), (gnode!(&), &[5,6,7,8])]),
         (Some(35), &[(gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 11), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(nt 8), &[]), (gnode!(t 1), &[]), (gnode!(nt 11), &[]), (gnode!(t 0), &[]), (gnode!(nt 9), &[]), (gnode!(t 14), &[]), (gnode!(&), &[5,6,7,8,9,10]), (gnode!(nt 8), &[]), (gnode!(t 1), &[]), (gnode!(nt 11), &[]), (gnode!(t 14), &[]), (gnode!(&), &[12,13,14,15]), (gnode!(t 6), &[]), (gnode!(nt 8), &[]), (gnode!(t 13), &[]), (gnode!(nt 6), &[]), (gnode!(t 0), &[]), (gnode!(t 26), &[]), (gnode!(t 14), &[]), (gnode!(&), &[17,18,19,20,21,22,23]), (gnode!(t 6), &[]), (gnode!(nt 8), &[]), (gnode!(t 13), &[]), (gnode!(nt 6), &[]), (gnode!(t 14), &[]), (gnode!(&), &[25,26,27,28,29]), (gnode!(nt 8), &[]), (gnode!(t 27), &[]), (gnode!(t 14), &[]), (gnode!(&), &[31,32,33]), (gnode!(|), &[4,11,16,24,30,34])]),
         (Some(4), &[(gnode!(t 1), &[]), (gnode!(t 29), &[]), (gnode!(&), &[0,1]), (gnode!(e), &[]), (gnode!(|), &[2,3])]),
         (Some(2), &[(gnode!(t 17), &[]), (gnode!(t 27), &[]), (gnode!(&), &[0,1])]),
         (Some(0), &[(gnode!(t 27), &[])]),
-        (Some(6), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(nt 10), &[]), (gnode!(&), &[1,2]), (gnode!(nt 10), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
+        (Some(5), &[(gnode!(+), &[4]), (gnode!(nt 10), &[]), (gnode!(/), &[]), (gnode!(t 2), &[]), (gnode!(&), &[1,2,3]), (gnode!(inst), &[0])]),
         (Some(24), &[(gnode!(t 19), &[]), (gnode!(t 6), &[]), (gnode!(t 27), &[]), (gnode!(t 13), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(t 21), &[]), (gnode!(t 6), &[]), (gnode!(t 27), &[]), (gnode!(t 13), &[]), (gnode!(&), &[5,6,7,8]), (gnode!(t 20), &[]), (gnode!(t 23), &[]), (gnode!(t 22), &[]), (gnode!(t 24), &[]), (gnode!(t 6), &[]), (gnode!(t 27), &[]), (gnode!(t 13), &[]), (gnode!(&), &[13,14,15,16]), (gnode!(t 25), &[]), (gnode!(t 6), &[]), (gnode!(t 27), &[]), (gnode!(t 13), &[]), (gnode!(&), &[18,19,20,21]), (gnode!(t 26), &[]), (gnode!(|), &[4,9,10,11,12,17,22,23])]),
         (Some(0), &[(gnode!(nt 12), &[])]),
-        (Some(6), &[(gnode!(*), &[3]), (gnode!(t 10), &[]), (gnode!(nt 13), &[]), (gnode!(&), &[1,2]), (gnode!(nt 13), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
+        (Some(5), &[(gnode!(+), &[4]), (gnode!(nt 13), &[]), (gnode!(/), &[]), (gnode!(t 10), &[]), (gnode!(&), &[1,2,3]), (gnode!(inst), &[0])]),
         (Some(2), &[(gnode!(+), &[1]), (gnode!(nt 14), &[]), (gnode!(inst), &[0])]),
         (Some(19), &[(gnode!(nt 15), &[]), (gnode!(t 15), &[]), (gnode!(t 11), &[]), (gnode!(&), &[0,1,2]), (gnode!(nt 15), &[]), (gnode!(t 15), &[]), (gnode!(&), &[4,5]), (gnode!(nt 15), &[]), (gnode!(t 9), &[]), (gnode!(t 11), &[]), (gnode!(&), &[7,8,9]), (gnode!(nt 15), &[]), (gnode!(t 9), &[]), (gnode!(&), &[11,12]), (gnode!(nt 15), &[]), (gnode!(t 11), &[]), (gnode!(&), &[14,15]), (gnode!(nt 15), &[]), (gnode!(&), &[17]), (gnode!(|), &[3,6,10,13,16,18])]),
         (Some(16), &[(gnode!(t 27), &[]), (gnode!(t 28), &[]), (gnode!(t 4), &[]), (gnode!(t 28), &[]), (gnode!(&), &[1,2,3]), (gnode!(t 28), &[]), (gnode!(&), &[5]), (gnode!(t 29), &[]), (gnode!(nt 16), &[]), (gnode!(t 6), &[]), (gnode!(nt 12), &[]), (gnode!(t 13), &[]), (gnode!(&), &[9,10,11]), (gnode!(t 7), &[]), (gnode!(nt 15), &[]), (gnode!(&), &[13,14]), (gnode!(|), &[0,4,6,7,8,12,15])]),
@@ -67,19 +67,19 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
             prule!(%(6, 2), t 1, t 29; %(6, 3), e),
             prule!(%(7, 2), t 17, t 27),
             prule!(%(8, 0), t 27),
-            prule!(%(9, 6), nt 10, nt 20),
+            prule!(%(9, 5), nt 10, nt 20),
             prule!(%(10, 4), t 19, t 6, t 27, t 13; %(10, 9), t 21, t 6, t 27, t 13; %(10, 10), t 20; %(10, 11), t 23; %(10, 12), t 22; %(10, 17), t 24, t 6, t 27, t 13; %(10, 22), t 25, t 6, t 27, t 13; %(10, 23), t 26),
             prule!(%(11, 0), nt 12),
-            prule!(%(12, 6), nt 13, nt 21),
+            prule!(%(12, 5), nt 13, nt 21),
             prule!(%(13, 2), nt 22),
             prule!(nt 15, nt 26),
             prule!(%(15, 12), t 6, nt 12, t 13; %(15, 15), t 7, nt 15; %(15, 0), t 27; t 28, nt 27; %(15, 7), t 29; %(15, 8), nt 16),
             prule!(%(16, 5), t 31, nt 23, t 32; %(16, 6), t 3; %(16, 7), t 30),
             prule!(%(17, 5), t 30; t 33, nt 28),
             prule!(%(0, 1), nt 1, nt 18; e),
-            prule!(%(4, 3), t 2, t 27, nt 19; e),
-            prule!(%(9, 3), t 2, nt 10, nt 20; e),
-            prule!(%(12, 3), t 10, nt 13, nt 21; e),
+            prule!(%(4, 4), t 2, t 27, nt 19; %(4, 4), e),
+            prule!(%(9, 4), t 2, nt 10, nt 20; %(9, 4), e),
+            prule!(%(12, 4), t 10, nt 13, nt 21; %(12, 4), e),
             prule!(%(13, 1), nt 14, nt 29),
             prule!(%(16, 1), nt 17, nt 30),
             prule!(%(5, 24), t 0, t 26, t 14; %(5, 30), t 14),
@@ -101,7 +101,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         Some(0),
         ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
         hashmap![],
-        vec![]
+        vec![SepNt { nt_parent: 4, nt_child: 19, item_len: 1 }, SepNt { nt_parent: 9, nt_child: 20, item_len: 1 }, SepNt { nt_parent: 12, nt_child: 21, item_len: 1 }]
     );
 
     // [lexiparser_stage_2]

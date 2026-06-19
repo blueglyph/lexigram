@@ -16,6 +16,7 @@ Plus            : '+';
 Question        : '?';
 Rparen          : ')';
 Semicolon       : ';';
+Sep             : '/';
 Star            : '*';
 
 Grammar         : 'grammar';

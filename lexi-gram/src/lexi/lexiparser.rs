@@ -63,7 +63,7 @@ pub enum CtxDeclaration {
 }
 #[derive(Debug)]
 pub enum CtxOption {
-    /// `option -> "channels" "{" Id ("," Id)* "}"`
+    /// `option -> "channels" "{" (Id / ",")+ "}"`
     V1 { star: SynOption1 },
 }
 #[derive(Debug)]
@@ -100,7 +100,7 @@ pub enum CtxRuleTerminalName {
 }
 #[derive(Debug)]
 pub enum CtxActions {
-    /// `actions -> action ("," action)*`
+    /// `actions -> (action / ",")+`
     V1 { star: SynActions1 },
 }
 #[derive(Debug)]
@@ -129,7 +129,7 @@ pub enum CtxMatch {
 }
 #[derive(Debug)]
 pub enum CtxAltItems {
-    /// `alt_items -> alt_item ("|" alt_item)*`
+    /// `alt_items -> (alt_item / "|")+`
     V1 { star: SynAltItems1 },
 }
 #[derive(Debug)]
@@ -191,13 +191,13 @@ pub enum CtxCharSetOne {
 /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynFile1(pub Vec<SynFileItem>);
-/// Computed `("," Id)*` array in `option -> "channels" "{" Id  ►► ("," Id)* ◄◄  "}"`
+/// Computed `(Id / ",")+` array in `option -> "channels" "{"  ►► (Id / ",")+ ◄◄  "}"`
 #[derive(Debug, PartialEq)]
 pub struct SynOption1(pub Vec<String>);
-/// Computed `("," action)*` array in `actions -> action  ►► ("," action)* ◄◄ `
+/// Computed `(action / ",")+` array in `actions ->  ►► (action / ",")+ ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynActions1(pub Vec<SynAction>);
-/// Computed `("|" alt_item)*` array in `alt_items -> alt_item  ►► ("|" alt_item)* ◄◄ `
+/// Computed `(alt_item / "|")+` array in `alt_items ->  ►► (alt_item / "|")+ ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynAltItems1(pub Vec<SynAltItem>);
 /// Computed `repeat_item+` array in `alt_item ->  ►► repeat_item+ ◄◄ `

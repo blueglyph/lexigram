@@ -15,7 +15,7 @@ use super::{GRAMPARSER_GRAMMAR, GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TA
 // -------------------------------------------------------------------------
 // [terminal_symbols]
 
-static TERMINALS: [(&str, Option<&str>); 15] = [
+static TERMINALS: [(&str, Option<&str>); 16] = [
     ("Colon",    Some(":")),       // 0
     ("Lparen",   Some("(")),       // 1
     ("Or",       Some("|")),       // 2
@@ -23,14 +23,15 @@ static TERMINALS: [(&str, Option<&str>); 15] = [
     ("Question", Some("?")),       // 4
     ("Rparen",   Some(")")),       // 5
     ("Semicolon",Some(";")),       // 6
-    ("Star",     Some("*")),       // 7
-    ("Grammar",  Some("grammar")), // 8
-    ("SymEof",   Some("EOF")),     // 9
-    ("Lform",    None),            // 10
-    ("Rform",    Some("<R>")),     // 11
-    ("Pform",    Some("<P>")),     // 12
-    ("Greedy",   Some("<G>")),     // 13
-    ("Id",       None),            // 14
+    ("Sep",      Some("/")),       // 7
+    ("Star",     Some("*")),       // 8
+    ("Grammar",  Some("grammar")), // 9
+    ("SymEof",   Some("EOF")),     // 10
+    ("Lform",    None),            // 11
+    ("Rform",    Some("<R>")),     // 12
+    ("Pform",    Some("<P>")),     // 13
+    ("Greedy",   Some("<G>")),     // 14
+    ("Id",       None),            // 15
 ];
 
 // [terminal_symbols]

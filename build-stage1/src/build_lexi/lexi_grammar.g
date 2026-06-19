@@ -15,7 +15,7 @@ declaration:
 ;
 
 option:
-    Channels Lbracket Id (Comma Id)* Rbracket
+    Channels Lbracket (Id / Comma)+ Rbracket
 ;
 
 rule:
@@ -40,7 +40,7 @@ rule_terminal_name:
 ;
 
 actions:
-    action (Comma action)*
+    (action / Comma)+
 ;
 
 action:
@@ -59,7 +59,7 @@ match:
 ;
 
 alt_items:
-    alt_item (Or alt_item)*
+    (alt_item / Or)+
 ;
 
 alt_item:

@@ -463,6 +463,7 @@ impl GramParserListener for GramListener<'_> {
     // |   Pform
     // |   Greedy
     // |   Lparen prod Rparen
+    // |   Sep
     // ;
     fn exit_prod_atom(&mut self, ctx: CtxProdAtom, spans: Vec<PosSpan>) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
@@ -535,6 +536,10 @@ impl GramParserListener for GramListener<'_> {
                 (self.curr.as_mut().unwrap().add(None, GrNode::Greedy), None)
             }
             CtxProdAtom::V6 { prod: SynProd(id, lform) } => (id, lform),  // prod_atom -> ( prod )
+
+            CtxProdAtom::V7 => {                        // prod_atom -> "/"
+                (self.curr.as_mut().unwrap().add(None, GrNode::Sep), None)
+            }
         };
         SynProdAtom(id, lform)
     }

@@ -11,7 +11,7 @@ use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 // -------------------------------------------------------------------------
 // [terminal_symbols]
 
-static TERMINALS: [(&str, Option<&str>); 15] = [
+static TERMINALS: [(&str, Option<&str>); 16] = [
     ("Colon",    Some(":")),       // 0
     ("Lparen",   Some("(")),       // 1
     ("Or",       Some("|")),       // 2
@@ -19,14 +19,15 @@ static TERMINALS: [(&str, Option<&str>); 15] = [
     ("Question", Some("?")),       // 4
     ("Rparen",   Some(")")),       // 5
     ("Semicolon",Some(";")),       // 6
-    ("Star",     Some("*")),       // 7
-    ("Grammar",  Some("grammar")), // 8
-    ("SymEof",   Some("EOF")),     // 9
-    ("Lform",    None),            // 10
-    ("Rform",    Some("<R>")),     // 11
-    ("Pform",    Some("<P>")),     // 12
-    ("Greedy",   Some("<G>")),     // 13
-    ("Id",       None),            // 14
+    ("Sep",      Some("/")),       // 7
+    ("Star",     Some("*")),       // 8
+    ("Grammar",  Some("grammar")), // 9
+    ("SymEof",   Some("EOF")),     // 10
+    ("Lform",    None),            // 11
+    ("Rform",    Some("<R>")),     // 12
+    ("Pform",    Some("<P>")),     // 13
+    ("Greedy",   Some("<G>")),     // 14
+    ("Id",       None),            // 15
 ];
 
 // [terminal_symbols]
@@ -48,22 +49,22 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
 
     let dfa_tables = DfaTables::new(
         btreemap![
-            0 => branch!('\t'-'\n', '\r', ' ' => 11, '(' => 12, ')' => 13, '*' => 14, '+' => 15, '/' => 1, ':' => 16, ';' => 17, '<' => 2, '?' => 18, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 19, 'E' => 20, 'g' => 21, '|' => 22),
-            1 => branch!('*' => 3, '/' => 23),
-            2 => branch!('G' => 5, 'L' => 6, 'P' => 7, 'R' => 8),
-            3 => branch!(~['*'] => 3, ['*'] => 4),
-            4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 24),
-            5 => branch!('>' => 36),
-            6 => branch!('=' => 9, '>' => 33),
-            7 => branch!('>' => 35),
-            8 => branch!('>' => 34),
-            9 => branch!('A'-'Z', 'a'-'z' => 10),
-            10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 33),
-            11 => branch!('\t'-'\n', '\r', ' ' => 11),
+            0 => branch!('\t'-'\n', '\r', ' ' => 10, '(' => 11, ')' => 12, '*' => 13, '+' => 14, '/' => 15, ':' => 16, ';' => 17, '<' => 1, '?' => 18, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 19, 'E' => 20, 'g' => 21, '|' => 22),
+            1 => branch!('G' => 4, 'L' => 5, 'P' => 6, 'R' => 7),
+            2 => branch!(~['*'] => 2, ['*'] => 3),
+            3 => branch!(~['*', '/'] => 2, ['*'] => 3, ['/'] => 24),
+            4 => branch!('>' => 36),
+            5 => branch!('=' => 8, '>' => 33),
+            6 => branch!('>' => 35),
+            7 => branch!('>' => 34),
+            8 => branch!('A'-'Z', 'a'-'z' => 9),
+            9 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 33),
+            10 => branch!('\t'-'\n', '\r', ' ' => 10),
+            11 => branch!(),
             12 => branch!(),
             13 => branch!(),
             14 => branch!(),
-            15 => branch!(),
+            15 => branch!('*' => 2, '/' => 23),
             16 => branch!(),
             17 => branch!(),
             18 => branch!(),
@@ -88,13 +89,13 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
         ],
         Some(0),
         btreemap![
-            11 => term!(skip), 12 => term!(=1), 13 => term!(=5), 14 => term!(=7), 15 => term!(=3), 16 => term!(=0),
-            17 => term!(=6), 18 => term!(=4), 19 => term!(=14), 20 => term!(=14), 21 => term!(=14), 22 => term!(=2),
-            23 => term!(skip), 24 => term!(skip), 25 => term!(=14), 26 => term!(=14), 27 => term!(=14), 28 => term!(=14),
-            29 => term!(=14), 30 => term!(=8), 31 => term!(=14), 32 => term!(=9), 33 => term!(=10), 34 => term!(=11),
-            35 => term!(=12), 36 => term!(=13),
+            10 => term!(skip), 11 => term!(=1), 12 => term!(=5), 13 => term!(=8), 14 => term!(=3), 15 => term!(=7),
+            16 => term!(=0), 17 => term!(=6), 18 => term!(=4), 19 => term!(=15), 20 => term!(=15), 21 => term!(=15),
+            22 => term!(=2), 23 => term!(skip), 24 => term!(skip), 25 => term!(=15), 26 => term!(=15), 27 => term!(=15),
+            28 => term!(=15), 29 => term!(=15), 30 => term!(=9), 31 => term!(=15), 32 => term!(=10), 33 => term!(=11),
+            34 => term!(=12), 35 => term!(=13), 36 => term!(=14),
         ],
-        Some(11),
+        Some(10),
     );
 
     // [gramlexer_stage_2]

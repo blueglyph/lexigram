@@ -39,4 +39,5 @@ prod_atom:
 |   Pform
 |   Greedy
 |   Lparen prod Rparen
+|   Sep
 ;
