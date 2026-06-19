@@ -980,17 +980,17 @@ mod config_parser {
     }
     #[derive(Debug)]
     pub enum CtxIoOptions {
-        /// `io_options -> io_option (<L> "," io_option)*`
+        /// `io_options -> (<L> io_option / ",")+`
         V1 { star: SynIIoOpt },
     }
     #[derive(Debug)]
     pub enum InitCtxIIoOpt {
-        /// value of `io_option` before `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+        /// value of `io_option` before `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
         V1 { io_option: SynIoOption },
     }
     #[derive(Debug)]
     pub enum CtxIIoOpt {
-        /// `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+        /// `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
         V1 { io_option: SynIoOption },
     }
     #[derive(Debug)]
@@ -1003,7 +1003,7 @@ mod config_parser {
         V3 { value: SynValue, tag_opt: SynTagOpt },
         /// `io_option -> "indent" ":" value`
         V4 { value: SynValue },
-        /// `io_option -> "headers" ":" "{" value ("," value)* "}"`
+        /// `io_option -> "headers" ":" "{" (value / ",")+ "}"`
         V5 { star: SynIoOption1 },
     }
     #[derive(Debug)]
@@ -1015,26 +1015,26 @@ mod config_parser {
     }
     #[derive(Debug)]
     pub enum CtxGlobalOptions {
-        /// `global_options -> global_option (<L> "," global_option)*`
+        /// `global_options -> (<L> global_option / ",")+`
         V1 { star: SynIGlobalOpt },
     }
     #[derive(Debug)]
     pub enum InitCtxIGlobalOpt {
-        /// value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+        /// value of `global_option` before `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
         V1 { global_option: SynGlobalOption },
     }
     #[derive(Debug)]
     pub enum CtxIGlobalOpt {
-        /// `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+        /// `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
         V1 { global_option: SynGlobalOption },
     }
     #[derive(Debug)]
     pub enum CtxGlobalOption {
-        /// `global_option -> "headers" ":" "{" value ("," value)* "}"`
+        /// `global_option -> "headers" ":" "{" (value / ",")+ "}"`
         V1 { star: SynGlobalOption1 },
         /// `global_option -> "indent" ":" value`
         V2 { value: SynValue },
-        /// `global_option -> "libs" ":" "{" value ("," value)* "}"`
+        /// `global_option -> "libs" ":" "{" (value / ",")+ "}"`
         V3 { star: SynGlobalOption2 },
         /// `global_option -> "nt-value" ":" nt_value`
         V4 { nt_value: SynNtValue },
@@ -1062,20 +1062,20 @@ mod config_parser {
         V2,
         /// `nt_value -> "parents"`
         V3,
-        /// `nt_value -> "set" "{" value ("," value)* "}"`
+        /// `nt_value -> "set" "{" (value / ",")+ "}"`
         V4 { star: SynNtValue1 },
     }
 
-    /// Computed `("," value)*` array in `io_option -> "combined" ":" value tag_opt | "input" ":" value tag_opt | "output" ":" value tag_opt | "indent" ":" value | "headers" ":" "{" value  ►► ("," value)* ◄◄  "}"`
+    /// Computed `(value / ",")+` array in `io_option -> "combined" ":" value tag_opt | "input" ":" value tag_opt | "output" ":" value tag_opt | "indent" ":" value | "headers" ":" "{"  ►► (value / ",")+ ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynIoOption1(pub Vec<SynValue>);
-    /// Computed `("," value)*` array in `global_option -> "headers" ":" "{" value  ►► ("," value)* ◄◄  "}" | "indent" ":" value | "libs" ":" "{" value ("," value)* "}" | "nt-value" ":" nt_value | "spans" ":" value`
+    /// Computed `(value / ",")+` array in `global_option -> "headers" ":" "{"  ►► (value / ",")+ ◄◄  "}" | "indent" ":" value | "libs" ":" "{" (value / ",")+ "}" | "nt-value" ":" nt_value | "spans" ":" value`
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOption1(pub Vec<SynValue>);
-    /// Computed `("," value)*` array in `global_option -> "headers" ":" "{" value ("," value)* "}" | "indent" ":" value | "libs" ":" "{" value  ►► ("," value)* ◄◄  "}" | "nt-value" ":" nt_value | "spans" ":" value`
+    /// Computed `(value / ",")+` array in `global_option -> "headers" ":" "{" (value / ",")+ "}" | "indent" ":" value | "libs" ":" "{"  ►► (value / ",")+ ◄◄  "}" | "nt-value" ":" nt_value | "spans" ":" value`
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOption2(pub Vec<SynValue>);
-    /// Computed `("," value)*` array in `nt_value -> "default" | "none" | "parents" | "set" "{" value  ►► ("," value)* ◄◄  "}"`
+    /// Computed `(value / ",")+` array in `nt_value -> "default" | "none" | "parents" | "set" "{"  ►► (value / ",")+ ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynNtValue1(pub Vec<SynValue>);
     /// Top non-terminal Config (has no value)

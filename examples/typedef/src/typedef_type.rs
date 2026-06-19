@@ -496,19 +496,19 @@ pub mod typedef_type_parser {
     }
     #[derive(Debug)]
     pub enum CtxDecl {
-        /// `decl -> Type Id (<L> "," Id)* ";"`
+        /// `decl -> Type (<L> Id / ",")+ ";"`
         V1 { type1: String, star: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `Id` before `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// value of `Id` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxIdI {
-        /// `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+        /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]

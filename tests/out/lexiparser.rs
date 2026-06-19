@@ -65,7 +65,7 @@ pub(crate) mod lexiparser {
     #[derive(Debug)]
     pub enum CtxOption {
         /// `option -> "channels" "{" Id ("," Id)* "}"`
-        V1 { star: SynOption1 },
+        V1 { id: String, star: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
@@ -79,7 +79,7 @@ pub(crate) mod lexiparser {
     #[derive(Debug)]
     pub enum CtxActions {
         /// `actions -> action ("," action)*`
-        V1 { star: SynActions1 },
+        V1 { action: SynAction, star: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
@@ -106,7 +106,7 @@ pub(crate) mod lexiparser {
     #[derive(Debug)]
     pub enum CtxAltItems {
         /// `alt_items -> alt_item ("|" alt_item)*`
-        V1 { star: SynAltItems1 },
+        V1 { alt_item: SynAltItem, star: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
@@ -550,14 +550,15 @@ pub(crate) mod lexiparser {
 
         fn exit_option(&mut self) {
             let star = self.stack.pop().unwrap().get_option1();
-            let ctx = CtxOption::V1 { star };
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxOption::V1 { id, star };
             let val = self.listener.exit_option(ctx);
             self.stack.push(EnumSynValue::Option(val));
         }
 
         fn init_option1(&mut self) {
-            let id = self.stack_t.pop().unwrap();
-            self.stack.push(EnumSynValue::Option1(SynOption1(vec![id])));
+            let val = SynOption1(Vec::new());
+            self.stack.push(EnumSynValue::Option1(val));
         }
 
         fn exit_option1(&mut self) {
@@ -594,14 +595,15 @@ pub(crate) mod lexiparser {
 
         fn exit_actions(&mut self) {
             let star = self.stack.pop().unwrap().get_actions1();
-            let ctx = CtxActions::V1 { star };
+            let action = self.stack.pop().unwrap().get_action();
+            let ctx = CtxActions::V1 { action, star };
             let val = self.listener.exit_actions(ctx);
             self.stack.push(EnumSynValue::Actions(val));
         }
 
         fn init_actions1(&mut self) {
-            let action = self.stack.pop().unwrap().get_action();
-            self.stack.push(EnumSynValue::Actions1(SynActions1(vec![action])));
+            let val = SynActions1(Vec::new());
+            self.stack.push(EnumSynValue::Actions1(val));
         }
 
         fn exit_actions1(&mut self) {
@@ -654,14 +656,15 @@ pub(crate) mod lexiparser {
 
         fn exit_alt_items(&mut self) {
             let star = self.stack.pop().unwrap().get_alt_items1();
-            let ctx = CtxAltItems::V1 { star };
+            let alt_item = self.stack.pop().unwrap().get_alt_item();
+            let ctx = CtxAltItems::V1 { alt_item, star };
             let val = self.listener.exit_alt_items(ctx);
             self.stack.push(EnumSynValue::AltItems(val));
         }
 
         fn init_alt_items1(&mut self) {
-            let alt_item = self.stack.pop().unwrap().get_alt_item();
-            self.stack.push(EnumSynValue::AltItems1(SynAltItems1(vec![alt_item])));
+            let val = SynAltItems1(Vec::new());
+            self.stack.push(EnumSynValue::AltItems1(val));
         }
 
         fn exit_alt_items1(&mut self) {

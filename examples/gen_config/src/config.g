@@ -24,7 +24,7 @@ options:
 ;
 
 io_options:
-    io_option (<L=i_io_opt> Comma io_option)*
+    (<L=i_io_opt> io_option / Comma)+
 ;
 
 io_option:
@@ -32,7 +32,7 @@ io_option:
 |   Input    Colon value tag_opt
 |   Output   Colon value tag_opt
 |   Indent   Colon value
-|   Headers  Colon Lbracket value (Comma value)* Rbracket // string
+|   Headers  Colon Lbracket (value / Comma)+ Rbracket // string
 ;
 
 tag_opt:
@@ -40,13 +40,13 @@ tag_opt:
 ;
 
 global_options:
-     global_option (<L=i_global_opt> Comma global_option)*
+     (<L=i_global_opt> global_option / Comma)+
 ;
 
 global_option:
-    Headers Colon Lbracket value (Comma value)* Rbracket
+    Headers Colon Lbracket (value / Comma)+ Rbracket
 |   Indent  Colon value
-|   Libs    Colon Lbracket value (Comma value)* Rbracket
+|   Libs    Colon Lbracket (value / Comma)+ Rbracket
 |   NTValue Colon nt_value
 |   Spans   Colon value
 ;
@@ -63,5 +63,5 @@ nt_value:
     Default
 |   None
 |   Parents
-|   Set Lbracket value (Comma value)* Rbracket
+|   Set Lbracket (value / Comma)+ Rbracket
 ;

@@ -8,7 +8,7 @@
     #[derive(Debug, PartialEq)]
     pub struct SynIoOptions();
 
-    /// User-defined type for `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+    /// User-defined type for `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
     #[derive(Debug, PartialEq)]
     pub struct SynIIoOpt();
 
@@ -24,7 +24,7 @@
     #[derive(Debug, PartialEq)]
     pub struct SynGlobalOptions();
 
-    /// User-defined type for `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+    /// User-defined type for `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
     #[derive(Debug, PartialEq)]
     pub struct SynIGlobalOpt();
 
@@ -98,19 +98,19 @@
         }
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
-            // io_options -> io_option (<L> "," io_option)*
+            // io_options -> (<L> io_option / ",")+
             let CtxIoOptions::V1 { star } = ctx;
             SynIoOptions()
         }
 
         fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
-            // value of `io_option` before `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+            // value of `io_option` before `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
             let InitCtxIIoOpt::V1 { io_option } = ctx;
             SynIIoOpt()
         }
 
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>) {
-            // `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+            // `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
             let CtxIIoOpt::V1 { io_option } = ctx;
         }
 
@@ -124,7 +124,7 @@
                 CtxIoOption::V3 { value, tag_opt } => {}
                 // io_option -> "indent" ":" value
                 CtxIoOption::V4 { value } => {}
-                // io_option -> "headers" ":" "{" value ("," value)* "}"
+                // io_option -> "headers" ":" "{" (value / ",")+ "}"
                 CtxIoOption::V5 { star } => {}
             }
             SynIoOption()
@@ -141,29 +141,29 @@
         }
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
-            // global_options -> global_option (<L> "," global_option)*
+            // global_options -> (<L> global_option / ",")+
             let CtxGlobalOptions::V1 { star } = ctx;
             SynGlobalOptions()
         }
 
         fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
-            // value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            // value of `global_option` before `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
             let InitCtxIGlobalOpt::V1 { global_option } = ctx;
             SynIGlobalOpt()
         }
 
         fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>) {
-            // `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
+            // `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
             let CtxIGlobalOpt::V1 { global_option } = ctx;
         }
 
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
-                // global_option -> "headers" ":" "{" value ("," value)* "}"
+                // global_option -> "headers" ":" "{" (value / ",")+ "}"
                 CtxGlobalOption::V1 { star } => {}
                 // global_option -> "indent" ":" value
                 CtxGlobalOption::V2 { value } => {}
-                // global_option -> "libs" ":" "{" value ("," value)* "}"
+                // global_option -> "libs" ":" "{" (value / ",")+ "}"
                 CtxGlobalOption::V3 { star } => {}
                 // global_option -> "nt-value" ":" nt_value
                 CtxGlobalOption::V4 { nt_value } => {}
@@ -197,7 +197,7 @@
                 CtxNtValue::V2 => {}
                 // nt_value -> "parents"
                 CtxNtValue::V3 => {}
-                // nt_value -> "set" "{" value ("," value)* "}"
+                // nt_value -> "set" "{" (value / ",")+ "}"
                 CtxNtValue::V4 { star } => {}
             }
             SynNtValue()

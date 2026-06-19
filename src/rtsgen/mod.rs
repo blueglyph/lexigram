@@ -792,7 +792,7 @@ pub mod rtsgen_parser {
     }
     #[derive(Debug)]
     pub enum CtxDecl {
-        /// `decl -> "token" decl_terminal ("," decl_terminal)* ";"`
+        /// `decl -> "token" (decl_terminal / ",")+ ";"`
         V1 { star: SynDecl1 },
     }
     #[derive(Debug)]
@@ -889,7 +889,7 @@ pub mod rtsgen_parser {
         V11,
     }
 
-    /// Computed `("," decl_terminal)*` array in `decl -> "token" decl_terminal  ►► ("," decl_terminal)* ◄◄  ";"`
+    /// Computed `(decl_terminal / ",")+` array in `decl -> "token"  ►► (decl_terminal / ",")+ ◄◄  ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynDecl1(pub Vec<SynDeclTerminal>);
     /// Computed `rts_expr*` array in `rts_children -> "("  ►► rts_expr* ◄◄  ")"`

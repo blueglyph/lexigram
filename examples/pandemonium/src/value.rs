@@ -808,17 +808,17 @@ pub mod pandemonium_parser {
     }
     #[derive(Debug)]
     pub enum CtxLStar {
-        /// `l_star -> Id "=" Num (<L> "," "then" Num)* ";"`
+        /// `l_star -> Id "=" (<L> Num / "," "then")+ ";"`
         V1 { id: String, star: SynLStarI },
     }
     #[derive(Debug)]
     pub enum InitCtxLStarI {
-        /// value of `Num` before `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        /// value of `Num` before `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
         V1 { num: String },
     }
     #[derive(Debug)]
     pub enum CtxLStarI {
-        /// `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        /// `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
         V1 { num: String },
     }
     #[derive(Debug)]
@@ -887,12 +887,12 @@ pub mod pandemonium_parser {
     }
     #[derive(Debug)]
     pub enum CtxSepList {
-        /// `sep_list -> Id "=" Id ":" Num ("," "then" Id ":" Num)* ";"`
+        /// `sep_list -> Id "=" (Id ":" Num / "," "then")+ ";"`
         V1 { id: String, star: SynSepList1 },
     }
     #[derive(Debug)]
     pub enum CtxSepListOpt {
-        /// `sep_list_opt -> Id "=" Id ":" Num ("," "then" Id ":" Num)* ";"`
+        /// `sep_list_opt -> Id "=" (Id ":" Num / "," "then")+ ";"`
         V1 { id: String, star: SynSepListOpt1 },
         /// `sep_list_opt -> Id "=" ";"`
         V2 { id: String },
@@ -966,16 +966,16 @@ pub mod pandemonium_parser {
         /// `Num ":" Id` item in `plus_a -> Id "=" "[" (Id |  ►► Num ":" Id ◄◄ )+ "]" ";"`
         V2 { num: String, id: String },
     }
-    /// Computed `("," "then" Id ":" Num)*` array in `sep_list -> Id "=" Id ":" Num  ►► ("," "then" Id ":" Num)* ◄◄  ";"`
+    /// Computed `(Id ":" Num / "," "then")+` array in `sep_list -> Id "="  ►► (Id ":" Num / "," "then")+ ◄◄  ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynSepList1(pub Vec<SynSepList1Item>);
-    /// `"," "then" Id ":" Num` item in `sep_list -> Id "=" Id ":" Num ( ►► "," "then" Id ":" Num ◄◄ )* ";"`
+    /// `Id ":" Num / "," "then"` item in `sep_list -> Id "=" ( ►► Id ":" Num / "," "then" ◄◄ )+ ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynSepList1Item { pub id: String, pub num: String }
-    /// Computed `("," "then" Id ":" Num)*` array in `sep_list_opt -> Id "=" Id ":" Num  ►► ("," "then" Id ":" Num)* ◄◄  ";" | Id "=" ";"`
+    /// Computed `(Id ":" Num / "," "then")+` array in `sep_list_opt -> Id "="  ►► (Id ":" Num / "," "then")+ ◄◄  ";" | Id "=" ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynSepListOpt1(pub Vec<SynSepListOpt1Item>);
-    /// `"," "then" Id ":" Num` item in `sep_list_opt -> Id "=" Id ":" Num ( ►► "," "then" Id ":" Num ◄◄ )* ";" | Id "=" ";"`
+    /// `Id ":" Num / "," "then"` item in `sep_list_opt -> Id "=" ( ►► Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynSepListOpt1Item { pub id: String, pub num: String }
 

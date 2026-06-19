@@ -10,7 +10,7 @@ decls:
 ;
 
 decl:
-    Token decl_terminal (Comma decl_terminal)* Semicolon
+    Token (decl_terminal / Comma)+ Semicolon
 ;
 
 decl_terminal:

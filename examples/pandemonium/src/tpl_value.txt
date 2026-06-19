@@ -73,19 +73,19 @@ impl PandemoniumListener for Listener {
     }
 
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
-        // l_star -> Id "=" Num (<L> "," "then" Num)* ";"
+        // l_star -> Id "=" (<L> Num / "," "then")+ ";"
         let CtxLStar::V1 { id, star } = ctx;
         SynLStar()
     }
 
     fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) -> SynLStarI {
-        // value of `Num` before `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        // value of `Num` before `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
         let InitCtxLStarI::V1 { num } = ctx;
         SynLStarI()
     }
 
     fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>) {
-        // `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        // `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
         let CtxLStarI::V1 { num } = ctx;
     }
 
@@ -179,14 +179,14 @@ impl PandemoniumListener for Listener {
     }
 
     fn exit_sep_list(&mut self, ctx: CtxSepList, spans: Vec<PosSpan>) -> SynSepList {
-        // sep_list -> Id "=" Id ":" Num ("," "then" Id ":" Num)* ";"
+        // sep_list -> Id "=" (Id ":" Num / "," "then")+ ";"
         let CtxSepList::V1 { id, star } = ctx;
         SynSepList()
     }
 
     fn exit_sep_list_opt(&mut self, ctx: CtxSepListOpt, spans: Vec<PosSpan>) -> SynSepListOpt {
         match ctx {
-            // sep_list_opt -> Id "=" Id ":" Num ("," "then" Id ":" Num)* ";"
+            // sep_list_opt -> Id "=" (Id ":" Num / "," "then")+ ";"
             CtxSepListOpt::V1 { id, star } => {}
             // sep_list_opt -> Id "=" ";"
             CtxSepListOpt::V2 { id } => {}

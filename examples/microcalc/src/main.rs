@@ -397,7 +397,7 @@ pub mod microcalc_parser {
     }
     #[derive(Debug)]
     pub enum CtxFunParams {
-        /// `fun_params -> Id ("," Id)*`
+        /// `fun_params -> (Id / ",")+`
         V1 { star: SynFunParams1 },
         /// `fun_params -> ε`
         V2,
@@ -467,7 +467,7 @@ pub mod microcalc_parser {
     }
     #[derive(Debug)]
     pub enum CtxFunArgs {
-        /// `fun_args -> expr ("," expr)*`
+        /// `fun_args -> (expr / ",")+`
         V1 { star: SynFunArgs1 },
         /// `fun_args -> ε`
         V2,
@@ -476,13 +476,13 @@ pub mod microcalc_parser {
     /// Computed `function+` array in `program ->  ►► function+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynProgram1(pub Vec<SynFunction>);
-    /// Computed `("," Id)*` array in `fun_params -> Id  ►► ("," Id)* ◄◄  | ε`
+    /// Computed `(Id / ",")+` array in `fun_params ->  ►► (Id / ",")+ ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunParams1(pub Vec<String>);
     /// Computed `instruction*` array in `block -> "{"  ►► instruction* ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynBlock1(pub Vec<SynInstruction>);
-    /// Computed `("," expr)*` array in `fun_args -> expr  ►► ("," expr)* ◄◄  | ε`
+    /// Computed `(expr / ",")+` array in `fun_args ->  ►► (expr / ",")+ ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunArgs1(pub Vec<SynExpr>);
 
