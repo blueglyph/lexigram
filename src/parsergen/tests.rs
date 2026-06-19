@@ -237,7 +237,7 @@ pub(super) mod wrapper_source {
         } = spec;
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
@@ -260,7 +260,7 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, has_value, expected_alts
             ) = test_entry;
-            // if !matches!(tr_id, 119|219) { continue }
+            // if !matches!(tr_id, 103|251|154|155) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let wrapper_filename = wrapper_filenames.into_iter()

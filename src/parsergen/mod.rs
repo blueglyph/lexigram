@@ -1348,179 +1348,10 @@ impl ParserGen {
         }
     }
 
-    #[allow(unused)]
-    /// Detects and transforms token-separated item lists of the form α (β α)*
-    /// - α having valuable T/NT
-    /// - β having no value (typ. fixed terminals)
-    fn check_sep_list_old(&mut self, items: &mut [Vec<Symbol>]) {
-        // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
-        //
-        // alt | rule alternative                 | items
-        // ----+----------------------------------+---------------
-        //  0  |  a -> Id "(" Id ":" type a_1 ")" | Id Id type a_1
-        //  1  |  type -> Id                      | Id
-        //  2  |  a_1 -> "," Id ":" type a_1      | a_1 Id type
-        //  3  |  a_1 -> ε                        | a_1
-        //
-        // - c_alt = 2 is child_*, pattern in `items` = [Id type] (a_1 is skipped),
-        //   - pattern_len = 2
-        //   - find NT in group that's not a_1 and that has a_1 in one of its alt
-        //     => p_var = a, p_alt_id = 0
-        //   - find position of a_1 in p_alt; check if there's something on the left (reject if not)
-        //     and takes the position of the left symbol:
-
-        //          0   1  2   3    4          0  1   2  3   4    5
-        //       2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
-        //                     ^^^^ c_pos (init) = 3         ^^^^ p_pos0 = p_pos (init) = 4
-        //
-        //   - counts how many symbols match on the left, and
-        //     for each symbol that has a value, pops one from pattern,
-        //     until pattern is empty of c_pos/p_pos is 0
-        //
-        //          0   1  2   3    4          0  1   2  3   4    5
-        //       2: "," Id ":" type a_1     0: Id "(" Id ":" type a_1 ")"
-        //          !=  <----------               !=  <---------- span_nbr = 3 (Id ":" type)
-        //
-        //   - if pattern is empty, we have a potential match, but we must still verify if
-        //     all the parents alternatives that use a_1 also include the pattern. For example,
-        //     `a -> Id? ("," Id)*` would be transformed as `a -> Id ("," Id)* | ("," Id)*`, so
-        //     we can't apply sep_list because the child* shouldn't always expect a first Id
-        //     on the stack.
-        //     - find all the positions of a_1 in self.gather(a)
-        //     - check that, for each of the a_1 found, the pattern precedes it: Id [Id type] a_1 => OK
-        //     - for each p_alt and postion (here, p_alt = 0 and pos = 3),
-        //       - remove [pos - pattern_len..pos] from items[p_alt] -> [3 - 2..3] = [1..3] => [Id a_1] is left
-        const VERBOSE: bool = false;
-        let is_lr = self.options.parser_type.is_lr();
-        if VERBOSE {
-            let log = std::mem::take(&mut self.log);
-            self.item_ops = items.iter().cloned().to_vec();
-            self.log_nt_info();
-            self.log_alt_info();
-            println!("{}", self.log);
-            self.item_ops.clear();
-            self.log = log;
-        }
-        self.log.add_note("- determining sep_list nonterminals...");
-        if VERBOSE { println!("check_sep_list:"); }
-        // takes one group at a time
-        for (top_nt, g) in self.nt_parent.iter().enumerate().filter(|va| !va.1.is_empty()) {
-            // takes the potential child_*
-            let candidate_children = g.iter()
-                .filter_map(|&var| {
-                    let alts = &self.var_alts[var as usize];
-                    let flags = self.flags[var as usize];
-                    // takes only len() == 2 to reject complex cases like a -> A B C (B C | D)*
-                    if alts.len() == 2 && flags & (ruleflag::CHILD_REPEAT_PLUS) == ruleflag::CHILD_REPEAT {
-                        Some((var, alts[0] as usize, flags))
-                    } else {
-                        None
-                    }
-                })
-                .to_vec();  // to avoid borrow checker issue with &mut self later
-            for &(c_var, c_alt_id, _c_flags) in &candidate_children {
-                let has_value = self.nt_values[c_var as usize];
-                let skip_loop_nt = if has_value { 1 } else { 0 }; // the loop NT that's put in front when it has a value
-                let mut pattern = items[c_alt_id].iter().skip(skip_loop_nt).cloned().to_vec();
-                if VERBOSE {
-                    println!(
-                        "? {} {c_alt_id}: pattern = {}",
-                        Symbol::NT(c_var).to_str(self.get_symbol_table()),
-                        pattern.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                if !pattern.is_empty() {
-                    let pattern_len = pattern.len();
-                    let pattern_copy = pattern.clone();
-                    let c_sym = Symbol::NT(c_var);
-                    // finds the parent's alt that includes this child_+*
-                    let (p_var, _p_alt_id, p_alt, mut p_pos) = self.nt_parent[top_nt].iter()
-                        .flat_map(|&p_var| &self.var_alts[p_var as usize])
-                        .filter_map(|&p_alt_id| {
-                            let (p_var, p_alt) = &self.alts[p_alt_id as usize];
-                            if *p_var != c_var {
-                                p_alt.v.iter().position(|s| s == &c_sym).map(|p_pos| (*p_var, p_alt_id as usize, p_alt, p_pos))
-                            } else {
-                                None
-                            }
-                        })
-                        .next()
-                        .unwrap_or_else(|| panic!("NT {c_var} alt {c_alt_id} should have a parent's alt that includes it"));
-                    if p_pos > 0 {
-                        // verifies if enough symbols match
-                        p_pos -= 1; // easier to skip the child nonterminal, since it may or may not have a value
-                        let c_alt = &self.alts[c_alt_id].1.v;
-                        let mut c_pos = c_alt.len() - if is_lr { 1 } else { 2 }; // safe: there's at least another symbol before `c_sym` (per design)
-                        let p_pos0 = p_pos;
-                        let mut span_nbr = 0;
-                        while !pattern.is_empty() {
-                            if p_alt[p_pos] == c_alt[c_pos] {
-                                span_nbr += 1;
-                                if self.sym_has_value(&c_alt[c_pos]) {
-                                    pattern.pop();
-                                }
-                                if c_pos == 0 || p_pos == 0 {
-                                    break;
-                                }
-                                c_pos -= 1;
-                                p_pos -= 1;
-                            } else {
-                                break;
-                            }
-                        }
-                        if pattern.is_empty() {
-                            let exit_alts = self.gather_alts(p_var);
-                            // check that all the items that include c_var have the whole pattern to avoid cases like
-                            // a -> V? ("," V) => a -> V ("," V) | ("," V) => a -> V a_1 | a_1
-                            // where one branch doesn't have the initial V
-                            // let mut whole_pattern = items[c_alt_id].iter().skip(skip_loop_nt).cloned().to_vec();
-                            // whole_pattern.push(c_sym);
-                            let mut found_pos = vec![];
-                            let all_match = exit_alts.into_iter().all(|a| {
-                                let a_items = &items[a as usize];
-                                if let Some(p) = a_items.iter().position(|s| *s == c_sym) {
-                                    // c_var is in items, but does it have the pattern too?
-                                    if p >= pattern_len && a_items[p - pattern_len..p] == pattern_copy {
-                                        found_pos.push((a as usize, p));
-                                        true
-                                    } else {
-                                        // c_var is there, but the pattern isn't, we can't do the modification for this child*
-                                        false
-                                    }
-                                } else {
-                                    true
-                                }
-                            });
-                            if all_match {
-                                if VERBOSE {
-                                    println!("- match:");
-                                    println!("  c[{c_alt_id}]: {}    items: {}",
-                                             c_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                             items[c_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                                }
-                                for (p_alt_id, pos) in found_pos {
-                                    if VERBOSE {
-                                        println!("  p[{p_alt_id}]: {}    items: {}",
-                                                 p_alt.iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "),
-                                                 items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                                        println!(
-                                            "    c_alt_id = {c_alt_id}, p_alt_id = {p_alt_id}, p_pos0 = {p_pos0}, span_nbr = {span_nbr}, pos = {pos} => remove  [{}..{}]",
-                                            pos - pattern_len, pos);
-                                    }
-                                    self.span_nbrs[p_alt_id] -= span_nbr as SpanNbr;
-                                    self.span_nbrs_sep_list.insert(c_alt_id as AltId, span_nbr as SpanNbr);
-                                    items[p_alt_id].drain(pos - pattern_len..pos);
-                                    if VERBOSE {
-                                        println!("    => p items: {}", items[p_alt_id].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" "));
-                                    }
-                                    self.flags[c_var as usize] |= ruleflag::SEP_LIST;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    /// Sorts the alternatives to keep them in the same order as in the original rule.
+    /// The ID in the original tree are used to see where each alt is coming from.
+    ///
+    /// CAUTION! If two alts come from the same ID, like the children of a *, only the last one is kept.
     fn sort_alt_ids(&self, top_nt: VarId, alts: &[AltId]) -> Vec<AltId> {
         const VERBOSE: bool = false;
         if VERBOSE {
@@ -1542,6 +1373,7 @@ impl ParserGen {
         let mut sorted = vec![];
         let mut ids = alts.iter().filter_map(|&alt_id| self.alts[alt_id as usize].1.origin.map(|(_var, id)| (id, alt_id)))
             .collect::<HashMap<_, _>>();
+        assert_eq!(alts.len(), ids.len(), "several alts come from the same subtree of the original rule");
         let tree = &self.origin.trees[top_nt as usize];
         for node in tree.iter_post_depth() {
             if let Some((_, alt_id)) = ids.remove_entry(&node.index) {
@@ -1612,6 +1444,7 @@ impl ParserGen {
         const VERBOSE: bool = false;
 
         self.log.add_note("- determining item_info...");
+        let is_lr = self.options.parser_type.is_lr();
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_plower_fixer = NameFixer::new_empty(); // prefixed lowercase: don't worry about reserved words
@@ -1648,9 +1481,13 @@ impl ParserGen {
                         // (in each (id1, id2) couple, id2 == id1 + 1)
                         endpoints = endpoints.chunks(2).map(|slice| slice[0]).to_vec();
                     } else {
-                        // with *, the endpoint corresponding to the exit has no data
-                        //endpoints.retain(|e| !self.alts[*e as usize].1.is_sym_empty());
-                        endpoints.pop();
+                        // with *: in LL, the alts with no data are those with ε; there can be multiple of them because of lfact
+                        //         in LR, the alts with no data don't have ε in sep_list, but there's no lfact, so we can just discard the last
+                        if is_lr {
+                            endpoints.pop();
+                        } else {
+                            endpoints.retain(|e| !self.alts[*e as usize].1.is_sym_empty());
+                        }
                     }
                     assert!(!endpoints.is_empty());
                     let endpoints = self.sort_alt_ids(group[0], &endpoints);
@@ -1680,7 +1517,9 @@ impl ParserGen {
                         }
                         owner = parent;
                     }
-                    let is_nt_child_repeat = self.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
+                    let owner_flags = self.flags[owner as usize];
+                    let is_nt_child_repeat = owner_flags & ruleflag::CHILD_REPEAT != 0;
+                    // let is_nt_child_repeat = self.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
                     for s in item_ops {
                         if let Some((_, c)) = indices.get_mut(s) {
                             *c = Some(0);
@@ -1719,25 +1558,36 @@ impl ParserGen {
 
                     // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
                     // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
-                    let is_hidden_repeat_child = self.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
+                    let is_hidden_repeat_child = owner_flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
+
+                    // TODO: simplify and change names:
 
                     // last * child is not in the endpoints. We don't simply check that the alt is empty because, in LR sep_list, the last
                     // alt isn't empty (it's used as first loop iteration to collect the first item).
-                    let is_last_alt = alt_id == last_alt_id;
+                    let is_last_alt = if owner_flags & ruleflag::CHILD_PLUS != 0 {
+                        if is_lr {
+                            self.alts[alt_id as usize].1.get(0) != Some(&Symbol::NT(owner))
+                        } else {
+                            alt_id == last_alt_id
+                        }
+                    } else {
+                        alt_id == last_alt_id
+                    };
 
                     // (α <L>)+ have two similar alternatives with the same data on the stack, one that loops and the last iteration. We only
                     // keep one context because we use a flag to tell the listener when it's the last iteration (more convenient).
-                    let is_duplicate = i > 0 && self.nt_has_all_flags(owner, ruleflag::CHILD_REPEAT_PLUS | ruleflag::L_FORM) &&
+                    let is_duplicate = i > 0 && owner_flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT_PLUS_LFORM &&
                         is_last_alt;
 
                     // is it the independent loop iteration, so the last one in LL or the first one in LR?
                     let is_independant_iteration = (nt_flags & ruleflag::CHILD_L_RECURSION != 0
-                        || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM)) && is_last_alt;
+                        || self.nt_has_all_flags(*var, ruleflag::CHILD_REPEAT_LFORM)) && is_last_alt;
 
                     let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate && !is_independant_iteration;
                     if VERBOSE {
                         println!("NT {nt}, alt {alt_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
-                            is_duplicate = {is_duplicate}, is_last_empty_iteration = {is_independant_iteration} => has_context = {has_context}");
+                            is_duplicate = {is_duplicate}, is_independant_iteration = {is_independant_iteration} => has_context = {has_context}");
+                        println!("has_context: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, is_duplicate = {is_duplicate}, is_independant_iteration = {is_independant_iteration},");
                     }
                     if has_context {
                         alt_info_to_sort.entry(owner)

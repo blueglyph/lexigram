@@ -4183,7 +4183,25 @@ pub(crate) mod rules_251_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 251 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 3;
+    static ACTION: [LRAction; 21] = [LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Reduce(4), LRAction::Reduce(4), LRAction::Reduce(4), LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(5), LRAction::Shift(6), LRAction::Reduce(0), LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Reduce(3)];
+    static GOTO: [LRStateId; 14] = [3, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7];
+    static ALT_NT_LEN: [(VarId, u16, u16); 6] = [(0, 1, 0), (1, 2, 1), (1, 1, 1), (1, 2, 1), (1, 1, 1), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 2] = [("A", None), ("B", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "i", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4346,15 +4364,20 @@ pub(crate) mod rules_251_1 {
             self.stack.push(EnumSynValue::A(val));
         }
 
-        fn init_i(&mut self) {
+        fn init_i(&mut self, alt_id: AltId) {
             let val = self.listener.init_i();
             self.stack.push(EnumSynValue::I(val));
-            self.stack_span.insert(self.stack_span.len() - 1, PosSpan::empty());
+            let n = match alt_id {
+                2 => 1,
+                4 => 1,
+                _ => panic!("alt_id = {alt_id} unexpected in method init_a1")
+            };
+            self.stack_span.insert(self.stack_span.len() - n, PosSpan::empty());
         }
 
         fn exit_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                2 | 1 => {
+                1 | 2 => {
                     let a = self.stack_t.pop().unwrap();
                     (2, CtxI::V1 { a })
                 }
@@ -4364,6 +4387,7 @@ pub(crate) mod rules_251_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
+            if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
