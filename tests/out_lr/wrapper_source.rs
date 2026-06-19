@@ -569,7 +569,7 @@ pub(crate) mod rules_102_1 {
                     span_a: Default::default(),
                     span_b: Default::default(),
                     span_c: Default::default(),
-                    show_calls: true,
+                    show_calls: false,
                 }
             }
         }
@@ -863,7 +863,7 @@ pub(crate) mod rules_103_1 {
                     span_a: Default::default(),
                     span_b: Default::default(),
                     span_c: Default::default(),
-                    show_calls: true,
+                    show_calls: false,
                 }
             }
         }
@@ -1179,7 +1179,7 @@ pub(crate) mod rules_109_1 {
 
         impl Listener {
             fn new() -> Self {
-                Listener { log: BufLog::new(), list: None, spans: vec![], show_calls: true }
+                Listener { log: BufLog::new(), list: None, spans: vec![], show_calls: false }
             }
         }
 
@@ -1473,7 +1473,7 @@ pub(crate) mod rules_119_1 {
 
         impl Listener {
             fn new() -> Self {
-                Listener { log: BufLog::new(), x: String::new(), z: String::new(), list: None, spans: vec![], show_calls: true }
+                Listener { log: BufLog::new(), x: String::new(), z: String::new(), list: None, spans: vec![], show_calls: false }
             }
         }
 
@@ -1765,7 +1765,7 @@ pub(crate) mod rules_120_1 {
 
         impl Listener {
             fn new() -> Self {
-                Listener { log: BufLog::new(), list: None, show_calls: true }
+                Listener { log: BufLog::new(), list: None, show_calls: false }
             }
         }
 
@@ -2691,7 +2691,7 @@ pub(crate) mod rules_200_1 {
                     span_b: Default::default(),
                     span_c: Default::default(),
                     spans_b: vec![],
-                    show_calls: true,
+                    show_calls: false,
                 }
             }
         }
@@ -3012,7 +3012,7 @@ pub(crate) mod rules_201_1 {
                     span_b: Default::default(),
                     span_c: Default::default(),
                     spans_b: vec![],
-                    show_calls: true,
+                    show_calls: false,
                 }
             }
         }
@@ -3100,17 +3100,28 @@ pub(crate) mod rules_201_1 {
 // ================================================================================
 
 pub(crate) mod rules_219_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-    /// User-defined type for `i`
-    #[derive(Debug, PartialEq)]
-    pub struct SynI();
-
     // ------------------------------------------------------------
     // [wrapper source for rule 219 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 5;
+    static ACTION: [LRAction; 40] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Shift(7), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error];
+    static GOTO: [LRStateId; 16] = [2, 8, 8, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8];
+    static ALT_NT_LEN: [(VarId, u16, u16); 4] = [(0, 3, 2), (1, 3, 1), (1, 1, 1), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [("X", None), ("B", None), ("Comma", Some(",")), ("Z", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "i", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3181,8 +3192,8 @@ pub(crate) mod rules_219_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> X i Z
-                        1 |                                         // i -> <L> i "," B
-                        2 => self.exit_i(alt_id),                   // i -> <L> B
+                        1 => self.exit_i(),                         // i -> <L> i "," B
+                        2 => self.init_i(),                         // i -> <L> B
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -3285,7 +3296,7 @@ pub(crate) mod rules_219_1 {
             self.stack.push(EnumSynValue::I(val));
         }
 
-        fn exit_i(&mut self, alt_id: AltId) {
+        fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
@@ -3297,6 +3308,119 @@ pub(crate) mod rules_219_1 {
 
     // [wrapper source for rule 219 #1, start a]
     // ------------------------------------------------------------
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA(Vec<String>);
+
+    /// User-defined type for `i`
+    #[derive(Debug, PartialEq)]
+    pub struct SynI(Vec<String>);
+
+    mod test {
+        use lexigram_core::CollectJoin;
+        use lexigram_core::log::{BufLog, LogStatus};
+        use lexigram_lib::make_stream;
+        use super::*;
+
+        struct Listener {
+            log: BufLog,
+            x: String,
+            z: String,
+            list: Option<Vec<String>>,
+            spans: Vec<String>,
+            show_calls: bool,
+        }
+
+        impl Listener {
+            fn new() -> Self {
+                Listener { log: BufLog::new(), x: String::new(), z: String::new(), list: None, spans: vec![], show_calls: false }
+            }
+        }
+
+        #[allow(unused)]
+        impl TestListener for Listener {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA, span: PosSpan) {
+                if self.show_calls { println!("exit({a:?}, {span})"); }
+                let SynA(values) = a;
+                self.list = Some(values);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
+                if self.show_calls { println!("exit_a({ctx:?}, {})", spans.iter().map(PosSpan::to_string).join(", ")); }
+                let CtxA::V1 { x, star: SynI(values), z } = ctx;
+                self.x = x;
+                self.z = z;
+                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
+                SynA(values)
+            }
+
+            fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI {
+                if self.show_calls { println!("init_i({ctx:?}, {})", spans.iter().map(PosSpan::to_string).join(", ")); }
+                let InitCtxI::V1 { b } = ctx;
+                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
+                SynI(vec!["start".to_string(), b])
+            }
+
+            fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
+                if self.show_calls { println!("exit_i({acc:?}, {ctx:?}, {})", spans.iter().map(PosSpan::to_string).join(", ")); }
+                let CtxI::V1 { b } = ctx;
+                acc.0.push(b);
+                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
+            }
+        }
+
+        #[test]
+        fn test() {
+            const VERBOSE: bool = false;
+
+            // a -> X (B / ",")+ Z
+            let sequences = vec![
+                (
+                    "X a , b , c , d Z", false,
+                    vec!["1:2", "1:2, 1:3, 1:4", "1:2-4, 1:5, 1:6", "1:2-6, 1:7, 1:8", "1:1, 1:2-8, 1:9"],
+                    Some(vec!["start", "a", "b", "c", "d"])
+                ),
+                ("a", true, vec![], None),
+            ];
+            let mut parser = build_parser();
+            for (input, expected_error, expected_spans, expected_list) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let listener = Listener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
+                let is_error = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        false
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        true
+                    }
+                };
+                let listener = wrapper.give_listener();
+                let result = &listener.list;
+                if VERBOSE { println!("list = {result:?}"); }
+                assert_eq!(is_error, expected_error, "parser error with input {input:?}");
+                let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
+                assert_eq!(result, &expected_list, "list mismatch with input {input:?}");
+                let spans =  &listener.spans;
+                let expected_spans = expected_spans.into_iter().map(|s| s.to_string()).to_vec();
+                assert_eq!(spans, &expected_spans, "span mismatch with input {input:?}");
+                if result.is_some() {
+                    assert_eq!(listener.x, "X");
+                    assert_eq!(listener.z, "Z");
+                    assert_eq!(listener.log.num_errors(), 0);
+                } else {
+                    assert_ne!(listener.log.num_errors(), 0);
+                }
+            }
+        }
+    }
 }
 
 // ================================================================================
