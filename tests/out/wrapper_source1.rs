@@ -3510,11 +3510,11 @@ pub(crate) mod rules_221_1 {
 
 pub(crate) mod rules_222_1 {
     #[derive(Clone, Debug)]
-    struct SynA();
+    pub struct SynA();
     #[derive(Clone, Debug)]
-    struct SynI();
+    pub struct SynI();
     #[derive(Clone, Debug)]
-    struct SynType();
+    pub struct SynType();
 
     // ------------------------------------------------------------
     // [wrapper source for rule 222 #1, start a]

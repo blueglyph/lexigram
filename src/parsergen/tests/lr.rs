@@ -153,7 +153,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // |   0 | a     | y  | parent_+_or_*          |
         // |   1 | . a_1 | y  | child_+_or_*, sep_list |
         // +-------------------------------------------+
-        (119, true, false, false, 0, btreemap![
+        (119, true, true, false, 0, btreemap![
         ], vec![
             (strip![t 3, nt 1, t 0],                3, symbols![t 0, nt 1, t 3]), //  0: a -> X a_1 Z     | Z! ►a_1 X!  | 3    | X a_1 Z
             (strip![t 1, t 2, loop 1],              3, symbols![nt 1, t 1]),      //  1: a_1 -> a_1 "," B | B! "," ●a_1 | 3, 1 | a_1 B

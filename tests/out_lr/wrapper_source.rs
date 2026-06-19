@@ -1253,14 +1253,28 @@ pub(crate) mod rules_109_1 {
 // ================================================================================
 
 pub(crate) mod rules_119_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-
     // ------------------------------------------------------------
     // [wrapper source for rule 119 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+
+    static NUM_NT: usize = 2;
+    static NUM_T_FULL: usize = 5;
+    static ACTION: [LRAction; 40] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Shift(6), LRAction::Error, LRAction::Error, LRAction::Shift(7), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error];
+    static GOTO: [LRStateId; 16] = [2, 8, 8, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8];
+    static ALT_NT_LEN: [(VarId, u16, u16); 4] = [(0, 3, 2), (1, 3, 1), (1, 1, 1), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [("X", None), ("B", None), ("Comma", Some(",")), ("Z", None)];
+    static SYMBOL_TABLE_NT: [&str; 3] = ["a", "a_1", "<goal>"];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+            )
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1438,6 +1452,97 @@ pub(crate) mod rules_119_1 {
 
     // [wrapper source for rule 119 #1, start a]
     // ------------------------------------------------------------
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA(Vec<String>);
+
+    mod test {
+        use lexigram_core::CollectJoin;
+        use lexigram_core::log::{BufLog, LogStatus};
+        use lexigram_lib::make_stream;
+        use super::*;
+
+        struct Listener {
+            log: BufLog,
+            x: String,
+            z: String,
+            list: Option<Vec<String>>,
+            spans: Vec<String>,
+            show_calls: bool,
+        }
+
+        impl Listener {
+            fn new() -> Self {
+                Listener { log: BufLog::new(), x: String::new(), z: String::new(), list: None, spans: vec![], show_calls: true }
+            }
+        }
+
+        #[allow(unused)]
+        impl TestListener for Listener {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, a: SynA, span: PosSpan) {
+                if self.show_calls { println!("exit({a:?}, {span})"); }
+                let SynA(values) = a;
+                self.list = Some(values);
+            }
+
+            fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
+                if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
+                let CtxA::V1 { x, star: SynA1(values), z } = ctx;
+                self.x = x;
+                self.z = z;
+                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
+                SynA(values)
+            }
+        }
+
+        #[test]
+        fn test() {
+            const VERBOSE: bool = false;
+
+            // a -> X (B / ",")+ Z
+            let sequences = vec![
+                ("X a , b , c , d Z", false, vec!["1:1, 1:2-8, 1:9"], Some(vec!["a", "b", "c", "d"])),
+                ("a", true, vec![], None),
+            ];
+            let mut parser = build_parser();
+            for (input, expected_error, expected_spans, expected_list) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let listener = Listener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
+                let is_error = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        false
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        true
+                    }
+                };
+                let listener = wrapper.give_listener();
+                let result = &listener.list;
+                if VERBOSE { println!("list = {result:?}"); }
+                assert_eq!(is_error, expected_error, "parser error with input {input:?}");
+                let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
+                assert_eq!(result, &expected_list, "list mismatch with input {input:?}");
+                let spans =  &listener.spans;
+                let expected_spans = expected_spans.into_iter().map(|s| s.to_string()).to_vec();
+                assert_eq!(spans, &expected_spans, "span mismatch with input {input:?}");
+                if result.is_some() {
+                    assert_eq!(listener.x, "X");
+                    assert_eq!(listener.z, "Z");
+                    assert_eq!(listener.log.num_errors(), 0);
+                } else {
+                    assert_ne!(listener.log.num_errors(), 0);
+                }
+            }
+        }
+    }
 }
 
 // ================================================================================
@@ -3198,11 +3303,11 @@ pub(crate) mod rules_219_1 {
 
 pub(crate) mod rules_222_1 {
     #[derive(Clone, Debug)]
-    struct SynA();
+    pub struct SynA();
     #[derive(Clone, Debug)]
-    struct SynI();
+    pub struct SynI();
     #[derive(Clone, Debug)]
-    struct SynType();
+    pub struct SynType();
 
     // ------------------------------------------------------------
     // [wrapper source for rule 222 #1, start a]
