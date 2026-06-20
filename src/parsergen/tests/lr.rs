@@ -349,6 +349,15 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![t 2, t 1],                      3, symbols![nt 1, t 1, t 2]), //  4: i -> B C    | C! B!    | 3 | i B C
             (strip![nt 0],                          1, symbols![]),               //  5: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        (251, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![]),         //  0: a -> i      | ►i       | 1 |
+            (strip![t 0, loop 1],                   2, symbols![t 0]),      //  1: i -> i A    | A! ●i    | 2 | A
+            (strip![t 0],                           2, symbols![t 0]),      //  2: i -> A      | A!       | 2 | A
+            (strip![t 2, t 1, loop 1],              3, symbols![t 1, t 2]), //  3: i -> i B C  | C! B! ●i | 3 | B C
+            (strip![t 2, t 1],                      3, symbols![t 1, t 2]), //  4: i -> B C    | C! B!    | 3 | B C
+            (strip![nt 0],                          1, symbols![]),         //  5: <goal> -> a | ►a       | 1 |
+        ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
         // =========================================================================== right_rec
         // a -> A a | B

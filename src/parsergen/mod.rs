@@ -2906,7 +2906,7 @@ impl ParserGen {
                     };
                     if is_single {
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if (is_rrec_lform | is_child_repeat_lform) && f_valued {
+                        if /*(is_rrec_lform | is_child_repeat_lform) &&*/ f_valued {
                             if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
                                 src_wrapper_impl.push(lr_init_alt_ids.to_string());
                             }
@@ -2923,6 +2923,9 @@ impl ParserGen {
                 if !is_single {
                     src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
+                    if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
+                        src_wrapper_impl.push(lr_init_alt_ids.to_string());
+                    }
                     if self.options.gen_span_params {
                         src_wrapper_impl.extend(Self::source_update_span("n"));
                     }
