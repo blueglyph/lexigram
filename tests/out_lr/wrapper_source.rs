@@ -4573,7 +4573,6 @@ pub(crate) mod rules_251_2 {
         }
 
         fn init_i(&mut self, alt_id: AltId) {
-            self.stack.push(EnumSynValue::I(val));
             let n = match alt_id {
                 2 => 1,
                 4 => 2,
@@ -4595,7 +4594,7 @@ pub(crate) mod rules_251_2 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
-            if matches!(alt_id, 2 | 4) { self.init_i(); }
+            if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);
