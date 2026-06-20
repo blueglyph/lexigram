@@ -260,6 +260,14 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![],                              1, symbols![nt 1]),           //  2: i -> ε      |          | 1 | i
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        // a: y, i: n, <goal>: n
+        (200, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![t 2, nt 1, t 0],                3, symbols![t 0, t 2]), //  0: a -> A i C  | C! ►i A! | 3 | A C
+            (strip![t 1, loop 1],                   2, symbols![t 1]),      //  1: i -> i B    | B! ●i    | 2 | B
+            (strip![],                              1, symbols![]),         //  2: i -> ε      |          | 1 |
+            (strip![nt 0],                          1, symbols![]),         //  3: <goal> -> a | ►a       | 1 |
+        ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
         // a -> A (<L=i> B)+ C
         //
@@ -275,6 +283,14 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![t 1],                           2, symbols![nt 1, t 1]),      //  2: i -> B      | B!       | 2 | i B
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        // a: y, i: n, <goal>: n
+        (201, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![t 2, nt 1, t 0],                3, symbols![t 0, t 2]), //  0: a -> A i C  | C! ►i A! | 3 | A C
+            (strip![t 1, loop 1],                   2, symbols![t 1]),      //  1: i -> i B    | B! ●i    | 2 | B
+            (strip![t 1],                           2, symbols![t 1]),      //  2: i -> B      | B!       | 2 | B
+            (strip![nt 0],                          1, symbols![]),         //  3: <goal> -> a | ►a       | 1 |
+        ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
         // a -> X (<L=i> B / ",")+ Z
         //
@@ -332,6 +348,15 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![],                              1, symbols![nt 1]),           //  3: i -> ε      |          | 1 | i
             (strip![nt 0],                          1, symbols![]),               //  4: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        // a: y, i: n, <goal>: n
+        (250, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![]),         //  0: a -> i      | ►i       | 1 |
+            (strip![t 0, loop 1],                   2, symbols![t 0]),      //  1: i -> i A    | A! ●i    | 2 | A
+            (strip![t 2, t 1, loop 1],              3, symbols![t 1, t 2]), //  2: i -> i B C  | C! B! ●i | 3 | B C
+            (strip![],                              1, symbols![]),         //  3: i -> ε      |          | 1 |
+            (strip![nt 0],                          1, symbols![]),         //  4: <goal> -> a | ►a       | 1 |
+        ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
         // a -> (<L=i> A | B C)+
         //
@@ -349,6 +374,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![t 2, t 1],                      3, symbols![nt 1, t 1, t 2]), //  4: i -> B C    | C! B!    | 3 | i B C
             (strip![nt 0],                          1, symbols![]),               //  5: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
+        // a: y, i: n, <goal>: n
         (251, true, false, false, 0, btreemap![
         ], vec![
             (strip![nt 1],                          1, symbols![]),         //  0: a -> i      | ►i       | 1 |
