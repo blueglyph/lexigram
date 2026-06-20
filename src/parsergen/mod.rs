@@ -1263,7 +1263,7 @@ impl ParserGen {
     }
 
     fn calc_sep_info(&mut self, items: &[Vec<Symbol>]) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let is_none = self.sep_info.is_none();
         let SepInfo::Nt(sep_nt) = self.sep_info.take() else { panic!("{}", if is_none { "no sep_info" } else { "unprocessed sep_info" }) };
         let mut sep_nt_alt = vec![];

@@ -3982,15 +3982,15 @@ pub(crate) mod rules_250_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B)*`
+        /// `a -> (<L> A | B C)*`
         V1 { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)*`
         V1 { a: String },
-        /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`
-        V2 { b: String },
+        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )*`
+        V2 { b: String, c: String },
     }
 
     #[derive(Debug)]
@@ -4047,7 +4047,7 @@ pub(crate) mod rules_250_1 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i
                         1 |                                         // i -> <L> i A
-                        2 => self.exit_i(alt_id),                   // i -> <L> i B
+                        2 => self.exit_i(alt_id),                   // i -> <L> i B C
                         3 => self.init_i(),                         // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -4153,8 +4153,9 @@ pub(crate) mod rules_250_1 {
                     (2, CtxI::V1 { a })
                 }
                 2 => {
+                    let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    (2, CtxI::V2 { b })
+                    (3, CtxI::V2 { b, c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
@@ -4186,11 +4187,11 @@ pub(crate) mod rules_251_1 {
     use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
-    static NUM_T_FULL: usize = 3;
-    static ACTION: [LRAction; 21] = [LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Reduce(4), LRAction::Reduce(4), LRAction::Reduce(4), LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(5), LRAction::Shift(6), LRAction::Reduce(0), LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Reduce(3)];
-    static GOTO: [LRStateId; 14] = [3, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7];
-    static ALT_NT_LEN: [(VarId, u16, u16); 6] = [(0, 1, 0), (1, 2, 1), (1, 1, 1), (1, 2, 1), (1, 1, 1), (2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 2] = [("A", None), ("B", None)];
+    static NUM_T_FULL: usize = 4;
+    static ACTION: [LRAction; 36] = [LRAction::Shift(1), LRAction::Shift(2), LRAction::Error, LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error, LRAction::Reduce(2), LRAction::Error, LRAction::Error, LRAction::Shift(5), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Shift(6), LRAction::Shift(7), LRAction::Error, LRAction::Reduce(0), LRAction::Reduce(4), LRAction::Reduce(4), LRAction::Error, LRAction::Reduce(4), LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Shift(8), LRAction::Error, LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Reduce(3)];
+    static GOTO: [LRStateId; 18] = [3, 4, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9];
+    static ALT_NT_LEN: [(VarId, u16, u16); 6] = [(0, 1, 0), (1, 2, 1), (1, 1, 1), (1, 3, 2), (1, 2, 2), (2, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [("A", None), ("B", None), ("C", None)];
     static SYMBOL_TABLE_NT: [&str; 3] = ["a", "i", "<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
@@ -4205,15 +4206,15 @@ pub(crate) mod rules_251_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B)+`
+        /// `a -> (<L> A | B C)+`
         V1 { plus: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)+`
         V1 { a: String },
-        /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
-        V2 { b: String },
+        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )+`
+        V2 { b: String, c: String },
     }
 
     #[derive(Debug)]
@@ -4271,8 +4272,8 @@ pub(crate) mod rules_251_1 {
                         0 => self.exit_a(),                         // a -> i
                         1 |                                         // i -> <L> i A
                         2 |                                         // i -> <L> A
-                        3 |                                         // i -> <L> i B
-                        4 => self.exit_i(alt_id),                   // i -> <L> B
+                        3 |                                         // i -> <L> i B C
+                        4 => self.exit_i(alt_id),                   // i -> <L> B C
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -4369,8 +4370,8 @@ pub(crate) mod rules_251_1 {
             self.stack.push(EnumSynValue::I(val));
             let n = match alt_id {
                 2 => 1,
-                4 => 1,
-                _ => panic!("alt_id = {alt_id} unexpected in method init_a1")
+                4 => 2,
+                _ => panic!("alt_id = {alt_id} unexpected in method init_i")
             };
             self.stack_span.insert(self.stack_span.len() - n, PosSpan::empty());
         }
@@ -4382,8 +4383,9 @@ pub(crate) mod rules_251_1 {
                     (2, CtxI::V1 { a })
                 }
                 3 | 4 => {
+                    let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    (2, CtxI::V2 { b })
+                    (3, CtxI::V2 { b, c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };

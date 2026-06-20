@@ -260,11 +260,11 @@ fn rts_normalize() {
          btreemap![0 => r#"a -> i C"#, 1 => r#"i -> <L> A j ";" i | <L> A j ";""#, 2 => r#"j -> <L> b "," j | <L> b ",""#, 3 => r#"b -> B"#],
          btreemap![0 => r#"a -> (<L=i> A (<L=j> b ",")+ ";")+ C"#, 1 => r#"i -> <empty>"#, 2 => r#"j -> <empty>"#, 3 => r#"b -> B"#]),
         (250, //   a -> (<L=i> A | B)*
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | B i | ε"#],
-         btreemap![0 => r#"a -> (<L=i> A | B)*"#]),
+         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | B C i | ε"#],
+         btreemap![0 => r#"a -> (<L=i> A | B C)*"#]),
         (251, //   a -> (<L=i> A | B)+
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | <L> A | B i | B"#],
-         btreemap![0 => r#"a -> (<L=i> A | B)+"#]),
+         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | <L> A | B C i | B C"#],
+         btreemap![0 => r#"a -> (<L=i> A | B C)+"#]),
      ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;

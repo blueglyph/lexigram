@@ -3784,15 +3784,15 @@ pub(crate) mod rules_250_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B)*`
+        /// `a -> (<L> A | B C)*`
         V1 { star: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)*`
         V1 { a: String },
-        /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`
-        V2 { b: String },
+        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )*`
+        V2 { b: String, c: String },
     }
 
     #[derive(Debug)]
@@ -3863,7 +3863,7 @@ pub(crate) mod rules_250_1 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i
                         1 |                                         // i -> <L> A i
-                        2 => self.exit_i(alt_id),                   // i -> <L> B i
+                        2 => self.exit_i(alt_id),                   // i -> <L> B C i
                         3 => self.exitloop_i(),                     // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -3967,8 +3967,9 @@ pub(crate) mod rules_250_1 {
                     (2, CtxI::V1 { a })
                 }
                 2 => {
+                    let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    (2, CtxI::V2 { b })
+                    (3, CtxI::V2 { b, c })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
@@ -3999,15 +4000,15 @@ pub(crate) mod rules_251_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B)+`
+        /// `a -> (<L> A | B C)+`
         V1 { plus: SynI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)+`
         V1 { a: String, last_iteration: bool },
-        /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
-        V2 { b: String, last_iteration: bool },
+        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )+`
+        V2 { b: String, c: String, last_iteration: bool },
     }
 
     #[derive(Debug)]
@@ -4081,7 +4082,7 @@ pub(crate) mod rules_251_1 {
                         5 |                                         // i_2 -> i
                         6 => self.exit_i(alt_id),                   // i_2 -> ε
                      /* 1 */                                        // i -> <L> A i_1 (never called)
-                     /* 2 */                                        // i -> <L> B i_2 (never called)
+                     /* 2 */                                        // i -> <L> B C i_2 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -4186,8 +4187,9 @@ pub(crate) mod rules_251_1 {
                 }
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
+                    let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    (2, CtxI::V2 { b, last_iteration })
+                    (3, CtxI::V2 { b, c, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
