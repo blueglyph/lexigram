@@ -272,8 +272,8 @@ impl TestRules {
             840 => vec![r#"a -> (A B | A C)*;"#],
             841 => vec![r#"a -> (A B | A C)+;"#],
 
-            842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
-            843 => vec![r#"a -> A+ B+ | A+ C+;"#],  // TODO: is it possible to factorize this?
+            842 => vec![r#"a -> A* B* | A* C*;"#],
+            843 => vec![r#"a -> A+ B+ | A+ C+;"#],
 
             // 3xx/4xx and 7xx
             860 => vec![r#"a -> A B a | A C a | D;"#],
@@ -283,6 +283,16 @@ impl TestRules {
             // 5xx and 7xx
             870 => vec![r#"a -> a A | B C | B D;"#],
             871 => vec![r#"a -> a A B | a A C | D;"#],
+
+            // mix of value / no-value
+            880 => vec![r#"a -> v n; v -> A B*;               n -> "A" "B"*;"#],
+            881 => vec![r#"a -> v n; v -> A B+;               n -> "A" "B"+;"#],
+            882 => vec![r#"a -> v n; v -> A (B | C D)*;       n -> "A" ("B" | "C" "D")*;"#],
+            883 => vec![r#"a -> v n; v -> A (B | C D)+;       n -> "A" ("B" | "C" "D")+;"#],
+            884 => vec![r#"a -> v n; v -> A (<L=i> B)*;       n -> "A" (<L=i> "B")*;"#],
+            885 => vec![r#"a -> v n; v -> A (<L=i> B)+;       n -> "A" (<L=i> "B")+;"#],
+            886 => vec![r#"a -> v n; v -> A (<L=i> B | C D)*; n -> "A" (<L=i> "B" | "C" "D")*;"#],
+            887 => vec![r#"a -> v n; v -> A (<L=i> B | C D)+; n -> "A" (<L=i> "B" | "C" "D")+;"#],
 
             // 9xx = general examples
             // -----------------------------------------------------------------------------
