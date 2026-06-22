@@ -2825,7 +2825,6 @@ pub(crate) mod rules_200_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -3332,7 +3331,6 @@ pub(crate) mod rules_201_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -4594,7 +4592,6 @@ pub(crate) mod rules_250_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -4959,6 +4956,7 @@ pub(crate) mod rules_251_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
+    // coucou
             if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
@@ -5022,7 +5020,6 @@ pub(crate) mod rules_251_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -5164,6 +5161,7 @@ pub(crate) mod rules_251_2 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
+    // coucou
             if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));

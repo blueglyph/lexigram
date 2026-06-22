@@ -2546,7 +2546,8 @@ impl ParserGen {
             if !is_sep_list && is_ll {
                 span_init.insert(var);
             }
-            if has_value || is_sep_list {
+            // with LR code, we need the init() if there's a value or if there are span parameters
+            if has_value || is_sep_list || (!is_ll && self.options.gen_span_params) {
                 let mut trailing_init = vec![];
                 if self.options.gen_span_params && !is_ll && !is_sep_list {
                     if is_plus {
@@ -2640,9 +2641,11 @@ impl ParserGen {
                         }
                         has_skel_init = true;
                     } else {
-                        src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
-                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
-                        src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                        if has_value {
+                            src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
+                            src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                            src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                        }
                         has_skel_init = true;
                     }
                     if has_value {
@@ -2906,10 +2909,8 @@ impl ParserGen {
                     };
                     if is_single {
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if /*(is_rrec_lform | is_child_repeat_lform) &&*/ f_valued {
-                            if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
-                                src_wrapper_impl.push(lr_init_alt_ids.to_string());
-                            }
+                        if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe && (f_valued | self.options.gen_span_params) {
+                            src_wrapper_impl.push(lr_init_alt_ids.to_string());
                         }
                         if self.options.gen_span_params {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
@@ -2923,7 +2924,7 @@ impl ParserGen {
                 if !is_single {
                     src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
-                    if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
+                    if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe && (f_valued | self.options.gen_span_params) {
                         src_wrapper_impl.push(lr_init_alt_ids.to_string());
                     }
                     if self.options.gen_span_params {
