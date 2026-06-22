@@ -223,12 +223,12 @@ fn rts_normalize() {
         (107, //   a -> (A (b ",")+ ";")+ C;   b -> B
          btreemap![0 => r#"a -> a_2 C"#, 1 => r#"b -> B"#, 2 => r#"a_1 -> b "," a_1 | b ",""#, 3 => r#"a_2 -> A a_1 ";" a_2 | A a_1 ";""#],
          btreemap![0 => r#"a -> (A (b ",")+ ";")+ C"#, 1 => r#"b -> B"#]),
-        (150, //   a -> (A | B)*
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A a_1 | B a_1 | ε"#],
-         btreemap![0 => r#"a -> (A | B)*"#]),
-        (151, //   a -> (A | B)+
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A a_1 | A | B a_1 | B"#],
-         btreemap![0 => r#"a -> (A | B)+"#]),
+        (150, //   a -> A (B | C D)* E
+         btreemap![0 => r#"a -> A a_1 E"#, 1 => r#"a_1 -> B a_1 | C D a_1 | ε"#],
+         btreemap![0 => r#"a -> A (B | C D)* E"#]),
+        (151, //   a -> A (B | C D)+ E
+         btreemap![0 => r#"a -> A a_1 E"#, 1 => r#"a_1 -> B a_1 | B | C D a_1 | C D"#],
+         btreemap![0 => r#"a -> A (B | C D)+ E"#]),
         (200, //   a -> A (<L=i> B)* C
          btreemap![0 => r#"a -> A i C"#, 1 => r#"i -> <L> B i | ε"#],
          btreemap![0 => r#"a -> A (<L=i> B)* C"#]),
@@ -259,12 +259,12 @@ fn rts_normalize() {
         (209, //   a -> (<L=i> A (<L=j> b ",")+ ";")+ C;   b -> B
          btreemap![0 => r#"a -> i C"#, 1 => r#"i -> <L> A j ";" i | <L> A j ";""#, 2 => r#"j -> <L> b "," j | <L> b ",""#, 3 => r#"b -> B"#],
          btreemap![0 => r#"a -> (<L=i> A (<L=j> b ",")+ ";")+ C"#, 1 => r#"i -> <empty>"#, 2 => r#"j -> <empty>"#, 3 => r#"b -> B"#]),
-        (250, //   a -> (<L=i> A | B)*
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | B C i | ε"#],
-         btreemap![0 => r#"a -> (<L=i> A | B C)*"#]),
-        (251, //   a -> (<L=i> A | B)+
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L> A i | <L> A | B C i | B C"#],
-         btreemap![0 => r#"a -> (<L=i> A | B C)+"#]),
+        (250, //   a -> A (<L=i> B | C D)* E
+         btreemap![0 => r#"a -> A i E"#, 1 => r#"i -> <L> B i | C D i | ε"#],
+         btreemap![0 => r#"a -> A (<L=i> B | C D)* E"#]),
+        (251, //   a -> A (<L=i> B | C D)+ E
+         btreemap![0 => r#"a -> A i E"#, 1 => r#"i -> <L> B i | <L> B | C D i | C D"#],
+         btreemap![0 => r#"a -> A (<L=i> B | C D)+ E"#]),
      ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;

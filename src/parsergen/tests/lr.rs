@@ -176,7 +176,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),               //  3: <goal> -> a       | ►a           | 1    |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> (A | B)*
+        // a -> A (B | C D)* E
         //
         //   NT    name   val   flags
         // +----------------------------------+
@@ -185,28 +185,28 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // +----------------------------------+
         (150, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![nt 1]),      //  0: a -> a_1     | ►a_1    | 1 | a_1
-            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]), //  1: a_1 -> a_1 A | A! ●a_1 | 2 | a_1 A
-            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]), //  2: a_1 -> a_1 B | B! ●a_1 | 2 | a_1 B
-            (strip![],                              1, symbols![nt 1]),      //  3: a_1 -> ε     |         | 1 | a_1
-            (strip![nt 0],                          1, symbols![]),          //  4: <goal> -> a  | ►a      | 1 |
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, nt 1, t 4]), //  0: a -> A a_1 E   | E! ►a_1 A! | 3 | A a_1 E
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]),      //  1: a_1 -> a_1 B   | B! ●a_1    | 2 | a_1 B
+            (strip![t 3, t 2, loop 1],              3, symbols![nt 1, t 2, t 3]), //  2: a_1 -> a_1 C D | D! C! ●a_1 | 3 | a_1 C D
+            (strip![],                              1, symbols![nt 1]),           //  3: a_1 -> ε       |            | 1 | a_1
+            (strip![nt 0],                          1, symbols![]),               //  4: <goal> -> a    | ►a         | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> (A | B)+
+        // a -> A (B | C D)+ E
         //
         //   NT    name   val   flags
-        // +----------------------------------------+
-        // |   0 | a     | y  | parent_+_or_*, plus |
-        // |   1 | . a_1 | y  | child_+_or_*, plus  |
-        // +----------------------------------------+
+        // +---------------------------------------+
+        // |   0 | a     | y  | parent_+_or_*      |
+        // |   1 | . a_1 | y  | child_+_or_*, plus |
+        // +---------------------------------------+
         (151, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![nt 1]),      //  0: a -> a_1     | ►a_1    | 1 | a_1
-            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]), //  1: a_1 -> a_1 A | A! ●a_1 | 2 | a_1 A
-            (strip![t 0],                           2, symbols![nt 1, t 0]), //  2: a_1 -> A     | A!      | 2 | a_1 A
-            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]), //  3: a_1 -> a_1 B | B! ●a_1 | 2 | a_1 B
-            (strip![t 1],                           2, symbols![nt 1, t 1]), //  4: a_1 -> B     | B!      | 2 | a_1 B
-            (strip![nt 0],                          1, symbols![]),          //  5: <goal> -> a  | ►a      | 1 |
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, nt 1, t 4]), //  0: a -> A a_1 E   | E! ►a_1 A! | 3 | A a_1 E
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]),      //  1: a_1 -> a_1 B   | B! ●a_1    | 2 | a_1 B
+            (strip![t 1],                           2, symbols![nt 1, t 1]),      //  2: a_1 -> B       | B!         | 2 | a_1 B
+            (strip![t 3, t 2, loop 1],              3, symbols![nt 1, t 2, t 3]), //  3: a_1 -> a_1 C D | D! C! ●a_1 | 3 | a_1 C D
+            (strip![t 3, t 2],                      3, symbols![nt 1, t 2, t 3]), //  4: a_1 -> C D     | D! C!      | 3 | a_1 C D
+            (strip![nt 0],                          1, symbols![]),               //  5: <goal> -> a    | ►a         | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> (A | A B | C)*
@@ -333,7 +333,7 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),                //  4: <goal> -> a            | ►a                   | 1    |
         ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
-        // a -> (<L=i> A | B C)*
+        // a -> A (<L=i> B | C D)* E
         //
         //   NT    name  val   flags
         // +----------------------------------------+
@@ -342,46 +342,46 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // +----------------------------------------+
         (250, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![nt 1]),           //  0: a -> i      | ►i       | 1 | i
-            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]),      //  1: i -> i A    | A! ●i    | 2 | i A
-            (strip![t 2, t 1, loop 1],              3, symbols![nt 1, t 1, t 2]), //  2: i -> i B C  | C! B! ●i | 3 | i B C
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, nt 1, t 4]), //  0: a -> A i E  | E! ►i A! | 3 | A i E
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]),      //  1: i -> i B    | B! ●i    | 2 | i B
+            (strip![t 3, t 2, loop 1],              3, symbols![nt 1, t 2, t 3]), //  2: i -> i C D  | D! C! ●i | 3 | i C D
             (strip![],                              1, symbols![nt 1]),           //  3: i -> ε      |          | 1 | i
             (strip![nt 0],                          1, symbols![]),               //  4: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
         // a: y, i: n, <goal>: n
         (250, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![]),         //  0: a -> i      | ►i       | 1 |
-            (strip![t 0, loop 1],                   2, symbols![t 0]),      //  1: i -> i A    | A! ●i    | 2 | A
-            (strip![t 2, t 1, loop 1],              3, symbols![t 1, t 2]), //  2: i -> i B C  | C! B! ●i | 3 | B C
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, t 4]), //  0: a -> A i E  | E! ►i A! | 3 | A E
+            (strip![t 1, loop 1],                   2, symbols![t 1]),      //  1: i -> i B    | B! ●i    | 2 | B
+            (strip![t 3, t 2, loop 1],              3, symbols![t 2, t 3]), //  2: i -> i C D  | D! C! ●i | 3 | C D
             (strip![],                              1, symbols![]),         //  3: i -> ε      |          | 1 |
             (strip![nt 0],                          1, symbols![]),         //  4: <goal> -> a | ►a       | 1 |
         ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 
-        // a -> (<L=i> A | B C)+
+        // a -> A (<L=i> B | C D)+ E
         //
         //   NT    name  val   flags
         // +----------------------------------------------+
         // |   0 | a    | y  | parent_+_or_*              |
         // |   1 | . i  | y  | child_+_or_*, L-form, plus |
         // +----------------------------------------------+
-        (251, true, true, false, 0, btreemap![
+        (251, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![nt 1]),           //  0: a -> i      | ►i       | 1 | i
-            (strip![t 0, loop 1],                   2, symbols![nt 1, t 0]),      //  1: i -> i A    | A! ●i    | 2 | i A
-            (strip![t 0],                           2, symbols![nt 1, t 0]),      //  2: i -> A      | A!       | 2 | i A
-            (strip![t 2, t 1, loop 1],              3, symbols![nt 1, t 1, t 2]), //  3: i -> i B C  | C! B! ●i | 3 | i B C
-            (strip![t 2, t 1],                      3, symbols![nt 1, t 1, t 2]), //  4: i -> B C    | C! B!    | 3 | i B C
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, nt 1, t 4]), //  0: a -> A i E  | E! ►i A! | 3 | A i E
+            (strip![t 1, loop 1],                   2, symbols![nt 1, t 1]),      //  1: i -> i B    | B! ●i    | 2 | i B
+            (strip![t 1],                           2, symbols![nt 1, t 1]),      //  2: i -> B      | B!       | 2 | i B
+            (strip![t 3, t 2, loop 1],              3, symbols![nt 1, t 2, t 3]), //  3: i -> i C D  | D! C! ●i | 3 | i C D
+            (strip![t 3, t 2],                      3, symbols![nt 1, t 2, t 3]), //  4: i -> C D    | D! C!    | 3 | i C D
             (strip![nt 0],                          1, symbols![]),               //  5: <goal> -> a | ►a       | 1 |
         ], NTValue::Default, btreemap![0 => vec![0]]),
         // a: y, i: n, <goal>: n
         (251, true, false, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![]),         //  0: a -> i      | ►i       | 1 |
-            (strip![t 0, loop 1],                   2, symbols![t 0]),      //  1: i -> i A    | A! ●i    | 2 | A
-            (strip![t 0],                           2, symbols![t 0]),      //  2: i -> A      | A!       | 2 | A
-            (strip![t 2, t 1, loop 1],              3, symbols![t 1, t 2]), //  3: i -> i B C  | C! B! ●i | 3 | B C
-            (strip![t 2, t 1],                      3, symbols![t 1, t 2]), //  4: i -> B C    | C! B!    | 3 | B C
+            (strip![t 4, nt 1, t 0],                3, symbols![t 0, t 4]), //  0: a -> A i E  | E! ►i A! | 3 | A E
+            (strip![t 1, loop 1],                   2, symbols![t 1]),      //  1: i -> i B    | B! ●i    | 2 | B
+            (strip![t 1],                           2, symbols![t 1]),      //  2: i -> B      | B!       | 2 | B
+            (strip![t 3, t 2, loop 1],              3, symbols![t 2, t 3]), //  3: i -> i C D  | D! C! ●i | 3 | C D
+            (strip![t 3, t 2],                      3, symbols![t 2, t 3]), //  4: i -> C D    | D! C!    | 3 | C D
             (strip![nt 0],                          1, symbols![]),         //  5: <goal> -> a | ►a       | 1 |
         ], NTValue::SetIds(vec![0]), btreemap![0 => vec![0]]),
 

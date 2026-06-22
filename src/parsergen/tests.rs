@@ -260,7 +260,7 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, has_value, expected_alts
             ) = test_entry;
-            // if !matches!(tr_id, 250|251) { continue }
+            // if !matches!(tr_id, 150|151|250|251) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let wrapper_filename = wrapper_filenames.into_iter()
@@ -520,12 +520,12 @@ pub(super) mod wrapper_source {
                 Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 6: a_2 -> j
                 Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 7: a_2 -> ε
             ]),
-            // a -> (<L=i> A | B C)*
+            // a -> A (<L=i> B | C D)* E
             (250, vec![
-                Some(r#"a -> (<L> A | B C)*"#),                                // 0: a -> i
-                Some(r#"`<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)*`"#), // 1: i -> A i
-                Some(r#"`B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )*`"#),     // 2: i -> B i
-                None,                                                        // 3: i -> ε
+                Some(r#"a -> A (<L> B | C D)* E"#),                                // 0: a -> A i E
+                Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄  | C D)* E`"#), // 1: i -> B i
+                Some(r#"`C D` iteration in `a -> A (<L> B |  ►► C D ◄◄ )* E`"#),   // 2: i -> C D i
+                None,                                                              // 3: i -> ε
             ]),
             // expr -> Id "." expr | "(" Num ")"
             (301, vec![

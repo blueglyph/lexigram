@@ -3633,28 +3633,29 @@ pub(crate) mod rules_123_1 {
 // ================================================================================
 
 pub(crate) mod rules_150_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
 
     // ------------------------------------------------------------
     // [wrapper source for rule 150 #1, start a]
 
     use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
-    use super::super::wrapper_code::code_150_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (A | B)*`
-        V1 { star: SynA1 },
+        /// `a -> A (B | C D)* E`
+        V1 { a: String, star: SynA1, e: String },
     }
 
-    /// Computed `(A | B)*` array in `a ->  ►► (A | B)* ◄◄ `
+    /// Computed `(B | C D)*` array in `a -> A  ►► (B | C D)* ◄◄  E`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
-        /// `A` item in `a -> ( ►► A ◄◄  | B)*`
-        V1 { a: String },
-        /// `B` item in `a -> (A |  ►► B ◄◄ )*`
-        V2 { b: String },
+        /// `B` item in `a -> A ( ►► B ◄◄  | C D)* E`
+        V1 { b: String },
+        /// `C D` item in `a -> A (B |  ►► C D ◄◄ )* E`
+        V2 { c: String, d: String },
     }
 
     #[derive(Debug)]
@@ -3719,9 +3720,9 @@ pub(crate) mod rules_150_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // a -> a_1
-                        1 |                                         // a_1 -> A a_1
-                        2 => self.exit_a1(alt_id),                  // a_1 -> B a_1
+                        0 => self.exit_a(),                         // a -> A a_1 E
+                        1 |                                         // a_1 -> B a_1
+                        2 => self.exit_a1(alt_id),                  // a_1 -> C D a_1
                         3 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -3805,9 +3806,11 @@ pub(crate) mod rules_150_1 {
         }
 
         fn exit_a(&mut self) {
+            let e = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
-            let ctx = CtxA::V1 { star };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, e };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
@@ -3821,12 +3824,13 @@ pub(crate) mod rules_150_1 {
         fn exit_a1(&mut self, alt_id: AltId) {
             let (n, val) = match alt_id {
                 1 => {
-                    let a = self.stack_t.pop().unwrap();
-                    (2, SynA1Item::V1 { a })
+                    let b = self.stack_t.pop().unwrap();
+                    (2, SynA1Item::V1 { b })
                 }
                 2 => {
-                    let b = self.stack_t.pop().unwrap();
-                    (2, SynA1Item::V2 { b })
+                    let d = self.stack_t.pop().unwrap();
+                    let c = self.stack_t.pop().unwrap();
+                    (3, SynA1Item::V2 { c, d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };
@@ -3857,19 +3861,19 @@ pub(crate) mod rules_151_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (A | B)+`
-        V1 { plus: SynA1 },
+        /// `a -> A (B | C D)+ E`
+        V1 { a: String, plus: SynA1, e: String },
     }
 
-    /// Computed `(A | B)+` array in `a ->  ►► (A | B)+ ◄◄ `
+    /// Computed `(B | C D)+` array in `a -> A  ►► (B | C D)+ ◄◄  E`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
     #[derive(Debug, PartialEq)]
     pub enum SynA1Item {
-        /// `A` item in `a -> ( ►► A ◄◄  | B)+`
-        V1 { a: String },
-        /// `B` item in `a -> (A |  ►► B ◄◄ )+`
-        V2 { b: String },
+        /// `B` item in `a -> A ( ►► B ◄◄  | C D)+ E`
+        V1 { b: String },
+        /// `C D` item in `a -> A (B |  ►► C D ◄◄ )+ E`
+        V2 { c: String, d: String },
     }
 
     #[derive(Debug)]
@@ -3935,13 +3939,13 @@ pub(crate) mod rules_151_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // a -> a_1
+                        0 => self.exit_a(),                         // a -> A a_1 E
                         3 |                                         // a_2 -> a_1
                         4 |                                         // a_2 -> ε
                         5 |                                         // a_3 -> a_1
                         6 => self.exit_a1(alt_id),                  // a_3 -> ε
-                     /* 1 */                                        // a_1 -> A a_2 (never called)
-                     /* 2 */                                        // a_1 -> B a_3 (never called)
+                     /* 1 */                                        // a_1 -> B a_2 (never called)
+                     /* 2 */                                        // a_1 -> C D a_3 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -4024,9 +4028,11 @@ pub(crate) mod rules_151_1 {
         }
 
         fn exit_a(&mut self) {
+            let e = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
-            let ctx = CtxA::V1 { plus };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, e };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
@@ -4040,12 +4046,13 @@ pub(crate) mod rules_151_1 {
         fn exit_a1(&mut self, alt_id: AltId) {
             let (n, val) = match alt_id {
                 3 | 4 => {
-                    let a = self.stack_t.pop().unwrap();
-                    (2, SynA1Item::V1 { a })
+                    let b = self.stack_t.pop().unwrap();
+                    (2, SynA1Item::V1 { b })
                 }
                 5 | 6 => {
-                    let b = self.stack_t.pop().unwrap();
-                    (2, SynA1Item::V2 { b })
+                    let d = self.stack_t.pop().unwrap();
+                    let c = self.stack_t.pop().unwrap();
+                    (3, SynA1Item::V2 { c, d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };

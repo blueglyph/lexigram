@@ -492,39 +492,39 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // --------------------------------------------------------------------------- norm+/* alternatives
-        // a -> (A | B)*
+        // a -> A (B | C D)* E
         //
         //   NT    name   val   flags
         // +----------------------------------+
         // |   0 | a     | y  | parent_+_or_* |
         // |   1 | . a_1 | y  | child_+_or_*  |
         // +----------------------------------+
-        (150, true, false, true, 0, btreemap![
+        (150, true, false, false, 0, btreemap![
         ], vec![
-            (strip![exit 0, nt 1],                  1, symbols![nt 1]),      //  0: a -> a_1     | ◄0 ►a_1    | 1 | a_1
-            (strip![loop 1, exit 1, t 0],           2, symbols![nt 1, t 0]), //  1: a_1 -> A a_1 | ●a_1 ◄1 A! | 2 | a_1 A
-            (strip![loop 1, exit 2, t 1],           2, symbols![nt 1, t 1]), //  2: a_1 -> B a_1 | ●a_1 ◄2 B! | 2 | a_1 B
-            (strip![exit 3],                        1, symbols![nt 1]),      //  3: a_1 -> ε     | ◄3         | 1 | a_1
+            (strip![exit 0, t 4, nt 1, t 0],        3, symbols![t 0, nt 1, t 4]), //  0: a -> A a_1 E   | ◄0 E! ►a_1 A! | 3 | A a_1 E
+            (strip![loop 1, exit 1, t 1],           2, symbols![nt 1, t 1]),      //  1: a_1 -> B a_1   | ●a_1 ◄1 B!    | 2 | a_1 B
+            (strip![loop 1, exit 2, t 3, t 2],      3, symbols![nt 1, t 2, t 3]), //  2: a_1 -> C D a_1 | ●a_1 ◄2 D! C! | 3 | a_1 C D
+            (strip![exit 3],                        1, symbols![nt 1]),           //  3: a_1 -> ε       | ◄3            | 1 | a_1
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> (A | B)+
+        // a -> A (B | C D)+ E
         //
         //   NT    name     val   flags
         // +-----------------------------------------------------------+
-        // |   0 | a       | y  | parent_+_or_*, plus                  |
+        // |   0 | a       | y  | parent_+_or_*                        |
         // |   1 | . a_1   | y  | child_+_or_*, parent_left_fact, plus |
         // |   2 | .   a_2 |    | child_left_fact                      |
         // |   3 | .   a_3 |    | child_left_fact                      |
         // +-----------------------------------------------------------+
         (151, true, false, false, 0, btreemap![
         ], vec![
-            (strip![exit 0, nt 1],                  1, symbols![nt 1]),      //  0: a -> a_1     | ◄0 ►a_1 | 1 | a_1
-            (strip![nt 2, t 0],                     0, symbols![]),          //  1: a_1 -> A a_2 | ►a_2 A! | 0 |
-            (strip![nt 3, t 1],                     0, symbols![]),          //  2: a_1 -> B a_3 | ►a_3 B! | 0 |
-            (strip![loop 1, exit 3],                2, symbols![nt 1, t 0]), //  3: a_2 -> a_1   | ●a_1 ◄3 | 2 | a_1 A
-            (strip![exit 4],                        2, symbols![nt 1, t 0]), //  4: a_2 -> ε     | ◄4      | 2 | a_1 A
-            (strip![loop 1, exit 5],                2, symbols![nt 1, t 1]), //  5: a_3 -> a_1   | ●a_1 ◄5 | 2 | a_1 B
-            (strip![exit 6],                        2, symbols![nt 1, t 1]), //  6: a_3 -> ε     | ◄6      | 2 | a_1 B
+            (strip![exit 0, t 4, nt 1, t 0],        3, symbols![t 0, nt 1, t 4]), //  0: a -> A a_1 E   | ◄0 E! ►a_1 A! | 3 | A a_1 E
+            (strip![nt 2, t 1],                     0, symbols![]),               //  1: a_1 -> B a_2   | ►a_2 B!       | 0 |
+            (strip![nt 3, t 3, t 2],                0, symbols![]),               //  2: a_1 -> C D a_3 | ►a_3 D! C!    | 0 |
+            (strip![loop 1, exit 3],                2, symbols![nt 1, t 1]),      //  3: a_2 -> a_1     | ●a_1 ◄3       | 2 | a_1 B
+            (strip![exit 4],                        2, symbols![nt 1, t 1]),      //  4: a_2 -> ε       | ◄4            | 2 | a_1 B
+            (strip![loop 1, exit 5],                3, symbols![nt 1, t 2, t 3]), //  5: a_3 -> a_1     | ●a_1 ◄5       | 3 | a_1 C D
+            (strip![exit 6],                        3, symbols![nt 1, t 2, t 3]), //  6: a_3 -> ε       | ◄6            | 3 | a_1 C D
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> A (B | b C b B C | E)* F
@@ -1027,22 +1027,22 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![exit 3, t 0],                                 1, symbols![t 0]),             //  3: type -> Id                    | ◄3 Id!                          | 1    | Id
         ], NTValue::Default, btreemap![0 => vec![0], 2 => vec![3]]),
 
-        // a -> (<L=i> A | B C)*
+        // a -> A (<L=i> B | C D)* E
         //
         //   NT    name  val   flags
         // +----------------------------------------+
         // |   0 | a    | y  | parent_+_or_*        |
         // |   1 | . i  | y  | child_+_or_*, L-form |
         // +----------------------------------------+
-        (250, true, false, true, 0, btreemap![
+        (250, true, false, false, 0, btreemap![
         ], vec![
-            (strip![exit 0, nt 1],                  1, symbols![nt 1]),           //  0: a -> i     | ◄0 ►i       | 1 | i
-            (strip![loop 1, exit 1, t 0],           2, symbols![nt 1, t 0]),      //  1: i -> A i   | ●i ◄1 A!    | 2 | i A
-            (strip![loop 1, exit 2, t 2, t 1],      3, symbols![nt 1, t 1, t 2]), //  2: i -> B C i | ●i ◄2 C! B! | 3 | i B C
+            (strip![exit 0, t 4, nt 1, t 0],        3, symbols![t 0, nt 1, t 4]), //  0: a -> A i E | ◄0 E! ►i A! | 3 | A i E
+            (strip![loop 1, exit 1, t 1],           2, symbols![nt 1, t 1]),      //  1: i -> B i   | ●i ◄1 B!    | 2 | i B
+            (strip![loop 1, exit 2, t 3, t 2],      3, symbols![nt 1, t 2, t 3]), //  2: i -> C D i | ●i ◄2 D! C! | 3 | i C D
             (strip![exit 3],                        1, symbols![nt 1]),           //  3: i -> ε     | ◄3          | 1 | i
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
-        // a -> (<L=i> A | B C)+
+        // a -> A (<L=i> B | C D)+ E
         //
         //   NT    name     val   flags
         // +-------------------------------------------------------------------+
@@ -1051,15 +1051,15 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         // |   2 | .   i_1 |    | child_left_fact                              |
         // |   3 | .   i_2 |    | child_left_fact                              |
         // +-------------------------------------------------------------------+
-        (251, true, false, true, 0, btreemap![
+        (251, true, false, false, 0, btreemap![
         ], vec![
-            (strip![exit 0, nt 1],                  1, symbols![nt 1]),           //  0: a -> i       | ◄0 ►i      | 1 | i
-            (strip![nt 2, t 0],                     0, symbols![]),               //  1: i -> A i_1   | ►i_1 A!    | 0 |
-            (strip![nt 3, t 2, t 1],                0, symbols![]),               //  2: i -> B C i_2 | ►i_2 C! B! | 0 |
-            (strip![loop 1, exit 3],                2, symbols![nt 1, t 0]),      //  3: i_1 -> i     | ●i ◄3      | 2 | i A
-            (strip![exit 4],                        2, symbols![nt 1, t 0]),      //  4: i_1 -> ε     | ◄4         | 2 | i A
-            (strip![loop 1, exit 5],                3, symbols![nt 1, t 1, t 2]), //  5: i_2 -> i     | ●i ◄5      | 3 | i B C
-            (strip![exit 6],                        3, symbols![nt 1, t 1, t 2]), //  6: i_2 -> ε     | ◄6         | 3 | i B C
+            (strip![exit 0, t 4, nt 1, t 0],        3, symbols![t 0, nt 1, t 4]), //  0: a -> A i E   | ◄0 E! ►i A! | 3 | A i E
+            (strip![nt 2, t 1],                     0, symbols![]),               //  1: i -> B i_1   | ►i_1 B!     | 0 |
+            (strip![nt 3, t 3, t 2],                0, symbols![]),               //  2: i -> C D i_2 | ►i_2 D! C!  | 0 |
+            (strip![loop 1, exit 3],                2, symbols![nt 1, t 1]),      //  3: i_1 -> i     | ●i ◄3       | 2 | i B
+            (strip![exit 4],                        2, symbols![nt 1, t 1]),      //  4: i_1 -> ε     | ◄4          | 2 | i B
+            (strip![loop 1, exit 5],                3, symbols![nt 1, t 2, t 3]), //  5: i_2 -> i     | ●i ◄5       | 3 | i C D
+            (strip![exit 6],                        3, symbols![nt 1, t 2, t 3]), //  6: i_2 -> ε     | ◄6          | 3 | i C D
         ], NTValue::Default, btreemap![0 => vec![0]]),
 
         // a -> A ((<L=j> b C b B C | D)+ E | F)+ G

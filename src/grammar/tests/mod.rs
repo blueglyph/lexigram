@@ -108,8 +108,8 @@ impl TestRules {
             125  => vec![r#"a -> A ( (Id / ",")+ )* B;"#],
             126 => vec![r#"a -> A ( (Id / ",")+ )+ B;"#],
 
-            150 => vec![r#"a -> (A | B)*;"#],
-            151 => vec![r#"a -> (A | B)+;"#],
+            150 => vec![r#"a -> A (B | C D)* E;"#],
+            151 => vec![r#"a -> A (B | C D)+ E;"#],
             152 => vec![r#"a -> A (B | b C b B C | E)* F; b -> D;"#],
             153 => vec![r#"a -> A (B | b C b B C | E)+ F; b -> D;"#],
             154 => vec![r#"a -> (A | A B | C)*;"#],
@@ -150,8 +150,8 @@ impl TestRules {
             // equivalent 109
             222 => vec![r#"a -> Id "(" (<L=i> Id ":" type / ",")+ ")"; type -> Id;"#],
 
-            250 => vec![r#"a -> (<L=i> A | B C)*;"#],
-            251 => vec![r#"a -> (<L=i> A | B C)+;"#],
+            250 => vec![r#"a -> A (<L=i> B | C D)* E;"#],
+            251 => vec![r#"a -> A (<L=i> B | C D)+ E;"#],
             252 => vec![r#"a -> A (      (<L=j> b C b B C | D)+ E | F)+ G; b -> H;"#],
             253 => vec![r#"a -> A (<L=i> (      b C b B C | D)+ E | F)+ G; b -> H;"#],
             254 => vec![r#"a -> A (<L=i> (<L=j> b C b B C | D)* E | F)* G; b -> H;"#],

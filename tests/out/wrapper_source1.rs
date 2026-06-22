@@ -3775,24 +3775,27 @@ pub(crate) mod rules_222_1 {
 // ================================================================================
 
 pub(crate) mod rules_250_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`
+    #[derive(Debug, PartialEq)] pub struct SynI();
 
     // ------------------------------------------------------------
     // [wrapper source for rule 250 #1, start a]
 
     use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
-    use super::super::wrapper_code::code_250_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B C)*`
-        V1 { star: SynI },
+        /// `a -> A (<L> B | C D)* E`
+        V1 { a: String, star: SynI, e: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)*`
-        V1 { a: String },
-        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )*`
-        V2 { b: String, c: String },
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄  | C D)* E`
+        V1 { b: String },
+        /// `C D` iteration in `a -> A (<L> B |  ►► C D ◄◄ )* E`
+        V2 { c: String, d: String },
     }
 
     #[derive(Debug)]
@@ -3861,9 +3864,9 @@ pub(crate) mod rules_250_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // a -> i
-                        1 |                                         // i -> <L> A i
-                        2 => self.exit_i(alt_id),                   // i -> <L> B C i
+                        0 => self.exit_a(),                         // a -> A i E
+                        1 |                                         // i -> <L> B i
+                        2 => self.exit_i(alt_id),                   // i -> <L> C D i
                         3 => self.exitloop_i(),                     // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -3947,9 +3950,11 @@ pub(crate) mod rules_250_1 {
         }
 
         fn exit_a(&mut self) {
+            let e = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_i();
-            let ctx = CtxA::V1 { star };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, star, e };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
@@ -3963,13 +3968,13 @@ pub(crate) mod rules_250_1 {
         fn exit_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 1 => {
-                    let a = self.stack_t.pop().unwrap();
-                    (2, CtxI::V1 { a })
+                    let b = self.stack_t.pop().unwrap();
+                    (2, CtxI::V1 { b })
                 }
                 2 => {
+                    let d = self.stack_t.pop().unwrap();
                     let c = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    (3, CtxI::V2 { b, c })
+                    (3, CtxI::V2 { c, d })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
@@ -3992,23 +3997,27 @@ pub(crate) mod rules_250_1 {
 // ================================================================================
 
 pub(crate) mod rules_251_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
+    #[derive(Debug, PartialEq)] pub struct SynI();
+
     // ------------------------------------------------------------
     // [wrapper source for rule 251 #1, start a]
 
     use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
-    use super::super::wrapper_code::code_251_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `a -> (<L> A | B C)+`
-        V1 { plus: SynI },
+        /// `a -> A (<L> B | C D)+ E`
+        V1 { a: String, plus: SynI, e: String },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B C)+`
-        V1 { a: String, last_iteration: bool },
-        /// `B C` iteration in `a -> (<L> A |  ►► B C ◄◄ )+`
-        V2 { b: String, c: String, last_iteration: bool },
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄  | C D)+ E`
+        V1 { b: String, last_iteration: bool },
+        /// `C D` iteration in `a -> A (<L> B |  ►► C D ◄◄ )+ E`
+        V2 { c: String, d: String, last_iteration: bool },
     }
 
     #[derive(Debug)]
@@ -4076,13 +4085,13 @@ pub(crate) mod rules_251_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // a -> i
+                        0 => self.exit_a(),                         // a -> A i E
                         3 |                                         // i_1 -> i
                         4 |                                         // i_1 -> ε
                         5 |                                         // i_2 -> i
                         6 => self.exit_i(alt_id),                   // i_2 -> ε
-                     /* 1 */                                        // i -> <L> A i_1 (never called)
-                     /* 2 */                                        // i -> <L> B C i_2 (never called)
+                     /* 1 */                                        // i -> <L> B i_1 (never called)
+                     /* 2 */                                        // i -> <L> C D i_2 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -4165,9 +4174,11 @@ pub(crate) mod rules_251_1 {
         }
 
         fn exit_a(&mut self) {
+            let e = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_i();
-            let ctx = CtxA::V1 { plus };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxA::V1 { a, plus, e };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
@@ -4182,14 +4193,14 @@ pub(crate) mod rules_251_1 {
             let (n, ctx) = match alt_id {
                 3 | 4 => {
                     let last_iteration = alt_id == 4;
-                    let a = self.stack_t.pop().unwrap();
-                    (2, CtxI::V1 { a, last_iteration })
+                    let b = self.stack_t.pop().unwrap();
+                    (2, CtxI::V1 { b, last_iteration })
                 }
                 5 | 6 => {
                     let last_iteration = alt_id == 6;
+                    let d = self.stack_t.pop().unwrap();
                     let c = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    (3, CtxI::V2 { b, c, last_iteration })
+                    (3, CtxI::V2 { c, d, last_iteration })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
