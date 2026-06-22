@@ -2836,6 +2836,7 @@ pub(crate) mod rules_200_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -2956,6 +2957,7 @@ pub(crate) mod rules_200_2 {
         }
 
         fn init_i(&mut self) {
+            self.listener.init_i();
             self.stack_span.push(PosSpan::empty());
         }
 
@@ -3342,6 +3344,7 @@ pub(crate) mod rules_201_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -3462,6 +3465,7 @@ pub(crate) mod rules_201_2 {
         }
 
         fn init_i(&mut self) {
+            self.listener.init_i();
             self.stack_span.insert(self.stack_span.len() - 1, PosSpan::empty());
         }
 
@@ -4605,6 +4609,7 @@ pub(crate) mod rules_250_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -4726,6 +4731,7 @@ pub(crate) mod rules_250_2 {
         }
 
         fn init_i(&mut self) {
+            self.listener.init_i();
             self.stack_span.push(PosSpan::empty());
         }
 
@@ -5018,6 +5024,7 @@ pub(crate) mod rules_251_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -5140,6 +5147,7 @@ pub(crate) mod rules_251_2 {
         }
 
         fn init_i(&mut self, alt_id: AltId) {
+            self.listener.init_i();
             let n = match alt_id {
                 2 => 1,
                 4 => 2,

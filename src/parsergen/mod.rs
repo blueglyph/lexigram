@@ -2645,6 +2645,11 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("        let val = self.listener.{init_fn_name}();"));
                             src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                             src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                        } else {
+                            src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                            if self.options.gen_span_params {
+                                src_wrapper_impl.push(format!("        self.listener.{init_fn_name}();"));
+                            }
                         }
                         has_skel_init = true;
                     }
@@ -2666,9 +2671,14 @@ impl ParserGen {
                 src_wrapper_impl.extend(trailing_init);
                 src_wrapper_impl.push("    }".to_string());
             } else if is_lform {
-                init_nt_done.insert(var);
-                src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
-                src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                // !has_value, !is_sep_list, !(is_lr && self.options.gen_span_params)
+                if is_ll {
+                    init_nt_done.insert(var);
+                    src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
+                    src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                } else {
+                    src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
+                }
             } else {
                 // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
             }
@@ -2753,9 +2763,13 @@ impl ParserGen {
                     .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
                     .map(|id| id.to_string())
                     .join(" | ");
-                Some(format!(
-                    "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
-                    if init_needs_param { &alt_id_name } else { "" }))
+                if has_value || self.options.gen_span_params {
+                    Some(format!(
+                        "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
+                        if init_needs_param { &alt_id_name } else { "" }))
+                } else {
+                    Some(format!("        if matches!({alt_id_name}, {pattern}) {{ self.listener.init_{npl}(); }}"))
+                }
             } else {
                 None
             };
@@ -2909,7 +2923,7 @@ impl ParserGen {
                     };
                     if is_single {
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe && (f_valued | self.options.gen_span_params) {
+                        if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
                             src_wrapper_impl.push(lr_init_alt_ids.to_string());
                         }
                         if self.options.gen_span_params {
@@ -2924,7 +2938,7 @@ impl ParserGen {
                 if !is_single {
                     src_wrapper_impl.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\")"));
                     src_wrapper_impl.push("        };".to_string());
-                    if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe && (f_valued | self.options.gen_span_params) {
+                    if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
                         src_wrapper_impl.push(lr_init_alt_ids.to_string());
                     }
                     if self.options.gen_span_params {
@@ -2957,7 +2971,11 @@ impl ParserGen {
                     pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                 };
                 if is_lr && is_child_repeat_lform {
-                    src_exit.push(vec![format!("                    {a} => self.{fn_init_name}(),"), format!("// {alt_str}")]);
+                    if has_value | self.options.gen_span_params {
+                        src_exit.push(vec![format!("                    {a} => self.{fn_init_name}(),"), format!("// {alt_str}")]);
+                    } else {
+                        src_exit.push(vec![format!("                    {a} => self.listener.{fn_init_name}(),"), format!("// {alt_str}")]);
+                    }
                     exit_alt_done.insert(a);
                 } else {
                     // optional exitloop_<NT> used by lrec and child_* <L> to post-process the accumulator
