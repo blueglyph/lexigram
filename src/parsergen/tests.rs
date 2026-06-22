@@ -208,6 +208,7 @@ pub(super) mod wrapper_source {
         u16,                                        // start NT
         BTreeMap<VarId, String>,                    // NT types
         Vec<(Vec<OpCode>, SpanNbr, Vec<Symbol>)>,   // expected opcodes, span, items for each alt
+        bool,                                       // gen_span_params?
         NTValue,                                    // which symbols have a value
         BTreeMap<VarId, Vec<AltId>>,                // expected alt groups
     );
@@ -258,7 +259,7 @@ pub(super) mod wrapper_source {
                 tr_id,
                 test_source, test_source_parser, use_wrapper_code,
                 start_nt, nt_type,
-                expected_items, has_value, expected_alts
+                expected_items, gen_span_params, has_value, expected_alts
             ) = test_entry;
             // if !matches!(tr_id, 150|151|250|251) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
@@ -298,7 +299,7 @@ pub(super) mod wrapper_source {
                     (ParserGen::build_from_rules_lr(lr, "Test".to_string()), original_str)
                 }
             };
-            builder.set_gen_span_params(true);
+            builder.set_gen_span_params(gen_span_params);
             builder.set_include_alts(true);
             builder.use_full_lib(true);
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.get_inner_str().contains("calc_table: ambiguity")).join("\n");
