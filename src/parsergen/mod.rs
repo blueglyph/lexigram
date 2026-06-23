@@ -1988,10 +1988,14 @@ impl ParserGen {
     /// Generates a string with either `"{common}"` or `"({span_code}, {common})"`, where `span_code` is
     /// created by the closure. We use a closure because it's executed only if necessary, which
     /// avoids accessing data that might not be available when the span code is not generated.
-    fn gen_match_item<F: FnOnce() -> String>(&self, common: String, span_only: F) -> String {
+    fn gen_match_item<F: FnOnce() -> String>(&self, common: String, span_only: F, has_value: bool) -> String {
         if self.options.gen_span_params {
             let span_code = span_only();
-            format!("({span_code}, {common})")
+            if has_value {
+                format!("({span_code}, {common})")
+            } else {
+                span_code
+            }
         } else {
             common
         }
@@ -2067,6 +2071,7 @@ impl ParserGen {
         fn_name: &str,
         nu: &str,
         is_init: bool,
+        has_value: bool,
         alt_id_name: &str
     ) -> (Vec<String>, String, Vec<String>)
     {
@@ -2081,15 +2086,19 @@ impl ParserGen {
         let mut src_span = vec![];
         let val_name = if endpoints.len() > 1 {
             // several possibilities; for ex. a -> (A | B)+  => Vec of enum type
-            src_val.push(format!("        let {} = match {alt_id_name} {{", self.gen_match_item("val".to_string(), || "n".to_string())));
+            src_val.push(format!("        let {} = match {alt_id_name} {{", self.gen_match_item("val".to_string(), || "n".to_string(), has_value)));
             for (i, &a_id) in endpoints.iter().index_start(1) {
                 let infos = &item_info[a_id as usize];
                 src_val.push(format!("            {a_id}{} => {{", if is_plus { format!(" | {}", a_id + 1) } else { String::new() }));
                 let (src_let, src_struct) = Self::source_lets(infos, nt_name, "                ", None, alt_id_name);
-                src_val.extend(src_let);
+                if has_value {
+                    src_val.extend(src_let);
+                }
                 let return_value = self.gen_match_item(
                     format!("Syn{nu}Item::V{i} {{ {} }}", src_struct),
-                    || self.span_nbrs[a_id as usize].to_string());
+                    || self.span_nbrs[a_id as usize].to_string(),
+                    has_value
+                );
                 src_val.push(format!("                {return_value}"));
                 src_val.push("            }".to_string());
             }
@@ -2110,16 +2119,20 @@ impl ParserGen {
                 };
                 src_span.extend(Self::source_update_span(&span_nbr.to_string()));
             }
-            let infos = &item_info[a_id as usize];
-            let (src_let, src_struct) = Self::source_lets(infos, nt_name, "        ", None, alt_id_name);
-            src_val.extend(src_let);
-            if infos.len() == 1 {
-                // single repeat item; for ex. A -> B+  => type directly as Vec<type>
-                infos[0].name.clone()
+            if has_value {
+                let infos = &item_info[a_id as usize];
+                let (src_let, src_struct) = Self::source_lets(infos, nt_name, "        ", None, alt_id_name);
+                src_val.extend(src_let);
+                if infos.len() == 1 {
+                    // single repeat item; for ex. A -> B+  => type directly as Vec<type>
+                    infos[0].name.clone()
+                } else {
+                    // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
+                    src_val.push(format!("        let val = Syn{nu}Item {{ {} }};", src_struct));
+                    "val".to_string()
+                }
             } else {
-                // several repeat items; for ex. A -> (B b)+  => intermediate struct type for Vec
-                src_val.push(format!("        let val = Syn{nu}Item {{ {} }};", src_struct));
-                "val".to_string()
+                String::new() // don't care
             }
         };
         (src_val, val_name, src_span)
@@ -2661,7 +2674,8 @@ impl ParserGen {
                     // fetch values from stack to init the list with the first value that was outside the repetition:
                     // first α in α (β α)*
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
-                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &init_fn_name, nu, true, "alt_id");
+                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(
+                        endpoints, &self.item_info, is_plus, &self.nt_name, &init_fn_name, nu, true, true, "alt_id");
                     src_wrapper_impl.extend(src_val);
                     src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
                     src_wrapper_impl.extend(src_span);
@@ -2877,8 +2891,9 @@ impl ParserGen {
             if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
                 if has_value || has_span {
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
-                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, &alt_id_name);
-                    if has_value {
+                    let (src_val, val_name, src_span) = self.source_child_repeat_lets(
+                        endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, has_value, &alt_id_name);
+                    if true|| has_value {
                         src_wrapper_impl.extend(src_val);
                     }
                     let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
@@ -2940,7 +2955,7 @@ impl ParserGen {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
                         }
                     } else {
-                        let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string());
+                        let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string(), true);
                         src_wrapper_impl.push(format!("{indent}{ctx_value}"));
                         src_wrapper_impl.push("            }".to_string());
                     }

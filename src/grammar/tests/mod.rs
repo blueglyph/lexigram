@@ -378,9 +378,10 @@ impl TestRules {
                 r#"x -> "X";"#,
             ],
             981 => vec![
-                r#"a -> vs ns vp np;"#,
-                r#"vs -> A (B | C D)*;          ns -> "A" ("B" | "C" "D")*;"#,
-                r#"vp -> A (B | C D)+;          np -> "A" ("B" | "C" "D")+;"#,
+                r#"a -> s p; s -> vs ns xs; p -> vp np xp;"#,
+                r#"vs -> A (B | C D)*;          ns -> "A" ("B" | "C" "D")*;         xs -> A (x | y x)*;"#,
+                r#"vp -> A (B | C D)+;          np -> "A" ("B" | "C" "D")+;         xp -> A (x | y x)+;"#,
+                r#"x -> "X"; y -> "Y";"#,
             ],
             982 => vec![
                 r#"a -> vs ns vp np;"#,

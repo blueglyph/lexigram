@@ -513,6 +513,8 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
             (strip![nt 0],                          1, symbols![]),                 // 22: <goal> -> a      | ►a          | 1 |
         ], false, NTValue::SetIds(vec![0, 1, 2, 3, 4, 5, 6, 7, 8]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 4 => vec![4], 5 => vec![5], 6 => vec![6], 7 => vec![7], 8 => vec![8], 9 => vec![9]]),
 
+        (981, false, false, false, 0, btreemap![], vec![], true, NTValue::Default, btreemap![]),
+        (981, false, false, false, 0, btreemap![], vec![], false, NTValue::Default, btreemap![]),
         // ===========================================================================
         /* template:
         (, false, false, false, 0, btreemap![], vec![], true, NTValue::Default, btreemap![]),
