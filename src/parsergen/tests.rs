@@ -242,6 +242,7 @@ pub(super) mod wrapper_source {
         const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_TEMPLATE: bool = true;
         const SHOW_ANSWER: bool = false;
 
         // override options
@@ -261,7 +262,7 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, gen_span_params, has_value, expected_alts
             ) = test_entry;
-            // if !matches!(tr_id, 150|151|250|251) { continue }
+            if !matches!(tr_id, 980..1000) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let wrapper_filename = wrapper_filenames.into_iter()
@@ -312,6 +313,7 @@ pub(super) mod wrapper_source {
                          ).join(", "));
             }
             builder.set_indent(4);
+            builder.set_types_indent(4);
             let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(0).to_str(builder.get_symbol_table()));
             let rule_name = format!("{tr_id}_{rule_iter}");
             if use_wrapper_code {
@@ -322,7 +324,7 @@ pub(super) mod wrapper_source {
             }
             builder.set_gen_parser(test_source_parser);
             let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
-            let (result_src, ..) = builder.gen_source_code();
+            let (result_src, type_tpl_src, ..) = builder.gen_source_code();
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.num_nt).into_iter().filter_map(|v|
@@ -371,7 +373,7 @@ pub(super) mod wrapper_source {
                     NTValue::SetNames(s) => format!("NTValue::SetNames(vec![{}])", s.iter().map(|s| format!("{s:?}")).join(", ")),
                     NTValue::Parents | NTValue::Default | NTValue::None => format!("NTValue::{has_value:?}"),
                 };
-                println!("        ], {has_value_str}, btreemap![{}]),",
+                println!("        ], {gen_span_params}, {has_value_str}, btreemap![{}]),",
                     if result_alts.is_empty() { "".to_string() } else { result_alts.iter().map(|(v, a)| format!("{v} => vec![{}]", a.iter().join(", "))).join(", ") }
                 );
             }
@@ -397,6 +399,9 @@ pub(super) mod wrapper_source {
                     println!("builder couldn't generate the source");
                 }
             }
+            if PRINT_TEMPLATE && !builder_has_errors {
+                println!("{type_tpl_src}");
+            }
             if PRINT_SOURCE && !builder_has_errors {
                 println!("pub(crate) mod rules_{rule_name} {{");
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}\n    // [{test_name}]\n    // {:-<60}", "");
@@ -409,7 +414,7 @@ pub(super) mod wrapper_source {
             let expected_src = if test_source && !cfg!(miri) {
                 let src = get_tagged_source(wrapper_filename, &test_name);
                 if (enable_test_source || replace_source) && src.is_err() {
-                    println!("## couldn't find the source code: {}", src.as_ref().err().unwrap());
+                    println!("## couldn't find the source code in {wrapper_filename}: {}", src.as_ref().err().unwrap());
                 }
                 src.ok()
             } else {

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
 #![cfg(test)]
 //#![allow(non_camel_case_types)]

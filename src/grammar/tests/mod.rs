@@ -284,17 +284,7 @@ impl TestRules {
             870 => vec![r#"a -> a A | B C | B D;"#],
             871 => vec![r#"a -> a A B | a A C | D;"#],
 
-            // mix of value / no-value
-            880 => vec![r#"a -> v n; v -> A B*;               n -> "A" "B"*;"#],
-            881 => vec![r#"a -> v n; v -> A B+;               n -> "A" "B"+;"#],
-            882 => vec![r#"a -> v n; v -> A (B | C D)*;       n -> "A" ("B" | "C" "D")*;"#],
-            883 => vec![r#"a -> v n; v -> A (B | C D)+;       n -> "A" ("B" | "C" "D")+;"#],
-            884 => vec![r#"a -> v n; v -> A (<L=i> B)*;       n -> "A" (<L=i> "B")*;"#],
-            885 => vec![r#"a -> v n; v -> A (<L=i> B)+;       n -> "A" (<L=i> "B")+;"#],
-            886 => vec![r#"a -> v n; v -> A (<L=i> B | C D)*; n -> "A" (<L=i> "B" | "C" "D")*;"#],
-            887 => vec![r#"a -> v n; v -> A (<L=i> B | C D)+; n -> "A" (<L=i> "B" | "C" "D")+;"#],
-
-            // 9xx = general examples
+            // 9xx = general examples / misc
             // -----------------------------------------------------------------------------
             // rtsgen (somewhat simplified)
             900 => vec![
@@ -379,6 +369,38 @@ impl TestRules {
                 r#"value ->     Id"#,
                 r#"           | Num;"#,
             ],
+
+            // mix of value / no-value
+            980 => vec![
+                r#"a -> s p; s -> vs ns xs; p -> vp np xp;"#,
+                r#"vs -> A B*;                  ns -> "A" "B"*;                     xs -> A x*;"#,
+                r#"vp -> A B+;                  np -> "A" "B"+;                     xp -> A x+;"#,
+                r#"x -> "X";"#,
+            ],
+            981 => vec![
+                r#"a -> vs ns vp np;"#,
+                r#"vs -> A (B | C D)*;          ns -> "A" ("B" | "C" "D")*;"#,
+                r#"vp -> A (B | C D)+;          np -> "A" ("B" | "C" "D")+;"#,
+            ],
+            982 => vec![
+                r#"a -> vs ns vp np;"#,
+                r#"vs -> A (<L=i> B)*;          ns -> "A" (<L=i> "B")*;"#,
+                r#"vp -> A (<L=i> B)+;          np -> "A" (<L=i> "B")+;"#,
+            ],
+            983 => vec![
+                r#"a -> vs ns vp np;"#,
+                r#"vs -> A (<L=i> B | C D)*;    ns -> "A" (<L=i> "B" | "C" "D")*;"#,
+                r#"vp -> A (<L=i> B | C D)+;    np -> "A" (<L=i> "B" | "C" "D")+;"#,
+            ],
+            // 980 => vec![r#"a -> v n; v -> A B*;               n -> "A" "B"*;"#],
+            // 981 => vec![r#"a -> v n; v -> A B+;               n -> "A" "B"+;"#],
+            // 982 => vec![r#"a -> v n; v -> A (B | C D)*;       n -> "A" ("B" | "C" "D")*;"#],
+            // 983 => vec![r#"a -> v n; v -> A (B | C D)+;       n -> "A" ("B" | "C" "D")+;"#],
+            // 984 => vec![r#"a -> v n; v -> A (<L=i> B)*;       n -> "A" (<L=i> "B")*;"#],
+            // 985 => vec![r#"a -> v n; v -> A (<L=i> B)+;       n -> "A" (<L=i> "B")+;"#],
+            // 986 => vec![r#"a -> v n; v -> A (<L=i> B | C D)*; n -> "A" (<L=i> "B" | "C" "D")*;"#],
+            // 987 => vec![r#"a -> v n; v -> A (<L=i> B | C D)+; n -> "A" (<L=i> "B" | "C" "D")+;"#],
+
             // 1yxx = errors
             // -----------------------------------------------------------------------------
             1000 => vec![r#"a -> a ;"#],
