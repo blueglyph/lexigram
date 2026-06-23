@@ -2452,7 +2452,7 @@ pub(crate) mod rules_106_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> a_2 C
-                        2 |                                         // a_1 -> b "," a_1
+                        2 => self.exit_a1(),                        // a_1 -> b "," a_1
                         3 => {}                                     // a_1 -> ε
                         4 => self.exit_a2(),                        // a_2 -> A a_1 ";" a_2
                         5 => {}                                     // a_2 -> ε
@@ -2546,6 +2546,11 @@ pub(crate) mod rules_106_2 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn init_a2(&mut self) {
@@ -2652,7 +2657,7 @@ pub(crate) mod rules_108_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A a_1 C
-                        1 |                                         // a_1 -> "B" a_1
+                        1 => self.exit_a1(),                        // a_1 -> "B" a_1
                         2 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -2743,6 +2748,11 @@ pub(crate) mod rules_108_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
             self.stack.push(EnumSynValue::A(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
     }
 

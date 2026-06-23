@@ -230,10 +230,10 @@ pub(crate) mod rules_980_1 {
                         10 => self.exit_vs1(),                      // vs_1 -> B vs_1
                         11 => {}                                    // vs_1 -> ε
                         4 => self.exit_ns(),                        // ns -> "A" ns_1
-                        12 |                                        // ns_1 -> "B" ns_1
+                        12 => self.exit_ns1(),                      // ns_1 -> "B" ns_1
                         13 => {}                                    // ns_1 -> ε
                         5 => self.exit_xs(),                        // xs -> A xs_1
-                        14 |                                        // xs_1 -> x xs_1
+                        14 => self.exit_xs1(),                      // xs_1 -> x xs_1
                         15 => {}                                    // xs_1 -> ε
                         6 => self.exit_vp(),                        // vp -> A vp_1
                         19 |                                        // vp_2 -> vp_1
@@ -241,11 +241,11 @@ pub(crate) mod rules_980_1 {
                      /* 16 */                                       // vp_1 -> B vp_2 (never called)
                         7 => self.exit_np(),                        // np -> "A" np_1
                         21 |                                        // np_2 -> np_1
-                        22 => {}                                    // np_2 -> ε
+                        22 => self.exit_np1(),                      // np_2 -> ε
                      /* 17 */                                       // np_1 -> "B" np_2 (never called)
                         8 => self.exit_xp(),                        // xp -> A xp_1
                         23 |                                        // xp_2 -> xp_1
-                        24 => {}                                    // xp_2 -> ε
+                        24 => self.exit_xp1(),                      // xp_2 -> ε
                      /* 18 */                                       // xp_1 -> x xp_2 (never called)
                         9 => self.exit_x(),                         // x -> "X"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
@@ -394,6 +394,11 @@ pub(crate) mod rules_980_1 {
             self.stack.push(EnumSynValue::Ns(val));
         }
 
+        fn exit_ns1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
         fn exit_xs(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let ctx = CtxXs::V1 { a };
@@ -401,6 +406,11 @@ pub(crate) mod rules_980_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_xs(ctx, spans);
             self.stack.push(EnumSynValue::Xs(val));
+        }
+
+        fn exit_xs1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_vp(&mut self) {
@@ -436,6 +446,11 @@ pub(crate) mod rules_980_1 {
             self.stack.push(EnumSynValue::Np(val));
         }
 
+        fn exit_np1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
         fn exit_xp(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let ctx = CtxXp::V1 { a };
@@ -443,6 +458,11 @@ pub(crate) mod rules_980_1 {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_xp(ctx, spans);
             self.stack.push(EnumSynValue::Xp(val));
+        }
+
+        fn exit_xp1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_x(&mut self) {

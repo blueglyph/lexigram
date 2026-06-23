@@ -2513,6 +2513,7 @@ impl ParserGen {
         let is_lform = flags & ruleflag::L_FORM != 0;
         let is_rrec_lform = is_lform && flags & ruleflag::R_RECURSION != 0;
         let is_plus = flags & ruleflag::CHILD_PLUS != 0;
+        let has_span = self.options.gen_span_params;
         let (nu, nl, npl) = &self.nt_name[nt];
         if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
                               sym_nt.to_str(self.get_symbol_table()),
@@ -2547,9 +2548,9 @@ impl ParserGen {
                 span_init.insert(var);
             }
             // with LR code, we need the init() if there's a value or if there are span parameters
-            if has_value || is_sep_list || (!is_ll && self.options.gen_span_params) {
+            if has_value || is_sep_list || (!is_ll && has_span) {
                 let mut trailing_init = vec![];
-                if self.options.gen_span_params && !is_ll && !is_sep_list {
+                if has_span && !is_ll && !is_sep_list {
                     if is_plus {
                         let alts = self.var_alts[nt].iter().filter_map(|a| {
                             let alt_a = &self.alts[*a as usize].1;
@@ -2604,13 +2605,13 @@ impl ParserGen {
                             format!("InitCtx{nu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
                         };
                         src_wrapper_impl.push(format!("        let ctx = {ctx};"));
-                        if self.options.gen_span_params {
+                        if has_span {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
                         }
                         src_wrapper_impl.push(format!(
                             "        {}self.listener.{init_fn_name}(ctx{});",
                             if has_value { "let val = " } else { "" },
-                            if self.options.gen_span_params { ", spans" } else { "" }));
+                            if has_span { ", spans" } else { "" }));
                         let ret = if has_value {
                             format!("-> {};", self.get_nt_type(nt as VarId))
                         } else {
@@ -2619,13 +2620,13 @@ impl ParserGen {
                         };
                         src_listener_decl.push(format!(
                             "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
-                            if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+                            if has_span { ", spans: Vec<PosSpan>" } else { "" }));
 
                         // skeleton (listener template)
                         let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
                         src_skel.push(format!(
                             "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
-                            if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" }));
+                            if has_span { ", spans: Vec<PosSpan>" } else { "" }));
                         let a_id = self.var_alts[nt][0];
                         let a_info = &self.item_info[a_id as usize];
                         if !a_info.is_empty() {
@@ -2647,7 +2648,7 @@ impl ParserGen {
                             src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
                         } else {
                             src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
-                            if self.options.gen_span_params {
+                            if has_span {
                                 src_wrapper_impl.push(format!("        self.listener.{init_fn_name}();"));
                             }
                         }
@@ -2671,7 +2672,7 @@ impl ParserGen {
                 src_wrapper_impl.extend(trailing_init);
                 src_wrapper_impl.push("    }".to_string());
             } else if is_lform {
-                // !has_value, !is_sep_list, !(is_lr && self.options.gen_span_params)
+                // !has_value, !is_sep_list, !(is_lr && has_span)
                 if is_ll {
                     init_nt_done.insert(var);
                     src_init.push(vec![format!("                    {nt} => self.listener.{init_fn_name}(),"), nt_comment]);
@@ -2718,6 +2719,7 @@ impl ParserGen {
         let is_plus = flags & ruleflag::CHILD_PLUS != 0;
         let is_parent = nt == parent_nt;
         let is_child_repeat_lform = self.nt_has_all_flags(var, ruleflag::CHILD_REPEAT_LFORM);
+        let has_span = self.options.gen_span_params;
         let (nu, _nl, npl) = &self.nt_name[nt];
 
         // handles most rules except children of left factorization (already taken by self.gather_alts)
@@ -2727,7 +2729,7 @@ impl ParserGen {
             let is_child_plus = flags & ruleflag::CHILD_REPEAT_PLUS == ruleflag::CHILD_REPEAT_PLUS;
             let (pnu, _pnl, pnpl) = &self.nt_name[parent_nt];
             if VERBOSE { println!("    {nu} (parent {pnu})"); }
-            let no_method = !has_value && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
+            let no_method = !has_value && !has_span && flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT;
             let is_rrec_lform = self.nt_has_all_flags(var, ruleflag::R_RECURSION | ruleflag::L_FORM);
             let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
                 (pnpl, pnu, parent_nt, parent_has_value)    // parent_nt doesn't come through this code, so we must do it now
@@ -2735,7 +2737,7 @@ impl ParserGen {
                 (npl, nu, nt, has_value)
             };
             if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
-                let extra_param = if self.options.gen_span_params { ", spans: Vec<PosSpan>" } else { "" };
+                let extra_param = if has_span { ", spans: Vec<PosSpan>" } else { "" };
                 if f_valued {
                     let nt_type = self.get_nt_type(fnt as VarId);
                     if is_rrec_lform || (is_child_repeat_lform) {
@@ -2763,7 +2765,7 @@ impl ParserGen {
                     .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
                     .map(|id| id.to_string())
                     .join(" | ");
-                if has_value || self.options.gen_span_params {
+                if has_value || has_span {
                     Some(format!(
                         "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
                         if init_needs_param { &alt_id_name } else { "" }))
@@ -2871,19 +2873,23 @@ impl ParserGen {
                 src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_alt_id { format!(", {alt_id_name}: AltId") } else { String::new() }));
             }
             if flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT {
-                if has_value {
+                if has_value || has_span {
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
                     let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, &alt_id_name);
-                    src_wrapper_impl.extend(src_val);
-                    let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
-                    if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
-                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                    if has_value {
+                        src_wrapper_impl.extend(src_val);
+                        let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
+                        if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
+                            src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                        }
+                        src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
+                        src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
+                        src_wrapper_impl.push("        };".to_string());
+                        src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
                     }
-                    src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
-                    src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
-                    src_wrapper_impl.push("        };".to_string());
-                    src_wrapper_impl.push(format!("        {vec_name}.push({val_name});"));
-                    src_wrapper_impl.extend(src_span);
+                    if has_span {
+                        src_wrapper_impl.extend(src_span);
+                    }
                 }
             } else {
                 assert!(!no_method, "no_method is not expected here (only used in +* with no lform)");
@@ -2895,14 +2901,14 @@ impl ParserGen {
                 let is_single = exit_info_alts.len() == 1;
                 let indent = if is_single { "        " } else { "                " };
                 if !is_single {
-                    if self.options.gen_span_params {
+                    if has_span {
                         src_wrapper_impl.push(format!("        let (n, ctx) = match {alt_id_name} {{"));
                     } else {
                         src_wrapper_impl.push(format!("        let ctx = match {alt_id_name} {{"));
                     }
                 }
                 if VERBOSE { println!("    exit_alts -> {exit_info_alts:?}, last_alt_id -> {last_alt_ids:?}"); }
-                let spans_param = if self.options.gen_span_params { ", spans" } else { "" };
+                let spans_param = if has_span { ", spans" } else { "" };
                 for a in exit_info_alts {
                     if VERBOSE {
                         println!("    - ALTERNATIVE {a}: {} -> {}",
@@ -2926,7 +2932,7 @@ impl ParserGen {
                         if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
                             src_wrapper_impl.push(lr_init_alt_ids.to_string());
                         }
-                        if self.options.gen_span_params {
+                        if has_span {
                             src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
                         }
                     } else {
@@ -2941,7 +2947,7 @@ impl ParserGen {
                     if let Some(lr_init_alt_ids) = &lr_init_alt_ids_maybe {
                         src_wrapper_impl.push(lr_init_alt_ids.to_string());
                     }
-                    if self.options.gen_span_params {
+                    if has_span {
                         src_wrapper_impl.extend(Self::source_update_span("n"));
                     }
                 }
@@ -2971,7 +2977,7 @@ impl ParserGen {
                     pf.to_rule_str(*v, self.get_symbol_table(), self.flags[*v as usize])
                 };
                 if is_lr && is_child_repeat_lform {
-                    if has_value | self.options.gen_span_params {
+                    if has_value | has_span {
                         src_exit.push(vec![format!("                    {a} => self.{fn_init_name}(),"), format!("// {alt_str}")]);
                     } else {
                         src_exit.push(vec![format!("                    {a} => self.listener.{fn_init_name}(),"), format!("// {alt_str}")]);
