@@ -356,8 +356,6 @@ pub(crate) mod rules_980_1 {
         }
 
         fn init_ns1(&mut self) {
-            let val = SynNs1(Vec::new());
-            self.stack.push(EnumSynValue::Ns1(val));
             self.stack_span.push(PosSpan::empty());
         }
 
@@ -376,8 +374,6 @@ pub(crate) mod rules_980_1 {
         }
 
         fn init_xs1(&mut self) {
-            let val = SynXs1(Vec::new());
-            self.stack.push(EnumSynValue::Xs1(val));
             self.stack_span.push(PosSpan::empty());
         }
 
@@ -422,12 +418,11 @@ pub(crate) mod rules_980_1 {
         }
 
         fn init_np1(&mut self) {
-            let val = SynNp1(Vec::new());
-            self.stack.push(EnumSynValue::Np1(val));
             self.stack_span.insert(self.stack_span.len() - 1, PosSpan::empty());
         }
 
         fn exit_np1(&mut self, alt_id: AltId) {
+            if matches!(alt_id, 19) { self.init_np1(); }
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -442,12 +437,11 @@ pub(crate) mod rules_980_1 {
         }
 
         fn init_xp1(&mut self) {
-            let val = SynXp1(Vec::new());
-            self.stack.push(EnumSynValue::Xp1(val));
             self.stack_span.insert(self.stack_span.len() - 1, PosSpan::empty());
         }
 
         fn exit_xp1(&mut self, alt_id: AltId) {
+            if matches!(alt_id, 21) { self.init_xp1(); }
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }

@@ -2666,8 +2666,10 @@ impl ParserGen {
                     src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(Syn{nu}(vec![{val_name}])));"));
                     src_wrapper_impl.extend(src_span);
                 } else {
-                    src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
-                    src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                    if has_value {
+                        src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
+                        src_wrapper_impl.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
+                    }
                 }
                 src_wrapper_impl.extend(trailing_init);
                 src_wrapper_impl.push("    }".to_string());
@@ -2770,7 +2772,7 @@ impl ParserGen {
                         "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
                         if init_needs_param { &alt_id_name } else { "" }))
                 } else {
-                    Some(format!("        if matches!({alt_id_name}, {pattern}) {{ self.listener.init_{npl}(); }}"))
+                    None
                 }
             } else {
                 None
@@ -2878,10 +2880,12 @@ impl ParserGen {
                     let (src_val, val_name, src_span) = self.source_child_repeat_lets(endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, &alt_id_name);
                     if has_value {
                         src_wrapper_impl.extend(src_val);
-                        let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
-                        if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe {
-                            src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
-                        }
+                    }
+                    let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
+                    if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe { // has content only when has_value || has_span
+                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                    }
+                    if has_value {
                         src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
                         src_wrapper_impl.push(format!("            panic!(\"expected Syn{nu} item on wrapper stack\");"));
                         src_wrapper_impl.push("        };".to_string());
