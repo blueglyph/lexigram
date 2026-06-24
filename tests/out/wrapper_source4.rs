@@ -1937,3 +1937,1021 @@ pub(crate) mod rules_981_2 {
     // [wrapper source for rule 981 #2, start a]
     // ------------------------------------------------------------
 }
+
+// ================================================================================
+
+pub(crate) mod rules_982_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+
+    /// User-defined type for `s`
+    #[derive(Debug, PartialEq)] pub struct SynS();
+
+    /// User-defined type for `p`
+    #[derive(Debug, PartialEq)] pub struct SynP();
+
+    /// User-defined type for `vs`
+    #[derive(Debug, PartialEq)] pub struct SynVs();
+
+    /// User-defined type for `<L> B` iteration in `vs -> A ( ►► <L> B ◄◄ )*`
+    #[derive(Debug, PartialEq)] pub struct SynIvs();
+
+    /// User-defined type for `ns`
+    #[derive(Debug, PartialEq)] pub struct SynNs();
+
+    /// User-defined type for `xs`
+    #[derive(Debug, PartialEq)] pub struct SynXs();
+
+    /// User-defined type for `vp`
+    #[derive(Debug, PartialEq)] pub struct SynVp();
+
+    /// User-defined type for `<L> B` iteration in `vp -> A ( ►► <L> B ◄◄ )+`
+    #[derive(Debug, PartialEq)] pub struct SynIvp();
+
+    /// User-defined type for `np`
+    #[derive(Debug, PartialEq)] pub struct SynNp();
+
+    /// User-defined type for `xp`
+    #[derive(Debug, PartialEq)] pub struct SynXp();
+    // ------------------------------------------------------------
+    // [wrapper source for rule 982 #1, start a]
+
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> s p`
+        V1 { s: SynS, p: SynP },
+    }
+    #[derive(Debug)]
+    pub enum CtxS {
+        /// `s -> vs ns xs`
+        V1 { vs: SynVs, ns: SynNs, xs: SynXs },
+    }
+    #[derive(Debug)]
+    pub enum CtxP {
+        /// `p -> vp np xp`
+        V1 { vp: SynVp, np: SynNp, xp: SynXp },
+    }
+    #[derive(Debug)]
+    pub enum CtxVs {
+        /// `vs -> A (<L> B)*`
+        V1 { a: String, star: SynIvs },
+    }
+    #[derive(Debug)]
+    pub enum CtxIvs {
+        /// `<L> B` iteration in `vs -> A ( ►► <L> B ◄◄ )*`
+        V1 { b: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNs {
+        /// `ns -> "A" (<L> "B")*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxIns {
+        /// `<L> "B"` iteration in `ns -> "A" ( ►► <L> "B" ◄◄ )*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxXs {
+        /// `xs -> A (<L> x)*`
+        V1 { a: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIxs {
+        /// `<L> x` iteration in `xs -> A ( ►► <L> x ◄◄ )*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxVp {
+        /// `vp -> A (<L> B)+`
+        V1 { a: String, plus: SynIvp },
+    }
+    #[derive(Debug)]
+    pub enum CtxIvp {
+        /// `<L> B` iteration in `vp -> A ( ►► <L> B ◄◄ )+`
+        V1 { b: String, last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxNp {
+        /// `np -> "A" (<L> "B")+`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxInp {
+        /// `<L> "B"` iteration in `np -> "A" ( ►► <L> "B" ◄◄ )+`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxXp {
+        /// `xp -> A (<L> x)+`
+        V1 { a: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIxp {
+        /// `<L> x` iteration in `xp -> A ( ►► <L> x ◄◄ )+`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxX {
+        /// `x -> "X"`
+        V1,
+    }
+
+    #[derive(Debug)]
+    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+
+    impl EnumSynValue {
+        fn get_a(self) -> SynA {
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_s(self) -> SynS {
+            if let EnumSynValue::S(val) = self { val } else { panic!() }
+        }
+        fn get_p(self) -> SynP {
+            if let EnumSynValue::P(val) = self { val } else { panic!() }
+        }
+        fn get_vs(self) -> SynVs {
+            if let EnumSynValue::Vs(val) = self { val } else { panic!() }
+        }
+        fn get_ivs(self) -> SynIvs {
+            if let EnumSynValue::Ivs(val) = self { val } else { panic!() }
+        }
+        fn get_ns(self) -> SynNs {
+            if let EnumSynValue::Ns(val) = self { val } else { panic!() }
+        }
+        fn get_xs(self) -> SynXs {
+            if let EnumSynValue::Xs(val) = self { val } else { panic!() }
+        }
+        fn get_vp(self) -> SynVp {
+            if let EnumSynValue::Vp(val) = self { val } else { panic!() }
+        }
+        fn get_ivp(self) -> SynIvp {
+            if let EnumSynValue::Ivp(val) = self { val } else { panic!() }
+        }
+        fn get_np(self) -> SynNp {
+            if let EnumSynValue::Np(val) = self { val } else { panic!() }
+        }
+        fn get_xp(self) -> SynXp {
+            if let EnumSynValue::Xp(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, a: SynA, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
+        fn init_s(&mut self) {}
+        fn exit_s(&mut self, ctx: CtxS, spans: Vec<PosSpan>) -> SynS;
+        fn init_p(&mut self) {}
+        fn exit_p(&mut self, ctx: CtxP, spans: Vec<PosSpan>) -> SynP;
+        fn init_vs(&mut self) {}
+        fn exit_vs(&mut self, ctx: CtxVs, spans: Vec<PosSpan>) -> SynVs;
+        fn init_ivs(&mut self) -> SynIvs;
+        fn exit_ivs(&mut self, acc: &mut SynIvs, ctx: CtxIvs, spans: Vec<PosSpan>);
+        #[allow(unused_variables)]
+        fn exitloop_ivs(&mut self, acc: &mut SynIvs) {}
+        fn init_ns(&mut self) {}
+        fn exit_ns(&mut self, ctx: CtxNs, spans: Vec<PosSpan>) -> SynNs;
+        fn init_ins(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ins(&mut self, ctx: CtxIns, spans: Vec<PosSpan>) {}
+        fn init_xs(&mut self) {}
+        fn exit_xs(&mut self, ctx: CtxXs, spans: Vec<PosSpan>) -> SynXs;
+        fn init_ixs(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ixs(&mut self, ctx: CtxIxs, spans: Vec<PosSpan>) {}
+        fn init_vp(&mut self) {}
+        fn exit_vp(&mut self, ctx: CtxVp, spans: Vec<PosSpan>) -> SynVp;
+        fn init_ivp(&mut self) -> SynIvp;
+        fn exit_ivp(&mut self, acc: &mut SynIvp, ctx: CtxIvp, spans: Vec<PosSpan>);
+        fn init_np(&mut self) {}
+        fn exit_np(&mut self, ctx: CtxNp, spans: Vec<PosSpan>) -> SynNp;
+        fn init_inp(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_inp(&mut self, ctx: CtxInp, spans: Vec<PosSpan>) {}
+        fn init_xp(&mut self) {}
+        fn exit_xp(&mut self, ctx: CtxXp, spans: Vec<PosSpan>) -> SynXp;
+        fn init_ixp(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ixp(&mut self, ctx: CtxIxp, spans: Vec<PosSpan>) {}
+        fn init_x(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_x(&mut self, ctx: CtxX, spans: Vec<PosSpan>) {}
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<EnumSynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    if matches!(nt, 4 | 6 | 8 | 10 | 12 | 14) {
+                        self.stack_span.push(PosSpan::empty());
+                    }
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.listener.init_s(),                // s
+                        2 => self.listener.init_p(),                // p
+                        3 => self.listener.init_vs(),               // vs
+                        4 => self.init_ivs(),                       // ivs
+                        5 => self.listener.init_ns(),               // ns
+                        6 => self.listener.init_ins(),              // ins
+                        7 => self.listener.init_xs(),               // xs
+                        8 => self.listener.init_ixs(),              // ixs
+                        9 => self.listener.init_vp(),               // vp
+                        10 => self.init_ivp(),                      // ivp
+                        16 => {}                                    // ivp_1
+                        11 => self.listener.init_np(),              // np
+                        12 => self.listener.init_inp(),             // inp
+                        17 => {}                                    // inp_1
+                        13 => self.listener.init_xp(),              // xp
+                        14 => self.listener.init_ixp(),             // ixp
+                        18 => {}                                    // ixp_1
+                        15 => self.listener.init_x(),               // x
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_a(),                         // a -> s p
+                        1 => self.exit_s(),                         // s -> vs ns xs
+                        2 => self.exit_p(),                         // p -> vp np xp
+                        3 => self.exit_vs(),                        // vs -> A ivs
+                        4 => self.exit_ivs(),                       // ivs -> <L> B ivs
+                        5 => self.exitloop_ivs(),                   // ivs -> <L> ε
+                        6 => self.exit_ns(),                        // ns -> "A" ins
+                        7 => self.exit_ins(),                       // ins -> <L> "B" ins
+                        8 => {}                                     // ins -> <L> ε (not used)
+                        9 => self.exit_xs(),                        // xs -> A ixs
+                        10 => self.exit_ixs(),                      // ixs -> <L> x ixs
+                        11 => {}                                    // ixs -> <L> ε (not used)
+                        12 => self.exit_vp(),                       // vp -> A ivp
+                        19 |                                        // ivp_1 -> ivp
+                        20 => self.exit_ivp(alt_id),                // ivp_1 -> ε
+                     /* 13 */                                       // ivp -> <L> B ivp_1 (never called)
+                        14 => self.exit_np(),                       // np -> "A" inp
+                        21 |                                        // inp_1 -> inp
+                        22 => self.exit_inp(alt_id),                // inp_1 -> ε
+                     /* 15 */                                       // inp -> <L> "B" inp_1 (never called)
+                        16 => self.exit_xp(),                       // xp -> A ixp
+                        23 |                                        // ixp_1 -> ixp
+                        24 => self.exit_ixp(alt_id),                // ixp_1 -> ε
+                     /* 17 */                                       // ixp -> <L> x ixp_1 (never called)
+                        18 => self.exit_x(),                        // x -> "X"
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_a();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_a(&mut self) {
+            let p = self.stack.pop().unwrap().get_p();
+            let s = self.stack.pop().unwrap().get_s();
+            let ctx = CtxA::V1 { s, p };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_a(ctx, spans);
+            self.stack.push(EnumSynValue::A(val));
+        }
+
+        fn exit_s(&mut self) {
+            let xs = self.stack.pop().unwrap().get_xs();
+            let ns = self.stack.pop().unwrap().get_ns();
+            let vs = self.stack.pop().unwrap().get_vs();
+            let ctx = CtxS::V1 { vs, ns, xs };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_s(ctx, spans);
+            self.stack.push(EnumSynValue::S(val));
+        }
+
+        fn exit_p(&mut self) {
+            let xp = self.stack.pop().unwrap().get_xp();
+            let np = self.stack.pop().unwrap().get_np();
+            let vp = self.stack.pop().unwrap().get_vp();
+            let ctx = CtxP::V1 { vp, np, xp };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_p(ctx, spans);
+            self.stack.push(EnumSynValue::P(val));
+        }
+
+        fn exit_vs(&mut self) {
+            let star = self.stack.pop().unwrap().get_ivs();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxVs::V1 { a, star };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_vs(ctx, spans);
+            self.stack.push(EnumSynValue::Vs(val));
+        }
+
+        fn init_ivs(&mut self) {
+            let val = self.listener.init_ivs();
+            self.stack.push(EnumSynValue::Ivs(val));
+        }
+
+        fn exit_ivs(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let ctx = CtxIvs::V1 { b };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::Ivs(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_ivs(acc, ctx, spans);
+        }
+
+        fn exitloop_ivs(&mut self) {
+            let EnumSynValue::Ivs(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_ivs(acc);
+        }
+
+        fn exit_ns(&mut self) {
+            let ctx = CtxNs::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_ns(ctx, spans);
+            self.stack.push(EnumSynValue::Ns(val));
+        }
+
+        fn exit_ins(&mut self) {
+            let ctx = CtxIns::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_ins(ctx, spans);
+        }
+
+        fn exit_xs(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxXs::V1 { a };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_xs(ctx, spans);
+            self.stack.push(EnumSynValue::Xs(val));
+        }
+
+        fn exit_ixs(&mut self) {
+            let ctx = CtxIxs::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_ixs(ctx, spans);
+        }
+
+        fn exit_vp(&mut self) {
+            let plus = self.stack.pop().unwrap().get_ivp();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxVp::V1 { a, plus };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_vp(ctx, spans);
+            self.stack.push(EnumSynValue::Vp(val));
+        }
+
+        fn init_ivp(&mut self) {
+            let val = self.listener.init_ivp();
+            self.stack.push(EnumSynValue::Ivp(val));
+        }
+
+        fn exit_ivp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 20;
+            let b = self.stack_t.pop().unwrap();
+            let ctx = CtxIvp::V1 { b, last_iteration };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::Ivp(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_ivp(acc, ctx, spans);
+        }
+
+        fn exit_np(&mut self) {
+            let ctx = CtxNp::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_np(ctx, spans);
+            self.stack.push(EnumSynValue::Np(val));
+        }
+
+        fn exit_inp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 22;
+            let ctx = CtxInp::V1 { last_iteration };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_inp(ctx, spans);
+        }
+
+        fn exit_xp(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxXp::V1 { a };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_xp(ctx, spans);
+            self.stack.push(EnumSynValue::Xp(val));
+        }
+
+        fn exit_ixp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 24;
+            let ctx = CtxIxp::V1 { last_iteration };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_ixp(ctx, spans);
+        }
+
+        fn exit_x(&mut self) {
+            let ctx = CtxX::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_x(ctx, spans);
+        }
+    }
+
+    // [wrapper source for rule 982 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+pub(crate) mod rules_982_2 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+
+    /// User-defined type for `s`
+    #[derive(Debug, PartialEq)] pub struct SynS();
+
+    /// User-defined type for `p`
+    #[derive(Debug, PartialEq)] pub struct SynP();
+
+    /// User-defined type for `vs`
+    #[derive(Debug, PartialEq)] pub struct SynVs();
+
+    /// User-defined type for `<L> B` iteration in `vs -> A ( ►► <L> B ◄◄ )*`
+    #[derive(Debug, PartialEq)] pub struct SynIvs();
+
+    /// User-defined type for `ns`
+    #[derive(Debug, PartialEq)] pub struct SynNs();
+
+    /// User-defined type for `xs`
+    #[derive(Debug, PartialEq)] pub struct SynXs();
+
+    /// User-defined type for `vp`
+    #[derive(Debug, PartialEq)] pub struct SynVp();
+
+    /// User-defined type for `<L> B` iteration in `vp -> A ( ►► <L> B ◄◄ )+`
+    #[derive(Debug, PartialEq)] pub struct SynIvp();
+
+    /// User-defined type for `np`
+    #[derive(Debug, PartialEq)] pub struct SynNp();
+
+    /// User-defined type for `xp`
+    #[derive(Debug, PartialEq)] pub struct SynXp();
+    // ------------------------------------------------------------
+    // [wrapper source for rule 982 #2, start a]
+
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> s p`
+        V1 { s: SynS, p: SynP },
+    }
+    #[derive(Debug)]
+    pub enum CtxS {
+        /// `s -> vs ns xs`
+        V1 { vs: SynVs, ns: SynNs, xs: SynXs },
+    }
+    #[derive(Debug)]
+    pub enum CtxP {
+        /// `p -> vp np xp`
+        V1 { vp: SynVp, np: SynNp, xp: SynXp },
+    }
+    #[derive(Debug)]
+    pub enum CtxVs {
+        /// `vs -> A (<L> B)*`
+        V1 { a: String, star: SynIvs },
+    }
+    #[derive(Debug)]
+    pub enum CtxIvs {
+        /// `<L> B` iteration in `vs -> A ( ►► <L> B ◄◄ )*`
+        V1 { b: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNs {
+        /// `ns -> "A" (<L> "B")*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxIns {
+        /// `<L> "B"` iteration in `ns -> "A" ( ►► <L> "B" ◄◄ )*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxXs {
+        /// `xs -> A (<L> x)*`
+        V1 { a: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIxs {
+        /// `<L> x` iteration in `xs -> A ( ►► <L> x ◄◄ )*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxVp {
+        /// `vp -> A (<L> B)+`
+        V1 { a: String, plus: SynIvp },
+    }
+    #[derive(Debug)]
+    pub enum CtxIvp {
+        /// `<L> B` iteration in `vp -> A ( ►► <L> B ◄◄ )+`
+        V1 { b: String, last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxNp {
+        /// `np -> "A" (<L> "B")+`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxInp {
+        /// `<L> "B"` iteration in `np -> "A" ( ►► <L> "B" ◄◄ )+`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxXp {
+        /// `xp -> A (<L> x)+`
+        V1 { a: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIxp {
+        /// `<L> x` iteration in `xp -> A ( ►► <L> x ◄◄ )+`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxX {
+        /// `x -> "X"`
+        V1,
+    }
+
+    #[derive(Debug)]
+    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+
+    impl EnumSynValue {
+        fn get_a(self) -> SynA {
+            if let EnumSynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_s(self) -> SynS {
+            if let EnumSynValue::S(val) = self { val } else { panic!() }
+        }
+        fn get_p(self) -> SynP {
+            if let EnumSynValue::P(val) = self { val } else { panic!() }
+        }
+        fn get_vs(self) -> SynVs {
+            if let EnumSynValue::Vs(val) = self { val } else { panic!() }
+        }
+        fn get_ivs(self) -> SynIvs {
+            if let EnumSynValue::Ivs(val) = self { val } else { panic!() }
+        }
+        fn get_ns(self) -> SynNs {
+            if let EnumSynValue::Ns(val) = self { val } else { panic!() }
+        }
+        fn get_xs(self) -> SynXs {
+            if let EnumSynValue::Xs(val) = self { val } else { panic!() }
+        }
+        fn get_vp(self) -> SynVp {
+            if let EnumSynValue::Vp(val) = self { val } else { panic!() }
+        }
+        fn get_ivp(self) -> SynIvp {
+            if let EnumSynValue::Ivp(val) = self { val } else { panic!() }
+        }
+        fn get_np(self) -> SynNp {
+            if let EnumSynValue::Np(val) = self { val } else { panic!() }
+        }
+        fn get_xp(self) -> SynXp {
+            if let EnumSynValue::Xp(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, a: SynA) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, ctx: CtxA) -> SynA;
+        fn init_s(&mut self) {}
+        fn exit_s(&mut self, ctx: CtxS) -> SynS;
+        fn init_p(&mut self) {}
+        fn exit_p(&mut self, ctx: CtxP) -> SynP;
+        fn init_vs(&mut self) {}
+        fn exit_vs(&mut self, ctx: CtxVs) -> SynVs;
+        fn init_ivs(&mut self) -> SynIvs;
+        fn exit_ivs(&mut self, acc: &mut SynIvs, ctx: CtxIvs);
+        #[allow(unused_variables)]
+        fn exitloop_ivs(&mut self, acc: &mut SynIvs) {}
+        fn init_ns(&mut self) {}
+        fn exit_ns(&mut self, ctx: CtxNs) -> SynNs;
+        fn init_ins(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ins(&mut self, ctx: CtxIns) {}
+        fn init_xs(&mut self) {}
+        fn exit_xs(&mut self, ctx: CtxXs) -> SynXs;
+        fn init_ixs(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ixs(&mut self, ctx: CtxIxs) {}
+        fn init_vp(&mut self) {}
+        fn exit_vp(&mut self, ctx: CtxVp) -> SynVp;
+        fn init_ivp(&mut self) -> SynIvp;
+        fn exit_ivp(&mut self, acc: &mut SynIvp, ctx: CtxIvp);
+        fn init_np(&mut self) {}
+        fn exit_np(&mut self, ctx: CtxNp) -> SynNp;
+        fn init_inp(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_inp(&mut self, ctx: CtxInp) {}
+        fn init_xp(&mut self) {}
+        fn exit_xp(&mut self, ctx: CtxXp) -> SynXp;
+        fn init_ixp(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_ixp(&mut self, ctx: CtxIxp) {}
+        fn init_x(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_x(&mut self, ctx: CtxX) {}
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<EnumSynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.listener.init_s(),                // s
+                        2 => self.listener.init_p(),                // p
+                        3 => self.listener.init_vs(),               // vs
+                        4 => self.init_ivs(),                       // ivs
+                        5 => self.listener.init_ns(),               // ns
+                        6 => self.listener.init_ins(),              // ins
+                        7 => self.listener.init_xs(),               // xs
+                        8 => self.listener.init_ixs(),              // ixs
+                        9 => self.listener.init_vp(),               // vp
+                        10 => self.init_ivp(),                      // ivp
+                        16 => {}                                    // ivp_1
+                        11 => self.listener.init_np(),              // np
+                        12 => self.listener.init_inp(),             // inp
+                        17 => {}                                    // inp_1
+                        13 => self.listener.init_xp(),              // xp
+                        14 => self.listener.init_ixp(),             // ixp
+                        18 => {}                                    // ixp_1
+                        15 => self.listener.init_x(),               // x
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_a(),                         // a -> s p
+                        1 => self.exit_s(),                         // s -> vs ns xs
+                        2 => self.exit_p(),                         // p -> vp np xp
+                        3 => self.exit_vs(),                        // vs -> A ivs
+                        4 => self.exit_ivs(),                       // ivs -> <L> B ivs
+                        5 => self.exitloop_ivs(),                   // ivs -> <L> ε
+                        6 => self.exit_ns(),                        // ns -> "A" ins
+                        7 => self.exit_ins(),                       // ins -> <L> "B" ins
+                        8 => {}                                     // ins -> <L> ε (not used)
+                        9 => self.exit_xs(),                        // xs -> A ixs
+                        10 => self.exit_ixs(),                      // ixs -> <L> x ixs
+                        11 => {}                                    // ixs -> <L> ε (not used)
+                        12 => self.exit_vp(),                       // vp -> A ivp
+                        19 |                                        // ivp_1 -> ivp
+                        20 => self.exit_ivp(alt_id),                // ivp_1 -> ε
+                     /* 13 */                                       // ivp -> <L> B ivp_1 (never called)
+                        14 => self.exit_np(),                       // np -> "A" inp
+                        21 |                                        // inp_1 -> inp
+                        22 => self.exit_inp(alt_id),                // inp_1 -> ε
+                     /* 15 */                                       // inp -> <L> "B" inp_1 (never called)
+                        16 => self.exit_xp(),                       // xp -> A ixp
+                        23 |                                        // ixp_1 -> ixp
+                        24 => self.exit_ixp(alt_id),                // ixp_1 -> ε
+                     /* 17 */                                       // ixp -> <L> x ixp_1 (never called)
+                        18 => self.exit_x(),                        // x -> "X"
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_a();
+                            self.listener.exit(val);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text)
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_a(&mut self) {
+            let p = self.stack.pop().unwrap().get_p();
+            let s = self.stack.pop().unwrap().get_s();
+            let ctx = CtxA::V1 { s, p };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(EnumSynValue::A(val));
+        }
+
+        fn exit_s(&mut self) {
+            let xs = self.stack.pop().unwrap().get_xs();
+            let ns = self.stack.pop().unwrap().get_ns();
+            let vs = self.stack.pop().unwrap().get_vs();
+            let ctx = CtxS::V1 { vs, ns, xs };
+            let val = self.listener.exit_s(ctx);
+            self.stack.push(EnumSynValue::S(val));
+        }
+
+        fn exit_p(&mut self) {
+            let xp = self.stack.pop().unwrap().get_xp();
+            let np = self.stack.pop().unwrap().get_np();
+            let vp = self.stack.pop().unwrap().get_vp();
+            let ctx = CtxP::V1 { vp, np, xp };
+            let val = self.listener.exit_p(ctx);
+            self.stack.push(EnumSynValue::P(val));
+        }
+
+        fn exit_vs(&mut self) {
+            let star = self.stack.pop().unwrap().get_ivs();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxVs::V1 { a, star };
+            let val = self.listener.exit_vs(ctx);
+            self.stack.push(EnumSynValue::Vs(val));
+        }
+
+        fn init_ivs(&mut self) {
+            let val = self.listener.init_ivs();
+            self.stack.push(EnumSynValue::Ivs(val));
+        }
+
+        fn exit_ivs(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let ctx = CtxIvs::V1 { b };
+            let Some(EnumSynValue::Ivs(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_ivs(acc, ctx);
+        }
+
+        fn exitloop_ivs(&mut self) {
+            let EnumSynValue::Ivs(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_ivs(acc);
+        }
+
+        fn exit_ns(&mut self) {
+            let ctx = CtxNs::V1;
+            let val = self.listener.exit_ns(ctx);
+            self.stack.push(EnumSynValue::Ns(val));
+        }
+
+        fn exit_ins(&mut self) {
+            let ctx = CtxIns::V1;
+            self.listener.exit_ins(ctx);
+        }
+
+        fn exit_xs(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxXs::V1 { a };
+            let val = self.listener.exit_xs(ctx);
+            self.stack.push(EnumSynValue::Xs(val));
+        }
+
+        fn exit_ixs(&mut self) {
+            let ctx = CtxIxs::V1;
+            self.listener.exit_ixs(ctx);
+        }
+
+        fn exit_vp(&mut self) {
+            let plus = self.stack.pop().unwrap().get_ivp();
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxVp::V1 { a, plus };
+            let val = self.listener.exit_vp(ctx);
+            self.stack.push(EnumSynValue::Vp(val));
+        }
+
+        fn init_ivp(&mut self) {
+            let val = self.listener.init_ivp();
+            self.stack.push(EnumSynValue::Ivp(val));
+        }
+
+        fn exit_ivp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 20;
+            let b = self.stack_t.pop().unwrap();
+            let ctx = CtxIvp::V1 { b, last_iteration };
+            let Some(EnumSynValue::Ivp(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_ivp(acc, ctx);
+        }
+
+        fn exit_np(&mut self) {
+            let ctx = CtxNp::V1;
+            let val = self.listener.exit_np(ctx);
+            self.stack.push(EnumSynValue::Np(val));
+        }
+
+        fn exit_inp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 22;
+            let ctx = CtxInp::V1 { last_iteration };
+            self.listener.exit_inp(ctx);
+        }
+
+        fn exit_xp(&mut self) {
+            let a = self.stack_t.pop().unwrap();
+            let ctx = CtxXp::V1 { a };
+            let val = self.listener.exit_xp(ctx);
+            self.stack.push(EnumSynValue::Xp(val));
+        }
+
+        fn exit_ixp(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 24;
+            let ctx = CtxIxp::V1 { last_iteration };
+            self.listener.exit_ixp(ctx);
+        }
+
+        fn exit_x(&mut self) {
+            let ctx = CtxX::V1;
+            self.listener.exit_x(ctx);
+        }
+    }
+
+    // [wrapper source for rule 982 #2, start a]
+    // ------------------------------------------------------------
+}

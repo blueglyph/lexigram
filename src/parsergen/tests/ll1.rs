@@ -2621,6 +2621,97 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
             (strip![loop 16, exit 36],              3, symbols![]),                 // 36: xp_3 -> xp_1         | ●xp_1 ◄36         | 3 |
             (strip![exit 37],                       3, symbols![]),                 // 37: xp_3 -> ε            | ◄37               | 3 |
         ], false, NTValue::SetIds(vec![0, 1, 2, 3, 4, 5, 6, 7, 8]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 4 => vec![4], 5 => vec![5], 6 => vec![6], 7 => vec![7], 8 => vec![8], 9 => vec![9], 10 => vec![10]]),
+
+        // a -> s p
+        // s -> vs ns xs
+        // p -> vp np xp
+        // vs -> A (<L=ivs> B)*
+        // ns -> "A" (<L=ins> "B")*
+        // xs -> A (<L=ixs> x)*
+        // vp -> A (<L=ivp> B)+
+        // np -> "A" (<L=inp> "B")+
+        // xp -> A (<L=ixp> x)+
+        // x -> "X"
+        //
+        //   NT    name       val   flags
+        // +---------------------------------------------------------------------+
+        // |   0 | a         | y  |                                              |
+        // |   1 | s         | y  |                                              |
+        // |   2 | p         | y  |                                              |
+        // |   3 | vs        | y  | parent_+_or_*                                |
+        // |   4 | . ivs     | y  | child_+_or_*, L-form                         |
+        // |   5 | ns        | y  | parent_+_or_*                                |
+        // |   6 | . ins     |    | child_+_or_*, L-form                         |
+        // |   7 | xs        | y  | parent_+_or_*                                |
+        // |   8 | . ixs     |    | child_+_or_*, L-form                         |
+        // |   9 | vp        | y  | parent_+_or_*                                |
+        // |  10 | . ivp     | y  | child_+_or_*, parent_left_fact, L-form, plus |
+        // |  16 | .   ivp_1 |    | child_left_fact                              |
+        // |  11 | np        | y  | parent_+_or_*                                |
+        // |  12 | . inp     |    | child_+_or_*, parent_left_fact, L-form, plus |
+        // |  17 | .   inp_1 |    | child_left_fact                              |
+        // |  13 | xp        | y  | parent_+_or_*                                |
+        // |  14 | . ixp     |    | child_+_or_*, parent_left_fact, L-form, plus |
+        // |  18 | .   ixp_1 |    | child_left_fact                              |
+        // |  15 | x         |    |                                              |
+        // +---------------------------------------------------------------------+
+        (982, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![exit 0, nt 2, nt 1],            2, symbols![nt 1, nt 2]),         //  0: a -> s p         | ◄0 ►p ►s       | 2 | s p
+            (strip![exit 1, nt 7, nt 5, nt 3],      3, symbols![nt 3, nt 5, nt 7]),   //  1: s -> vs ns xs    | ◄1 ►xs ►ns ►vs | 3 | vs ns xs
+            (strip![exit 2, nt 13, nt 11, nt 9],    3, symbols![nt 9, nt 11, nt 13]), //  2: p -> vp np xp    | ◄2 ►xp ►np ►vp | 3 | vp np xp
+            (strip![exit 3, nt 4, t 0],             2, symbols![t 0, nt 4]),          //  3: vs -> A ivs      | ◄3 ►ivs A!     | 2 | A ivs
+            (strip![loop 4, exit 4, t 1],           2, symbols![nt 4, t 1]),          //  4: ivs -> B ivs     | ●ivs ◄4 B!     | 2 | ivs B
+            (strip![exit 5],                        1, symbols![nt 4]),               //  5: ivs -> ε         | ◄5             | 1 | ivs
+            (strip![exit 6, nt 6, t 2],             2, symbols![]),                   //  6: ns -> "A" ins    | ◄6 ►ins "A"    | 2 |
+            (strip![loop 6, exit 7, t 3],           2, symbols![]),                   //  7: ins -> "B" ins   | ●ins ◄7 "B"    | 2 |
+            (strip![exit 8],                        1, symbols![]),                   //  8: ins -> ε         | ◄8             | 1 |
+            (strip![exit 9, nt 8, t 0],             2, symbols![t 0]),                //  9: xs -> A ixs      | ◄9 ►ixs A!     | 2 | A
+            (strip![loop 8, exit 10, nt 15],        2, symbols![]),                   // 10: ixs -> x ixs     | ●ixs ◄10 ►x    | 2 |
+            (strip![exit 11],                       1, symbols![]),                   // 11: ixs -> ε         | ◄11            | 1 |
+            (strip![exit 12, nt 10, t 0],           2, symbols![t 0, nt 10]),         // 12: vp -> A ivp      | ◄12 ►ivp A!    | 2 | A ivp
+            (strip![nt 16, t 1],                    0, symbols![]),                   // 13: ivp -> B ivp_1   | ►ivp_1 B!      | 0 |
+            (strip![exit 14, nt 12, t 2],           2, symbols![]),                   // 14: np -> "A" inp    | ◄14 ►inp "A"   | 2 |
+            (strip![nt 17, t 3],                    0, symbols![]),                   // 15: inp -> "B" inp_1 | ►inp_1 "B"     | 0 |
+            (strip![exit 16, nt 14, t 0],           2, symbols![t 0]),                // 16: xp -> A ixp      | ◄16 ►ixp A!    | 2 | A
+            (strip![nt 18, nt 15],                  0, symbols![]),                   // 17: ixp -> x ixp_1   | ►ixp_1 ►x      | 0 |
+            (strip![exit 18, t 4],                  1, symbols![]),                   // 18: x -> "X"         | ◄18 "X"        | 1 |
+            (strip![loop 10, exit 19],              2, symbols![nt 10, t 1]),         // 19: ivp_1 -> ivp     | ●ivp ◄19       | 2 | ivp B
+            (strip![exit 20],                       2, symbols![nt 10, t 1]),         // 20: ivp_1 -> ε       | ◄20            | 2 | ivp B
+            (strip![loop 12, exit 21],              2, symbols![]),                   // 21: inp_1 -> inp     | ●inp ◄21       | 2 |
+            (strip![exit 22],                       2, symbols![]),                   // 22: inp_1 -> ε       | ◄22            | 2 |
+            (strip![loop 14, exit 23],              2, symbols![]),                   // 23: ixp_1 -> ixp     | ●ixp ◄23       | 2 |
+            (strip![exit 24],                       2, symbols![]),                   // 24: ixp_1 -> ε       | ◄24            | 2 |
+        ], true, NTValue::SetIds(vec![0, 1, 2, 3, 4, 5, 7, 9, 10, 11, 13]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 5 => vec![6], 7 => vec![9], 9 => vec![12], 11 => vec![14], 13 => vec![16], 15 => vec![18]]),
+        // a: y, s: y, p: y, vs: y, ivs: y, ns: y, ins: n, xs: y, ixs: n, vp: y, ivp: y, np: y, inp: n, xp: y, ixp: n, x: n, ivp_1: n, inp_1: n, ixp_1: n
+        (982, true, false, false, 0, btreemap![
+        ], vec![
+            (strip![exit 0, nt 2, nt 1],            2, symbols![nt 1, nt 2]),         //  0: a -> s p         | ◄0 ►p ►s       | 2 | s p
+            (strip![exit 1, nt 7, nt 5, nt 3],      3, symbols![nt 3, nt 5, nt 7]),   //  1: s -> vs ns xs    | ◄1 ►xs ►ns ►vs | 3 | vs ns xs
+            (strip![exit 2, nt 13, nt 11, nt 9],    3, symbols![nt 9, nt 11, nt 13]), //  2: p -> vp np xp    | ◄2 ►xp ►np ►vp | 3 | vp np xp
+            (strip![exit 3, nt 4, t 0],             2, symbols![t 0, nt 4]),          //  3: vs -> A ivs      | ◄3 ►ivs A!     | 2 | A ivs
+            (strip![loop 4, exit 4, t 1],           2, symbols![nt 4, t 1]),          //  4: ivs -> B ivs     | ●ivs ◄4 B!     | 2 | ivs B
+            (strip![exit 5],                        1, symbols![nt 4]),               //  5: ivs -> ε         | ◄5             | 1 | ivs
+            (strip![exit 6, nt 6, t 2],             2, symbols![]),                   //  6: ns -> "A" ins    | ◄6 ►ins "A"    | 2 |
+            (strip![loop 6, exit 7, t 3],           2, symbols![]),                   //  7: ins -> "B" ins   | ●ins ◄7 "B"    | 2 |
+            (strip![exit 8],                        1, symbols![]),                   //  8: ins -> ε         | ◄8             | 1 |
+            (strip![exit 9, nt 8, t 0],             2, symbols![t 0]),                //  9: xs -> A ixs      | ◄9 ►ixs A!     | 2 | A
+            (strip![loop 8, exit 10, nt 15],        2, symbols![]),                   // 10: ixs -> x ixs     | ●ixs ◄10 ►x    | 2 |
+            (strip![exit 11],                       1, symbols![]),                   // 11: ixs -> ε         | ◄11            | 1 |
+            (strip![exit 12, nt 10, t 0],           2, symbols![t 0, nt 10]),         // 12: vp -> A ivp      | ◄12 ►ivp A!    | 2 | A ivp
+            (strip![nt 16, t 1],                    0, symbols![]),                   // 13: ivp -> B ivp_1   | ►ivp_1 B!      | 0 |
+            (strip![exit 14, nt 12, t 2],           2, symbols![]),                   // 14: np -> "A" inp    | ◄14 ►inp "A"   | 2 |
+            (strip![nt 17, t 3],                    0, symbols![]),                   // 15: inp -> "B" inp_1 | ►inp_1 "B"     | 0 |
+            (strip![exit 16, nt 14, t 0],           2, symbols![t 0]),                // 16: xp -> A ixp      | ◄16 ►ixp A!    | 2 | A
+            (strip![nt 18, nt 15],                  0, symbols![]),                   // 17: ixp -> x ixp_1   | ►ixp_1 ►x      | 0 |
+            (strip![exit 18, t 4],                  1, symbols![]),                   // 18: x -> "X"         | ◄18 "X"        | 1 |
+            (strip![loop 10, exit 19],              2, symbols![nt 10, t 1]),         // 19: ivp_1 -> ivp     | ●ivp ◄19       | 2 | ivp B
+            (strip![exit 20],                       2, symbols![nt 10, t 1]),         // 20: ivp_1 -> ε       | ◄20            | 2 | ivp B
+            (strip![loop 12, exit 21],              2, symbols![]),                   // 21: inp_1 -> inp     | ●inp ◄21       | 2 |
+            (strip![exit 22],                       2, symbols![]),                   // 22: inp_1 -> ε       | ◄22            | 2 |
+            (strip![loop 14, exit 23],              2, symbols![]),                   // 23: ixp_1 -> ixp     | ●ixp ◄23       | 2 |
+            (strip![exit 24],                       2, symbols![]),                   // 24: ixp_1 -> ε       | ◄24            | 2 |
+        ], false, NTValue::SetIds(vec![0, 1, 2, 3, 4, 5, 7, 9, 10, 11, 13]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 5 => vec![6], 7 => vec![9], 9 => vec![12], 11 => vec![14], 13 => vec![16], 15 => vec![18]]),
         // =========================================================================== mix
         /* template:
         (, false, false, false, 0, btreemap![], vec![], true, NTValue::Default, btreemap![]),
