@@ -1970,9 +1970,10 @@ impl ParserGen {
             if no_method {
                 choices.push(format!("                    {} => {{}}", alts[last]));
             } else {
-                choices.push(format!("                    {} => self.{name}({}{force_id_str}),",
-                                     alts[last],
-                                     if is_alt_id { "alt_id" } else { "" }));
+                choices.push(format!(
+                    "                    {} => self.{name}({}{force_id_str}),",
+                    alts[last],
+                    if is_alt_id { "alt_id" } else { "" }));
             }
         }
         if discarded == 1 {
