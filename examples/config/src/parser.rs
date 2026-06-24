@@ -1151,6 +1151,8 @@ mod config_parser {
         fn init_i_def(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i_def(&mut self) {}
         fn init_lexer(&mut self) {}
         #[allow(unused_variables)]
         fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {}
@@ -1235,7 +1237,7 @@ mod config_parser {
                         0 => self.exit_config(),                    // config -> definitions lexer parser options
                         1 => self.exit_definitions(),               // definitions -> i_def
                         2 => self.exit_i_def(),                     // i_def -> <L> "def" Id "=" value ";" i_def
-                        3 => {}                                     // i_def -> <L> ε (not used)
+                        3 => self.listener.exitloop_i_def(),        // i_def -> <L> ε
                         4 => self.exit_lexer(),                     // lexer -> "lexer" "{" io_options "}"
                         5 |                                         // parser -> "parser" "{" io_options "}"
                         6 => self.exit_parser(alt_id),              // parser -> ε

@@ -566,6 +566,8 @@ pub mod typedef_match_parser {
         fn init_stmt_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_stmt_i(&mut self) {}
         fn init_stmt(&mut self) {}
         fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt;
         fn init_decl(&mut self) {}
@@ -619,7 +621,7 @@ pub mod typedef_match_parser {
                     match alt_id {
                         0 => self.exit_program(),                   // program -> stmt_i
                         1 => self.exit_stmt_i(),                    // stmt_i -> <L> stmt stmt_i
-                        2 => {}                                     // stmt_i -> <L> ε (not used)
+                        2 => self.listener.exitloop_stmt_i(),       // stmt_i -> <L> ε
                         3 |                                         // stmt -> decl
                         4 => self.exit_stmt(alt_id),                // stmt -> inst
                         5 |                                         // decl -> Type Id id_i ";"

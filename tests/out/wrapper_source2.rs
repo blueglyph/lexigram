@@ -989,6 +989,8 @@ pub(crate) mod rules_502_2 {
         fn init_e(&mut self) {}
         #[allow(unused_variables)]
         fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_e1(&mut self) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, ctx: CtxF, spans: Vec<PosSpan>) -> SynF;
     }
@@ -1024,7 +1026,7 @@ pub(crate) mod rules_502_2 {
                     match alt_id {
                         0 => self.inter_e(),                        // e -> f e_1
                         2 => self.exit_e1(),                        // e_1 -> "." Id e_1
-                        3 => {}                                     // e_1 -> ε (not used)
+                        3 => self.listener.exitloop_e1(),           // e_1 -> ε
                         1 => self.exit_f(),                         // f -> Id
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }

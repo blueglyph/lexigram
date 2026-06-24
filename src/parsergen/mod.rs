@@ -3029,6 +3029,11 @@ impl ParserGen {
                                                           if syns.len() > 1 { " else { panic!() }" } else { "" }));
                             src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
                             src_wrapper_impl.push("    }".to_string());
+                        } else {
+                            src_listener_decl.push("    #[allow(unused_variables)]".to_string());
+                            src_listener_decl.push(format!("    fn exitloop_{fnpl}(&mut self) {{}}"));
+                            src_exit.push(vec![format!("                    {a} => self.listener.exitloop_{fnpl}(),"), format!("// {alt_str}")]);
+                            exit_alt_done.insert(a);
                         }
                     }
                 }

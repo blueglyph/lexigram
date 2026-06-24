@@ -575,6 +575,8 @@ pub mod typedef_type_parser {
         fn init_decl_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_decl_i(&mut self, ctx: CtxDeclI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_decl_i(&mut self) {}
         fn init_inst_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) {}
@@ -630,9 +632,9 @@ pub mod typedef_type_parser {
                     match alt_id {
                         0 => self.exit_program(),                   // program -> decl_i inst_i
                         1 => self.exit_decl_i(),                    // decl_i -> <L> decl decl_i
+                        2 => self.listener.exitloop_decl_i(),       // decl_i -> <L> ε
                         17 |                                        // inst_i_1 -> inst_i
                         18 => self.exit_inst_i(alt_id),             // inst_i_1 -> ε
-                        2 => {}                                     // decl_i -> <L> ε (not used)
                      /* 3 */                                        // inst_i -> <L> inst inst_i_1 (never called)
                         4 |                                         // decl -> Type Id id_i ";"
                         5 => self.exit_decl(alt_id),                // decl -> "typedef" Type Id ";"

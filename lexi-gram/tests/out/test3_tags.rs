@@ -286,6 +286,8 @@ pub trait Test1Listener {
     fn init_inst(&mut self) {}
     #[allow(unused_variables)]
     fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) {}
+    #[allow(unused_variables)]
+    fn exitloop_inst(&mut self) {}
     fn init_instruction(&mut self) {}
     fn exit_instruction(&mut self, ctx: CtxInstruction, spans: Vec<PosSpan>) -> SynInstruction;
     fn init_expr(&mut self) {}
@@ -328,7 +330,7 @@ impl<T: Test1Listener> ListenerWrapper for Wrapper<T> {
                 match alt_id {
                     0 => self.exit_program(),                   // program -> inst
                     1 => self.exit_inst(),                      // inst -> <L> instruction inst
-                    2 => {}                                     // inst -> <L> ε (not used)
+                    2 => self.listener.exitloop_inst(),         // inst -> <L> ε
                     3 |                                         // instruction -> "let" Id "=" expr ";"
                     4 => self.exit_instruction(alt_id),         // instruction -> "print" expr ";"
                     6 |                                         // expr_1 -> "*" expr_6 expr_1

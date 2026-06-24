@@ -736,6 +736,8 @@ pub mod pandemonium_parser {
         fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i(&mut self) {}
         fn init_example(&mut self) {}
         #[allow(unused_variables)]
         fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) {}
@@ -752,6 +754,8 @@ pub mod pandemonium_parser {
         fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
         fn exit_l_star_i(&mut self, ctx: CtxLStarI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_l_star_i(&mut self) {}
         fn init_l_plus(&mut self) {}
         #[allow(unused_variables)]
         fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) {}
@@ -782,6 +786,8 @@ pub mod pandemonium_parser {
         fn init_l_star_a_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_l_star_a_i(&mut self, ctx: CtxLStarAI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_l_star_a_i(&mut self) {}
         fn init_l_plus_a(&mut self) {}
         #[allow(unused_variables)]
         fn exit_l_plus_a(&mut self, ctx: CtxLPlusA, spans: Vec<PosSpan>) {}
@@ -803,6 +809,8 @@ pub mod pandemonium_parser {
         fn init_lrec_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_lrec_i1(&mut self) {}
         fn init_amb_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) {}
@@ -877,7 +885,7 @@ pub mod pandemonium_parser {
                     match alt_id {
                         0 => self.exit_text(),                      // text -> i
                         1 => self.exit_i(),                         // i -> <L> example i
-                        2 => {}                                     // i -> <L> ε (not used)
+                        2 => self.listener.exitloop_i(),            // i -> <L> ε
                         3 |                                         // example -> "star" star
                         4 |                                         // example -> "plus" plus
                         5 |                                         // example -> "l-star" l_star
@@ -901,7 +909,7 @@ pub mod pandemonium_parser {
                      /* 47 */                                       // plus_1 -> "," Num plus_2 (never called)
                         19 => self.exit_l_star(),                   // l_star -> Id "=" Num l_star_i ";"
                         20 => self.exit_l_star_i(),                 // l_star_i -> <L> "," "then" Num l_star_i
-                        21 => {}                                    // l_star_i -> <L> ε (not used)
+                        21 => self.listener.exitloop_l_star_i(),    // l_star_i -> <L> ε
                         22 => self.exit_l_plus(),                   // l_plus -> Id "=" Num l_plus_i ";"
                         77 |                                        // l_plus_i_1 -> l_plus_i
                         78 => self.exit_l_plus_i(alt_id),           // l_plus_i_1 -> ε
@@ -924,7 +932,7 @@ pub mod pandemonium_parser {
                         30 => self.exit_l_star_a(),                 // l_star_a -> Id "=" "[" l_star_a_i "]" ";"
                         31 |                                        // l_star_a_i -> <L> Id l_star_a_i
                         32 => self.exit_l_star_a_i(alt_id),         // l_star_a_i -> <L> Num ":" Id l_star_a_i
-                        33 => {}                                    // l_star_a_i -> <L> ε (not used)
+                        33 => self.listener.exitloop_l_star_a_i(),  // l_star_a_i -> <L> ε
                         34 => self.exit_l_plus_a(),                 // l_plus_a -> Id "=" "[" l_plus_a_i "]" ";"
                         79 |                                        // l_plus_a_i_1 -> l_plus_a_i
                         80 |                                        // l_plus_a_i_1 -> ε
@@ -946,7 +954,7 @@ pub mod pandemonium_parser {
                         42 => self.exit_l_rrec_i(alt_id),           // l_rrec_i -> <L> ";"
                         43 => self.inter_lrec_i(),                  // lrec_i -> Num lrec_i_1
                         57 => self.exit_lrec_i1(),                  // lrec_i_1 -> "," Num lrec_i_1
-                        58 => {}                                    // lrec_i_1 -> ε (not used)
+                        58 => self.listener.exitloop_lrec_i1(),     // lrec_i_1 -> ε
                         59 |                                        // amb_i_1 -> <R> "^" amb_i_4 amb_i_1
                         60 |                                        // amb_i_1 -> "*" amb_i_4 amb_i_1
                         61 |                                        // amb_i_1 -> "/" amb_i_4 amb_i_1

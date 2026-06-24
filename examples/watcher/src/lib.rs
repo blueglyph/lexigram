@@ -682,6 +682,8 @@ pub mod watcher_parser {
         fn init_log(&mut self) {}
         #[allow(unused_variables)]
         fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_log1(&mut self) {}
         fn init_shutdown(&mut self) {}
         #[allow(unused_variables)]
         fn exit_shutdown(&mut self, ctx: CtxShutdown, spans: Vec<PosSpan>) {}
@@ -703,6 +705,8 @@ pub mod watcher_parser {
         fn init_star_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_star_i(&mut self, ctx: CtxStarI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_star_i(&mut self) {}
         fn init_line(&mut self) {}
         #[allow(unused_variables)]
         fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) {}
@@ -754,7 +758,7 @@ pub mod watcher_parser {
                         0 => self.inter_log(),                      // log -> open_category category log_1
                         18 |                                        // log_1 -> shutdown log_1
                         19 => self.exit_log1(alt_id),               // log_1 -> open_category category log_1
-                        20 => {}                                    // log_1 -> ε (not used)
+                        20 => self.listener.exitloop_log1(),        // log_1 -> ε
                         1 => self.exit_shutdown(),                  // shutdown -> "shutdown"
                         2 => self.exit_open_category(),             // open_category -> "category"
                         3 => self.exit_end_category(),              // end_category -> "end"
@@ -764,7 +768,7 @@ pub mod watcher_parser {
                         7 => self.exit_right_recursive(alt_id),     // right_recursive -> <L> end_category
                         8 => self.exit_star(),                      // star -> star_i end_category
                         9 => self.exit_star_i(),                    // star_i -> <L> line star_i
-                        10 => {}                                    // star_i -> <L> ε (not used)
+                        10 => self.listener.exitloop_star_i(),      // star_i -> <L> ε
                         11 |                                        // line -> message
                         12 => self.exit_line(alt_id),               // line -> shutdown
                         13 |                                        // message -> Note Message

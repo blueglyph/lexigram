@@ -261,6 +261,8 @@ pub(crate) mod rules_200_2 {
         fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i(&mut self) {}
     }
 
     pub struct Wrapper<T> {
@@ -296,7 +298,7 @@ pub(crate) mod rules_200_2 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i C
                         1 => self.exit_i(),                         // i -> <L> B i
-                        2 => {}                                     // i -> <L> ε (not used)
+                        2 => self.listener.exitloop_i(),            // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1785,6 +1787,8 @@ pub(crate) mod rules_208_2 {
         fn init_j(&mut self) {}
         #[allow(unused_variables)]
         fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_j(&mut self) {}
         fn init_b(&mut self) {}
         #[allow(unused_variables)]
         fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
@@ -1827,7 +1831,7 @@ pub(crate) mod rules_208_2 {
                         1 => self.exit_i(),                         // i -> <L> A j ";" i
                         2 => self.exitloop_i(),                     // i -> <L> ε
                         3 => self.exit_j(),                         // j -> <L> b "," j
-                        4 => {}                                     // j -> <L> ε (not used)
+                        4 => self.listener.exitloop_j(),            // j -> <L> ε
                         5 => self.exit_b(),                         // b -> B
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -2019,9 +2023,13 @@ pub(crate) mod rules_208_3 {
         fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i(&mut self) {}
         fn init_j(&mut self) {}
         #[allow(unused_variables)]
         fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_j(&mut self) {}
         fn init_b(&mut self) {}
         #[allow(unused_variables)]
         fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
@@ -2062,9 +2070,9 @@ pub(crate) mod rules_208_3 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i C
                         1 => self.exit_i(),                         // i -> <L> A j ";" i
+                        2 => self.listener.exitloop_i(),            // i -> <L> ε
                         3 => self.exit_j(),                         // j -> <L> b "," j
-                        2 => {}                                     // i -> <L> ε (not used)
-                        4 => {}                                     // j -> <L> ε (not used)
+                        4 => self.listener.exitloop_j(),            // j -> <L> ε
                         5 => self.exit_b(),                         // b -> B
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -2243,9 +2251,13 @@ pub(crate) mod rules_208_4 {
         fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i(&mut self) {}
         fn init_j(&mut self) {}
         #[allow(unused_variables)]
         fn exit_j(&mut self, ctx: CtxJ, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_j(&mut self) {}
         fn init_b(&mut self) {}
         #[allow(unused_variables)]
         fn exit_b(&mut self, ctx: CtxB, spans: Vec<PosSpan>) {}
@@ -2286,9 +2298,9 @@ pub(crate) mod rules_208_4 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> i C
                         1 => self.exit_i(),                         // i -> <L> A j ";" i
+                        2 => self.listener.exitloop_i(),            // i -> <L> ε
                         3 => self.exit_j(),                         // j -> <L> b "," j
-                        2 => {}                                     // i -> <L> ε (not used)
-                        4 => {}                                     // j -> <L> ε (not used)
+                        4 => self.listener.exitloop_j(),            // j -> <L> ε
                         5 => self.exit_b(),                         // b -> B
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -2456,6 +2468,8 @@ pub(crate) mod rules_210_1 {
         fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_i(&mut self) {}
     }
 
     pub struct Wrapper<T> {
@@ -2491,7 +2505,7 @@ pub(crate) mod rules_210_1 {
                     match alt_id {
                         0 => self.exit_a(),                         // a -> A i C
                         1 => self.exit_i(),                         // i -> <L> "B" i
-                        2 => {}                                     // i -> <L> ε (not used)
+                        2 => self.listener.exitloop_i(),            // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }

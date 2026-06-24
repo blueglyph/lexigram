@@ -2130,11 +2130,15 @@ pub(crate) mod rules_982_1 {
         fn init_ins(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ins(&mut self, ctx: CtxIns, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_ins(&mut self) {}
         fn init_xs(&mut self) {}
         fn exit_xs(&mut self, ctx: CtxXs, spans: Vec<PosSpan>) -> SynXs;
         fn init_ixs(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ixs(&mut self, ctx: CtxIxs, spans: Vec<PosSpan>) {}
+        #[allow(unused_variables)]
+        fn exitloop_ixs(&mut self) {}
         fn init_vp(&mut self) {}
         fn exit_vp(&mut self, ctx: CtxVp, spans: Vec<PosSpan>) -> SynVp;
         fn init_ivp(&mut self) -> SynIvp;
@@ -2210,10 +2214,10 @@ pub(crate) mod rules_982_1 {
                         5 => self.exitloop_ivs(),                   // ivs -> <L> ε
                         6 => self.exit_ns(),                        // ns -> "A" ins
                         7 => self.exit_ins(),                       // ins -> <L> "B" ins
-                        8 => {}                                     // ins -> <L> ε (not used)
+                        8 => self.listener.exitloop_ins(),          // ins -> <L> ε
                         9 => self.exit_xs(),                        // xs -> A ixs
                         10 => self.exit_ixs(),                      // ixs -> <L> x ixs
-                        11 => {}                                    // ixs -> <L> ε (not used)
+                        11 => self.listener.exitloop_ixs(),         // ixs -> <L> ε
                         12 => self.exit_vp(),                       // vp -> A ivp
                         19 |                                        // ivp_1 -> ivp
                         20 => self.exit_ivp(alt_id),                // ivp_1 -> ε
@@ -2662,11 +2666,15 @@ pub(crate) mod rules_982_2 {
         fn init_ins(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ins(&mut self, ctx: CtxIns) {}
+        #[allow(unused_variables)]
+        fn exitloop_ins(&mut self) {}
         fn init_xs(&mut self) {}
         fn exit_xs(&mut self, ctx: CtxXs) -> SynXs;
         fn init_ixs(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ixs(&mut self, ctx: CtxIxs) {}
+        #[allow(unused_variables)]
+        fn exitloop_ixs(&mut self) {}
         fn init_vp(&mut self) {}
         fn exit_vp(&mut self, ctx: CtxVp) -> SynVp;
         fn init_ivp(&mut self) -> SynIvp;
@@ -2738,10 +2746,10 @@ pub(crate) mod rules_982_2 {
                         5 => self.exitloop_ivs(),                   // ivs -> <L> ε
                         6 => self.exit_ns(),                        // ns -> "A" ins
                         7 => self.exit_ins(),                       // ins -> <L> "B" ins
-                        8 => {}                                     // ins -> <L> ε (not used)
+                        8 => self.listener.exitloop_ins(),          // ins -> <L> ε
                         9 => self.exit_xs(),                        // xs -> A ixs
                         10 => self.exit_ixs(),                      // ixs -> <L> x ixs
-                        11 => {}                                    // ixs -> <L> ε (not used)
+                        11 => self.listener.exitloop_ixs(),         // ixs -> <L> ε
                         12 => self.exit_vp(),                       // vp -> A ivp
                         19 |                                        // ivp_1 -> ivp
                         20 => self.exit_ivp(alt_id),                // ivp_1 -> ε

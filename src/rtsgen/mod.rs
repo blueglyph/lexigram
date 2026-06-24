@@ -968,6 +968,8 @@ pub mod rtsgen_parser {
         fn init_decl_iter(&mut self) {}
         #[allow(unused_variables)]
         fn exit_decl_iter(&mut self, ctx: CtxDeclIter) {}
+        #[allow(unused_variables)]
+        fn exitloop_decl_iter(&mut self) {}
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl;
         fn init_decl_terminal(&mut self) {}
@@ -977,6 +979,8 @@ pub mod rtsgen_parser {
         fn init_rule_iter(&mut self) {}
         #[allow(unused_variables)]
         fn exit_rule_iter(&mut self, ctx: CtxRuleIter) {}
+        #[allow(unused_variables)]
+        fn exitloop_rule_iter(&mut self) {}
         fn init_rule(&mut self) {}
         fn exit_rule(&mut self, ctx: CtxRule) -> SynRule;
         fn init_rule_nt(&mut self) {}
@@ -1037,7 +1041,7 @@ pub mod rtsgen_parser {
                         0 => self.exit_file(),                      // file -> decls ruleset
                         1 => self.exit_decls(),                     // decls -> decl_iter
                         2 => self.exit_decl_iter(),                 // decl_iter -> <L> decl decl_iter
-                        3 => {}                                     // decl_iter -> <L> ε (not used)
+                        3 => self.listener.exitloop_decl_iter(),    // decl_iter -> <L> ε
                         4 => self.exit_decl(),                      // decl -> "token" decl_terminal decl_1 ";"
                         31 => self.exit_decl1(),                    // decl_1 -> "," decl_terminal decl_1
                         32 => {}                                    // decl_1 -> ε
@@ -1046,7 +1050,7 @@ pub mod rtsgen_parser {
                      /* 5 */                                        // decl_terminal -> Terminal decl_terminal_1 (never called)
                         6 => self.exit_ruleset(),                   // ruleset -> rule_iter
                         7 => self.exit_rule_iter(),                 // rule_iter -> <L> rule rule_iter
-                        8 => {}                                     // rule_iter -> <L> ε (not used)
+                        8 => self.listener.exitloop_rule_iter(),    // rule_iter -> <L> ε
                         56 |                                        // rule_1 -> "->" prs_expr ";"
                         57 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
                      /* 9 */                                        // rule -> rule_nt rule_1 (never called)
