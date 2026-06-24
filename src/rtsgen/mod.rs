@@ -491,7 +491,12 @@ impl RtsGenListener for RGListener<'_> {
                 // `ltag` contains "<L=name>" or "<L>"
                 let var = if ltag.len() > 3 {
                     let name = &ltag[3..ltag.len()-1];
-                    let var = self.get_or_create_nt(name.to_string());
+                    let var = if self.nt.contains_key(name) {
+                        self.log.add_error(format!("nonterminal '{name}' used in <L> attribute is already defined"));
+                        self.get_or_create_nt(format!("@{}", self.nt.len()))
+                    } else {
+                        self.get_or_create_nt(name.to_string())
+                    };
                     self.nt_def_order.push(var);
                     self.rules[var as usize].add_root(GrNode::Symbol(Symbol::Empty));
                     self.reserved_nt.push(var);
