@@ -390,19 +390,11 @@ impl TestRules {
                 r#"x -> "X";"#,
             ],
             983 => vec![
-                r#"a -> vs ns vp np;"#,
+                r#"a -> s p; s -> vs ns xs; p -> vp np xp;"#,
                 r#"vs -> A (<L=ivs> B | C D)*;  ns -> "A" (<L=ins> "B" | "C" "D")*;     xs -> A (<L=ixs> x | y x)*;"#,
                 r#"vp -> A (<L=ivp> B | C D)+;  np -> "A" (<L=inp> "B" | "C" "D")+;     xp -> A (<L=ixp> x | y x)+;"#,
                 r#"x -> "X"; y -> "Y";"#,
             ],
-            // 980 => vec![r#"a -> v n; v -> A B*;               n -> "A" "B"*;"#],
-            // 981 => vec![r#"a -> v n; v -> A B+;               n -> "A" "B"+;"#],
-            // 982 => vec![r#"a -> v n; v -> A (B | C D)*;       n -> "A" ("B" | "C" "D")*;"#],
-            // 983 => vec![r#"a -> v n; v -> A (B | C D)+;       n -> "A" ("B" | "C" "D")+;"#],
-            // 984 => vec![r#"a -> v n; v -> A (<L=i> B)*;       n -> "A" (<L=i> "B")*;"#],
-            // 985 => vec![r#"a -> v n; v -> A (<L=i> B)+;       n -> "A" (<L=i> "B")+;"#],
-            // 986 => vec![r#"a -> v n; v -> A (<L=i> B | C D)*; n -> "A" (<L=i> "B" | "C" "D")*;"#],
-            // 987 => vec![r#"a -> v n; v -> A (<L=i> B | C D)+; n -> "A" (<L=i> "B" | "C" "D")+;"#],
 
             // 1yxx = errors
             // -----------------------------------------------------------------------------

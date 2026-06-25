@@ -1935,7 +1935,10 @@ impl ParserGen {
     }
 
     /// Generates the match cases for the "Call::Exit" in the `switch` method.
-    fn make_match_choices(&self, alts: &[AltId], name: &str, init_name: &str, flags: u32, no_method: bool, force_id: Option<AltId>) -> (bool, Vec<String>) {
+    fn make_match_choices(
+        &self, alts: &[AltId], name: &str, init_name: &str, flags: u32, no_method: bool, force_id: Option<AltId>, init_discarded: bool
+    ) -> (bool, Vec<String>)
+    {
         assert!(!alts.is_empty(), "alts cannot be empty");
         let is_lr = self.options.parser_type.is_lr();
 
@@ -1947,13 +1950,16 @@ impl ParserGen {
         // no_method is true for non-<L> repeat children with no value (nothing to accumulate in a vector)
         let is_repeat_with_l_or_value = !no_method && flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT;
         let is_lr_repeat_with_l_and_sep = is_lr && flags & (ruleflag::CHILD_REPEAT_LFORM | ruleflag::SEP_LIST) == ruleflag::CHILD_REPEAT_LFORM | ruleflag::SEP_LIST;
-        let discarded = if is_repeat_with_l_or_value || is_lr_repeat_with_l_and_sep { 1 } else { 0 };
+        let discarded = usize::from(is_repeat_with_l_or_value || is_lr_repeat_with_l_and_sep);
 
         // + children always have 2*n left-factorized children, each couple with identical item_ops (one for the loop, one for the last iteration).
         // So in non-<L> +, we need more than 2 alts to need the alt_id parameter. In other cases, we need more than one
-        // alt (after removing the possible discarded one) to require the alt_id parameter.
+        // alt (after removing the possible discarded one) to require the alt_id parameter. On top of all that, in LR we don't need alt_id if
+        // there's no value and no spans in child+, except if there are several alternatives, hence the additional `init_discarded`
+        // to boost the threshold (only used in LR).
+        let theshold_init = usize::from(init_discarded);
         let is_plus_no_lform = flags & ruleflag::CHILD_REPEAT_PLUS_LFORM == ruleflag::CHILD_REPEAT_PLUS;
-        let is_alt_id_threshold = if is_plus_no_lform && !is_lr { 2 } else { 1 };
+        let is_alt_id_threshold = if is_plus_no_lform && !is_lr { 2 } else { 1 + theshold_init };
         let is_alt_id = force_id.is_none() && alts.len() - discarded > is_alt_id_threshold;
 
         let mut choices = Vec::<String>::new();
@@ -2858,7 +2864,8 @@ impl ParserGen {
             let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
             let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
             let fn_init_name = format!("init_{npl}");
-            let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, &fn_init_name, flags, no_method, None);
+            let init_discarded = is_lr && is_plus && !has_value && !has_span;
+            let (is_alt_id, choices) = self.make_match_choices(&exit_alts, &fn_name, &fn_init_name, flags, no_method, None, init_discarded);
             if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
             let comments = exit_alts.iter().map(|f| {
                 let (v, pf) = &self.alts[*f as usize];
@@ -2873,7 +2880,7 @@ impl ParserGen {
                 for (a_id, dup_alts) in ambig_op_alts.values().rev().filter_map(|v| if v.len() > 1 { v.split_first() } else { None }) {
                     // note: is_alt_id must be true because we wouldn't get duplicate alternatives otherwise in an ambiguous rule
                     //       (it's duplicated to manage the priority between several alternatives, which are all in the first NT)
-                    let (_, choices) = self.make_match_choices(dup_alts, &fn_name, &fn_init_name, 0, no_method, Some(*a_id));
+                    let (_, choices) = self.make_match_choices(dup_alts, &fn_name, &fn_init_name, 0, no_method, Some(*a_id), true);
                     let comments = dup_alts.iter()
                         .map(|a| {
                             let (v, alt) = &self.alts[*a as usize];
