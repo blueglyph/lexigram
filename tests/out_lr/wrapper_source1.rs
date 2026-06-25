@@ -1305,7 +1305,7 @@ pub(crate) mod rules_981_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_vp1"),
             };
-            if matches!(alt_id, 21 | 23) { self.init_vp1(alt_id); }
+            if !alt_id.is_multiple_of(2) { self.init_vp1(alt_id); } // 21 | 23
             let Some(EnumSynValue::Vp1(SynVp1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynVp1 item on wrapper stack");
             };
@@ -1341,7 +1341,7 @@ pub(crate) mod rules_981_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_np1"),
             };
-            if matches!(alt_id, 25 | 27) { self.init_np1(alt_id); }
+            if !alt_id.is_multiple_of(2) { self.init_np1(alt_id); } // 25 | 27
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1374,7 +1374,7 @@ pub(crate) mod rules_981_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_xp1"),
             };
-            if matches!(alt_id, 29 | 31) { self.init_xp1(alt_id); }
+            if !alt_id.is_multiple_of(2) { self.init_xp1(alt_id); } // 29 | 31
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1798,7 +1798,7 @@ pub(crate) mod rules_981_2 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_vp1"),
             };
-            if matches!(alt_id, 21 | 23) { self.init_vp1(); }
+            if !alt_id.is_multiple_of(2) { self.init_vp1(); } // 21 | 23
             let Some(EnumSynValue::Vp1(SynVp1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynVp1 item on wrapper stack");
             };
@@ -3295,7 +3295,7 @@ pub(crate) mod rules_983_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_ivp")
             };
-            if matches!(alt_id, 17 | 19) { self.init_ivp(alt_id); }
+            if !alt_id.is_multiple_of(2) { self.init_ivp(alt_id); } // 17 | 19
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::Ivp(acc)) = self.stack.last_mut() else { panic!() };
@@ -3330,7 +3330,7 @@ pub(crate) mod rules_983_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_inp")
             };
-            if matches!(alt_id, 22 | 24) { self.init_inp(alt_id); }
+            if alt_id.is_multiple_of(2) { self.init_inp(alt_id); } // 22 | 24
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_inp(ctx, spans);
@@ -3365,7 +3365,7 @@ pub(crate) mod rules_983_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_ixp")
             };
-            if matches!(alt_id, 27 | 29) { self.init_ixp(alt_id); }
+            if !alt_id.is_multiple_of(2) { self.init_ixp(alt_id); } // 27 | 29
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_ixp(ctx, spans);
@@ -3857,7 +3857,7 @@ pub(crate) mod rules_983_2 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_ivp")
             };
-            if matches!(alt_id, 17 | 19) { self.init_ivp(); }
+            if !alt_id.is_multiple_of(2) { self.init_ivp(); } // 17 | 19
             let Some(EnumSynValue::Ivp(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_ivp(acc, ctx);
         }

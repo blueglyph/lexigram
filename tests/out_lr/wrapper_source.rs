@@ -2231,7 +2231,7 @@ pub(crate) mod rules_151_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };
-            if matches!(alt_id, 2 | 4) { self.init_a1(alt_id); }
+            if alt_id.is_multiple_of(2) { self.init_a1(alt_id); } // 2 | 4
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
@@ -2453,7 +2453,7 @@ pub(crate) mod rules_155_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_a1"),
             };
-            if matches!(alt_id, 2 | 4 | 6) { self.init_a1(alt_id); }
+            if alt_id.is_multiple_of(2) { self.init_a1(alt_id); } // 2 | 4 | 6
             let Some(EnumSynValue::A1(SynA1(plus_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
@@ -4961,7 +4961,7 @@ pub(crate) mod rules_251_1 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
-            if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
+            if alt_id.is_multiple_of(2) { self.init_i(alt_id); } // 2 | 4
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
@@ -5169,7 +5169,7 @@ pub(crate) mod rules_251_2 {
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_i")
             };
-            if matches!(alt_id, 2 | 4) { self.init_i(alt_id); }
+            if alt_id.is_multiple_of(2) { self.init_i(alt_id); } // 2 | 4
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_i(ctx, spans);

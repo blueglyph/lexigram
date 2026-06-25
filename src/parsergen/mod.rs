@@ -2732,6 +2732,7 @@ impl ParserGen {
         sources             : &mut WrapperSources
     ) {
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
+        const OPTIMIZE_IF_MATCH_ALT_ID: bool = true;
         let is_lr = self.options.parser_type.is_lr();
         let &SourceInputContext {
             parent_has_value, parent_nt, syns, ambig_op_alts
@@ -2784,14 +2785,23 @@ impl ParserGen {
                 let mut var_fixer = NameFixer::new();
                 var_fixer.extend(gathered_alt_ids.iter().flat_map(|a| self.item_info[*a as usize].iter().map(|ii| &ii.name)));
                 alt_id_name = var_fixer.get_unique_name(alt_id_name);
-                let pattern = gathered_alt_ids.iter()
-                    .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
-                    .map(|id| id.to_string())
-                    .join(" | ");
                 if has_value || has_span {
-                    Some(format!(
-                        "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
-                        if init_needs_param { &alt_id_name } else { "" }))
+                    let match_ids = gathered_alt_ids.iter()
+                        .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
+                        .to_vec();
+                    if OPTIMIZE_IF_MATCH_ALT_ID && match_ids.len() > 1 {
+                        let is_even = match_ids[0].is_multiple_of(2);
+                        Some(format!(
+                            "        if {}{alt_id_name}.is_multiple_of(2) {{ self.init_{npl}({}); }} // {}",
+                            if is_even { "" } else { "!" },
+                            if init_needs_param { &alt_id_name } else { "" },
+                            match_ids.into_iter().map(AltId::to_string).join(" | ")))
+                    } else {
+                        let pattern = match_ids.into_iter().map(|id| id.to_string()).join(" | ");
+                        Some(format!(
+                            "        if matches!({alt_id_name}, {pattern}) {{ self.init_{npl}({}); }}",
+                            if init_needs_param { &alt_id_name } else { "" }))
+                    }
                 } else {
                     None
                 }
