@@ -2360,11 +2360,7 @@ impl ParserGen {
                         src.push("#[derive(Debug)]".to_string());
                         src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
                         let a_id = self.var_alts[nt as usize][0];
-                        let comment = format!(
-                            "value of `{}` before {}",
-                            self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                            self.full_alt_components(a_id, None).1
-                        );
+                        let comment = format!("first {}", self.full_alt_components(a_id, None).1);
                         let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
                         src.push(format!("    /// {comment}"));
                         let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
