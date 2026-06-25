@@ -4308,17 +4308,14 @@ pub(crate) mod rules_984_1 {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 7 | 8) {
-                        self.stack_span.push(PosSpan::empty());
-                    }
                     match nt {
                         0 => self.listener.init_a(),                // a
                         1 => self.listener.init_vp(),               // vp
                         6 => self.init_vp1(),                       // vp_1
                         2 => self.listener.init_np(),               // np
-                        7 => {}                                     // np_1
+                        7 => self.init_np1(),                       // np_1
                         3 => self.listener.init_xp(),               // xp
-                        8 => {}                                     // xp_1
+                        8 => self.init_xp1(),                       // xp_1
                         4 => self.listener.init_x(),                // x
                         5 => self.listener.init_y(),                // y
                         _ => panic!("unexpected enter nonterminal id: {nt}")
@@ -4464,10 +4461,15 @@ pub(crate) mod rules_984_1 {
 
         fn exit_np(&mut self) {
             let ctx = CtxNp::V1;
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_np(ctx, spans);
             self.stack.push(EnumSynValue::Np(val));
+        }
+
+        fn init_np1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_np1(&mut self) {
@@ -4478,10 +4480,15 @@ pub(crate) mod rules_984_1 {
         fn exit_xp(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let ctx = CtxXp::V1 { a };
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_xp(ctx, spans);
             self.stack.push(EnumSynValue::Xp(val));
+        }
+
+        fn init_xp1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
 
         fn exit_xp1(&mut self) {

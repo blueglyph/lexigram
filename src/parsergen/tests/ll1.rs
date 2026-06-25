@@ -2848,9 +2848,9 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         // |   1 | vp     | y  | parent_+_or_*          |
         // |   6 | . vp_1 | y  | child_+_or_*, sep_list |
         // |   2 | np     | y  | parent_+_or_*          |
-        // |   7 | . np_1 |    | child_+_or_*           |
+        // |   7 | . np_1 |    | child_+_or_*, sep_list |
         // |   3 | xp     | y  | parent_+_or_*          |
-        // |   8 | . xp_1 |    | child_+_or_*           |
+        // |   8 | . xp_1 |    | child_+_or_*, sep_list |
         // |   4 | x      |    |                        |
         // |   5 | y      |    |                        |
         // +--------------------------------------------+
@@ -2858,15 +2858,15 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         ], vec![
             (strip![exit 0, nt 3, nt 2, nt 1],         3, symbols![nt 1, nt 2, nt 3]), //  0: a -> vp np xp            | ◄0 ►xp ►np ►vp       | 3    | vp np xp
             (strip![exit 1, nt 6, t 2, t 1, t 0],      2, symbols![t 0, nt 6]),        //  1: vp -> A B C vp_1         | ◄1 ►vp_1 C! B! A!    | 2    | A vp_1
-            (strip![exit 2, nt 7, t 6, t 5, t 4],      4, symbols![]),                 //  2: np -> "A" "B" "C" np_1   | ◄2 ►np_1 "C" "B" "A" | 4    |
-            (strip![exit 3, nt 8, nt 5, nt 4, t 0],    4, symbols![t 0]),              //  3: xp -> A x y xp_1         | ◄3 ►xp_1 ►y ►x A!    | 4    | A
+            (strip![exit 2, nt 7, t 6, t 5, t 4],      2, symbols![]),                 //  2: np -> "A" "B" "C" np_1   | ◄2 ►np_1 "C" "B" "A" | 2    |
+            (strip![exit 3, nt 8, nt 5, nt 4, t 0],    2, symbols![t 0]),              //  3: xp -> A x y xp_1         | ◄3 ►xp_1 ►y ►x A!    | 2    | A
             (strip![exit 4, t 7],                      1, symbols![]),                 //  4: x -> "X"                 | ◄4 "X"               | 1    |
             (strip![exit 5, t 8],                      1, symbols![]),                 //  5: y -> "Y"                 | ◄5 "Y"               | 1    |
             (strip![loop 6, exit 6, t 2, t 1, t 3],    4, symbols![nt 6, t 1, t 2]),   //  6: vp_1 -> "," B C vp_1     | ●vp_1 ◄6 C! B! ","   | 4, 2 | vp_1 B C
             (strip![exit 7],                           1, symbols![nt 6]),             //  7: vp_1 -> ε                | ◄7                   | 1    | vp_1
-            (strip![loop 7, exit 8, t 6, t 5, t 3],    4, symbols![]),                 //  8: np_1 -> "," "B" "C" np_1 | ●np_1 ◄8 "C" "B" "," | 4    |
+            (strip![loop 7, exit 8, t 6, t 5, t 3],    4, symbols![]),                 //  8: np_1 -> "," "B" "C" np_1 | ●np_1 ◄8 "C" "B" "," | 4, 2 |
             (strip![exit 9],                           1, symbols![]),                 //  9: np_1 -> ε                | ◄9                   | 1    |
-            (strip![loop 8, exit 10, nt 5, nt 4, t 3], 4, symbols![]),                 // 10: xp_1 -> "," x y xp_1     | ●xp_1 ◄10 ►y ►x ","  | 4    |
+            (strip![loop 8, exit 10, nt 5, nt 4, t 3], 4, symbols![]),                 // 10: xp_1 -> "," x y xp_1     | ●xp_1 ◄10 ►y ►x ","  | 4, 2 |
             (strip![exit 11],                          1, symbols![]),                 // 11: xp_1 -> ε                | ◄11                  | 1    |
         ], true, NTValue::SetIds(vec![0, 1, 2, 3]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 4 => vec![4], 5 => vec![5]]),
         // a: y, vp: y, np: y, xp: y, x: n, y: n, vp_1: y, np_1: n, xp_1: n
@@ -2874,15 +2874,15 @@ fn get_ll1_tests() -> Vec<BuildItemsTestEntry> {
         ], vec![
             (strip![exit 0, nt 3, nt 2, nt 1],         3, symbols![nt 1, nt 2, nt 3]), //  0: a -> vp np xp            | ◄0 ►xp ►np ►vp       | 3    | vp np xp
             (strip![exit 1, nt 6, t 2, t 1, t 0],      2, symbols![t 0, nt 6]),        //  1: vp -> A B C vp_1         | ◄1 ►vp_1 C! B! A!    | 2    | A vp_1
-            (strip![exit 2, nt 7, t 6, t 5, t 4],      4, symbols![]),                 //  2: np -> "A" "B" "C" np_1   | ◄2 ►np_1 "C" "B" "A" | 4    |
-            (strip![exit 3, nt 8, nt 5, nt 4, t 0],    4, symbols![t 0]),              //  3: xp -> A x y xp_1         | ◄3 ►xp_1 ►y ►x A!    | 4    | A
+            (strip![exit 2, nt 7, t 6, t 5, t 4],      2, symbols![]),                 //  2: np -> "A" "B" "C" np_1   | ◄2 ►np_1 "C" "B" "A" | 2    |
+            (strip![exit 3, nt 8, nt 5, nt 4, t 0],    2, symbols![t 0]),              //  3: xp -> A x y xp_1         | ◄3 ►xp_1 ►y ►x A!    | 2    | A
             (strip![exit 4, t 7],                      1, symbols![]),                 //  4: x -> "X"                 | ◄4 "X"               | 1    |
             (strip![exit 5, t 8],                      1, symbols![]),                 //  5: y -> "Y"                 | ◄5 "Y"               | 1    |
             (strip![loop 6, exit 6, t 2, t 1, t 3],    4, symbols![nt 6, t 1, t 2]),   //  6: vp_1 -> "," B C vp_1     | ●vp_1 ◄6 C! B! ","   | 4, 2 | vp_1 B C
             (strip![exit 7],                           1, symbols![nt 6]),             //  7: vp_1 -> ε                | ◄7                   | 1    | vp_1
-            (strip![loop 7, exit 8, t 6, t 5, t 3],    4, symbols![]),                 //  8: np_1 -> "," "B" "C" np_1 | ●np_1 ◄8 "C" "B" "," | 4    |
+            (strip![loop 7, exit 8, t 6, t 5, t 3],    4, symbols![]),                 //  8: np_1 -> "," "B" "C" np_1 | ●np_1 ◄8 "C" "B" "," | 4, 2 |
             (strip![exit 9],                           1, symbols![]),                 //  9: np_1 -> ε                | ◄9                   | 1    |
-            (strip![loop 8, exit 10, nt 5, nt 4, t 3], 4, symbols![]),                 // 10: xp_1 -> "," x y xp_1     | ●xp_1 ◄10 ►y ►x ","  | 4    |
+            (strip![loop 8, exit 10, nt 5, nt 4, t 3], 4, symbols![]),                 // 10: xp_1 -> "," x y xp_1     | ●xp_1 ◄10 ►y ►x ","  | 4, 2 |
             (strip![exit 11],                          1, symbols![]),                 // 11: xp_1 -> ε                | ◄11                  | 1    |
         ], false, NTValue::SetIds(vec![0, 1, 2, 3]), btreemap![0 => vec![0], 1 => vec![1], 2 => vec![2], 3 => vec![3], 4 => vec![4], 5 => vec![5]]),
 
