@@ -522,7 +522,7 @@ pub mod pandemonium_parser {
     }
     #[derive(Debug)]
     pub enum InitCtxLStarI {
-        /// value of `` before `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
+        /// first `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
         V1 { num: String },
     }
     #[derive(Debug)]

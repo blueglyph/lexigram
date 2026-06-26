@@ -4828,7 +4828,7 @@ pub(crate) mod rules_985_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> vp np xp`
-        V1 { vp: SynVp, np: SynNp },
+        V1 { vp: SynVp, np: SynNp, xp: SynXp },
     }
     #[derive(Debug)]
     pub enum CtxVp {
@@ -4887,7 +4887,7 @@ pub(crate) mod rules_985_1 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp) }
+    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -4901,6 +4901,9 @@ pub(crate) mod rules_985_1 {
         }
         fn get_np(self) -> SynNp {
             if let EnumSynValue::Np(val) = self { val } else { panic!() }
+        }
+        fn get_xp(self) -> SynXp {
+            if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
     }
 
@@ -4936,8 +4939,7 @@ pub(crate) mod rules_985_1 {
         #[allow(unused_variables)]
         fn exitloop_inp(&mut self) {}
         fn init_xp(&mut self) {}
-        #[allow(unused_variables)]
-        fn exit_xp(&mut self, ctx: CtxXp, spans: Vec<PosSpan>) {}
+        fn exit_xp(&mut self, ctx: CtxXp, spans: Vec<PosSpan>) -> SynXp;
         #[allow(unused_variables)]
         fn init_ixp(&mut self, ctx: InitCtxIxp, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
@@ -5081,9 +5083,10 @@ pub(crate) mod rules_985_1 {
         }
 
         fn exit_a(&mut self) {
+            let xp = self.stack.pop().unwrap().get_xp();
             let np = self.stack.pop().unwrap().get_np();
             let vp = self.stack.pop().unwrap().get_vp();
-            let ctx = CtxA::V1 { vp, np };
+            let ctx = CtxA::V1 { vp, np, xp };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -5152,7 +5155,8 @@ pub(crate) mod rules_985_1 {
             let ctx = CtxXp::V1 { a };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_xp(ctx, spans);
+            let val = self.listener.exit_xp(ctx, spans);
+            self.stack.push(EnumSynValue::Xp(val));
         }
 
         fn init_ixp(&mut self) {
@@ -5213,7 +5217,7 @@ pub(crate) mod rules_985_2 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> vp np xp`
-        V1 { vp: SynVp, np: SynNp },
+        V1 { vp: SynVp, np: SynNp, xp: SynXp },
     }
     #[derive(Debug)]
     pub enum CtxVp {
@@ -5272,7 +5276,7 @@ pub(crate) mod rules_985_2 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp) }
+    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -5286,6 +5290,9 @@ pub(crate) mod rules_985_2 {
         }
         fn get_np(self) -> SynNp {
             if let EnumSynValue::Np(val) = self { val } else { panic!() }
+        }
+        fn get_xp(self) -> SynXp {
+            if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
     }
 
@@ -5321,8 +5328,7 @@ pub(crate) mod rules_985_2 {
         #[allow(unused_variables)]
         fn exitloop_inp(&mut self) {}
         fn init_xp(&mut self) {}
-        #[allow(unused_variables)]
-        fn exit_xp(&mut self, ctx: CtxXp) {}
+        fn exit_xp(&mut self, ctx: CtxXp) -> SynXp;
         #[allow(unused_variables)]
         fn init_ixp(&mut self, ctx: InitCtxIxp) {}
         #[allow(unused_variables)]
@@ -5455,9 +5461,10 @@ pub(crate) mod rules_985_2 {
         }
 
         fn exit_a(&mut self) {
+            let xp = self.stack.pop().unwrap().get_xp();
             let np = self.stack.pop().unwrap().get_np();
             let vp = self.stack.pop().unwrap().get_vp();
-            let ctx = CtxA::V1 { vp, np };
+            let ctx = CtxA::V1 { vp, np, xp };
             let val = self.listener.exit_a(ctx);
             self.stack.push(EnumSynValue::A(val));
         }
@@ -5510,7 +5517,8 @@ pub(crate) mod rules_985_2 {
         fn exit_xp(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let ctx = CtxXp::V1 { a };
-            self.listener.exit_xp(ctx);
+            let val = self.listener.exit_xp(ctx);
+            self.stack.push(EnumSynValue::Xp(val));
         }
 
         fn init_ixp(&mut self) {

@@ -985,7 +985,7 @@ mod config_parser {
     }
     #[derive(Debug)]
     pub enum InitCtxIIoOpt {
-        /// value of `io_option` before `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
+        /// first `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
         V1 { io_option: SynIoOption },
     }
     #[derive(Debug)]
@@ -1020,7 +1020,7 @@ mod config_parser {
     }
     #[derive(Debug)]
     pub enum InitCtxIGlobalOpt {
-        /// value of `global_option` before `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
+        /// first `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
         V1 { global_option: SynGlobalOption },
     }
     #[derive(Debug)]

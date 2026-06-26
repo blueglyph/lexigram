@@ -1271,14 +1271,47 @@ impl ParserGen {
             if VERBOSE { println!("- sep_nt: nt_parent: {nt_parent}, nt_child: {nt_child}, item_len: {item_len}"); }
             let nt_top = self.get_top_parent(nt_child) as usize;
             for &nt_group in self.nt_parent[nt_top].iter().filter(|&nt| *nt != nt_child) {
-                for &alt_id_inst in &self.var_alts[nt_group as usize] {
-                    if self.alts[alt_id_inst as usize].1.iter().any(|s| *s == Symbol::NT(nt_child)) {
-                        todo!("alt_id_inst could instantiate child_lfact, in which case we include those instead");
-                        sep_nt_alt.push(SepNtInfo { alt_id_inst, nt_child, item_len });
+                for &alt_id in &self.var_alts[nt_group as usize] {
+                    if self.alts[alt_id as usize].1.iter().any(|s| *s == Symbol::NT(nt_child)) {
+                        if VERBOSE { println!("  - alt {alt_id}:"); }
+                        let mut queue = VecDeque::<AltId>::from_iter([alt_id]);
+                        let mut timeout = 10;
+                        while !queue.is_empty() {
+                            let alt_id_inst = queue.pop_front().unwrap();
+                            let mut is_fact = false;
+                            let (nt, alt) = &self.alts[alt_id_inst as usize];
+                            if VERBOSE { println!("    (nt {nt}, alt {alt_id_inst}) {}", alt.to_rule_str(*nt, self.get_symbol_table(), 0)); }
+                            queue.extend(
+                                alt.iter()
+                                    .filter_map(|s|
+                                        if let &Symbol::NT(nt_child) = s && nt_child != *nt && self.flags[nt_child as usize] & ruleflag::CHILD_L_FACT != 0 {
+                                            is_fact = true;
+                                            Some(nt_child)
+                                        } else {
+                                            None
+                                        })
+                                    .flat_map(|nt_child| {
+                                        let alts_child = &self.var_alts[nt_child as usize];
+                                        if VERBOSE { println!("    => child lfact alts {}", alts_child.iter().map(AltId::to_string).join(", ")); }
+                                        alts_child
+                                    })
+                                    .copied()
+                            );
+                            if !is_fact {
+                                if VERBOSE { println!("    => [alt_id_inst {alt_id_inst}, nt_child {nt_child}, item_len {item_len}]"); }
+                                sep_nt_alt.push(SepNtInfo { alt_id_inst, nt_child, item_len });
+                            } else {
+                                if VERBOSE { println!("    queue: {queue:?}"); }
+                            }
+                            timeout -= 1;
+                            if timeout == 0 { panic!() }
+                        }
                     }
                 }
             }
         }
+        let check = sep_nt_alt.iter().map(|SepNtInfo { alt_id_inst, nt_child, .. }| (alt_id_inst, nt_child)).collect::<HashSet::<_>>();
+        assert_eq!(check.len(), sep_nt_alt.len());
         self.sep_info = SepInfo::NtInfo(sep_nt_alt);
     }
 
@@ -1338,12 +1371,13 @@ impl ParserGen {
             self.span_nbrs_sep_list.insert(c0_alt_id, item_len_span);                                       // , 3
             if !is_lr {
                 self.span_nbrs[alt_id_inst as usize] -= item_len_span;                                      // 7 -> 4
-                if self.nt_values[nt_child as usize] {
-                    let c_len = if self.nt_values[nt_child as usize] { 1 } else { 0 };
-                    let item_ops_len = items[c0_alt_id as usize].len() - c_len;                                 // 2: [Id, type]
+                let c_len = if self.nt_values[nt_child as usize] { 1 } else { 0 };
+                let item_ops_len = items[c0_alt_id as usize].len() - c_len;                                 // 2: [Id, type]
+                if item_ops_len > 0 {
                     let p_alt = &mut items[alt_id_inst as usize];
-                    let c_pos = p_alt.iter().position(|s| *s == Symbol::NT(nt_child)).unwrap();
-                    p_alt.drain(c_pos - item_ops_len..c_pos);
+                    if let Some(c_pos) = p_alt.iter().position(|s| *s == Symbol::NT(nt_child)) {
+                        p_alt.drain(c_pos - item_ops_len..c_pos);
+                    }
                 }
             }
             self.flags[nt_child as usize] |= ruleflag::SEP_LIST;

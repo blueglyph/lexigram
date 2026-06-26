@@ -503,7 +503,7 @@ pub mod typedef_type_parser {
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `Id` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+        /// first `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]

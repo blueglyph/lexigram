@@ -4577,7 +4577,7 @@ pub(crate) mod rules_902_1 {
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `Id` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+        /// first `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
@@ -4993,7 +4993,7 @@ pub(crate) mod rules_902_2 {
     }
     #[derive(Debug)]
     pub enum InitCtxIdI {
-        /// value of `` before `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+        /// first `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
     }
     #[derive(Debug)]
