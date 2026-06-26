@@ -798,7 +798,7 @@ pub mod rtsgen_parser {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> "token" (decl_terminal / ",")+ ";"`
-        V1 { star: SynDecl1 },
+        V1 { plus: SynDecl1 },
     }
     #[derive(Debug)]
     pub enum CtxDeclTerminal {
@@ -1188,8 +1188,8 @@ pub mod rtsgen_parser {
         }
 
         fn exit_decl(&mut self) {
-            let star = self.stack.pop().unwrap().get_decl1();
-            let ctx = CtxDecl::V1 { star };
+            let plus = self.stack.pop().unwrap().get_decl1();
+            let ctx = CtxDecl::V1 { plus };
             let val = self.listener.exit_decl(ctx);
             self.stack.push(EnumSynValue::Decl(val));
         }

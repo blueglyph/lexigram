@@ -258,7 +258,7 @@ impl TypedefListener for MatchListener<'_> {
     fn exit_decl(&mut self, ctx: CtxDecl, mut spans: Vec<PosSpan>) -> SynDecl {
         match ctx {
             // decl -> Type Id (<L> "," Id)* ";"
-            CtxDecl::V1 { type1, star: SynIdI(mut ids) } => {
+            CtxDecl::V1 { type1, plus: SynIdI(mut ids) } => {
                 for (i, (id, span)) in ids.into_iter().enumerate() {
                     if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
                         self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
@@ -487,7 +487,7 @@ pub mod typedef_match_parser {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> Type (<L> Id / ",")+ ";"`
-        V1 { type1: String, star: SynIdI },
+        V1 { type1: String, plus: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
     }
@@ -755,9 +755,9 @@ pub mod typedef_match_parser {
         fn exit_decl(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 5 => {
-                    let star = self.stack.pop().unwrap().get_id_i();
+                    let plus = self.stack.pop().unwrap().get_id_i();
                     let type1 = self.stack_t.pop().unwrap();
-                    (3, CtxDecl::V1 { type1, star })
+                    (3, CtxDecl::V1 { type1, plus })
                 }
                 6 => {
                     let id = self.stack_t.pop().unwrap();

@@ -49,7 +49,7 @@ impl LexiParserListener for Listener {
 
     fn exit_option(&mut self, ctx: CtxOption, spans: Vec<PosSpan>) -> SynOption {
         // option -> "channels" "{" (Id / ",")+ "}"
-        let CtxOption::V1 { star } = ctx;
+        let CtxOption::V1 { plus } = ctx;
         SynOption()
     }
 
@@ -95,7 +95,7 @@ impl LexiParserListener for Listener {
 
     fn exit_actions(&mut self, ctx: CtxActions, spans: Vec<PosSpan>) -> SynActions {
         // actions -> (action / ",")+
-        let CtxActions::V1 { star } = ctx;
+        let CtxActions::V1 { plus } = ctx;
         SynActions()
     }
 
@@ -129,7 +129,7 @@ impl LexiParserListener for Listener {
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems, spans: Vec<PosSpan>) -> SynAltItems {
         // alt_items -> (alt_item / "|")+
-        let CtxAltItems::V1 { star } = ctx;
+        let CtxAltItems::V1 { plus } = ctx;
         SynAltItems()
     }
 

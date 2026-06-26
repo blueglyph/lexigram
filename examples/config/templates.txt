@@ -99,7 +99,7 @@
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
             // io_options -> (<L> io_option / ",")+
-            let CtxIoOptions::V1 { star } = ctx;
+            let CtxIoOptions::V1 { plus } = ctx;
             SynIoOptions()
         }
 
@@ -125,7 +125,7 @@
                 // io_option -> "indent" ":" value
                 CtxIoOption::V4 { value } => {}
                 // io_option -> "headers" ":" "{" (value / ",")+ "}"
-                CtxIoOption::V5 { star } => {}
+                CtxIoOption::V5 { plus } => {}
             }
             SynIoOption()
         }
@@ -142,7 +142,7 @@
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
             // global_options -> (<L> global_option / ",")+
-            let CtxGlobalOptions::V1 { star } = ctx;
+            let CtxGlobalOptions::V1 { plus } = ctx;
             SynGlobalOptions()
         }
 
@@ -160,11 +160,11 @@
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
                 // global_option -> "headers" ":" "{" (value / ",")+ "}"
-                CtxGlobalOption::V1 { star } => {}
+                CtxGlobalOption::V1 { plus } => {}
                 // global_option -> "indent" ":" value
                 CtxGlobalOption::V2 { value } => {}
                 // global_option -> "libs" ":" "{" (value / ",")+ "}"
-                CtxGlobalOption::V3 { star } => {}
+                CtxGlobalOption::V3 { plus } => {}
                 // global_option -> "nt-value" ":" nt_value
                 CtxGlobalOption::V4 { nt_value } => {}
                 // global_option -> "spans" ":" value
@@ -198,7 +198,7 @@
                 // nt_value -> "parents"
                 CtxNtValue::V3 => {}
                 // nt_value -> "set" "{" (value / ",")+ "}"
-                CtxNtValue::V4 { star } => {}
+                CtxNtValue::V4 { plus } => {}
             }
             SynNtValue()
         }

@@ -2844,7 +2844,7 @@ pub(crate) mod rules_212_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> Id "(" (<L> Id ":" type / "<" ">")+ ")"`
-        V1 { id: String, star: SynI },
+        V1 { id: String, plus: SynI },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
@@ -3017,9 +3017,9 @@ pub(crate) mod rules_212_1 {
         }
 
         fn exit_a(&mut self) {
-            let star = self.stack.pop().unwrap().get_i();
+            let plus = self.stack.pop().unwrap().get_i();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { id, star };
+            let ctx = CtxA::V1 { id, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -3083,7 +3083,7 @@ pub(crate) mod rules_219_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> X (<L> B / ",")+ Z`
-        V1 { x: String, star: SynI, z: String },
+        V1 { x: String, plus: SynI, z: String },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
@@ -3245,9 +3245,9 @@ pub(crate) mod rules_219_1 {
 
         fn exit_a(&mut self) {
             let z = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_i();
+            let plus = self.stack.pop().unwrap().get_i();
             let x = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { x, star, z };
+            let ctx = CtxA::V1 { x, plus, z };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -3566,7 +3566,7 @@ pub(crate) mod rules_222_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> Id "(" (<L> Id ":" type / ",")+ ")"`
-        V1 { id: String, star: SynI },
+        V1 { id: String, plus: SynI },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
@@ -3739,9 +3739,9 @@ pub(crate) mod rules_222_1 {
         }
 
         fn exit_a(&mut self) {
-            let star = self.stack.pop().unwrap().get_i();
+            let plus = self.stack.pop().unwrap().get_i();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { id, star };
+            let ctx = CtxA::V1 { id, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);

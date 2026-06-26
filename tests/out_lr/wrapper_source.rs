@@ -957,7 +957,7 @@ pub(crate) mod rules_109_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> Id "(" (Id ":" type / ",")+ ")"`
-        V1 { id: String, star: SynA1 },
+        V1 { id: String, plus: SynA1 },
     }
     #[derive(Debug)]
     pub enum CtxType {
@@ -1113,9 +1113,9 @@ pub(crate) mod rules_109_1 {
         }
 
         fn exit_a(&mut self) {
-            let star = self.stack.pop().unwrap().get_a1();
+            let plus = self.stack.pop().unwrap().get_a1();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { id, star };
+            let ctx = CtxA::V1 { id, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -1198,7 +1198,7 @@ pub(crate) mod rules_109_1 {
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
                 // a -> Id "(" Id ":" type ("," Id ":" type)* ")"
-                let CtxA::V1 { id, star: SynA1(values) } = ctx;
+                let CtxA::V1 { id, plus: SynA1(values) } = ctx;
                 self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
                 SynA(values.into_iter().map(|SynA1Item { id, type1: SynType(t) }| (id, t)).collect())
             }
@@ -1279,7 +1279,7 @@ pub(crate) mod rules_119_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> X (B / ",")+ Z`
-        V1 { x: String, star: SynA1, z: String },
+        V1 { x: String, plus: SynA1, z: String },
     }
 
     /// Computed `(B / ",")+` array in `a -> X  ►► (B / ",")+ ◄◄  Z`
@@ -1423,9 +1423,9 @@ pub(crate) mod rules_119_1 {
 
         fn exit_a(&mut self) {
             let z = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_a1();
+            let plus = self.stack.pop().unwrap().get_a1();
             let x = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { x, star, z };
+            let ctx = CtxA::V1 { x, plus, z };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -1491,7 +1491,7 @@ pub(crate) mod rules_119_1 {
 
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
-                let CtxA::V1 { x, star: SynA1(values), z } = ctx;
+                let CtxA::V1 { x, plus: SynA1(values), z } = ctx;
                 self.x = x;
                 self.z = z;
                 self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
@@ -1574,7 +1574,7 @@ pub(crate) mod rules_120_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> A (Id / ",")+ C`
-        V1 { a: String, star: SynA1, c: String },
+        V1 { a: String, plus: SynA1, c: String },
     }
 
     /// Computed `(Id / ",")+` array in `a -> A  ►► (Id / ",")+ ◄◄  C`
@@ -1718,9 +1718,9 @@ pub(crate) mod rules_120_1 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_a1();
+            let plus = self.stack.pop().unwrap().get_a1();
             let a = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { a, star, c };
+            let ctx = CtxA::V1 { a, plus, c };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -1782,7 +1782,7 @@ pub(crate) mod rules_120_1 {
 
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 // a -> A Id ("," Id)* C
-                let CtxA::V1 { a, star: SynA1(values), c } = ctx;
+                let CtxA::V1 { a, plus: SynA1(values), c } = ctx;
                 values
             }
         }
@@ -3512,7 +3512,7 @@ pub(crate) mod rules_219_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> X (<L> B / ",")+ Z`
-        V1 { x: String, star: SynI, z: String },
+        V1 { x: String, plus: SynI, z: String },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
@@ -3664,9 +3664,9 @@ pub(crate) mod rules_219_1 {
 
         fn exit_a(&mut self) {
             let z = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_i();
+            let plus = self.stack.pop().unwrap().get_i();
             let x = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { x, star, z };
+            let ctx = CtxA::V1 { x, plus, z };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -3737,7 +3737,7 @@ pub(crate) mod rules_219_1 {
 
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 if self.show_calls { println!("exit_a({ctx:?}, {})", spans.iter().map(PosSpan::to_string).join(", ")); }
-                let CtxA::V1 { x, star: SynI(values), z } = ctx;
+                let CtxA::V1 { x, plus: SynI(values), z } = ctx;
                 self.x = x;
                 self.z = z;
                 self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
@@ -4034,7 +4034,7 @@ pub(crate) mod rules_222_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `a -> Id "(" (<L> Id ":" type / ",")+ ")"`
-        V1 { id: String, star: SynI },
+        V1 { id: String, plus: SynI },
     }
     #[derive(Debug)]
     pub enum InitCtxI {
@@ -4195,9 +4195,9 @@ pub(crate) mod rules_222_1 {
         }
 
         fn exit_a(&mut self) {
-            let star = self.stack.pop().unwrap().get_i();
+            let plus = self.stack.pop().unwrap().get_i();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxA::V1 { id, star };
+            let ctx = CtxA::V1 { id, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_a(ctx, spans);
@@ -4280,7 +4280,7 @@ pub(crate) mod rules_222_1 {
 
             fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA {
                 if self.show_calls { println!("exit_a({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
-                let CtxA::V1 { id, star: SynI(values) } = ctx;
+                let CtxA::V1 { id, plus: SynI(values) } = ctx;
                 self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
                 self.id = Some(id);
                 SynA(values)

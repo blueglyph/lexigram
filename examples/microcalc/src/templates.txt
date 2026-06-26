@@ -72,7 +72,7 @@ impl MicroCalcListener for Listener {
     fn exit_fun_params(&mut self, ctx: CtxFunParams) -> SynFunParams {
         match ctx {
             // fun_params -> (Id / ",")+
-            CtxFunParams::V1 { star } => {}
+            CtxFunParams::V1 { plus } => {}
             // fun_params -> ε
             CtxFunParams::V2 => {}
         }
@@ -152,7 +152,7 @@ impl MicroCalcListener for Listener {
     fn exit_fun_args(&mut self, ctx: CtxFunArgs) -> SynFunArgs {
         match ctx {
             // fun_args -> (expr / ",")+
-            CtxFunArgs::V1 { star } => {}
+            CtxFunArgs::V1 { plus } => {}
             // fun_args -> ε
             CtxFunArgs::V2 => {}
         }

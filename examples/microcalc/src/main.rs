@@ -398,7 +398,7 @@ pub mod microcalc_parser {
     #[derive(Debug)]
     pub enum CtxFunParams {
         /// `fun_params -> (Id / ",")+`
-        V1 { star: SynFunParams1 },
+        V1 { plus: SynFunParams1 },
         /// `fun_params -> ε`
         V2,
     }
@@ -468,7 +468,7 @@ pub mod microcalc_parser {
     #[derive(Debug)]
     pub enum CtxFunArgs {
         /// `fun_args -> (expr / ",")+`
-        V1 { star: SynFunArgs1 },
+        V1 { plus: SynFunArgs1 },
         /// `fun_args -> ε`
         V2,
     }
@@ -761,8 +761,8 @@ pub mod microcalc_parser {
         fn exit_fun_params(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
                 2 => {
-                    let star = self.stack.pop().unwrap().get_fun_params1();
-                    CtxFunParams::V1 { star }
+                    let plus = self.stack.pop().unwrap().get_fun_params1();
+                    CtxFunParams::V1 { plus }
                 }
                 3 => {
                     CtxFunParams::V2
@@ -956,8 +956,8 @@ pub mod microcalc_parser {
         fn exit_fun_args(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
                 13 => {
-                    let star = self.stack.pop().unwrap().get_fun_args1();
-                    CtxFunArgs::V1 { star }
+                    let plus = self.stack.pop().unwrap().get_fun_args1();
+                    CtxFunArgs::V1 { plus }
                 }
                 14 => {
                     CtxFunArgs::V2

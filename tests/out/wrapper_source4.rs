@@ -4207,7 +4207,7 @@ pub(crate) mod rules_984_1 {
     #[derive(Debug)]
     pub enum CtxVp {
         /// `vp -> A (B C / ",")+`
-        V1 { a: String, star: SynVp1 },
+        V1 { a: String, plus: SynVp1 },
     }
     #[derive(Debug)]
     pub enum CtxNp {
@@ -4429,9 +4429,9 @@ pub(crate) mod rules_984_1 {
         }
 
         fn exit_vp(&mut self) {
-            let star = self.stack.pop().unwrap().get_vp1();
+            let plus = self.stack.pop().unwrap().get_vp1();
             let a = self.stack_t.pop().unwrap();
-            let ctx = CtxVp::V1 { a, star };
+            let ctx = CtxVp::V1 { a, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_vp(ctx, spans);
@@ -4542,7 +4542,7 @@ pub(crate) mod rules_984_2 {
     #[derive(Debug)]
     pub enum CtxVp {
         /// `vp -> A (B C / ",")+`
-        V1 { a: String, star: SynVp1 },
+        V1 { a: String, plus: SynVp1 },
     }
     #[derive(Debug)]
     pub enum CtxNp {
@@ -4751,9 +4751,9 @@ pub(crate) mod rules_984_2 {
         }
 
         fn exit_vp(&mut self) {
-            let star = self.stack.pop().unwrap().get_vp1();
+            let plus = self.stack.pop().unwrap().get_vp1();
             let a = self.stack_t.pop().unwrap();
-            let ctx = CtxVp::V1 { a, star };
+            let ctx = CtxVp::V1 { a, plus };
             let val = self.listener.exit_vp(ctx);
             self.stack.push(EnumSynValue::Vp(val));
         }
@@ -4833,7 +4833,7 @@ pub(crate) mod rules_985_1 {
     #[derive(Debug)]
     pub enum CtxVp {
         /// `vp -> A (<L> B C / ",")+`
-        V1 { a: String, star: SynIvp },
+        V1 { a: String, plus: SynIvp },
     }
     #[derive(Debug)]
     pub enum InitCtxIvp {
@@ -5094,9 +5094,9 @@ pub(crate) mod rules_985_1 {
         }
 
         fn exit_vp(&mut self) {
-            let star = self.stack.pop().unwrap().get_ivp();
+            let plus = self.stack.pop().unwrap().get_ivp();
             let a = self.stack_t.pop().unwrap();
-            let ctx = CtxVp::V1 { a, star };
+            let ctx = CtxVp::V1 { a, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_vp(ctx, spans);
@@ -5222,7 +5222,7 @@ pub(crate) mod rules_985_2 {
     #[derive(Debug)]
     pub enum CtxVp {
         /// `vp -> A (<L> B C / ",")+`
-        V1 { a: String, star: SynIvp },
+        V1 { a: String, plus: SynIvp },
     }
     #[derive(Debug)]
     pub enum InitCtxIvp {
@@ -5470,9 +5470,9 @@ pub(crate) mod rules_985_2 {
         }
 
         fn exit_vp(&mut self) {
-            let star = self.stack.pop().unwrap().get_ivp();
+            let plus = self.stack.pop().unwrap().get_ivp();
             let a = self.stack_t.pop().unwrap();
-            let ctx = CtxVp::V1 { a, star };
+            let ctx = CtxVp::V1 { a, plus };
             let val = self.listener.exit_vp(ctx);
             self.stack.push(EnumSynValue::Vp(val));
         }

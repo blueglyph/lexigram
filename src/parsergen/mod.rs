@@ -1564,19 +1564,12 @@ impl ParserGen {
                             let name = if let Symbol::NT(vs) = s {
                                 let flag = self.flags[*vs as usize];
                                 if flag & ruleflag::CHILD_REPEAT != 0 {
-                                    let inside_alt_id = self.var_alts[*vs as usize][0];
-                                    let inside_alt = &self.alts[inside_alt_id as usize].1;
-                                    if false {
-                                        // we don't use this any more
-                                        let mut plus_name = inside_alt.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
-                                        plus_name.push_str(if flag & ruleflag::CHILD_PLUS != 0 { "_plus" } else { "_star" });
-                                        plus_name
-                                    } else if is_nt_child_repeat && indices.is_empty() {
+                                    if is_nt_child_repeat && indices.is_empty() {
                                         // iterator variable in a + * loop (visible with <L>, for ex)
-                                        if flag & ruleflag::CHILD_PLUS != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
+                                        if flag & (ruleflag::CHILD_PLUS | ruleflag::SEP_LIST) != 0 { "plus_acc".to_string() } else { "star_acc".to_string() }
                                     } else {
                                         // reference to a + * result
-                                        if flag & ruleflag::CHILD_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                        if flag & (ruleflag::CHILD_PLUS | ruleflag::SEP_LIST) != 0 { "plus".to_string() } else { "star".to_string() }
                                     }
                                 } else {
                                     nt_name[*vs as usize].clone().1

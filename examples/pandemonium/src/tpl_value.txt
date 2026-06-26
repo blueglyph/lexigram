@@ -74,7 +74,7 @@ impl PandemoniumListener for Listener {
 
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
         // l_star -> Id "=" (<L> Num / "," "then")+ ";"
-        let CtxLStar::V1 { id, star } = ctx;
+        let CtxLStar::V1 { id, plus } = ctx;
         SynLStar()
     }
 
@@ -180,14 +180,14 @@ impl PandemoniumListener for Listener {
 
     fn exit_sep_list(&mut self, ctx: CtxSepList, spans: Vec<PosSpan>) -> SynSepList {
         // sep_list -> Id "=" (Id ":" Num / "," "then")+ ";"
-        let CtxSepList::V1 { id, star } = ctx;
+        let CtxSepList::V1 { id, plus } = ctx;
         SynSepList()
     }
 
     fn exit_sep_list_opt(&mut self, ctx: CtxSepListOpt, spans: Vec<PosSpan>) -> SynSepListOpt {
         match ctx {
             // sep_list_opt -> Id "=" (Id ":" Num / "," "then")+ ";"
-            CtxSepListOpt::V1 { id, star } => {}
+            CtxSepListOpt::V1 { id, plus } => {}
             // sep_list_opt -> Id "=" ";"
             CtxSepListOpt::V2 { id } => {}
         }

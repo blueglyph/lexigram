@@ -688,8 +688,8 @@ impl LexiParserListener for LexiListener<'_> {
 
     fn exit_option(&mut self, ctx: CtxOption, spans: Vec<PosSpan>) -> SynOption {
         if self.verbose { println!("- exit_option({ctx:?})"); }
-        let CtxOption::V1 { star } = ctx;       // option -> "channels" "{" Id ("," Id)* "}"
-        for ch in star.0 {
+        let CtxOption::V1 { plus } = ctx;       // option -> "channels" "{" Id ("," Id)* "}"
+        for ch in plus.0 {
             if self.channels.contains_key(&ch) {
                 self.log_error(&spans[2], &format!("channel '{ch}' is defined several times"));
             } else {
@@ -830,8 +830,8 @@ impl LexiParserListener for LexiListener<'_> {
 
     fn exit_actions(&mut self, ctx: CtxActions, spans: Vec<PosSpan>) -> SynActions {
         // actions -> action ("," action)*
-        let CtxActions::V1 { star } = ctx;
-        let action = star.0.into_iter().fold(LexAction::default(), |acc, SynAction(a)| {
+        let CtxActions::V1 { plus } = ctx;
+        let action = plus.0.into_iter().fold(LexAction::default(), |acc, SynAction(a)| {
             acc.try_add(a).unwrap_or_else(|(_msg, left, right)| {
                 self.log_error(&spans[0], &format!(
                     "can't add actions '{}' and '{}'",
@@ -923,7 +923,7 @@ impl LexiParserListener for LexiListener<'_> {
     fn exit_alt_items(&mut self, ctx: CtxAltItems, _spans: Vec<PosSpan>) -> SynAltItems {
         if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
-        let CtxAltItems::V1 { star: SynAltItems1(mut alt_items) } = ctx;
+        let CtxAltItems::V1 { plus: SynAltItems1(mut alt_items) } = ctx;
         let (id, const_literal) = if alt_items.len() > 1 {
             let id = tree.addci_iter(None, node!(|), alt_items.into_iter().map(|SynAltItem((id_ch, _))| id_ch));
             (id, None)

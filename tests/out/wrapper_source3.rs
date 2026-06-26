@@ -3728,7 +3728,7 @@ pub(crate) mod rules_901_1 {
     #[derive(Debug)]
     pub enum CtxOption {
         /// `option -> "channels" "{" (Id / ",")+ "}"`
-        V1 { star: SynOption1 },
+        V1 { plus: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
@@ -3742,7 +3742,7 @@ pub(crate) mod rules_901_1 {
     #[derive(Debug)]
     pub enum CtxActions {
         /// `actions -> (action / ",")+`
-        V1 { star: SynActions1 },
+        V1 { plus: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
@@ -3769,7 +3769,7 @@ pub(crate) mod rules_901_1 {
     #[derive(Debug)]
     pub enum CtxAltItems {
         /// `alt_items -> (alt_item / "|")+`
-        V1 { star: SynAltItems1 },
+        V1 { plus: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
@@ -4236,8 +4236,8 @@ pub(crate) mod rules_901_1 {
         }
 
         fn exit_option(&mut self) {
-            let star = self.stack.pop().unwrap().get_option1();
-            let ctx = CtxOption::V1 { star };
+            let plus = self.stack.pop().unwrap().get_option1();
+            let ctx = CtxOption::V1 { plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_option(ctx, spans);
@@ -4288,8 +4288,8 @@ pub(crate) mod rules_901_1 {
         }
 
         fn exit_actions(&mut self) {
-            let star = self.stack.pop().unwrap().get_actions1();
-            let ctx = CtxActions::V1 { star };
+            let plus = self.stack.pop().unwrap().get_actions1();
+            let ctx = CtxActions::V1 { plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_actions(ctx, spans);
@@ -4358,8 +4358,8 @@ pub(crate) mod rules_901_1 {
         }
 
         fn exit_alt_items(&mut self) {
-            let star = self.stack.pop().unwrap().get_alt_items1();
-            let ctx = CtxAltItems::V1 { star };
+            let plus = self.stack.pop().unwrap().get_alt_items1();
+            let ctx = CtxAltItems::V1 { plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_alt_items(ctx, spans);
@@ -4571,7 +4571,7 @@ pub(crate) mod rules_902_1 {
     #[derive(Debug)]
     pub enum CtxDecl {
         /// `decl -> Type (<L> Id / ",")+ ";"`
-        V1 { type1: String, star: SynIdI },
+        V1 { type1: String, plus: SynIdI },
         /// `decl -> "typedef" Type Id ";"`
         V2 { type1: String, id: String },
     }
@@ -4853,9 +4853,9 @@ pub(crate) mod rules_902_1 {
         fn exit_decl(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 4 => {
-                    let star = self.stack.pop().unwrap().get_id_i();
+                    let plus = self.stack.pop().unwrap().get_id_i();
                     let type1 = self.stack_t.pop().unwrap();
-                    (3, CtxDecl::V1 { type1, star })
+                    (3, CtxDecl::V1 { type1, plus })
                 }
                 5 => {
                     let id = self.stack_t.pop().unwrap();

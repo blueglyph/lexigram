@@ -218,8 +218,8 @@ mod listener {
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
             // io_options -> io_option (<L> "," io_option)*
-            let CtxIoOptions::V1 { star } = ctx;
-            star
+            let CtxIoOptions::V1 { plus } = ctx;
+            plus
         }
 
         fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
@@ -309,7 +309,7 @@ mod listener {
                     }
                 }
                 // io_option -> "headers" ":" "{" value ("," value)* "}"
-                CtxIoOption::V5 { star: SynIoOption1(values) } => {
+                CtxIoOption::V5 { plus: SynIoOption1(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(headers) => SynIoOption::Headers(headers),
                         Err(()) => SynIoOption::Error,
@@ -336,8 +336,8 @@ mod listener {
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
             // global_options -> global_option (<L> "," global_option)*
-            let CtxGlobalOptions::V1 { star } = ctx;
-            star
+            let CtxGlobalOptions::V1 { plus } = ctx;
+            plus
         }
 
         fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
@@ -359,7 +359,7 @@ mod listener {
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
                 // global_option -> "headers" ":" "{" value ("," value)* "}"
-                CtxGlobalOption::V1 { star: SynGlobalOption1(values) } => {
+                CtxGlobalOption::V1 { plus: SynGlobalOption1(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(headers) => SynGlobalOption::Headers(headers),
                         Err(()) => SynGlobalOption::Error,
@@ -377,7 +377,7 @@ mod listener {
                     }
                 }
                 // global_option -> "libs" ":" "{" value ("," value)* "}"
-                CtxGlobalOption::V3 { star: SynGlobalOption2(values) } => {
+                CtxGlobalOption::V3 { plus: SynGlobalOption2(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(libs) => SynGlobalOption::Libs(libs),
                         Err(()) => SynGlobalOption::Error,
@@ -442,7 +442,7 @@ mod listener {
                 // nt_value -> "parents"
                 CtxNtValue::V3 => NTValue::Parents,
                 // nt_value -> "set" "{" value ("," value)* "}"
-                CtxNtValue::V4 { star: SynNtValue1(values) } => {
+                CtxNtValue::V4 { plus: SynNtValue1(values) } => {
                     match self.values_to_strings(values, &spans[2]) {
                         Ok(names) => NTValue::SetNames(names),
                         Err(()) => NTValue::SetNames(vec![]),
@@ -981,7 +981,7 @@ mod config_parser {
     #[derive(Debug)]
     pub enum CtxIoOptions {
         /// `io_options -> (<L> io_option / ",")+`
-        V1 { star: SynIIoOpt },
+        V1 { plus: SynIIoOpt },
     }
     #[derive(Debug)]
     pub enum InitCtxIIoOpt {
@@ -1004,7 +1004,7 @@ mod config_parser {
         /// `io_option -> "indent" ":" value`
         V4 { value: SynValue },
         /// `io_option -> "headers" ":" "{" (value / ",")+ "}"`
-        V5 { star: SynIoOption1 },
+        V5 { plus: SynIoOption1 },
     }
     #[derive(Debug)]
     pub enum CtxTagOpt {
@@ -1016,7 +1016,7 @@ mod config_parser {
     #[derive(Debug)]
     pub enum CtxGlobalOptions {
         /// `global_options -> (<L> global_option / ",")+`
-        V1 { star: SynIGlobalOpt },
+        V1 { plus: SynIGlobalOpt },
     }
     #[derive(Debug)]
     pub enum InitCtxIGlobalOpt {
@@ -1031,11 +1031,11 @@ mod config_parser {
     #[derive(Debug)]
     pub enum CtxGlobalOption {
         /// `global_option -> "headers" ":" "{" (value / ",")+ "}"`
-        V1 { star: SynGlobalOption1 },
+        V1 { plus: SynGlobalOption1 },
         /// `global_option -> "indent" ":" value`
         V2 { value: SynValue },
         /// `global_option -> "libs" ":" "{" (value / ",")+ "}"`
-        V3 { star: SynGlobalOption2 },
+        V3 { plus: SynGlobalOption2 },
         /// `global_option -> "nt-value" ":" nt_value`
         V4 { nt_value: SynNtValue },
         /// `global_option -> "spans" ":" value`
@@ -1063,7 +1063,7 @@ mod config_parser {
         /// `nt_value -> "parents"`
         V3,
         /// `nt_value -> "set" "{" (value / ",")+ "}"`
-        V4 { star: SynNtValue1 },
+        V4 { plus: SynNtValue1 },
     }
 
     /// Computed `(value / ",")+` array in `io_option -> "combined" ":" value tag_opt | "input" ":" value tag_opt | "output" ":" value tag_opt | "indent" ":" value | "headers" ":" "{"  ►► (value / ",")+ ◄◄  "}"`
@@ -1422,8 +1422,8 @@ mod config_parser {
         }
 
         fn exit_io_options(&mut self) {
-            let star = self.stack.pop().unwrap().get_i_io_opt();
-            let ctx = CtxIoOptions::V1 { star };
+            let plus = self.stack.pop().unwrap().get_i_io_opt();
+            let ctx = CtxIoOptions::V1 { plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_io_options(ctx, spans);
@@ -1475,8 +1475,8 @@ mod config_parser {
                     (3, CtxIoOption::V4 { value })
                 }
                 16 => {
-                    let star = self.stack.pop().unwrap().get_io_option1();
-                    (5, CtxIoOption::V5 { star })
+                    let plus = self.stack.pop().unwrap().get_io_option1();
+                    (5, CtxIoOption::V5 { plus })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_io_option")
             };
@@ -1521,8 +1521,8 @@ mod config_parser {
         }
 
         fn exit_global_options(&mut self) {
-            let star = self.stack.pop().unwrap().get_i_global_opt();
-            let ctx = CtxGlobalOptions::V1 { star };
+            let plus = self.stack.pop().unwrap().get_i_global_opt();
+            let ctx = CtxGlobalOptions::V1 { plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_global_options(ctx, spans);
@@ -1555,16 +1555,16 @@ mod config_parser {
         fn exit_global_option(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 22 => {
-                    let star = self.stack.pop().unwrap().get_global_option1();
-                    (5, CtxGlobalOption::V1 { star })
+                    let plus = self.stack.pop().unwrap().get_global_option1();
+                    (5, CtxGlobalOption::V1 { plus })
                 }
                 23 => {
                     let value = self.stack.pop().unwrap().get_value();
                     (3, CtxGlobalOption::V2 { value })
                 }
                 24 => {
-                    let star = self.stack.pop().unwrap().get_global_option2();
-                    (5, CtxGlobalOption::V3 { star })
+                    let plus = self.stack.pop().unwrap().get_global_option2();
+                    (5, CtxGlobalOption::V3 { plus })
                 }
                 25 => {
                     let nt_value = self.stack.pop().unwrap().get_nt_value();
@@ -1657,8 +1657,8 @@ mod config_parser {
                     (1, CtxNtValue::V3)
                 }
                 35 => {
-                    let star = self.stack.pop().unwrap().get_nt_value1();
-                    (4, CtxNtValue::V4 { star })
+                    let plus = self.stack.pop().unwrap().get_nt_value1();
+                    (4, CtxNtValue::V4 { plus })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_nt_value")
             };

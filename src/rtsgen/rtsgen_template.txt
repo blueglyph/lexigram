@@ -30,7 +30,7 @@ impl RtsGenListener for Listener {
 
     fn exit_decl(&mut self, ctx: CtxDecl) -> SynDecl {
         // decl -> "token" (decl_terminal / ",")+ ";"
-        let CtxDecl::V1 { star } = ctx;
+        let CtxDecl::V1 { plus } = ctx;
         SynDecl()
     }
 

@@ -597,12 +597,12 @@ pub mod pandemonium_parser {
     #[derive(Debug)]
     pub enum CtxSepList {
         /// `sep_list -> Id "=" (Id ":" Num / "," "then")+ ";"`
-        V1 { id: String, star: SynSepList1 },
+        V1 { id: String, plus: SynSepList1 },
     }
     #[derive(Debug)]
     pub enum CtxSepListOpt {
         /// `sep_list_opt -> Id "=" (Id ":" Num / "," "then")+ ";"`
-        V1 { id: String, star: SynSepListOpt1 },
+        V1 { id: String, plus: SynSepListOpt1 },
         /// `sep_list_opt -> Id "=" ";"`
         V2 { id: String },
     }
@@ -1370,9 +1370,9 @@ pub mod pandemonium_parser {
         }
 
         fn exit_sep_list(&mut self) {
-            let star = self.stack.pop().unwrap().get_sep_list1();
+            let plus = self.stack.pop().unwrap().get_sep_list1();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxSepList::V1 { id, star };
+            let ctx = CtxSepList::V1 { id, plus };
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_sep_list(ctx, spans);
@@ -1406,9 +1406,9 @@ pub mod pandemonium_parser {
                     (3, CtxSepListOpt::V2 { id })
                 }
                 84 => {
-                    let star = self.stack.pop().unwrap().get_sep_list_opt1();
+                    let plus = self.stack.pop().unwrap().get_sep_list_opt1();
                     let id = self.stack_t.pop().unwrap();
-                    (4, CtxSepListOpt::V1 { id, star })
+                    (4, CtxSepListOpt::V1 { id, plus })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_sep_list_opt")
             };
