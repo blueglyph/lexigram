@@ -3516,7 +3516,7 @@ pub(crate) mod rules_219_1 {
     }
     #[derive(Debug)]
     pub enum InitCtxI {
-        /// value of `B` before `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
+        /// first `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
         V1 { b: String },
     }
     #[derive(Debug)]
@@ -3828,7 +3828,7 @@ pub(crate) mod rules_219_2 {
     }
     #[derive(Debug)]
     pub enum InitCtxI {
-        /// value of `` before `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
+        /// first `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
         V1 { b: String },
     }
     #[derive(Debug)]
@@ -4038,7 +4038,7 @@ pub(crate) mod rules_222_1 {
     }
     #[derive(Debug)]
     pub enum InitCtxI {
-        /// value of `Id type` before `<L> Id ":" type / ","` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "," ◄◄ )+ ")"`
+        /// first `<L> Id ":" type / ","` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "," ◄◄ )+ ")"`
         V1 { id: String, type1: SynType },
     }
     #[derive(Debug)]
