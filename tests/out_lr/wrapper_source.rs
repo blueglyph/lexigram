@@ -3230,6 +3230,9 @@ pub(crate) mod rules_201_1 {
             }
 
             fn exit_a(&mut self, ctx: CtxA, mut spans: Vec<PosSpan>) -> SynA {
+                if self.show_calls {
+                    println!("{STR_BEFORE_ANSI}exit_a(ctx = {ctx:?}, spans = [{}]){STR_AFTER_ANSI}", spans.iter().map(|s| s.to_string()).join(", "));
+                }
                 // a -> A B+ C
                 let CtxA::V1 { a, plus: values, c } = ctx;
                 self.span_c = spans.pop().unwrap();
@@ -3239,12 +3242,14 @@ pub(crate) mod rules_201_1 {
             }
 
             fn init_i(&mut self) -> SynI {
-                println!("{STR_BEFORE_ANSI}init_i(){STR_AFTER_ANSI}");
+                if self.show_calls { println!("{STR_BEFORE_ANSI}init_i(){STR_AFTER_ANSI}"); }
                 vec![]
             }
 
             fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, mut spans: Vec<PosSpan>) {
-                println!("{STR_BEFORE_ANSI}exit_i(acc = {acc:?}, spans = [{}]){STR_AFTER_ANSI}", spans.iter().map(|s| s.to_string()).join(", "));
+                if self.show_calls {
+                    println!("{STR_BEFORE_ANSI}exit_i(acc = {acc:?}, spans = [{}]){STR_AFTER_ANSI}", spans.iter().map(|s| s.to_string()).join(", "));
+                }
                 let CtxI::V1 { b } = ctx;
                 acc.push(b);
                 self.spans_b.push(std::mem::take(&mut spans[1]));
