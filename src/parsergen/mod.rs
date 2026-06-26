@@ -2729,8 +2729,8 @@ impl ParserGen {
                     src_init.push(vec![format!("                    {nt} => self.{init_fn_name}(),"), nt_comment]);
                     src_wrapper_impl.push(String::new());
                     src_wrapper_impl.push(format!("    fn {init_fn_name}(&mut self{}) {{", if *init_needs_param { ", alt_id: AltId" } else { "" }));
-                    src_wrapper_impl.extend(trailing_init);
                     src_wrapper_impl.extend(body_init);
+                    src_wrapper_impl.extend(trailing_init);
                     src_wrapper_impl.push("    }".to_string());
                 }
             } else if is_lform {
