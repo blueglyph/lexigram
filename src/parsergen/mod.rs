@@ -2946,7 +2946,7 @@ impl ParserGen {
                     if true|| has_value {
                         src_wrapper_impl.extend(src_val);
                     }
-                    let vec_name = if is_plus { "plus_acc" } else { "star_acc" };
+                    let vec_name = if flags & ruleflag::SEP_LIST != 0 { "sep_list_acc" } else if is_plus { "plus_acc" } else { "star_acc" };
                     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe { // has content only when has_value || has_span
                         src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
                     }

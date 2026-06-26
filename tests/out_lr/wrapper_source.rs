@@ -1135,10 +1135,10 @@ pub(crate) mod rules_109_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let val = SynA1Item { id, type1 };
-            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
-            star_acc.push(val);
+            sep_list_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1441,10 +1441,10 @@ pub(crate) mod rules_119_1 {
 
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
-            star_acc.push(b);
+            sep_list_acc.push(b);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1736,10 +1736,10 @@ pub(crate) mod rules_120_1 {
 
         fn exit_a1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(EnumSynValue::A1(SynA1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::A1(SynA1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynA1 item on wrapper stack");
             };
-            star_acc.push(id);
+            sep_list_acc.push(id);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }

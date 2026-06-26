@@ -1495,10 +1495,10 @@ mod config_parser {
 
         fn exit_io_option1(&mut self) {
             let value = self.stack.pop().unwrap().get_value();
-            let Some(EnumSynValue::IoOption1(SynIoOption1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::IoOption1(SynIoOption1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynIoOption1 item on wrapper stack");
             };
-            star_acc.push(value);
+            sep_list_acc.push(value);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1591,10 +1591,10 @@ mod config_parser {
 
         fn exit_global_option1(&mut self) {
             let value = self.stack.pop().unwrap().get_value();
-            let Some(EnumSynValue::GlobalOption1(SynGlobalOption1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::GlobalOption1(SynGlobalOption1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynGlobalOption1 item on wrapper stack");
             };
-            star_acc.push(value);
+            sep_list_acc.push(value);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1608,10 +1608,10 @@ mod config_parser {
 
         fn exit_global_option2(&mut self) {
             let value = self.stack.pop().unwrap().get_value();
-            let Some(EnumSynValue::GlobalOption2(SynGlobalOption2(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::GlobalOption2(SynGlobalOption2(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynGlobalOption2 item on wrapper stack");
             };
-            star_acc.push(value);
+            sep_list_acc.push(value);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1677,10 +1677,10 @@ mod config_parser {
 
         fn exit_nt_value1(&mut self) {
             let value = self.stack.pop().unwrap().get_value();
-            let Some(EnumSynValue::NtValue1(SynNtValue1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::NtValue1(SynNtValue1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynNtValue1 item on wrapper stack");
             };
-            star_acc.push(value);
+            sep_list_acc.push(value);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }

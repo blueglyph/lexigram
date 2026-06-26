@@ -780,10 +780,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_params1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(EnumSynValue::FunParams1(SynFunParams1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::FunParams1(SynFunParams1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFunParams1 item on wrapper stack");
             };
-            star_acc.push(id);
+            sep_list_acc.push(id);
         }
 
         fn exit_block(&mut self) {
@@ -975,10 +975,10 @@ pub mod microcalc_parser {
 
         fn exit_fun_args1(&mut self) {
             let expr = self.stack.pop().unwrap().get_expr();
-            let Some(EnumSynValue::FunArgs1(SynFunArgs1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::FunArgs1(SynFunArgs1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynFunArgs1 item on wrapper stack");
             };
-            star_acc.push(expr);
+            sep_list_acc.push(expr);
         }
     }
 

@@ -238,11 +238,11 @@ pub(super) mod wrapper_source {
         } = spec;
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
-        const PRINT_TEMPLATE: bool = true;
+        const PRINT_TEMPLATE: bool = false;
         const SHOW_ANSWER: bool = false;
 
         // override options

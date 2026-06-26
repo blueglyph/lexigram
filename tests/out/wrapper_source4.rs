@@ -4451,10 +4451,10 @@ pub(crate) mod rules_984_1 {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack_t.pop().unwrap();
             let val = SynVp1Item { b, c };
-            let Some(EnumSynValue::Vp1(SynVp1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Vp1(SynVp1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynVp1 item on wrapper stack");
             };
-            star_acc.push(val);
+            sep_list_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -4769,10 +4769,10 @@ pub(crate) mod rules_984_2 {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack_t.pop().unwrap();
             let val = SynVp1Item { b, c };
-            let Some(EnumSynValue::Vp1(SynVp1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Vp1(SynVp1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynVp1 item on wrapper stack");
             };
-            star_acc.push(val);
+            sep_list_acc.push(val);
         }
 
         fn exit_np(&mut self) {

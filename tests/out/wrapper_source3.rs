@@ -4253,10 +4253,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_option1(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let Some(EnumSynValue::Option1(SynOption1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Option1(SynOption1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynOption1 item on wrapper stack");
             };
-            star_acc.push(id);
+            sep_list_acc.push(id);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -4305,10 +4305,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
-            let Some(EnumSynValue::Actions1(SynActions1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Actions1(SynActions1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynActions1 item on wrapper stack");
             };
-            star_acc.push(action);
+            sep_list_acc.push(action);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -4375,10 +4375,10 @@ pub(crate) mod rules_901_1 {
 
         fn exit_alt_items1(&mut self) {
             let alt_item = self.stack.pop().unwrap().get_alt_item();
-            let Some(EnumSynValue::AltItems1(SynAltItems1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::AltItems1(SynAltItems1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynAltItems1 item on wrapper stack");
             };
-            star_acc.push(alt_item);
+            sep_list_acc.push(alt_item);
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }

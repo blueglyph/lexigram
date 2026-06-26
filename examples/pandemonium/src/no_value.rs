@@ -1391,10 +1391,10 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepList1Item { id, num };
-            let Some(EnumSynValue::SepList1(SynSepList1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::SepList1(SynSepList1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynSepList1 item on wrapper stack");
             };
-            star_acc.push(val);
+            sep_list_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }
@@ -1430,10 +1430,10 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let val = SynSepListOpt1Item { id, num };
-            let Some(EnumSynValue::SepListOpt1(SynSepListOpt1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::SepListOpt1(SynSepListOpt1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynSepListOpt1 item on wrapper stack");
             };
-            star_acc.push(val);
+            sep_list_acc.push(val);
             let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
         }

@@ -1201,10 +1201,10 @@ pub mod rtsgen_parser {
 
         fn exit_decl1(&mut self) {
             let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
-            let Some(EnumSynValue::Decl1(SynDecl1(star_acc))) = self.stack.last_mut() else {
+            let Some(EnumSynValue::Decl1(SynDecl1(sep_list_acc))) = self.stack.last_mut() else {
                 panic!("expected SynDecl1 item on wrapper stack");
             };
-            star_acc.push(decl_terminal);
+            sep_list_acc.push(decl_terminal);
         }
 
         fn exit_decl_terminal(&mut self, alt_id: AltId) {
