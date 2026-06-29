@@ -30,8 +30,8 @@ fn test_pandemonium() {
             let result_values = values.iter().map(|(id, v)| format!("[{id}][{v}]")).to_vec();
             if VERBOSE {
                 println!("parsing successful\n{log}");
-                println!("Values:\n{}\n", result_values.join("\n"));
-                println!("Spans:\n{}", spans.join("\n"));
+                println!("Values:{}\n", result_values.iter().map(|s| format!("\n    {s:?}")).join(""));
+                println!("spans:{}", spans.iter().map(|s| format!("\n    r#\"{s}\"#,")).join(""));
             }
             // checks that the values have been correctly captured from the context data:
             assert_eq!(result_values, VALUES1, "value mismatch");
@@ -184,9 +184,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText {
         self.spans.push(format!("exit_text({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxText::V1 { star } => {} // text -> (<L> example)*
-        }
+        let CtxText::V1 { star: SynI(), star1: SynNvI() } = ctx; // text -> (<L> example)* ";" (<L> nv_example)*
         SynText()
     }
 
@@ -196,9 +194,16 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxI::V1 { example: SynExample() } => {}
-        }
+        let CtxI::V1 { example: SynExample() } = ctx;
+    }
+
+    fn init_nv_i(&mut self) -> SynNvI {
+        SynNvI()
+    }
+
+    fn exit_nv_i(&mut self, acc: &mut SynNvI, ctx: CtxNvI, spans: Vec<PosSpan>) {
+        self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
+        let CtxNvI::V1 { nv_example: SynNvExample() } = ctx;
     }
 
     fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample {
@@ -223,16 +228,15 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar {
+        // star -> Id "=" Id ("," Num)* ";"
         self.spans.push(format!("exit_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
-            CtxStar::V1 { id: [id0, id1], star: SynStar1(star) } => {
-                self.add_value(id0, format!("{id1}{}", star.into_iter().map(|s| format!("*{s}")).join("")));
-            }
-        }
+        let CtxStar::V1 { id: [id0, id1], star: SynStar1(star) } = ctx;
+        self.add_value(id0, format!("{id1}{}", star.into_iter().map(|s| format!("*{s}")).join("")));
         SynStar()
     }
 
     fn exit_plus(&mut self, ctx: CtxPlus, spans: Vec<PosSpan>) -> SynPlus {
+        // plus -> Id "=" Num ("," Num)+ ";"
         self.spans.push(format!("exit_plus({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         let CtxPlus::V1 { id, num, plus: SynPlus1(plus) } = ctx;
         self.add_value(id, format!("{num}+{}", plus.join("+")));
@@ -241,21 +245,19 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
         self.spans.push(format!("exit_l_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        let CtxLStar::V1 { id, plus: SynLStarI(items) } = ctx;
-        self.add_value(id, items.join(","));
+        let CtxLStar::V1 { id, num, star: SynLStarI(mut items) } = ctx;
+        items.insert(0, num);
+        self.add_value(id, format!("{}", items.join(",")));
         SynLStar()
     }
 
-    fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) -> SynLStarI {
-        let InitCtxLStarI::V1 { num } = ctx;
-        assert_eq!(num, self.extract_text(&spans[0]));
-        SynLStarI(vec![num])
+    fn init_l_star_i(&mut self) -> SynLStarI {
+        SynLStarI(vec![])
     }
 
     fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>) {
-        // `<L> "," "then" Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," "then" Num ◄◄ )* ";"`
+        // `<L> "," Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," Num ◄◄ )* ";"`
         let CtxLStarI::V1 { num } = ctx;
-        assert_eq!(num, self.extract_text(&spans[3]));
         self.spans.push(format!("exit_l_star_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         acc.0.push(num);
     }
@@ -471,6 +473,200 @@ impl PandemoniumListener for PanDemoListener<'_> {
             CtxAmbI::V9 { num } => LevelString(0, num),
         })
     }
+
+    // TODO:
+
+    fn exit_nv_example(&mut self, ctx: CtxNvExample, spans: Vec<PosSpan>) -> SynNvExample {
+        match ctx {
+            // nv_example -> "star" nv_star
+            CtxNvExample::V1 { nv_star } => {}
+            // nv_example -> "plus" nv_plus
+            CtxNvExample::V2 { nv_plus } => {}
+            // nv_example -> "l-star" nv_l_star
+            CtxNvExample::V3 { nv_l_star } => {}
+            // nv_example -> "l-plus" nv_l_plus
+            CtxNvExample::V4 { nv_l_plus } => {}
+            // nv_example -> "rrec" nv_rrec
+            CtxNvExample::V5 { nv_rrec } => {}
+            // nv_example -> "l-rrec" nv_l_rrec
+            CtxNvExample::V6 { nv_l_rrec } => {}
+            // nv_example -> "lrec" nv_lrec
+            CtxNvExample::V7 { nv_lrec } => {}
+            // nv_example -> "star-a" nv_star_a
+            CtxNvExample::V8 { nv_star_a } => {}
+            // nv_example -> "plus-a" nv_plus_a
+            CtxNvExample::V9 { nv_plus_a } => {}
+            // nv_example -> "l-star-a" nv_l_star_a
+            CtxNvExample::V10 { nv_l_star_a } => {}
+            // nv_example -> "l-plus-a" nv_l_plus_a
+            CtxNvExample::V11 { nv_l_plus_a } => {}
+            // nv_example -> "sep-list" nv_sep_list
+            CtxNvExample::V12 { nv_sep_list } => {}
+            // nv_example -> "sep-list-opt" nv_sep_list_opt
+            CtxNvExample::V13 { nv_sep_list_opt } => {}
+        }
+        SynNvExample()
+    }
+
+    fn exit_nv_star(&mut self, ctx: CtxNvStar, spans: Vec<PosSpan>) -> SynNvStar {
+        // nv_star -> Id "=" "+" ("," "*")* ";"
+        let CtxNvStar::V1 { id } = ctx;
+        SynNvStar()
+    }
+
+    fn exit_nv_plus(&mut self, ctx: CtxNvPlus, spans: Vec<PosSpan>) -> SynNvPlus {
+        // nv_plus -> Id "=" "+" ("," "*")+ ";"
+        let CtxNvPlus::V1 { id } = ctx;
+        SynNvPlus()
+    }
+
+    fn exit_nv_l_star(&mut self, ctx: CtxNvLStar, spans: Vec<PosSpan>) -> SynNvLStar {
+        // nv_l_star -> Id "=" "+" (<L> "," "*")* ";"
+        let CtxNvLStar::V1 { id, star } = ctx;
+        SynNvLStar()
+    }
+
+    fn init_nv_l_star_i(&mut self) -> SynNvLStarI {
+        SynNvLStarI()
+    }
+
+    fn exit_nv_l_star_i(&mut self, acc: &mut SynNvLStarI, ctx: CtxNvLStarI, spans: Vec<PosSpan>) {
+        // `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
+        let CtxNvLStarI::V1 = ctx;
+    }
+
+    fn exit_nv_l_plus(&mut self, ctx: CtxNvLPlus, spans: Vec<PosSpan>) -> SynNvLPlus {
+        // nv_l_plus -> Id "=" "+" (<L> "," "*")+ ";"
+        let CtxNvLPlus::V1 { id, plus } = ctx;
+        SynNvLPlus()
+    }
+
+    fn init_nv_l_plus_i(&mut self) -> SynNvLPlusI {
+        SynNvLPlusI()
+    }
+
+    fn exit_nv_l_plus_i(&mut self, acc: &mut SynNvLPlusI, ctx: CtxNvLPlusI, spans: Vec<PosSpan>) {
+        // `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
+        let CtxNvLPlusI::V1 { last_iteration } = ctx;
+    }
+
+    fn exit_nv_rrec(&mut self, ctx: CtxNvRrec, spans: Vec<PosSpan>) -> SynNvRrec {
+        // nv_rrec -> Id "=" "+" nv_rrec_i
+        let CtxNvRrec::V1 { id, nv_rrec_i } = ctx;
+        SynNvRrec()
+    }
+
+    fn exit_nv_l_rrec(&mut self, ctx: CtxNvLRrec, spans: Vec<PosSpan>) -> SynNvLRrec {
+        // nv_l_rrec -> Id "=" "+" nv_l_rrec_i
+        let CtxNvLRrec::V1 { id, nv_l_rrec_i } = ctx;
+        SynNvLRrec()
+    }
+
+    fn exit_nv_lrec(&mut self, ctx: CtxNvLrec, spans: Vec<PosSpan>) -> SynNvLrec {
+        // nv_lrec -> Id "=" nv_lrec_i ";"
+        let CtxNvLrec::V1 { id, nv_lrec_i } = ctx;
+        SynNvLrec()
+    }
+
+    fn exit_nv_star_a(&mut self, ctx: CtxNvStarA, spans: Vec<PosSpan>) -> SynNvStarA {
+        // nv_star_a -> Id "=" "[" ("+" | "*" ":" Id)* "]" ";"
+        let CtxNvStarA::V1 { id, star } = ctx;
+        SynNvStarA()
+    }
+
+    fn exit_nv_plus_a(&mut self, ctx: CtxNvPlusA, spans: Vec<PosSpan>) -> SynNvPlusA {
+        // nv_plus_a -> Id "=" "[" ("+" | "*" ":" Id)+ "]" ";"
+        let CtxNvPlusA::V1 { id, plus } = ctx;
+        SynNvPlusA()
+    }
+
+    fn exit_nv_l_star_a(&mut self, ctx: CtxNvLStarA, spans: Vec<PosSpan>) -> SynNvLStarA {
+        // nv_l_star_a -> Id "=" "[" (<L> "+" | "*" ":" Id)* "]" ";"
+        let CtxNvLStarA::V1 { id, star } = ctx;
+        SynNvLStarA()
+    }
+
+    fn init_nv_l_star_a_i(&mut self) -> SynNvLStarAI {
+        SynNvLStarAI()
+    }
+
+    fn exit_nv_l_star_a_i(&mut self, acc: &mut SynNvLStarAI, ctx: CtxNvLStarAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)* "]" ";"`
+            CtxNvLStarAI::V1 => {}
+            // `"*" ":" Id` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )* "]" ";"`
+            CtxNvLStarAI::V2 { id } => {}
+        }
+    }
+
+    fn exit_nv_l_plus_a(&mut self, ctx: CtxNvLPlusA, spans: Vec<PosSpan>) -> SynNvLPlusA {
+        // nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" ":" Id)+ "]" ";"
+        let CtxNvLPlusA::V1 { id, plus } = ctx;
+        SynNvLPlusA()
+    }
+
+    fn init_nv_l_plus_a_i(&mut self) -> SynNvLPlusAI {
+        SynNvLPlusAI()
+    }
+
+    fn exit_nv_l_plus_a_i(&mut self, acc: &mut SynNvLPlusAI, ctx: CtxNvLPlusAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)+ "]" ";"`
+            CtxNvLPlusAI::V1 { last_iteration } => {}
+            // `"*" ":" Id` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )+ "]" ";"`
+            CtxNvLPlusAI::V2 { id, last_iteration } => {}
+        }
+    }
+
+    fn exit_nv_sep_list(&mut self, ctx: CtxNvSepList, spans: Vec<PosSpan>) -> SynNvSepList {
+        // nv_sep_list -> Id "=" ("*" / "," "then")+ ";"
+        let CtxNvSepList::V1 { id } = ctx;
+        SynNvSepList()
+    }
+
+    fn exit_nv_sep_list_opt(&mut self, ctx: CtxNvSepListOpt, spans: Vec<PosSpan>) -> SynNvSepListOpt {
+        match ctx {
+            // nv_sep_list_opt -> Id "=" ("*" / "," "then")+ ";"
+            CtxNvSepListOpt::V1 { id } => {}
+            // nv_sep_list_opt -> Id "=" ";"
+            CtxNvSepListOpt::V2 { id } => {}
+        }
+        SynNvSepListOpt()
+    }
+
+    fn exit_nv_rrec_i(&mut self, ctx: CtxNvRrecI, spans: Vec<PosSpan>) -> SynNvRrecI {
+        match ctx {
+            // nv_rrec_i -> "," "*" nv_rrec_i
+            CtxNvRrecI::V1 { nv_rrec_i } => {}
+            // nv_rrec_i -> ";"
+            CtxNvRrecI::V2 => {}
+        }
+        SynNvRrecI()
+    }
+
+    fn init_nv_l_rrec_i(&mut self) -> SynNvLRrecI {
+        SynNvLRrecI()
+    }
+
+    fn exit_nv_l_rrec_i(&mut self, acc: &mut SynNvLRrecI, ctx: CtxNvLRrecI, spans: Vec<PosSpan>) {
+        match ctx {
+            // nv_l_rrec_i -> <L> "," "*" nv_l_rrec_i
+            CtxNvLRrecI::V1 => {}
+            // nv_l_rrec_i -> ";"
+            CtxNvLRrecI::V2 => {}
+        }
+    }
+
+    fn exit_nv_lrec_i(&mut self, ctx: CtxNvLrecI, spans: Vec<PosSpan>) -> SynNvLrecI {
+        match ctx {
+            // nv_lrec_i -> nv_lrec_i "," "*"
+            CtxNvLrecI::V1 { nv_lrec_i } => {}
+            // nv_lrec_i -> "+"
+            CtxNvLrecI::V2 => {}
+        }
+        SynNvLrecI()
+    }
+
 }
 
 // -------------------------------------------------------------------------
@@ -482,10 +678,14 @@ pub mod listener_types {
 
     /// User-defined type for `text`
     #[derive(Debug, PartialEq)] pub struct SynText();
-    /// User-defined type for `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )*`
+    /// User-defined type for `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )* ";" (<L> nv_example)*`
     #[derive(Debug, PartialEq)] pub struct SynI();
+    /// User-defined type for `<L> nv_example` iteration in `text -> (<L> example)* ";" ( ►► <L> nv_example ◄◄ )*`
+    #[derive(Debug, PartialEq)] pub struct SynNvI();
     /// User-defined type for `example`
     #[derive(Debug, PartialEq)] pub struct SynExample();
+    /// User-defined type for `nv_example`
+    #[derive(Debug, PartialEq)] pub struct SynNvExample();
     /// User-defined type for `star`
     #[derive(Debug, PartialEq)] pub struct SynStar();
     /// User-defined type for `plus`
@@ -530,6 +730,48 @@ pub mod listener_types {
     #[derive(Debug, PartialEq)] pub struct SynLrecI(pub Vec<String>);
     /// User-defined type for `amb_i`
     #[derive(Debug, PartialEq)] pub struct SynAmbI(pub LevelString);
+
+    /// User-defined type for `nv_star`
+    #[derive(Debug, PartialEq)] pub struct SynNvStar();
+    /// User-defined type for `nv_plus`
+    #[derive(Debug, PartialEq)] pub struct SynNvPlus();
+    /// User-defined type for `nv_l_star`
+    #[derive(Debug, PartialEq)] pub struct SynNvLStar();
+    /// User-defined type for `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
+    #[derive(Debug, PartialEq)] pub struct SynNvLStarI();
+    /// User-defined type for `nv_l_plus`
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlus();
+    /// User-defined type for `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlusI();
+    /// User-defined type for `nv_rrec`
+    #[derive(Debug, PartialEq)] pub struct SynNvRrec();
+    /// User-defined type for `nv_l_rrec`
+    #[derive(Debug, PartialEq)] pub struct SynNvLRrec();
+    /// User-defined type for `nv_lrec`
+    #[derive(Debug, PartialEq)] pub struct SynNvLrec();
+    /// User-defined type for `nv_star_a`
+    #[derive(Debug, PartialEq)] pub struct SynNvStarA();
+    /// User-defined type for `nv_plus_a`
+    #[derive(Debug, PartialEq)] pub struct SynNvPlusA();
+    /// User-defined type for `nv_l_star_a`
+    #[derive(Debug, PartialEq)] pub struct SynNvLStarA();
+    /// User-defined type for `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)* "]" ";"`
+    #[derive(Debug, PartialEq)] pub struct SynNvLStarAI();
+    /// User-defined type for `nv_l_plus_a`
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlusA();
+    /// User-defined type for `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)+ "]" ";"`
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlusAI();
+    /// User-defined type for `nv_sep_list`
+    #[derive(Debug, PartialEq)] pub struct SynNvSepList();
+    /// User-defined type for `nv_sep_list_opt`
+    #[derive(Debug, PartialEq)] pub struct SynNvSepListOpt();
+    /// User-defined type for `nv_rrec_i`
+    #[derive(Debug, PartialEq)] pub struct SynNvRrecI();
+    /// User-defined type for `nv_l_rrec_i`
+    #[derive(Debug, PartialEq)] pub struct SynNvLRrecI();
+    /// User-defined type for `nv_lrec_i`
+    #[derive(Debug, PartialEq)] pub struct SynNvLrecI();
+
 }
 
 // -------------------------------------------------------------------------
@@ -729,12 +971,12 @@ pub mod pandemonium_parser {
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 30;
-    const PARSER_NUM_NT: usize = 45;
+    const PARSER_NUM_NT: usize = 81;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Add", Some("+")), ("Div", Some("/")), ("Equal", Some("=")), ("Exp", Some("^")), ("Lpar", Some("(")), ("Lsbracket", Some("[")), ("Mul", Some("*")), ("Rpar", Some(")")), ("Rsbracket", Some("]")), ("Sub", Some("-")), ("Colon", Some(":")), ("Comma", Some(",")), ("Semi", Some(";")), ("Then", Some("then")), ("Star", Some("star")), ("Plus", Some("plus")), ("L_Star", Some("l-star")), ("L_Plus", Some("l-plus")), ("L_Rrec", Some("l-rrec")), ("Rrec", Some("rrec")), ("Lrec", Some("lrec")), ("Amb", Some("amb")), ("Star_A", Some("star-a")), ("Plus_A", Some("plus-a")), ("L_Star_A", Some("l-star-a")), ("L_Plus_A", Some("l-plus-a")), ("SepList", Some("sep-list")), ("SepList_Opt", Some("sep-list-opt")), ("Id", None), ("Num", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["text", "i", "example", "star", "plus", "l_star", "l_star_i", "l_plus", "l_plus_i", "rrec", "l_rrec", "lrec", "amb", "star_a", "plus_a", "l_star_a", "l_star_a_i", "l_plus_a", "l_plus_a_i", "sep_list", "sep_list_opt", "rrec_i", "l_rrec_i", "lrec_i", "amb_i", "star_1", "plus_1", "star_a_1", "plus_a_1", "sep_list_1", "sep_list_opt_1", "lrec_i_1", "amb_i_1", "amb_i_2", "amb_i_3", "amb_i_4", "amb_i_5", "amb_i_6", "l_plus_i_1", "l_plus_a_i_1", "l_plus_a_i_2", "sep_list_opt_2", "plus_2", "plus_a_2", "plus_a_3"];
-    static ALT_VAR: [VarId; 91] = [0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 16, 16, 17, 18, 18, 19, 20, 21, 21, 22, 22, 23, 24, 25, 25, 26, 27, 27, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32, 32, 32, 32, 32, 32, 33, 34, 34, 34, 34, 35, 36, 36, 37, 37, 37, 37, 38, 38, 39, 39, 40, 40, 41, 41, 42, 42, 43, 43, 44, 44];
-    static PARSING_TABLE: [AltId; 1395] = [91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 91, 91, 0, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 91, 91, 2, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 3, 4, 5, 6, 8, 7, 9, 10, 11, 12, 13, 14, 15, 16, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 17, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 18, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 19, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 20, 21, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 22, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 23, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 24, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 25, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 26, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 27, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 28, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 29, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 30, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 33, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 31, 32, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 34, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 35, 36, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 37, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 38, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 39, 40, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 41, 42, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 43, 91, 91, 91, 91, 91, 44, 91, 91, 92, 91, 44, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 44, 44, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 45, 46, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 47, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 50, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 48, 49, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 51, 52, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 53, 54, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 55, 56, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 57, 58, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 62, 61, 91, 59, 91, 91, 60, 64, 91, 63, 91, 91, 64, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 65, 91, 92, 92, 91, 65, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 65, 65, 91, 69, 68, 91, 66, 91, 91, 67, 69, 91, 69, 91, 91, 69, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 70, 91, 92, 92, 91, 70, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 70, 70, 91, 72, 72, 91, 71, 91, 91, 72, 72, 91, 72, 91, 91, 72, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 92, 92, 91, 92, 74, 91, 92, 92, 91, 73, 91, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 75, 76, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 77, 78, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 80, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 79, 79, 91, 91, 91, 91, 91, 91, 91, 91, 91, 82, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 81, 81, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 83, 91, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 92, 84, 91, 92, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 85, 86, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 88, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 87, 87, 91, 91, 91, 91, 91, 91, 91, 91, 91, 90, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 91, 89, 89, 91];
-    static OPCODES: [&[OpCode]; 91] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2)], &[OpCode::Exit(3), OpCode::NT(3), OpCode::T(14)], &[OpCode::Exit(4), OpCode::NT(4), OpCode::T(15)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(16)], &[OpCode::Exit(6), OpCode::NT(7), OpCode::T(17)], &[OpCode::Exit(7), OpCode::NT(9), OpCode::T(19)], &[OpCode::Exit(8), OpCode::NT(10), OpCode::T(18)], &[OpCode::Exit(9), OpCode::NT(11), OpCode::T(20)], &[OpCode::Exit(10), OpCode::NT(12), OpCode::T(21)], &[OpCode::Exit(11), OpCode::NT(13), OpCode::T(22)], &[OpCode::Exit(12), OpCode::NT(14), OpCode::T(23)], &[OpCode::Exit(13), OpCode::NT(15), OpCode::T(24)], &[OpCode::Exit(14), OpCode::NT(17), OpCode::T(25)], &[OpCode::Exit(15), OpCode::NT(19), OpCode::T(26)], &[OpCode::Exit(16), OpCode::NT(20), OpCode::T(27)], &[OpCode::Exit(17), OpCode::T(12), OpCode::NT(25), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(18), OpCode::T(12), OpCode::NT(26), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(19), OpCode::T(12), OpCode::NT(6), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(6), OpCode::Exit(20), OpCode::T(29), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(12), OpCode::NT(8), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(38), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(24), OpCode::NT(21), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(25), OpCode::NT(22), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(26), OpCode::T(12), OpCode::NT(23), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(27), OpCode::T(12), OpCode::NT(24), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(12), OpCode::T(8), OpCode::NT(27), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(29), OpCode::T(12), OpCode::T(8), OpCode::NT(28), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(12), OpCode::T(8), OpCode::NT(16), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(31), OpCode::T(28)], &[OpCode::Loop(16), OpCode::Exit(32), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(33)], &[OpCode::Exit(34), OpCode::T(12), OpCode::T(8), OpCode::NT(18), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(39), OpCode::T(28)], &[OpCode::NT(40), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(37), OpCode::T(12), OpCode::NT(29), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(41), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(39), OpCode::NT(21), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(40), OpCode::T(12)], &[OpCode::Loop(22), OpCode::Exit(41), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(42), OpCode::T(12)], &[OpCode::NT(31), OpCode::Exit(43), OpCode::T(29)], &[OpCode::NT(32), OpCode::Exit(44), OpCode::NT(37)], &[OpCode::Loop(25), OpCode::Exit(45), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(46)], &[OpCode::NT(42), OpCode::T(29), OpCode::T(11)], &[OpCode::Loop(27), OpCode::Exit(48), OpCode::T(28)], &[OpCode::Loop(27), OpCode::Exit(49), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(50)], &[OpCode::NT(43), OpCode::T(28)], &[OpCode::NT(44), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Loop(29), OpCode::Exit(53), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(54)], &[OpCode::Loop(30), OpCode::Exit(55), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(56)], &[OpCode::Loop(31), OpCode::Exit(57), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(58)], &[OpCode::Loop(32), OpCode::Exit(59), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(32), OpCode::Exit(60), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(32), OpCode::Exit(61), OpCode::NT(35), OpCode::T(1)], &[OpCode::Loop(32), OpCode::Exit(62), OpCode::NT(33), OpCode::T(0)], &[OpCode::Loop(32), OpCode::Exit(63), OpCode::NT(33), OpCode::T(9)], &[OpCode::Exit(64)], &[OpCode::NT(34), OpCode::Exit(65), OpCode::NT(37)], &[OpCode::Loop(34), OpCode::Exit(66), OpCode::NT(35), OpCode::T(3)], &[OpCode::Loop(34), OpCode::Exit(67), OpCode::NT(35), OpCode::T(6)], &[OpCode::Loop(34), OpCode::Exit(68), OpCode::NT(35), OpCode::T(1)], &[OpCode::Exit(69)], &[OpCode::NT(36), OpCode::Exit(70), OpCode::NT(37)], &[OpCode::Loop(36), OpCode::Exit(71), OpCode::NT(35), OpCode::T(3)], &[OpCode::Exit(72)], &[OpCode::Exit(73), OpCode::NT(37), OpCode::T(9)], &[OpCode::Exit(74), OpCode::T(7), OpCode::NT(24), OpCode::T(4)], &[OpCode::Exit(75), OpCode::T(28)], &[OpCode::Exit(76), OpCode::T(29)], &[OpCode::Loop(8), OpCode::Exit(77)], &[OpCode::Exit(78)], &[OpCode::Loop(18), OpCode::Exit(79)], &[OpCode::Exit(80)], &[OpCode::Loop(18), OpCode::Exit(81)], &[OpCode::Exit(82)], &[OpCode::Exit(83), OpCode::T(12)], &[OpCode::Exit(84), OpCode::T(12), OpCode::NT(30), OpCode::T(29), OpCode::T(10), OpCode::T(28)], &[OpCode::Loop(26), OpCode::Exit(85)], &[OpCode::Exit(86)], &[OpCode::Loop(28), OpCode::Exit(87)], &[OpCode::Exit(88)], &[OpCode::Loop(28), OpCode::Exit(89)], &[OpCode::Exit(90)]];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["text", "i", "nv_i", "example", "star", "plus", "l_star", "l_star_i", "l_plus", "l_plus_i", "rrec", "l_rrec", "lrec", "amb", "star_a", "plus_a", "l_star_a", "l_star_a_i", "l_plus_a", "l_plus_a_i", "sep_list", "sep_list_opt", "rrec_i", "l_rrec_i", "lrec_i", "amb_i", "nv_example", "nv_star", "nv_plus", "nv_l_star", "nv_l_star_i", "nv_l_plus", "nv_l_plus_i", "nv_rrec", "nv_l_rrec", "nv_lrec", "nv_star_a", "nv_plus_a", "nv_l_star_a", "nv_l_star_a_i", "nv_l_plus_a", "nv_l_plus_a_i", "nv_sep_list", "nv_sep_list_opt", "nv_rrec_i", "nv_l_rrec_i", "nv_lrec_i", "star_1", "plus_1", "star_a_1", "plus_a_1", "sep_list_1", "sep_list_opt_1", "nv_star_1", "nv_plus_1", "nv_star_a_1", "nv_plus_a_1", "nv_sep_list_1", "nv_sep_list_opt_1", "lrec_i_1", "amb_i_1", "amb_i_2", "amb_i_3", "amb_i_4", "amb_i_5", "amb_i_6", "nv_lrec_i_1", "l_plus_i_1", "l_plus_a_i_1", "l_plus_a_i_2", "sep_list_opt_2", "nv_l_plus_i_1", "nv_l_plus_a_i_1", "nv_l_plus_a_i_2", "nv_sep_list_opt_2", "plus_2", "plus_a_2", "plus_a_3", "nv_plus_2", "nv_plus_a_2", "nv_plus_a_3"];
+    static ALT_VAR: [VarId; 160] = [0, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 5, 6, 7, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 17, 17, 18, 19, 19, 20, 21, 22, 22, 23, 23, 24, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 27, 28, 29, 30, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 39, 39, 40, 41, 41, 42, 43, 44, 44, 45, 45, 46, 47, 47, 48, 49, 49, 49, 50, 50, 51, 51, 52, 52, 53, 53, 54, 55, 55, 55, 56, 56, 57, 57, 58, 58, 59, 59, 60, 60, 60, 60, 60, 60, 61, 62, 62, 62, 62, 63, 64, 64, 65, 65, 65, 65, 66, 66, 67, 67, 68, 68, 69, 69, 70, 70, 71, 71, 72, 72, 73, 73, 74, 74, 75, 75, 76, 76, 77, 77, 78, 78, 79, 79, 80, 80];
+    static PARSING_TABLE: [AltId; 2511] = [160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 2, 160, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 3, 3, 3, 3, 3, 3, 3, 160, 3, 3, 3, 3, 3, 3, 160, 160, 4, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 5, 6, 7, 8, 10, 9, 11, 12, 13, 14, 15, 16, 17, 18, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 19, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 20, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 21, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 22, 23, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 24, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 25, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 26, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 27, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 28, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 29, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 30, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 31, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 32, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 35, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 33, 34, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 36, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 37, 38, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 39, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 40, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 41, 42, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 43, 44, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 45, 160, 160, 160, 160, 160, 46, 160, 160, 161, 160, 46, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 46, 46, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 47, 48, 49, 50, 52, 51, 53, 160, 54, 55, 56, 57, 58, 59, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 60, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 61, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 62, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 63, 64, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 65, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 66, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 67, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 68, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 69, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 70, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 71, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 72, 160, 161, 73, 160, 160, 160, 160, 160, 74, 160, 75, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 76, 160, 161, 77, 160, 160, 160, 160, 160, 78, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 79, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 80, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 81, 82, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 83, 84, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 160, 160, 161, 85, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 86, 87, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 88, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 91, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 89, 90, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 92, 93, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 94, 95, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 96, 97, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 98, 99, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 100, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 101, 160, 160, 160, 160, 160, 102, 160, 103, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 104, 160, 160, 160, 160, 160, 105, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 106, 107, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 108, 109, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 110, 111, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 115, 114, 160, 112, 160, 160, 113, 117, 160, 116, 160, 160, 117, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 160, 161, 118, 160, 161, 161, 160, 118, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 118, 118, 160, 122, 121, 160, 119, 160, 160, 120, 122, 160, 122, 160, 160, 122, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 160, 161, 123, 160, 161, 161, 160, 123, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 123, 123, 160, 125, 125, 160, 124, 160, 160, 125, 125, 160, 125, 160, 160, 125, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 160, 161, 127, 160, 161, 161, 160, 126, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 128, 129, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 130, 131, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 132, 133, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 135, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 134, 134, 160, 160, 160, 160, 160, 160, 160, 160, 160, 137, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 136, 136, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 138, 160, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 161, 139, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 140, 141, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 142, 160, 160, 160, 160, 160, 142, 160, 143, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 144, 160, 160, 160, 160, 160, 144, 160, 145, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 146, 160, 160, 160, 160, 160, 147, 160, 161, 161, 161, 161, 161, 161, 161, 160, 161, 161, 161, 161, 161, 161, 160, 160, 161, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 148, 149, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 151, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 150, 150, 160, 160, 160, 160, 160, 160, 160, 160, 160, 153, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 152, 152, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 154, 155, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 156, 160, 160, 160, 160, 160, 156, 160, 157, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 158, 160, 160, 160, 160, 160, 158, 160, 159, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160, 160];
+    static OPCODES: [&[OpCode]; 160] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::T(12), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(3)], &[OpCode::Exit(2)], &[OpCode::Loop(2), OpCode::Exit(3), OpCode::NT(26)], &[OpCode::Exit(4)], &[OpCode::Exit(5), OpCode::NT(4), OpCode::T(14)], &[OpCode::Exit(6), OpCode::NT(5), OpCode::T(15)], &[OpCode::Exit(7), OpCode::NT(6), OpCode::T(16)], &[OpCode::Exit(8), OpCode::NT(8), OpCode::T(17)], &[OpCode::Exit(9), OpCode::NT(10), OpCode::T(19)], &[OpCode::Exit(10), OpCode::NT(11), OpCode::T(18)], &[OpCode::Exit(11), OpCode::NT(12), OpCode::T(20)], &[OpCode::Exit(12), OpCode::NT(13), OpCode::T(21)], &[OpCode::Exit(13), OpCode::NT(14), OpCode::T(22)], &[OpCode::Exit(14), OpCode::NT(15), OpCode::T(23)], &[OpCode::Exit(15), OpCode::NT(16), OpCode::T(24)], &[OpCode::Exit(16), OpCode::NT(18), OpCode::T(25)], &[OpCode::Exit(17), OpCode::NT(20), OpCode::T(26)], &[OpCode::Exit(18), OpCode::NT(21), OpCode::T(27)], &[OpCode::Exit(19), OpCode::T(12), OpCode::NT(47), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(20), OpCode::T(12), OpCode::NT(48), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(21), OpCode::T(12), OpCode::NT(7), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(7), OpCode::Exit(22), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(23)], &[OpCode::Exit(24), OpCode::T(12), OpCode::NT(9), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(67), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(26), OpCode::NT(22), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(27), OpCode::NT(23), OpCode::T(29), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(28), OpCode::T(12), OpCode::NT(24), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(29), OpCode::T(12), OpCode::NT(25), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(12), OpCode::T(8), OpCode::NT(49), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(31), OpCode::T(12), OpCode::T(8), OpCode::NT(50), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(32), OpCode::T(12), OpCode::T(8), OpCode::NT(17), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(17), OpCode::Exit(33), OpCode::T(28)], &[OpCode::Loop(17), OpCode::Exit(34), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(35)], &[OpCode::Exit(36), OpCode::T(12), OpCode::T(8), OpCode::NT(19), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(68), OpCode::T(28)], &[OpCode::NT(69), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(39), OpCode::T(12), OpCode::NT(51), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(70), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(41), OpCode::NT(22), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(42), OpCode::T(12)], &[OpCode::Loop(23), OpCode::Exit(43), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(44), OpCode::T(12)], &[OpCode::NT(59), OpCode::Exit(45), OpCode::T(29)], &[OpCode::NT(60), OpCode::Exit(46), OpCode::NT(65)], &[OpCode::Exit(47), OpCode::NT(27), OpCode::T(14)], &[OpCode::Exit(48), OpCode::NT(28), OpCode::T(15)], &[OpCode::Exit(49), OpCode::NT(29), OpCode::T(16)], &[OpCode::Exit(50), OpCode::NT(31), OpCode::T(17)], &[OpCode::Exit(51), OpCode::NT(33), OpCode::T(19)], &[OpCode::Exit(52), OpCode::NT(34), OpCode::T(18)], &[OpCode::Exit(53), OpCode::NT(35), OpCode::T(20)], &[OpCode::Exit(54), OpCode::NT(36), OpCode::T(22)], &[OpCode::Exit(55), OpCode::NT(37), OpCode::T(23)], &[OpCode::Exit(56), OpCode::NT(38), OpCode::T(24)], &[OpCode::Exit(57), OpCode::NT(40), OpCode::T(25)], &[OpCode::Exit(58), OpCode::NT(42), OpCode::T(26)], &[OpCode::Exit(59), OpCode::NT(43), OpCode::T(27)], &[OpCode::Exit(60), OpCode::T(12), OpCode::NT(53), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(61), OpCode::T(12), OpCode::NT(54), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(62), OpCode::T(12), OpCode::NT(30), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(30), OpCode::Exit(63), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(64)], &[OpCode::Exit(65), OpCode::T(12), OpCode::NT(32), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(71), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(67), OpCode::NT(44), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(68), OpCode::NT(45), OpCode::T(0), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(69), OpCode::T(12), OpCode::NT(46), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(70), OpCode::T(12), OpCode::T(8), OpCode::NT(55), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(71), OpCode::T(12), OpCode::T(8), OpCode::NT(56), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(72), OpCode::T(12), OpCode::T(8), OpCode::NT(39), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::Loop(39), OpCode::Exit(73), OpCode::T(0)], &[OpCode::Loop(39), OpCode::Exit(74), OpCode::T(28), OpCode::T(10), OpCode::T(6)], &[OpCode::Exit(75)], &[OpCode::Exit(76), OpCode::T(12), OpCode::T(8), OpCode::NT(41), OpCode::T(5), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(72), OpCode::T(0)], &[OpCode::NT(73), OpCode::T(28), OpCode::T(10), OpCode::T(6)], &[OpCode::Exit(79), OpCode::T(12), OpCode::NT(57), OpCode::T(6), OpCode::T(2), OpCode::T(28)], &[OpCode::NT(74), OpCode::T(2), OpCode::T(28)], &[OpCode::Exit(81), OpCode::NT(44), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(82), OpCode::T(12)], &[OpCode::Loop(45), OpCode::Exit(83), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(84), OpCode::T(12)], &[OpCode::NT(66), OpCode::Exit(85), OpCode::T(0)], &[OpCode::Loop(47), OpCode::Exit(86), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(87)], &[OpCode::NT(75), OpCode::T(29), OpCode::T(11)], &[OpCode::Loop(49), OpCode::Exit(89), OpCode::T(28)], &[OpCode::Loop(49), OpCode::Exit(90), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Exit(91)], &[OpCode::NT(76), OpCode::T(28)], &[OpCode::NT(77), OpCode::T(28), OpCode::T(10), OpCode::T(29)], &[OpCode::Loop(51), OpCode::Exit(94), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(95)], &[OpCode::Loop(52), OpCode::Exit(96), OpCode::T(29), OpCode::T(10), OpCode::T(28), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(97)], &[OpCode::Loop(53), OpCode::Exit(98), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(99)], &[OpCode::NT(78), OpCode::T(6), OpCode::T(11)], &[OpCode::Loop(55), OpCode::Exit(101), OpCode::T(0)], &[OpCode::Loop(55), OpCode::Exit(102), OpCode::T(28), OpCode::T(10), OpCode::T(6)], &[OpCode::Exit(103)], &[OpCode::NT(79), OpCode::T(0)], &[OpCode::NT(80), OpCode::T(28), OpCode::T(10), OpCode::T(6)], &[OpCode::Loop(57), OpCode::Exit(106), OpCode::T(6), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(107)], &[OpCode::Loop(58), OpCode::Exit(108), OpCode::T(6), OpCode::T(13), OpCode::T(11)], &[OpCode::Exit(109)], &[OpCode::Loop(59), OpCode::Exit(110), OpCode::T(29), OpCode::T(11)], &[OpCode::Exit(111)], &[OpCode::Loop(60), OpCode::Exit(112), OpCode::NT(63), OpCode::T(3)], &[OpCode::Loop(60), OpCode::Exit(113), OpCode::NT(63), OpCode::T(6)], &[OpCode::Loop(60), OpCode::Exit(114), OpCode::NT(63), OpCode::T(1)], &[OpCode::Loop(60), OpCode::Exit(115), OpCode::NT(61), OpCode::T(0)], &[OpCode::Loop(60), OpCode::Exit(116), OpCode::NT(61), OpCode::T(9)], &[OpCode::Exit(117)], &[OpCode::NT(62), OpCode::Exit(118), OpCode::NT(65)], &[OpCode::Loop(62), OpCode::Exit(119), OpCode::NT(63), OpCode::T(3)], &[OpCode::Loop(62), OpCode::Exit(120), OpCode::NT(63), OpCode::T(6)], &[OpCode::Loop(62), OpCode::Exit(121), OpCode::NT(63), OpCode::T(1)], &[OpCode::Exit(122)], &[OpCode::NT(64), OpCode::Exit(123), OpCode::NT(65)], &[OpCode::Loop(64), OpCode::Exit(124), OpCode::NT(63), OpCode::T(3)], &[OpCode::Exit(125)], &[OpCode::Exit(126), OpCode::NT(65), OpCode::T(9)], &[OpCode::Exit(127), OpCode::T(7), OpCode::NT(25), OpCode::T(4)], &[OpCode::Exit(128), OpCode::T(28)], &[OpCode::Exit(129), OpCode::T(29)], &[OpCode::Loop(66), OpCode::Exit(130), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(131)], &[OpCode::Loop(9), OpCode::Exit(132)], &[OpCode::Exit(133)], &[OpCode::Loop(19), OpCode::Exit(134)], &[OpCode::Exit(135)], &[OpCode::Loop(19), OpCode::Exit(136)], &[OpCode::Exit(137)], &[OpCode::Exit(138), OpCode::T(12)], &[OpCode::Exit(139), OpCode::T(12), OpCode::NT(52), OpCode::T(29), OpCode::T(10), OpCode::T(28)], &[OpCode::Loop(32), OpCode::Exit(140)], &[OpCode::Exit(141)], &[OpCode::Loop(41), OpCode::Exit(142)], &[OpCode::Exit(143)], &[OpCode::Loop(41), OpCode::Exit(144)], &[OpCode::Exit(145)], &[OpCode::Exit(146), OpCode::T(12), OpCode::NT(58), OpCode::T(6)], &[OpCode::Exit(147), OpCode::T(12)], &[OpCode::Loop(48), OpCode::Exit(148)], &[OpCode::Exit(149)], &[OpCode::Loop(50), OpCode::Exit(150)], &[OpCode::Exit(151)], &[OpCode::Loop(50), OpCode::Exit(152)], &[OpCode::Exit(153)], &[OpCode::Loop(54), OpCode::Exit(154)], &[OpCode::Exit(155)], &[OpCode::Loop(56), OpCode::Exit(156)], &[OpCode::Exit(157)], &[OpCode::Loop(56), OpCode::Exit(158)], &[OpCode::Exit(159)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
 
@@ -757,13 +999,18 @@ pub mod pandemonium_parser {
 
     #[derive(Debug)]
     pub enum CtxText {
-        /// `text -> (<L> example)*`
-        V1 { star: SynI },
+        /// `text -> (<L> example)* ";" (<L> nv_example)*`
+        V1 { star: SynI, star1: SynNvI },
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )*`
+        /// `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )* ";" (<L> nv_example)*`
         V1 { example: SynExample },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvI {
+        /// `<L> nv_example` iteration in `text -> (<L> example)* ";" ( ►► <L> nv_example ◄◄ )*`
+        V1 { nv_example: SynNvExample },
     }
     #[derive(Debug)]
     pub enum CtxExample {
@@ -808,17 +1055,12 @@ pub mod pandemonium_parser {
     }
     #[derive(Debug)]
     pub enum CtxLStar {
-        /// `l_star -> Id "=" (<L> Num / "," "then")+ ";"`
-        V1 { id: String, plus: SynLStarI },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxLStarI {
-        /// first `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
-        V1 { num: String },
+        /// `l_star -> Id "=" Num (<L> "," Num)* ";"`
+        V1 { id: String, num: String, star: SynLStarI },
     }
     #[derive(Debug)]
     pub enum CtxLStarI {
-        /// `<L> Num / "," "then"` iteration in `l_star -> Id "=" ( ►► <L> Num / "," "then" ◄◄ )+ ";"`
+        /// `<L> "," Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," Num ◄◄ )* ";"`
         V1 { num: String },
     }
     #[derive(Debug)]
@@ -939,6 +1181,147 @@ pub mod pandemonium_parser {
         /// `amb_i -> Num`
         V9 { num: String },
     }
+    #[derive(Debug)]
+    pub enum CtxNvExample {
+        /// `nv_example -> "star" nv_star`
+        V1 { nv_star: SynNvStar },
+        /// `nv_example -> "plus" nv_plus`
+        V2 { nv_plus: SynNvPlus },
+        /// `nv_example -> "l-star" nv_l_star`
+        V3 { nv_l_star: SynNvLStar },
+        /// `nv_example -> "l-plus" nv_l_plus`
+        V4 { nv_l_plus: SynNvLPlus },
+        /// `nv_example -> "rrec" nv_rrec`
+        V5 { nv_rrec: SynNvRrec },
+        /// `nv_example -> "l-rrec" nv_l_rrec`
+        V6 { nv_l_rrec: SynNvLRrec },
+        /// `nv_example -> "lrec" nv_lrec`
+        V7 { nv_lrec: SynNvLrec },
+        /// `nv_example -> "star-a" nv_star_a`
+        V8 { nv_star_a: SynNvStarA },
+        /// `nv_example -> "plus-a" nv_plus_a`
+        V9 { nv_plus_a: SynNvPlusA },
+        /// `nv_example -> "l-star-a" nv_l_star_a`
+        V10 { nv_l_star_a: SynNvLStarA },
+        /// `nv_example -> "l-plus-a" nv_l_plus_a`
+        V11 { nv_l_plus_a: SynNvLPlusA },
+        /// `nv_example -> "sep-list" nv_sep_list`
+        V12 { nv_sep_list: SynNvSepList },
+        /// `nv_example -> "sep-list-opt" nv_sep_list_opt`
+        V13 { nv_sep_list_opt: SynNvSepListOpt },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvStar {
+        /// `nv_star -> Id "=" "+" ("," "*")* ";"`
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvPlus {
+        /// `nv_plus -> Id "=" "+" ("," "*")+ ";"`
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLStar {
+        /// `nv_l_star -> Id "=" "+" (<L> "," "*")* ";"`
+        V1 { id: String, star: SynNvLStarI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLStarI {
+        /// `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLPlus {
+        /// `nv_l_plus -> Id "=" "+" (<L> "," "*")+ ";"`
+        V1 { id: String, plus: SynNvLPlusI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLPlusI {
+        /// `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
+        V1 { last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvRrec {
+        /// `nv_rrec -> Id "=" "+" nv_rrec_i`
+        V1 { id: String, nv_rrec_i: SynNvRrecI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLRrec {
+        /// `nv_l_rrec -> Id "=" "+" nv_l_rrec_i`
+        V1 { id: String, nv_l_rrec_i: SynNvLRrecI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLrec {
+        /// `nv_lrec -> Id "=" nv_lrec_i ";"`
+        V1 { id: String, nv_lrec_i: SynNvLrecI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvStarA {
+        /// `nv_star_a -> Id "=" "[" ("+" | "*" ":" Id)* "]" ";"`
+        V1 { id: String, star: SynNvStarA1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvPlusA {
+        /// `nv_plus_a -> Id "=" "[" ("+" | "*" ":" Id)+ "]" ";"`
+        V1 { id: String, plus: SynNvPlusA1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLStarA {
+        /// `nv_l_star_a -> Id "=" "[" (<L> "+" | "*" ":" Id)* "]" ";"`
+        V1 { id: String, star: SynNvLStarAI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLStarAI {
+        /// `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)* "]" ";"`
+        V1,
+        /// `"*" ":" Id` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )* "]" ";"`
+        V2 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLPlusA {
+        /// `nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" ":" Id)+ "]" ";"`
+        V1 { id: String, plus: SynNvLPlusAI },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLPlusAI {
+        /// `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)+ "]" ";"`
+        V1 { last_iteration: bool },
+        /// `"*" ":" Id` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )+ "]" ";"`
+        V2 { id: String, last_iteration: bool },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvSepList {
+        /// `nv_sep_list -> Id "=" ("*" / "," "then")+ ";"`
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvSepListOpt {
+        /// `nv_sep_list_opt -> Id "=" ("*" / "," "then")+ ";"`
+        V1 { id: String },
+        /// `nv_sep_list_opt -> Id "=" ";"`
+        V2 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxNvRrecI {
+        /// `nv_rrec_i -> "," "*" nv_rrec_i`
+        V1 { nv_rrec_i: SynNvRrecI },
+        /// `nv_rrec_i -> ";"`
+        V2,
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLRrecI {
+        /// `nv_l_rrec_i -> <L> "," "*" nv_l_rrec_i`
+        V1,
+        /// `nv_l_rrec_i -> ";"`
+        V2,
+    }
+    #[derive(Debug)]
+    pub enum CtxNvLrecI {
+        /// `nv_lrec_i -> nv_lrec_i "," "*"`
+        V1 { nv_lrec_i: SynNvLrecI },
+        /// `nv_lrec_i -> "+"`
+        V2,
+    }
 
     /// Computed `("," Num)*` array in `star -> Id "=" Id  ►► ("," Num)* ◄◄  ";"`
     #[derive(Debug, PartialEq)]
@@ -978,9 +1361,29 @@ pub mod pandemonium_parser {
     /// `Id ":" Num / "," "then"` item in `sep_list_opt -> Id "=" ( ►► Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynSepListOpt1Item { pub id: String, pub num: String }
+    /// Computed `("+" | "*" ":" Id)*` array in `nv_star_a -> Id "=" "["  ►► ("+" | "*" ":" Id)* ◄◄  "]" ";"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynNvStarA1(pub Vec<SynNvStarA1Item>);
+    #[derive(Debug, PartialEq)]
+    pub enum SynNvStarA1Item {
+        /// `"+"` item in `nv_star_a -> Id "=" "[" ( ►► "+" ◄◄  | "*" ":" Id)* "]" ";"`
+        V1 {  },
+        /// `"*" ":" Id` item in `nv_star_a -> Id "=" "[" ("+" |  ►► "*" ":" Id ◄◄ )* "]" ";"`
+        V2 { id: String },
+    }
+    /// Computed `("+" | "*" ":" Id)+` array in `nv_plus_a -> Id "=" "["  ►► ("+" | "*" ":" Id)+ ◄◄  "]" ";"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynNvPlusA1(pub Vec<SynNvPlusA1Item>);
+    #[derive(Debug, PartialEq)]
+    pub enum SynNvPlusA1Item {
+        /// `"+"` item in `nv_plus_a -> Id "=" "[" ( ►► "+" ◄◄  | "*" ":" Id)+ "]" ";"`
+        V1 {  },
+        /// `"*" ":" Id` item in `nv_plus_a -> Id "=" "[" ("+" |  ►► "*" ":" Id ◄◄ )+ "]" ";"`
+        V2 { id: String },
+    }
 
     #[derive(Debug)]
-    enum EnumSynValue { Text(SynText), I(SynI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), LRrec(SynLRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), RrecI(SynRrecI), LRrecI(SynLRrecI), LrecI(SynLrecI), AmbI(SynAmbI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1) }
+    enum EnumSynValue { Text(SynText), I(SynI), NvI(SynNvI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), LRrec(SynLRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), RrecI(SynRrecI), LRrecI(SynLRrecI), LrecI(SynLrecI), AmbI(SynAmbI), NvExample(SynNvExample), NvStar(SynNvStar), NvPlus(SynNvPlus), NvLStar(SynNvLStar), NvLStarI(SynNvLStarI), NvLPlus(SynNvLPlus), NvLPlusI(SynNvLPlusI), NvRrec(SynNvRrec), NvLRrec(SynNvLRrec), NvLrec(SynNvLrec), NvStarA(SynNvStarA), NvPlusA(SynNvPlusA), NvLStarA(SynNvLStarA), NvLStarAI(SynNvLStarAI), NvLPlusA(SynNvLPlusA), NvLPlusAI(SynNvLPlusAI), NvSepList(SynNvSepList), NvSepListOpt(SynNvSepListOpt), NvRrecI(SynNvRrecI), NvLRrecI(SynNvLRrecI), NvLrecI(SynNvLrecI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1), NvStarA1(SynNvStarA1), NvPlusA1(SynNvPlusA1) }
 
     impl EnumSynValue {
         fn get_text(self) -> SynText {
@@ -988,6 +1391,9 @@ pub mod pandemonium_parser {
         }
         fn get_i(self) -> SynI {
             if let EnumSynValue::I(val) = self { val } else { panic!() }
+        }
+        fn get_nv_i(self) -> SynNvI {
+            if let EnumSynValue::NvI(val) = self { val } else { panic!() }
         }
         fn get_example(self) -> SynExample {
             if let EnumSynValue::Example(val) = self { val } else { panic!() }
@@ -1058,6 +1464,69 @@ pub mod pandemonium_parser {
         fn get_amb_i(self) -> SynAmbI {
             if let EnumSynValue::AmbI(val) = self { val } else { panic!() }
         }
+        fn get_nv_example(self) -> SynNvExample {
+            if let EnumSynValue::NvExample(val) = self { val } else { panic!() }
+        }
+        fn get_nv_star(self) -> SynNvStar {
+            if let EnumSynValue::NvStar(val) = self { val } else { panic!() }
+        }
+        fn get_nv_plus(self) -> SynNvPlus {
+            if let EnumSynValue::NvPlus(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_star(self) -> SynNvLStar {
+            if let EnumSynValue::NvLStar(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_star_i(self) -> SynNvLStarI {
+            if let EnumSynValue::NvLStarI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_plus(self) -> SynNvLPlus {
+            if let EnumSynValue::NvLPlus(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_plus_i(self) -> SynNvLPlusI {
+            if let EnumSynValue::NvLPlusI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_rrec(self) -> SynNvRrec {
+            if let EnumSynValue::NvRrec(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_rrec(self) -> SynNvLRrec {
+            if let EnumSynValue::NvLRrec(val) = self { val } else { panic!() }
+        }
+        fn get_nv_lrec(self) -> SynNvLrec {
+            if let EnumSynValue::NvLrec(val) = self { val } else { panic!() }
+        }
+        fn get_nv_star_a(self) -> SynNvStarA {
+            if let EnumSynValue::NvStarA(val) = self { val } else { panic!() }
+        }
+        fn get_nv_plus_a(self) -> SynNvPlusA {
+            if let EnumSynValue::NvPlusA(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_star_a(self) -> SynNvLStarA {
+            if let EnumSynValue::NvLStarA(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_star_a_i(self) -> SynNvLStarAI {
+            if let EnumSynValue::NvLStarAI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_plus_a(self) -> SynNvLPlusA {
+            if let EnumSynValue::NvLPlusA(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_plus_a_i(self) -> SynNvLPlusAI {
+            if let EnumSynValue::NvLPlusAI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_sep_list(self) -> SynNvSepList {
+            if let EnumSynValue::NvSepList(val) = self { val } else { panic!() }
+        }
+        fn get_nv_sep_list_opt(self) -> SynNvSepListOpt {
+            if let EnumSynValue::NvSepListOpt(val) = self { val } else { panic!() }
+        }
+        fn get_nv_rrec_i(self) -> SynNvRrecI {
+            if let EnumSynValue::NvRrecI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_l_rrec_i(self) -> SynNvLRrecI {
+            if let EnumSynValue::NvLRrecI(val) = self { val } else { panic!() }
+        }
+        fn get_nv_lrec_i(self) -> SynNvLrecI {
+            if let EnumSynValue::NvLrecI(val) = self { val } else { panic!() }
+        }
         fn get_star1(self) -> SynStar1 {
             if let EnumSynValue::Star1(val) = self { val } else { panic!() }
         }
@@ -1075,6 +1544,12 @@ pub mod pandemonium_parser {
         }
         fn get_sep_list_opt1(self) -> SynSepListOpt1 {
             if let EnumSynValue::SepListOpt1(val) = self { val } else { panic!() }
+        }
+        fn get_nv_star_a1(self) -> SynNvStarA1 {
+            if let EnumSynValue::NvStarA1(val) = self { val } else { panic!() }
+        }
+        fn get_nv_plus_a1(self) -> SynNvPlusA1 {
+            if let EnumSynValue::NvPlusA1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1099,6 +1574,10 @@ pub mod pandemonium_parser {
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i(&mut self, acc: &mut SynI) {}
+        fn init_nv_i(&mut self) -> SynNvI;
+        fn exit_nv_i(&mut self, acc: &mut SynNvI, ctx: CtxNvI, spans: Vec<PosSpan>);
+        #[allow(unused_variables)]
+        fn exitloop_nv_i(&mut self, acc: &mut SynNvI) {}
         fn init_example(&mut self) {}
         fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample;
         fn init_star(&mut self) {}
@@ -1107,7 +1586,7 @@ pub mod pandemonium_parser {
         fn exit_plus(&mut self, ctx: CtxPlus, spans: Vec<PosSpan>) -> SynPlus;
         fn init_l_star(&mut self) {}
         fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar;
-        fn init_l_star_i(&mut self, ctx: InitCtxLStarI, spans: Vec<PosSpan>) -> SynLStarI;
+        fn init_l_star_i(&mut self) -> SynLStarI;
         fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_l_star_i(&mut self, acc: &mut SynLStarI) {}
@@ -1151,6 +1630,54 @@ pub mod pandemonium_parser {
         fn exitloop_lrec_i(&mut self, lrec_i: &mut SynLrecI) {}
         fn init_amb_i(&mut self) {}
         fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) -> SynAmbI;
+        fn init_nv_example(&mut self) {}
+        fn exit_nv_example(&mut self, ctx: CtxNvExample, spans: Vec<PosSpan>) -> SynNvExample;
+        fn init_nv_star(&mut self) {}
+        fn exit_nv_star(&mut self, ctx: CtxNvStar, spans: Vec<PosSpan>) -> SynNvStar;
+        fn init_nv_plus(&mut self) {}
+        fn exit_nv_plus(&mut self, ctx: CtxNvPlus, spans: Vec<PosSpan>) -> SynNvPlus;
+        fn init_nv_l_star(&mut self) {}
+        fn exit_nv_l_star(&mut self, ctx: CtxNvLStar, spans: Vec<PosSpan>) -> SynNvLStar;
+        fn init_nv_l_star_i(&mut self) -> SynNvLStarI;
+        fn exit_nv_l_star_i(&mut self, acc: &mut SynNvLStarI, ctx: CtxNvLStarI, spans: Vec<PosSpan>);
+        #[allow(unused_variables)]
+        fn exitloop_nv_l_star_i(&mut self, acc: &mut SynNvLStarI) {}
+        fn init_nv_l_plus(&mut self) {}
+        fn exit_nv_l_plus(&mut self, ctx: CtxNvLPlus, spans: Vec<PosSpan>) -> SynNvLPlus;
+        fn init_nv_l_plus_i(&mut self) -> SynNvLPlusI;
+        fn exit_nv_l_plus_i(&mut self, acc: &mut SynNvLPlusI, ctx: CtxNvLPlusI, spans: Vec<PosSpan>);
+        fn init_nv_rrec(&mut self) {}
+        fn exit_nv_rrec(&mut self, ctx: CtxNvRrec, spans: Vec<PosSpan>) -> SynNvRrec;
+        fn init_nv_l_rrec(&mut self) {}
+        fn exit_nv_l_rrec(&mut self, ctx: CtxNvLRrec, spans: Vec<PosSpan>) -> SynNvLRrec;
+        fn init_nv_lrec(&mut self) {}
+        fn exit_nv_lrec(&mut self, ctx: CtxNvLrec, spans: Vec<PosSpan>) -> SynNvLrec;
+        fn init_nv_star_a(&mut self) {}
+        fn exit_nv_star_a(&mut self, ctx: CtxNvStarA, spans: Vec<PosSpan>) -> SynNvStarA;
+        fn init_nv_plus_a(&mut self) {}
+        fn exit_nv_plus_a(&mut self, ctx: CtxNvPlusA, spans: Vec<PosSpan>) -> SynNvPlusA;
+        fn init_nv_l_star_a(&mut self) {}
+        fn exit_nv_l_star_a(&mut self, ctx: CtxNvLStarA, spans: Vec<PosSpan>) -> SynNvLStarA;
+        fn init_nv_l_star_a_i(&mut self) -> SynNvLStarAI;
+        fn exit_nv_l_star_a_i(&mut self, acc: &mut SynNvLStarAI, ctx: CtxNvLStarAI, spans: Vec<PosSpan>);
+        #[allow(unused_variables)]
+        fn exitloop_nv_l_star_a_i(&mut self, acc: &mut SynNvLStarAI) {}
+        fn init_nv_l_plus_a(&mut self) {}
+        fn exit_nv_l_plus_a(&mut self, ctx: CtxNvLPlusA, spans: Vec<PosSpan>) -> SynNvLPlusA;
+        fn init_nv_l_plus_a_i(&mut self) -> SynNvLPlusAI;
+        fn exit_nv_l_plus_a_i(&mut self, acc: &mut SynNvLPlusAI, ctx: CtxNvLPlusAI, spans: Vec<PosSpan>);
+        fn init_nv_sep_list(&mut self) {}
+        fn exit_nv_sep_list(&mut self, ctx: CtxNvSepList, spans: Vec<PosSpan>) -> SynNvSepList;
+        fn init_nv_sep_list_opt(&mut self) {}
+        fn exit_nv_sep_list_opt(&mut self, ctx: CtxNvSepListOpt, spans: Vec<PosSpan>) -> SynNvSepListOpt;
+        fn init_nv_rrec_i(&mut self) {}
+        fn exit_nv_rrec_i(&mut self, ctx: CtxNvRrecI, spans: Vec<PosSpan>) -> SynNvRrecI;
+        fn init_nv_l_rrec_i(&mut self) -> SynNvLRrecI;
+        fn exit_nv_l_rrec_i(&mut self, acc: &mut SynNvLRrecI, ctx: CtxNvLRrecI, spans: Vec<PosSpan>);
+        fn init_nv_lrec_i(&mut self) {}
+        fn exit_nv_lrec_i(&mut self, ctx: CtxNvLrecI, spans: Vec<PosSpan>) -> SynNvLrecI;
+        #[allow(unused_variables)]
+        fn exitloop_nv_lrec_i(&mut self, nv_lrec_i: &mut SynNvLrecI) {}
     }
 
     pub struct Wrapper<T> {
@@ -1172,145 +1699,248 @@ pub mod pandemonium_parser {
             }
             match call {
                 Call::Enter => {
-                    if matches!(nt, 1 | 8 | 16 | 18 | 22 | 25 ..= 28) {
+                    if matches!(nt, 1 | 2 | 7 | 9 | 17 | 19 | 23 | 30 | 32 | 39 | 41 | 45 | 47 ..= 50 | 53 ..= 56) {
                         self.stack_span.push(PosSpan::empty());
                     }
                     match nt {
                         0 => self.listener.init_text(),             // text
                         1 => self.init_i(),                         // i
-                        2 => self.listener.init_example(),          // example
-                        3 => self.listener.init_star(),             // star
-                        25 => self.init_star1(),                    // star_1
-                        4 => self.listener.init_plus(),             // plus
-                        26 => self.init_plus1(),                    // plus_1
-                        42 => {}                                    // plus_2
-                        5 => self.listener.init_l_star(),           // l_star
-                        6 => self.init_l_star_i(),                  // l_star_i
-                        7 => self.listener.init_l_plus(),           // l_plus
-                        8 => self.init_l_plus_i(),                  // l_plus_i
-                        38 => {}                                    // l_plus_i_1
-                        9 => self.listener.init_rrec(),             // rrec
-                        10 => self.listener.init_l_rrec(),          // l_rrec
-                        11 => self.listener.init_lrec(),            // lrec
-                        12 => self.listener.init_amb(),             // amb
-                        13 => self.listener.init_star_a(),          // star_a
-                        27 => self.init_star_a1(),                  // star_a_1
-                        14 => self.listener.init_plus_a(),          // plus_a
-                        28 => self.init_plus_a1(),                  // plus_a_1
-                        43 | 44 => {}                               // plus_a_2, plus_a_3
-                        15 => self.listener.init_l_star_a(),        // l_star_a
-                        16 => self.init_l_star_a_i(),               // l_star_a_i
-                        17 => self.listener.init_l_plus_a(),        // l_plus_a
-                        18 => self.init_l_plus_a_i(),               // l_plus_a_i
-                        39 | 40 => {}                               // l_plus_a_i_1, l_plus_a_i_2
-                        19 => self.listener.init_sep_list(),        // sep_list
-                        29 => self.init_sep_list1(),                // sep_list_1
-                        20 => self.listener.init_sep_list_opt(),    // sep_list_opt
-                        30 => self.init_sep_list_opt1(),            // sep_list_opt_1
-                        41 => {}                                    // sep_list_opt_2
-                        21 => self.listener.init_rrec_i(),          // rrec_i
-                        22 => self.init_l_rrec_i(),                 // l_rrec_i
-                        23 => self.listener.init_lrec_i(),          // lrec_i
-                        31 => {}                                    // lrec_i_1
-                        24 => self.listener.init_amb_i(),           // amb_i
-                        32 ..= 37 => {}                             // amb_i_1, amb_i_2, amb_i_3, amb_i_4, amb_i_5, amb_i_6
+                        2 => self.init_nv_i(),                      // nv_i
+                        3 => self.listener.init_example(),          // example
+                        4 => self.listener.init_star(),             // star
+                        47 => self.init_star1(),                    // star_1
+                        5 => self.listener.init_plus(),             // plus
+                        48 => self.init_plus1(),                    // plus_1
+                        75 => {}                                    // plus_2
+                        6 => self.listener.init_l_star(),           // l_star
+                        7 => self.init_l_star_i(),                  // l_star_i
+                        8 => self.listener.init_l_plus(),           // l_plus
+                        9 => self.init_l_plus_i(),                  // l_plus_i
+                        67 => {}                                    // l_plus_i_1
+                        10 => self.listener.init_rrec(),            // rrec
+                        11 => self.listener.init_l_rrec(),          // l_rrec
+                        12 => self.listener.init_lrec(),            // lrec
+                        13 => self.listener.init_amb(),             // amb
+                        14 => self.listener.init_star_a(),          // star_a
+                        49 => self.init_star_a1(),                  // star_a_1
+                        15 => self.listener.init_plus_a(),          // plus_a
+                        50 => self.init_plus_a1(),                  // plus_a_1
+                        76 | 77 => {}                               // plus_a_2, plus_a_3
+                        16 => self.listener.init_l_star_a(),        // l_star_a
+                        17 => self.init_l_star_a_i(),               // l_star_a_i
+                        18 => self.listener.init_l_plus_a(),        // l_plus_a
+                        19 => self.init_l_plus_a_i(),               // l_plus_a_i
+                        68 | 69 => {}                               // l_plus_a_i_1, l_plus_a_i_2
+                        20 => self.listener.init_sep_list(),        // sep_list
+                        51 => self.init_sep_list1(),                // sep_list_1
+                        21 => self.listener.init_sep_list_opt(),    // sep_list_opt
+                        52 => self.init_sep_list_opt1(),            // sep_list_opt_1
+                        70 => {}                                    // sep_list_opt_2
+                        22 => self.listener.init_rrec_i(),          // rrec_i
+                        23 => self.init_l_rrec_i(),                 // l_rrec_i
+                        24 => self.listener.init_lrec_i(),          // lrec_i
+                        59 => {}                                    // lrec_i_1
+                        25 => self.listener.init_amb_i(),           // amb_i
+                        60 ..= 65 => {}                             // amb_i_1, amb_i_2, amb_i_3, amb_i_4, amb_i_5, amb_i_6
+                        26 => self.listener.init_nv_example(),      // nv_example
+                        27 => self.listener.init_nv_star(),         // nv_star
+                        53 => {}                                    // nv_star_1
+                        28 => self.listener.init_nv_plus(),         // nv_plus
+                        54 => {}                                    // nv_plus_1
+                        78 => {}                                    // nv_plus_2
+                        29 => self.listener.init_nv_l_star(),       // nv_l_star
+                        30 => self.init_nv_l_star_i(),              // nv_l_star_i
+                        31 => self.listener.init_nv_l_plus(),       // nv_l_plus
+                        32 => self.init_nv_l_plus_i(),              // nv_l_plus_i
+                        71 => {}                                    // nv_l_plus_i_1
+                        33 => self.listener.init_nv_rrec(),         // nv_rrec
+                        34 => self.listener.init_nv_l_rrec(),       // nv_l_rrec
+                        35 => self.listener.init_nv_lrec(),         // nv_lrec
+                        36 => self.listener.init_nv_star_a(),       // nv_star_a
+                        55 => self.init_nv_star_a1(),               // nv_star_a_1
+                        37 => self.listener.init_nv_plus_a(),       // nv_plus_a
+                        56 => self.init_nv_plus_a1(),               // nv_plus_a_1
+                        79 | 80 => {}                               // nv_plus_a_2, nv_plus_a_3
+                        38 => self.listener.init_nv_l_star_a(),     // nv_l_star_a
+                        39 => self.init_nv_l_star_a_i(),            // nv_l_star_a_i
+                        40 => self.listener.init_nv_l_plus_a(),     // nv_l_plus_a
+                        41 => self.init_nv_l_plus_a_i(),            // nv_l_plus_a_i
+                        72 | 73 => {}                               // nv_l_plus_a_i_1, nv_l_plus_a_i_2
+                        42 => self.listener.init_nv_sep_list(),     // nv_sep_list
+                        57 => self.init_nv_sep_list1(),             // nv_sep_list_1
+                        43 => self.listener.init_nv_sep_list_opt(), // nv_sep_list_opt
+                        58 => self.init_nv_sep_list_opt1(),         // nv_sep_list_opt_1
+                        74 => {}                                    // nv_sep_list_opt_2
+                        44 => self.listener.init_nv_rrec_i(),       // nv_rrec_i
+                        45 => self.init_nv_l_rrec_i(),              // nv_l_rrec_i
+                        46 => self.listener.init_nv_lrec_i(),       // nv_lrec_i
+                        66 => {}                                    // nv_lrec_i_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_text(),                      // text -> i
+                        0 => self.exit_text(),                      // text -> i ";" nv_i
                         1 => self.exit_i(),                         // i -> <L> example i
                         2 => self.exitloop_i(),                     // i -> <L> ε
-                        3 |                                         // example -> "star" star
-                        4 |                                         // example -> "plus" plus
-                        5 |                                         // example -> "l-star" l_star
-                        6 |                                         // example -> "l-plus" l_plus
-                        7 |                                         // example -> "rrec" rrec
-                        8 |                                         // example -> "l-rrec" l_rrec
-                        9 |                                         // example -> "lrec" lrec
-                        10 |                                        // example -> "amb" amb
-                        11 |                                        // example -> "star-a" star_a
-                        12 |                                        // example -> "plus-a" plus_a
-                        13 |                                        // example -> "l-star-a" l_star_a
-                        14 |                                        // example -> "l-plus-a" l_plus_a
-                        15 |                                        // example -> "sep-list" sep_list
-                        16 => self.exit_example(alt_id),            // example -> "sep-list-opt" sep_list_opt
-                        17 => self.exit_star(),                     // star -> Id "=" Id star_1 ";"
-                        45 => self.exit_star1(),                    // star_1 -> "," Num star_1
-                        46 => {}                                    // star_1 -> ε
-                        18 => self.exit_plus(),                     // plus -> Id "=" Num plus_1 ";"
-                        85 |                                        // plus_2 -> plus_1
-                        86 => self.exit_plus1(),                    // plus_2 -> ε
-                     /* 47 */                                       // plus_1 -> "," Num plus_2 (never called)
-                        19 => self.exit_l_star(),                   // l_star -> Id "=" Num l_star_i ";"
-                        20 => self.exit_l_star_i(),                 // l_star_i -> <L> "," "then" Num l_star_i
-                        21 => self.exitloop_l_star_i(),             // l_star_i -> <L> ε
-                        22 => self.exit_l_plus(),                   // l_plus -> Id "=" Num l_plus_i ";"
-                        77 |                                        // l_plus_i_1 -> l_plus_i
-                        78 => self.exit_l_plus_i(alt_id),           // l_plus_i_1 -> ε
-                     /* 23 */                                       // l_plus_i -> <L> "," Num l_plus_i_1 (never called)
-                        24 => self.exit_rrec(),                     // rrec -> Id "=" Num rrec_i
-                        25 => self.exit_l_rrec(),                   // l_rrec -> Id "=" Num l_rrec_i
-                        26 => self.exit_lrec(),                     // lrec -> Id "=" lrec_i ";"
-                        27 => self.exit_amb(),                      // amb -> Id "=" amb_i ";"
-                        28 => self.exit_star_a(),                   // star_a -> Id "=" "[" star_a_1 "]" ";"
-                        48 |                                        // star_a_1 -> Id star_a_1
-                        49 => self.exit_star_a1(alt_id),            // star_a_1 -> Num ":" Id star_a_1
-                        50 => {}                                    // star_a_1 -> ε
-                        29 => self.exit_plus_a(),                   // plus_a -> Id "=" "[" plus_a_1 "]" ";"
-                        87 |                                        // plus_a_2 -> plus_a_1
-                        88 |                                        // plus_a_2 -> ε
-                        89 |                                        // plus_a_3 -> plus_a_1
-                        90 => self.exit_plus_a1(alt_id),            // plus_a_3 -> ε
-                     /* 51 */                                       // plus_a_1 -> Id plus_a_2 (never called)
-                     /* 52 */                                       // plus_a_1 -> Num ":" Id plus_a_3 (never called)
-                        30 => self.exit_l_star_a(),                 // l_star_a -> Id "=" "[" l_star_a_i "]" ";"
-                        31 |                                        // l_star_a_i -> <L> Id l_star_a_i
-                        32 => self.exit_l_star_a_i(alt_id),         // l_star_a_i -> <L> Num ":" Id l_star_a_i
-                        33 => self.exitloop_l_star_a_i(),           // l_star_a_i -> <L> ε
-                        34 => self.exit_l_plus_a(),                 // l_plus_a -> Id "=" "[" l_plus_a_i "]" ";"
-                        79 |                                        // l_plus_a_i_1 -> l_plus_a_i
-                        80 |                                        // l_plus_a_i_1 -> ε
-                        81 |                                        // l_plus_a_i_2 -> l_plus_a_i
-                        82 => self.exit_l_plus_a_i(alt_id),         // l_plus_a_i_2 -> ε
-                     /* 35 */                                       // l_plus_a_i -> <L> Id l_plus_a_i_1 (never called)
-                     /* 36 */                                       // l_plus_a_i -> <L> Num ":" Id l_plus_a_i_2 (never called)
-                        37 => self.exit_sep_list(),                 // sep_list -> Id "=" Id ":" Num sep_list_1 ";"
-                        53 => self.exit_sep_list1(),                // sep_list_1 -> "," "then" Id ":" Num sep_list_1
-                        54 => {}                                    // sep_list_1 -> ε
-                        83 |                                        // sep_list_opt_2 -> ";"
-                        84 => self.exit_sep_list_opt(alt_id),       // sep_list_opt_2 -> Id ":" Num sep_list_opt_1 ";"
-                        55 => self.exit_sep_list_opt1(),            // sep_list_opt_1 -> "," "then" Id ":" Num sep_list_opt_1
-                        56 => {}                                    // sep_list_opt_1 -> ε
-                     /* 38 */                                       // sep_list_opt -> Id "=" sep_list_opt_2 (never called)
-                        39 |                                        // rrec_i -> "," Num rrec_i
-                        40 => self.exit_rrec_i(alt_id),             // rrec_i -> ";"
-                        41 |                                        // l_rrec_i -> <L> "," Num l_rrec_i
-                        42 => self.exit_l_rrec_i(alt_id),           // l_rrec_i -> <L> ";"
-                        43 => self.inter_lrec_i(),                  // lrec_i -> Num lrec_i_1
-                        57 => self.exit_lrec_i1(),                  // lrec_i_1 -> "," Num lrec_i_1
-                        58 => self.exitloop_lrec_i1(),              // lrec_i_1 -> ε
-                        59 |                                        // amb_i_1 -> <R> "^" amb_i_4 amb_i_1
-                        60 |                                        // amb_i_1 -> "*" amb_i_4 amb_i_1
-                        61 |                                        // amb_i_1 -> "/" amb_i_4 amb_i_1
-                        62 |                                        // amb_i_1 -> "+" amb_i_2 amb_i_1
-                        63 => self.exit_amb_i1(alt_id),             // amb_i_1 -> "-" amb_i_2 amb_i_1
-                        66 |                                        // amb_i_3 -> <R> "^" amb_i_4 amb_i_3 (duplicate of 59)
-                        71 => self.exit_amb_i1(59),                 // amb_i_5 -> <R> "^" amb_i_4 amb_i_5 (duplicate of 59)
-                        67 => self.exit_amb_i1(60),                 // amb_i_3 -> "*" amb_i_4 amb_i_3 (duplicate of 60)
-                        68 => self.exit_amb_i1(61),                 // amb_i_3 -> "/" amb_i_4 amb_i_3 (duplicate of 61)
-                        73 |                                        // amb_i_6 -> "-" amb_i_6
-                        74 |                                        // amb_i_6 -> "(" amb_i ")"
-                        75 |                                        // amb_i_6 -> Id
-                        76 => self.exit_amb_i6(alt_id),             // amb_i_6 -> Num
-                        44 => {}                                    // amb_i -> amb_i_6 amb_i_1 (not used)
-                        64 => {}                                    // amb_i_1 -> ε (not used)
-                        65 => {}                                    // amb_i_2 -> amb_i_6 amb_i_3 (not used)
-                        69 => {}                                    // amb_i_3 -> ε (not used)
-                        70 => {}                                    // amb_i_4 -> amb_i_6 amb_i_5 (not used)
-                        72 => {}                                    // amb_i_5 -> ε (not used)
+                        3 => self.exit_nv_i(),                      // nv_i -> <L> nv_example nv_i
+                        4 => self.exitloop_nv_i(),                  // nv_i -> <L> ε
+                        5 |                                         // example -> "star" star
+                        6 |                                         // example -> "plus" plus
+                        7 |                                         // example -> "l-star" l_star
+                        8 |                                         // example -> "l-plus" l_plus
+                        9 |                                         // example -> "rrec" rrec
+                        10 |                                        // example -> "l-rrec" l_rrec
+                        11 |                                        // example -> "lrec" lrec
+                        12 |                                        // example -> "amb" amb
+                        13 |                                        // example -> "star-a" star_a
+                        14 |                                        // example -> "plus-a" plus_a
+                        15 |                                        // example -> "l-star-a" l_star_a
+                        16 |                                        // example -> "l-plus-a" l_plus_a
+                        17 |                                        // example -> "sep-list" sep_list
+                        18 => self.exit_example(alt_id),            // example -> "sep-list-opt" sep_list_opt
+                        19 => self.exit_star(),                     // star -> Id "=" Id star_1 ";"
+                        86 => self.exit_star1(),                    // star_1 -> "," Num star_1
+                        87 => {}                                    // star_1 -> ε
+                        20 => self.exit_plus(),                     // plus -> Id "=" Num plus_1 ";"
+                        148 |                                       // plus_2 -> plus_1
+                        149 => self.exit_plus1(),                   // plus_2 -> ε
+                     /* 88 */                                       // plus_1 -> "," Num plus_2 (never called)
+                        21 => self.exit_l_star(),                   // l_star -> Id "=" Num l_star_i ";"
+                        22 => self.exit_l_star_i(),                 // l_star_i -> <L> "," Num l_star_i
+                        23 => self.exitloop_l_star_i(),             // l_star_i -> <L> ε
+                        24 => self.exit_l_plus(),                   // l_plus -> Id "=" Num l_plus_i ";"
+                        132 |                                       // l_plus_i_1 -> l_plus_i
+                        133 => self.exit_l_plus_i(alt_id),          // l_plus_i_1 -> ε
+                     /* 25 */                                       // l_plus_i -> <L> "," Num l_plus_i_1 (never called)
+                        26 => self.exit_rrec(),                     // rrec -> Id "=" Num rrec_i
+                        27 => self.exit_l_rrec(),                   // l_rrec -> Id "=" Num l_rrec_i
+                        28 => self.exit_lrec(),                     // lrec -> Id "=" lrec_i ";"
+                        29 => self.exit_amb(),                      // amb -> Id "=" amb_i ";"
+                        30 => self.exit_star_a(),                   // star_a -> Id "=" "[" star_a_1 "]" ";"
+                        89 |                                        // star_a_1 -> Id star_a_1
+                        90 => self.exit_star_a1(alt_id),            // star_a_1 -> Num ":" Id star_a_1
+                        91 => {}                                    // star_a_1 -> ε
+                        31 => self.exit_plus_a(),                   // plus_a -> Id "=" "[" plus_a_1 "]" ";"
+                        150 |                                       // plus_a_2 -> plus_a_1
+                        151 |                                       // plus_a_2 -> ε
+                        152 |                                       // plus_a_3 -> plus_a_1
+                        153 => self.exit_plus_a1(alt_id),           // plus_a_3 -> ε
+                     /* 92 */                                       // plus_a_1 -> Id plus_a_2 (never called)
+                     /* 93 */                                       // plus_a_1 -> Num ":" Id plus_a_3 (never called)
+                        32 => self.exit_l_star_a(),                 // l_star_a -> Id "=" "[" l_star_a_i "]" ";"
+                        33 |                                        // l_star_a_i -> <L> Id l_star_a_i
+                        34 => self.exit_l_star_a_i(alt_id),         // l_star_a_i -> <L> Num ":" Id l_star_a_i
+                        35 => self.exitloop_l_star_a_i(),           // l_star_a_i -> <L> ε
+                        36 => self.exit_l_plus_a(),                 // l_plus_a -> Id "=" "[" l_plus_a_i "]" ";"
+                        134 |                                       // l_plus_a_i_1 -> l_plus_a_i
+                        135 |                                       // l_plus_a_i_1 -> ε
+                        136 |                                       // l_plus_a_i_2 -> l_plus_a_i
+                        137 => self.exit_l_plus_a_i(alt_id),        // l_plus_a_i_2 -> ε
+                     /* 37 */                                       // l_plus_a_i -> <L> Id l_plus_a_i_1 (never called)
+                     /* 38 */                                       // l_plus_a_i -> <L> Num ":" Id l_plus_a_i_2 (never called)
+                        39 => self.exit_sep_list(),                 // sep_list -> Id "=" Id ":" Num sep_list_1 ";"
+                        94 => self.exit_sep_list1(),                // sep_list_1 -> "," "then" Id ":" Num sep_list_1
+                        95 => {}                                    // sep_list_1 -> ε
+                        138 |                                       // sep_list_opt_2 -> ";"
+                        139 => self.exit_sep_list_opt(alt_id),      // sep_list_opt_2 -> Id ":" Num sep_list_opt_1 ";"
+                        96 => self.exit_sep_list_opt1(),            // sep_list_opt_1 -> "," "then" Id ":" Num sep_list_opt_1
+                        97 => {}                                    // sep_list_opt_1 -> ε
+                     /* 40 */                                       // sep_list_opt -> Id "=" sep_list_opt_2 (never called)
+                        41 |                                        // rrec_i -> "," Num rrec_i
+                        42 => self.exit_rrec_i(alt_id),             // rrec_i -> ";"
+                        43 |                                        // l_rrec_i -> <L> "," Num l_rrec_i
+                        44 => self.exit_l_rrec_i(alt_id),           // l_rrec_i -> <L> ";"
+                        45 => self.inter_lrec_i(),                  // lrec_i -> Num lrec_i_1
+                        110 => self.exit_lrec_i1(),                 // lrec_i_1 -> "," Num lrec_i_1
+                        111 => self.exitloop_lrec_i1(),             // lrec_i_1 -> ε
+                        112 |                                       // amb_i_1 -> <R> "^" amb_i_4 amb_i_1
+                        113 |                                       // amb_i_1 -> "*" amb_i_4 amb_i_1
+                        114 |                                       // amb_i_1 -> "/" amb_i_4 amb_i_1
+                        115 |                                       // amb_i_1 -> "+" amb_i_2 amb_i_1
+                        116 => self.exit_amb_i1(alt_id),            // amb_i_1 -> "-" amb_i_2 amb_i_1
+                        119 |                                       // amb_i_3 -> <R> "^" amb_i_4 amb_i_3 (duplicate of 112)
+                        124 => self.exit_amb_i1(112),               // amb_i_5 -> <R> "^" amb_i_4 amb_i_5 (duplicate of 112)
+                        120 => self.exit_amb_i1(113),               // amb_i_3 -> "*" amb_i_4 amb_i_3 (duplicate of 113)
+                        121 => self.exit_amb_i1(114),               // amb_i_3 -> "/" amb_i_4 amb_i_3 (duplicate of 114)
+                        126 |                                       // amb_i_6 -> "-" amb_i_6
+                        127 |                                       // amb_i_6 -> "(" amb_i ")"
+                        128 |                                       // amb_i_6 -> Id
+                        129 => self.exit_amb_i6(alt_id),            // amb_i_6 -> Num
+                        46 => {}                                    // amb_i -> amb_i_6 amb_i_1 (not used)
+                        117 => {}                                   // amb_i_1 -> ε (not used)
+                        118 => {}                                   // amb_i_2 -> amb_i_6 amb_i_3 (not used)
+                        122 => {}                                   // amb_i_3 -> ε (not used)
+                        123 => {}                                   // amb_i_4 -> amb_i_6 amb_i_5 (not used)
+                        125 => {}                                   // amb_i_5 -> ε (not used)
+                        47 |                                        // nv_example -> "star" nv_star
+                        48 |                                        // nv_example -> "plus" nv_plus
+                        49 |                                        // nv_example -> "l-star" nv_l_star
+                        50 |                                        // nv_example -> "l-plus" nv_l_plus
+                        51 |                                        // nv_example -> "rrec" nv_rrec
+                        52 |                                        // nv_example -> "l-rrec" nv_l_rrec
+                        53 |                                        // nv_example -> "lrec" nv_lrec
+                        54 |                                        // nv_example -> "star-a" nv_star_a
+                        55 |                                        // nv_example -> "plus-a" nv_plus_a
+                        56 |                                        // nv_example -> "l-star-a" nv_l_star_a
+                        57 |                                        // nv_example -> "l-plus-a" nv_l_plus_a
+                        58 |                                        // nv_example -> "sep-list" nv_sep_list
+                        59 => self.exit_nv_example(alt_id),         // nv_example -> "sep-list-opt" nv_sep_list_opt
+                        60 => self.exit_nv_star(),                  // nv_star -> Id "=" "+" nv_star_1 ";"
+                        98 => self.exit_nv_star1(),                 // nv_star_1 -> "," "*" nv_star_1
+                        99 => {}                                    // nv_star_1 -> ε
+                        61 => self.exit_nv_plus(),                  // nv_plus -> Id "=" "+" nv_plus_1 ";"
+                        154 |                                       // nv_plus_2 -> nv_plus_1
+                        155 => self.exit_nv_plus1(),                // nv_plus_2 -> ε
+                     /* 100 */                                      // nv_plus_1 -> "," "*" nv_plus_2 (never called)
+                        62 => self.exit_nv_l_star(),                // nv_l_star -> Id "=" "+" nv_l_star_i ";"
+                        63 => self.exit_nv_l_star_i(),              // nv_l_star_i -> <L> "," "*" nv_l_star_i
+                        64 => self.exitloop_nv_l_star_i(),          // nv_l_star_i -> <L> ε
+                        65 => self.exit_nv_l_plus(),                // nv_l_plus -> Id "=" "+" nv_l_plus_i ";"
+                        140 |                                       // nv_l_plus_i_1 -> nv_l_plus_i
+                        141 => self.exit_nv_l_plus_i(alt_id),       // nv_l_plus_i_1 -> ε
+                     /* 66 */                                       // nv_l_plus_i -> <L> "," "*" nv_l_plus_i_1 (never called)
+                        67 => self.exit_nv_rrec(),                  // nv_rrec -> Id "=" "+" nv_rrec_i
+                        68 => self.exit_nv_l_rrec(),                // nv_l_rrec -> Id "=" "+" nv_l_rrec_i
+                        69 => self.exit_nv_lrec(),                  // nv_lrec -> Id "=" nv_lrec_i ";"
+                        70 => self.exit_nv_star_a(),                // nv_star_a -> Id "=" "[" nv_star_a_1 "]" ";"
+                        101 |                                       // nv_star_a_1 -> "+" nv_star_a_1
+                        102 => self.exit_nv_star_a1(alt_id),        // nv_star_a_1 -> "*" ":" Id nv_star_a_1
+                        103 => {}                                   // nv_star_a_1 -> ε
+                        71 => self.exit_nv_plus_a(),                // nv_plus_a -> Id "=" "[" nv_plus_a_1 "]" ";"
+                        156 |                                       // nv_plus_a_2 -> nv_plus_a_1
+                        157 |                                       // nv_plus_a_2 -> ε
+                        158 |                                       // nv_plus_a_3 -> nv_plus_a_1
+                        159 => self.exit_nv_plus_a1(alt_id),        // nv_plus_a_3 -> ε
+                     /* 104 */                                      // nv_plus_a_1 -> "+" nv_plus_a_2 (never called)
+                     /* 105 */                                      // nv_plus_a_1 -> "*" ":" Id nv_plus_a_3 (never called)
+                        72 => self.exit_nv_l_star_a(),              // nv_l_star_a -> Id "=" "[" nv_l_star_a_i "]" ";"
+                        73 |                                        // nv_l_star_a_i -> <L> "+" nv_l_star_a_i
+                        74 => self.exit_nv_l_star_a_i(alt_id),      // nv_l_star_a_i -> <L> "*" ":" Id nv_l_star_a_i
+                        75 => self.exitloop_nv_l_star_a_i(),        // nv_l_star_a_i -> <L> ε
+                        76 => self.exit_nv_l_plus_a(),              // nv_l_plus_a -> Id "=" "[" nv_l_plus_a_i "]" ";"
+                        142 |                                       // nv_l_plus_a_i_1 -> nv_l_plus_a_i
+                        143 |                                       // nv_l_plus_a_i_1 -> ε
+                        144 |                                       // nv_l_plus_a_i_2 -> nv_l_plus_a_i
+                        145 => self.exit_nv_l_plus_a_i(alt_id),     // nv_l_plus_a_i_2 -> ε
+                     /* 77 */                                       // nv_l_plus_a_i -> <L> "+" nv_l_plus_a_i_1 (never called)
+                     /* 78 */                                       // nv_l_plus_a_i -> <L> "*" ":" Id nv_l_plus_a_i_2 (never called)
+                        79 => self.exit_nv_sep_list(),              // nv_sep_list -> Id "=" "*" nv_sep_list_1 ";"
+                        106 => self.exit_nv_sep_list1(),            // nv_sep_list_1 -> "," "then" "*" nv_sep_list_1
+                        107 => {}                                   // nv_sep_list_1 -> ε
+                        146 |                                       // nv_sep_list_opt_2 -> "*" nv_sep_list_opt_1 ";"
+                        147 => self.exit_nv_sep_list_opt(alt_id),   // nv_sep_list_opt_2 -> ";"
+                        108 => self.exit_nv_sep_list_opt1(),        // nv_sep_list_opt_1 -> "," "then" "*" nv_sep_list_opt_1
+                        109 => {}                                   // nv_sep_list_opt_1 -> ε
+                     /* 80 */                                       // nv_sep_list_opt -> Id "=" nv_sep_list_opt_2 (never called)
+                        81 |                                        // nv_rrec_i -> "," "*" nv_rrec_i
+                        82 => self.exit_nv_rrec_i(alt_id),          // nv_rrec_i -> ";"
+                        83 |                                        // nv_l_rrec_i -> <L> "," "*" nv_l_rrec_i
+                        84 => self.exit_nv_l_rrec_i(alt_id),        // nv_l_rrec_i -> <L> ";"
+                        85 => self.inter_nv_lrec_i(),               // nv_lrec_i -> "+" nv_lrec_i_1
+                        130 => self.exit_nv_lrec_i1(),              // nv_lrec_i_1 -> "," "*" nv_lrec_i_1
+                        131 => self.exitloop_nv_lrec_i1(),          // nv_lrec_i_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1393,9 +2023,10 @@ pub mod pandemonium_parser {
         }
 
         fn exit_text(&mut self) {
+            let star1 = self.stack.pop().unwrap().get_nv_i();
             let star = self.stack.pop().unwrap().get_i();
-            let ctx = CtxText::V1 { star };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            let ctx = CtxText::V1 { star, star1 };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_text(ctx, spans);
             self.stack.push(EnumSynValue::Text(val));
@@ -1420,61 +2051,80 @@ pub mod pandemonium_parser {
             self.listener.exitloop_i(acc);
         }
 
+        fn init_nv_i(&mut self) {
+            let val = self.listener.init_nv_i();
+            self.stack.push(EnumSynValue::NvI(val));
+        }
+
+        fn exit_nv_i(&mut self) {
+            let nv_example = self.stack.pop().unwrap().get_nv_example();
+            let ctx = CtxNvI::V1 { nv_example };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_i(acc, ctx, spans);
+        }
+
+        fn exitloop_nv_i(&mut self) {
+            let EnumSynValue::NvI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_nv_i(acc);
+        }
+
         fn exit_example(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                3 => {
+                5 => {
                     let star = self.stack.pop().unwrap().get_star();
                     (2, CtxExample::V1 { star })
                 }
-                4 => {
+                6 => {
                     let plus = self.stack.pop().unwrap().get_plus();
                     (2, CtxExample::V2 { plus })
                 }
-                5 => {
+                7 => {
                     let l_star = self.stack.pop().unwrap().get_l_star();
                     (2, CtxExample::V3 { l_star })
                 }
-                6 => {
+                8 => {
                     let l_plus = self.stack.pop().unwrap().get_l_plus();
                     (2, CtxExample::V4 { l_plus })
                 }
-                7 => {
+                9 => {
                     let rrec = self.stack.pop().unwrap().get_rrec();
                     (2, CtxExample::V5 { rrec })
                 }
-                8 => {
+                10 => {
                     let l_rrec = self.stack.pop().unwrap().get_l_rrec();
                     (2, CtxExample::V6 { l_rrec })
                 }
-                9 => {
+                11 => {
                     let lrec = self.stack.pop().unwrap().get_lrec();
                     (2, CtxExample::V7 { lrec })
                 }
-                10 => {
+                12 => {
                     let amb = self.stack.pop().unwrap().get_amb();
                     (2, CtxExample::V8 { amb })
                 }
-                11 => {
+                13 => {
                     let star_a = self.stack.pop().unwrap().get_star_a();
                     (2, CtxExample::V9 { star_a })
                 }
-                12 => {
+                14 => {
                     let plus_a = self.stack.pop().unwrap().get_plus_a();
                     (2, CtxExample::V10 { plus_a })
                 }
-                13 => {
+                15 => {
                     let l_star_a = self.stack.pop().unwrap().get_l_star_a();
                     (2, CtxExample::V11 { l_star_a })
                 }
-                14 => {
+                16 => {
                     let l_plus_a = self.stack.pop().unwrap().get_l_plus_a();
                     (2, CtxExample::V12 { l_plus_a })
                 }
-                15 => {
+                17 => {
                     let sep_list = self.stack.pop().unwrap().get_sep_list();
                     (2, CtxExample::V13 { sep_list })
                 }
-                16 => {
+                18 => {
                     let sep_list_opt = self.stack.pop().unwrap().get_sep_list_opt();
                     (2, CtxExample::V14 { sep_list_opt })
                 }
@@ -1539,28 +2189,25 @@ pub mod pandemonium_parser {
         }
 
         fn exit_l_star(&mut self) {
-            let plus = self.stack.pop().unwrap().get_l_star_i();
+            let star = self.stack.pop().unwrap().get_l_star_i();
+            let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
-            let ctx = CtxLStar::V1 { id, plus };
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let ctx = CtxLStar::V1 { id, num, star };
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_l_star(ctx, spans);
             self.stack.push(EnumSynValue::LStar(val));
         }
 
         fn init_l_star_i(&mut self) {
-            let num = self.stack_t.pop().unwrap();
-            let ctx = InitCtxLStarI::V1 { num };
-            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
-            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_l_star_i(ctx, spans);
+            let val = self.listener.init_l_star_i();
             self.stack.push(EnumSynValue::LStarI(val));
         }
 
         fn exit_l_star_i(&mut self) {
             let num = self.stack_t.pop().unwrap();
             let ctx = CtxLStarI::V1 { num };
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let Some(EnumSynValue::LStarI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_star_i(acc, ctx, spans);
@@ -1588,7 +2235,7 @@ pub mod pandemonium_parser {
         }
 
         fn exit_l_plus_i(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 78;
+            let last_iteration = alt_id == 133;
             let num = self.stack_t.pop().unwrap();
             let ctx = CtxLPlusI::V1 { num, last_iteration };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
@@ -1656,11 +2303,11 @@ pub mod pandemonium_parser {
 
         fn exit_star_a1(&mut self, alt_id: AltId) {
             let (n, val) = match alt_id {
-                48 => {
+                89 => {
                     let id = self.stack_t.pop().unwrap();
                     (2, SynStarA1Item::V1 { id })
                 }
-                49 => {
+                90 => {
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
                     (4, SynStarA1Item::V2 { num, id })
@@ -1692,11 +2339,11 @@ pub mod pandemonium_parser {
 
         fn exit_plus_a1(&mut self, alt_id: AltId) {
             let (n, val) = match alt_id {
-                87 | 88 => {
+                150 | 151 => {
                     let id = self.stack_t.pop().unwrap();
                     (2, SynPlusA1Item::V1 { id })
                 }
-                89 | 90 => {
+                152 | 153 => {
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
                     (4, SynPlusA1Item::V2 { num, id })
@@ -1728,11 +2375,11 @@ pub mod pandemonium_parser {
 
         fn exit_l_star_a_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                31 => {
+                33 => {
                     let id = self.stack_t.pop().unwrap();
                     (2, CtxLStarAI::V1 { id })
                 }
-                32 => {
+                34 => {
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
                     (4, CtxLStarAI::V2 { num, id })
@@ -1767,13 +2414,13 @@ pub mod pandemonium_parser {
 
         fn exit_l_plus_a_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                79 | 80 => {
-                    let last_iteration = alt_id == 80;
+                134 | 135 => {
+                    let last_iteration = alt_id == 135;
                     let id = self.stack_t.pop().unwrap();
                     (2, CtxLPlusAI::V1 { id, last_iteration })
                 }
-                81 | 82 => {
-                    let last_iteration = alt_id == 82;
+                136 | 137 => {
+                    let last_iteration = alt_id == 137;
                     let id = self.stack_t.pop().unwrap();
                     let num = self.stack_t.pop().unwrap();
                     (4, CtxLPlusAI::V2 { num, id, last_iteration })
@@ -1819,11 +2466,11 @@ pub mod pandemonium_parser {
 
         fn exit_sep_list_opt(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                83 => {
+                138 => {
                     let id = self.stack_t.pop().unwrap();
                     (3, CtxSepListOpt::V2 { id })
                 }
-                84 => {
+                139 => {
                     let plus = self.stack.pop().unwrap().get_sep_list_opt1();
                     let id = self.stack_t.pop().unwrap();
                     (4, CtxSepListOpt::V1 { id, plus })
@@ -1859,12 +2506,12 @@ pub mod pandemonium_parser {
 
         fn exit_rrec_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                39 => {
+                41 => {
                     let rrec_i = self.stack.pop().unwrap().get_rrec_i();
                     let num = self.stack_t.pop().unwrap();
                     (3, CtxRrecI::V1 { num, rrec_i })
                 }
-                40 => {
+                42 => {
                     (1, CtxRrecI::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_rrec_i")
@@ -1882,11 +2529,11 @@ pub mod pandemonium_parser {
 
         fn exit_l_rrec_i(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                41 => {
+                43 => {
                     let num = self.stack_t.pop().unwrap();
                     (3, CtxLRrecI::V1 { num })
                 }
-                42 => {
+                44 => {
                     (2, CtxLRrecI::V2)
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_l_rrec_i")
@@ -1923,27 +2570,27 @@ pub mod pandemonium_parser {
 
         fn exit_amb_i1(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                59 => {
+                112 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V2 { amb_i: [amb_i_1, amb_i_2] })
                 }
-                60 => {
+                113 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V3 { amb_i: [amb_i_1, amb_i_2] })
                 }
-                61 => {
+                114 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V4 { amb_i: [amb_i_1, amb_i_2] })
                 }
-                62 => {
+                115 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V5 { amb_i: [amb_i_1, amb_i_2] })
                 }
-                63 => {
+                116 => {
                     let amb_i_2 = self.stack.pop().unwrap().get_amb_i();
                     let amb_i_1 = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V6 { amb_i: [amb_i_1, amb_i_2] })
@@ -1958,19 +2605,19 @@ pub mod pandemonium_parser {
 
         fn exit_amb_i6(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
-                73 => {
+                126 => {
                     let amb_i = self.stack.pop().unwrap().get_amb_i();
                     (2, CtxAmbI::V1 { amb_i })
                 }
-                74 => {
+                127 => {
                     let amb_i = self.stack.pop().unwrap().get_amb_i();
                     (3, CtxAmbI::V7 { amb_i })
                 }
-                75 => {
+                128 => {
                     let id = self.stack_t.pop().unwrap();
                     (1, CtxAmbI::V8 { id })
                 }
-                76 => {
+                129 => {
                     let num = self.stack_t.pop().unwrap();
                     (1, CtxAmbI::V9 { num })
                 }
@@ -1980,6 +2627,424 @@ pub mod pandemonium_parser {
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             let val = self.listener.exit_amb_i(ctx, spans);
             self.stack.push(EnumSynValue::AmbI(val));
+        }
+
+        fn exit_nv_example(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                47 => {
+                    let nv_star = self.stack.pop().unwrap().get_nv_star();
+                    (2, CtxNvExample::V1 { nv_star })
+                }
+                48 => {
+                    let nv_plus = self.stack.pop().unwrap().get_nv_plus();
+                    (2, CtxNvExample::V2 { nv_plus })
+                }
+                49 => {
+                    let nv_l_star = self.stack.pop().unwrap().get_nv_l_star();
+                    (2, CtxNvExample::V3 { nv_l_star })
+                }
+                50 => {
+                    let nv_l_plus = self.stack.pop().unwrap().get_nv_l_plus();
+                    (2, CtxNvExample::V4 { nv_l_plus })
+                }
+                51 => {
+                    let nv_rrec = self.stack.pop().unwrap().get_nv_rrec();
+                    (2, CtxNvExample::V5 { nv_rrec })
+                }
+                52 => {
+                    let nv_l_rrec = self.stack.pop().unwrap().get_nv_l_rrec();
+                    (2, CtxNvExample::V6 { nv_l_rrec })
+                }
+                53 => {
+                    let nv_lrec = self.stack.pop().unwrap().get_nv_lrec();
+                    (2, CtxNvExample::V7 { nv_lrec })
+                }
+                54 => {
+                    let nv_star_a = self.stack.pop().unwrap().get_nv_star_a();
+                    (2, CtxNvExample::V8 { nv_star_a })
+                }
+                55 => {
+                    let nv_plus_a = self.stack.pop().unwrap().get_nv_plus_a();
+                    (2, CtxNvExample::V9 { nv_plus_a })
+                }
+                56 => {
+                    let nv_l_star_a = self.stack.pop().unwrap().get_nv_l_star_a();
+                    (2, CtxNvExample::V10 { nv_l_star_a })
+                }
+                57 => {
+                    let nv_l_plus_a = self.stack.pop().unwrap().get_nv_l_plus_a();
+                    (2, CtxNvExample::V11 { nv_l_plus_a })
+                }
+                58 => {
+                    let nv_sep_list = self.stack.pop().unwrap().get_nv_sep_list();
+                    (2, CtxNvExample::V12 { nv_sep_list })
+                }
+                59 => {
+                    let nv_sep_list_opt = self.stack.pop().unwrap().get_nv_sep_list_opt();
+                    (2, CtxNvExample::V13 { nv_sep_list_opt })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_example")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_example(ctx, spans);
+            self.stack.push(EnumSynValue::NvExample(val));
+        }
+
+        fn exit_nv_star(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvStar::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_star(ctx, spans);
+            self.stack.push(EnumSynValue::NvStar(val));
+        }
+
+        fn exit_nv_star1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_plus(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvPlus::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_plus(ctx, spans);
+            self.stack.push(EnumSynValue::NvPlus(val));
+        }
+
+        fn exit_nv_plus1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_l_star(&mut self) {
+            let star = self.stack.pop().unwrap().get_nv_l_star_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLStar::V1 { id, star };
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_l_star(ctx, spans);
+            self.stack.push(EnumSynValue::NvLStar(val));
+        }
+
+        fn init_nv_l_star_i(&mut self) {
+            let val = self.listener.init_nv_l_star_i();
+            self.stack.push(EnumSynValue::NvLStarI(val));
+        }
+
+        fn exit_nv_l_star_i(&mut self) {
+            let ctx = CtxNvLStarI::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvLStarI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_l_star_i(acc, ctx, spans);
+        }
+
+        fn exitloop_nv_l_star_i(&mut self) {
+            let EnumSynValue::NvLStarI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_nv_l_star_i(acc);
+        }
+
+        fn exit_nv_l_plus(&mut self) {
+            let plus = self.stack.pop().unwrap().get_nv_l_plus_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLPlus::V1 { id, plus };
+            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_l_plus(ctx, spans);
+            self.stack.push(EnumSynValue::NvLPlus(val));
+        }
+
+        fn init_nv_l_plus_i(&mut self) {
+            let val = self.listener.init_nv_l_plus_i();
+            self.stack.push(EnumSynValue::NvLPlusI(val));
+        }
+
+        fn exit_nv_l_plus_i(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 141;
+            let ctx = CtxNvLPlusI::V1 { last_iteration };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvLPlusI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_l_plus_i(acc, ctx, spans);
+        }
+
+        fn exit_nv_rrec(&mut self) {
+            let nv_rrec_i = self.stack.pop().unwrap().get_nv_rrec_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvRrec::V1 { id, nv_rrec_i };
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_rrec(ctx, spans);
+            self.stack.push(EnumSynValue::NvRrec(val));
+        }
+
+        fn exit_nv_l_rrec(&mut self) {
+            let nv_l_rrec_i = self.stack.pop().unwrap().get_nv_l_rrec_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLRrec::V1 { id, nv_l_rrec_i };
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_l_rrec(ctx, spans);
+            self.stack.push(EnumSynValue::NvLRrec(val));
+        }
+
+        fn exit_nv_lrec(&mut self) {
+            let nv_lrec_i = self.stack.pop().unwrap().get_nv_lrec_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLrec::V1 { id, nv_lrec_i };
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_lrec(ctx, spans);
+            self.stack.push(EnumSynValue::NvLrec(val));
+        }
+
+        fn exit_nv_star_a(&mut self) {
+            let star = self.stack.pop().unwrap().get_nv_star_a1();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvStarA::V1 { id, star };
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_star_a(ctx, spans);
+            self.stack.push(EnumSynValue::NvStarA(val));
+        }
+
+        fn init_nv_star_a1(&mut self) {
+            let val = SynNvStarA1(Vec::new());
+            self.stack.push(EnumSynValue::NvStarA1(val));
+        }
+
+        fn exit_nv_star_a1(&mut self, alt_id: AltId) {
+            let (n, val) = match alt_id {
+                101 => {
+                    (2, SynNvStarA1Item::V1 {  })
+                }
+                102 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (4, SynNvStarA1Item::V2 { id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_star_a1"),
+            };
+            let Some(EnumSynValue::NvStarA1(SynNvStarA1(star_acc))) = self.stack.last_mut() else {
+                panic!("expected SynNvStarA1 item on wrapper stack");
+            };
+            star_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_plus_a(&mut self) {
+            let plus = self.stack.pop().unwrap().get_nv_plus_a1();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvPlusA::V1 { id, plus };
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_plus_a(ctx, spans);
+            self.stack.push(EnumSynValue::NvPlusA(val));
+        }
+
+        fn init_nv_plus_a1(&mut self) {
+            let val = SynNvPlusA1(Vec::new());
+            self.stack.push(EnumSynValue::NvPlusA1(val));
+        }
+
+        fn exit_nv_plus_a1(&mut self, alt_id: AltId) {
+            let (n, val) = match alt_id {
+                156 | 157 => {
+                    (2, SynNvPlusA1Item::V1 {  })
+                }
+                158 | 159 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (4, SynNvPlusA1Item::V2 { id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_plus_a1"),
+            };
+            let Some(EnumSynValue::NvPlusA1(SynNvPlusA1(plus_acc))) = self.stack.last_mut() else {
+                panic!("expected SynNvPlusA1 item on wrapper stack");
+            };
+            plus_acc.push(val);
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_l_star_a(&mut self) {
+            let star = self.stack.pop().unwrap().get_nv_l_star_a_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLStarA::V1 { id, star };
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_l_star_a(ctx, spans);
+            self.stack.push(EnumSynValue::NvLStarA(val));
+        }
+
+        fn init_nv_l_star_a_i(&mut self) {
+            let val = self.listener.init_nv_l_star_a_i();
+            self.stack.push(EnumSynValue::NvLStarAI(val));
+        }
+
+        fn exit_nv_l_star_a_i(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                73 => {
+                    (2, CtxNvLStarAI::V1)
+                }
+                74 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (4, CtxNvLStarAI::V2 { id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_l_star_a_i")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvLStarAI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_l_star_a_i(acc, ctx, spans);
+        }
+
+        fn exitloop_nv_l_star_a_i(&mut self) {
+            let EnumSynValue::NvLStarAI(acc) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_nv_l_star_a_i(acc);
+        }
+
+        fn exit_nv_l_plus_a(&mut self) {
+            let plus = self.stack.pop().unwrap().get_nv_l_plus_a_i();
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvLPlusA::V1 { id, plus };
+            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_l_plus_a(ctx, spans);
+            self.stack.push(EnumSynValue::NvLPlusA(val));
+        }
+
+        fn init_nv_l_plus_a_i(&mut self) {
+            let val = self.listener.init_nv_l_plus_a_i();
+            self.stack.push(EnumSynValue::NvLPlusAI(val));
+        }
+
+        fn exit_nv_l_plus_a_i(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                142 | 143 => {
+                    let last_iteration = alt_id == 143;
+                    (2, CtxNvLPlusAI::V1 { last_iteration })
+                }
+                144 | 145 => {
+                    let last_iteration = alt_id == 145;
+                    let id = self.stack_t.pop().unwrap();
+                    (4, CtxNvLPlusAI::V2 { id, last_iteration })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_l_plus_a_i")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvLPlusAI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_l_plus_a_i(acc, ctx, spans);
+        }
+
+        fn exit_nv_sep_list(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxNvSepList::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_sep_list(ctx, spans);
+            self.stack.push(EnumSynValue::NvSepList(val));
+        }
+
+        fn init_nv_sep_list1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_sep_list1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_sep_list_opt(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                146 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (4, CtxNvSepListOpt::V1 { id })
+                }
+                147 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (3, CtxNvSepListOpt::V2 { id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_sep_list_opt")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_sep_list_opt(ctx, spans);
+            self.stack.push(EnumSynValue::NvSepListOpt(val));
+        }
+
+        fn init_nv_sep_list_opt1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_sep_list_opt1(&mut self) {
+            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+        }
+
+        fn exit_nv_rrec_i(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                81 => {
+                    let nv_rrec_i = self.stack.pop().unwrap().get_nv_rrec_i();
+                    (3, CtxNvRrecI::V1 { nv_rrec_i })
+                }
+                82 => {
+                    (1, CtxNvRrecI::V2)
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_rrec_i")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_rrec_i(ctx, spans);
+            self.stack.push(EnumSynValue::NvRrecI(val));
+        }
+
+        fn init_nv_l_rrec_i(&mut self) {
+            let val = self.listener.init_nv_l_rrec_i();
+            self.stack.push(EnumSynValue::NvLRrecI(val));
+        }
+
+        fn exit_nv_l_rrec_i(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                83 => {
+                    (3, CtxNvLRrecI::V1)
+                }
+                84 => {
+                    (2, CtxNvLRrecI::V2)
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_nv_l_rrec_i")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let Some(EnumSynValue::NvLRrecI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_nv_l_rrec_i(acc, ctx, spans);
+        }
+
+        fn inter_nv_lrec_i(&mut self) {
+            let ctx = CtxNvLrecI::V2;
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_lrec_i(ctx, spans);
+            self.stack.push(EnumSynValue::NvLrecI(val));
+        }
+
+        fn exit_nv_lrec_i1(&mut self) {
+            let nv_lrec_i = self.stack.pop().unwrap().get_nv_lrec_i();
+            let ctx = CtxNvLrecI::V1 { nv_lrec_i };
+            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_nv_lrec_i(ctx, spans);
+            self.stack.push(EnumSynValue::NvLrecI(val));
+        }
+
+        fn exitloop_nv_lrec_i1(&mut self) {
+            let EnumSynValue::NvLrecI(nv_lrec_i) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_nv_lrec_i(nv_lrec_i);
         }
     }
 
