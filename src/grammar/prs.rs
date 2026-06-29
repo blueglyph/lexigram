@@ -447,6 +447,15 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
+        let SepInfo::Nt(sep_nt) = &mut self.sep_info else { panic!() };
+        for SepNt { nt_parent, nt_child, .. } in sep_nt {
+            if let Some(new) = conv.get(nt_parent) {
+                *nt_parent = *new;
+            }
+            if let Some(new) = conv.get(nt_child) {
+                *nt_child = *new;
+            }
+        }
         let new_map = self.origin.map.iter()
             .map(|(v1, (v2, id))| (*conv.get(v1).unwrap_or(v1), (*conv.get(v2).unwrap_or(v2), *id)))
             .collect::<HashMap<_, _>>();
