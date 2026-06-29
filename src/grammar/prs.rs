@@ -411,6 +411,7 @@ impl<T> ProdRuleSet<T> {
             } else {
                 new_v -= 1;
                 conv.insert(v, new_v);
+                self.nt_conversion.insert(v, MovedTo(new_v));
                 if VERBOSE { println!("- {symbol:?} -> {:?}", Symbol::NT(new_v)); }
             }
         }
