@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 // =============================================================================================
-// Simple parser based on microcalc lexicon and grammar
+// Parser to test grammar constructions
 
 use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::CharReader;

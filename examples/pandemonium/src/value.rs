@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 // =============================================================================================
-// Simple parser based on microcalc lexicon and grammar
+// Parser to test grammar constructions
 
 use std::collections::BTreeMap;
 use lexigram_core::CollectJoin;
