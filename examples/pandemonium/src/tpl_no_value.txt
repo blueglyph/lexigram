@@ -56,6 +56,10 @@ impl PandemoniumListener for Listener {
             CtxExample::V13 => {}
             // example -> "sep-list-opt" sep_list_opt
             CtxExample::V14 => {}
+            // example -> "l-sep-list" l_sep_list
+            CtxExample::V15 => {}
+            // example -> "l-sep-list-opt" l_sep_list_opt
+            CtxExample::V16 => {}
         }
     }
 
@@ -161,6 +165,40 @@ impl PandemoniumListener for Listener {
         }
     }
 
+    fn exit_l_sep_list(&mut self, ctx: CtxLSepList, spans: Vec<PosSpan>) {
+        // l_sep_list -> Id "=" (<L> Id ":" Num / "," "then")+ ";"
+        let CtxLSepList::V1 { id } = ctx;
+    }
+
+    fn init_l_sep_list_i(&mut self, ctx: InitCtxLSepListI, spans: Vec<PosSpan>) {
+        // value of `Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
+        let InitCtxLSepListI::V1 { id, num } = ctx;
+    }
+
+    fn exit_l_sep_list_i(&mut self, ctx: CtxLSepListI, spans: Vec<PosSpan>) {
+        // `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
+        let CtxLSepListI::V1 { id, num } = ctx;
+    }
+
+    fn exit_l_sep_list_opt(&mut self, ctx: CtxLSepListOpt, spans: Vec<PosSpan>) {
+        match ctx {
+            // l_sep_list_opt -> Id "=" (<L> Id ":" Num / "," "then")+ ";"
+            CtxLSepListOpt::V1 { id } => {}
+            // l_sep_list_opt -> Id "=" ";"
+            CtxLSepListOpt::V2 { id } => {}
+        }
+    }
+
+    fn init_l_sep_list_opt_i(&mut self, ctx: InitCtxLSepListOptI, spans: Vec<PosSpan>) {
+        // value of `Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
+        let InitCtxLSepListOptI::V1 { id, num } = ctx;
+    }
+
+    fn exit_l_sep_list_opt_i(&mut self, ctx: CtxLSepListOptI, spans: Vec<PosSpan>) {
+        // `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
+        let CtxLSepListOptI::V1 { id, num } = ctx;
+    }
+
     fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) {
         match ctx {
             // rrec_i -> "," Num rrec_i
@@ -239,6 +277,10 @@ impl PandemoniumListener for Listener {
             CtxNvExample::V12 => {}
             // nv_example -> "sep-list-opt" nv_sep_list_opt
             CtxNvExample::V13 => {}
+            // nv_example -> "l-sep-list" nv_l_sep_list
+            CtxNvExample::V14 => {}
+            // nv_example -> "l-sep-list-opt" nv_l_sep_list_opt
+            CtxNvExample::V15 => {}
         }
     }
 
@@ -288,40 +330,40 @@ impl PandemoniumListener for Listener {
     }
 
     fn exit_nv_star_a(&mut self, ctx: CtxNvStarA, spans: Vec<PosSpan>) {
-        // nv_star_a -> Id "=" "[" ("+" | "*" ":" Id)* "]" ";"
-        let CtxNvStarA::V1 { id, star } = ctx;
+        // nv_star_a -> Id "=" "[" ("+" | "*" "-")* "]" ";"
+        let CtxNvStarA::V1 { id } = ctx;
     }
 
     fn exit_nv_plus_a(&mut self, ctx: CtxNvPlusA, spans: Vec<PosSpan>) {
-        // nv_plus_a -> Id "=" "[" ("+" | "*" ":" Id)+ "]" ";"
-        let CtxNvPlusA::V1 { id, plus } = ctx;
+        // nv_plus_a -> Id "=" "[" ("+" | "*" "-")+ "]" ";"
+        let CtxNvPlusA::V1 { id } = ctx;
     }
 
     fn exit_nv_l_star_a(&mut self, ctx: CtxNvLStarA, spans: Vec<PosSpan>) {
-        // nv_l_star_a -> Id "=" "[" (<L> "+" | "*" ":" Id)* "]" ";"
+        // nv_l_star_a -> Id "=" "[" (<L> "+" | "*" "-")* "]" ";"
         let CtxNvLStarA::V1 { id } = ctx;
     }
 
     fn exit_nv_l_star_a_i(&mut self, ctx: CtxNvLStarAI, spans: Vec<PosSpan>) {
         match ctx {
-            // `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)* "]" ";"`
+            // `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")* "]" ";"`
             CtxNvLStarAI::V1 => {}
-            // `"*" ":" Id` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )* "]" ";"`
-            CtxNvLStarAI::V2 { id } => {}
+            // `"*" "-"` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )* "]" ";"`
+            CtxNvLStarAI::V2 => {}
         }
     }
 
     fn exit_nv_l_plus_a(&mut self, ctx: CtxNvLPlusA, spans: Vec<PosSpan>) {
-        // nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" ":" Id)+ "]" ";"
+        // nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" "-")+ "]" ";"
         let CtxNvLPlusA::V1 { id } = ctx;
     }
 
     fn exit_nv_l_plus_a_i(&mut self, ctx: CtxNvLPlusAI, spans: Vec<PosSpan>) {
         match ctx {
-            // `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)+ "]" ";"`
+            // `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")+ "]" ";"`
             CtxNvLPlusAI::V1 { last_iteration } => {}
-            // `"*" ":" Id` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" ":" Id ◄◄ )+ "]" ";"`
-            CtxNvLPlusAI::V2 { id, last_iteration } => {}
+            // `"*" "-"` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )+ "]" ";"`
+            CtxNvLPlusAI::V2 { last_iteration } => {}
         }
     }
 
@@ -337,6 +379,36 @@ impl PandemoniumListener for Listener {
             // nv_sep_list_opt -> Id "=" ";"
             CtxNvSepListOpt::V2 { id } => {}
         }
+    }
+
+    fn exit_nv_l_sep_list(&mut self, ctx: CtxNvLSepList, spans: Vec<PosSpan>) {
+        // nv_l_sep_list -> Id "=" (<L> "*" / "," "then")+ ";"
+        let CtxNvLSepList::V1 { id } = ctx;
+    }
+
+    fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) {
+    }
+
+    fn exit_nv_l_sep_list_i(&mut self, ctx: CtxNvLSepListI, spans: Vec<PosSpan>) {
+        // `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
+        let CtxNvLSepListI::V1 = ctx;
+    }
+
+    fn exit_nv_l_sep_list_opt(&mut self, ctx: CtxNvLSepListOpt, spans: Vec<PosSpan>) {
+        match ctx {
+            // nv_l_sep_list_opt -> Id "=" (<L> "*" / "," "then")+ ";"
+            CtxNvLSepListOpt::V1 { id } => {}
+            // nv_l_sep_list_opt -> Id "=" ";"
+            CtxNvLSepListOpt::V2 { id } => {}
+        }
+    }
+
+    fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) {
+    }
+
+    fn exit_nv_l_sep_list_opt_i(&mut self, ctx: CtxNvLSepListOptI, spans: Vec<PosSpan>) {
+        // `<L> "*" / "," "then"` iteration in `nv_l_sep_list_opt -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";" | Id "=" ";"`
+        let CtxNvLSepListOptI::V1 = ctx;
     }
 
     fn exit_nv_rrec_i(&mut self, ctx: CtxNvRrecI, spans: Vec<PosSpan>) {

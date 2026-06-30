@@ -37,6 +37,8 @@ L_Star_A                : 'l-star-a';
 L_Plus_A                : 'l-plus-a';
 SepList                 : 'sep-list';
 SepList_Opt             : 'sep-list-opt';
+L_SepList               : 'l-sep-list';
+L_SepList_Opt           : 'l-sep-list-opt';
 
 SComment                : BLOCK_COMMENT              -> skip;
 SLineComment            : LINE_COMMENT               -> skip;

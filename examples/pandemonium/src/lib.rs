@@ -31,8 +31,14 @@ sep-list     Romeo   = a:1, then b: 2, then c:3;
 sep-list     Sierra  = d: 4;
 sep-list-opt Tango   = e: 5, then f:6, then g: 7;
 sep-list-opt Uniform =;
+
+l-sep-list     Victor  = a:1, then b: 2, then c:3;
+l-sep-list     Whiskey = d: 4;
+l-sep-list-opt Xray    = e: 5, then f:6, then g: 7;
+l-sep-list-opt Yankee  =;
 ;
 "#;
+
 /// Expected spans collected when parsing TXT1
 static SPANS1: &[&str] = &[
     r#"exit_star("Alpha", "=", "a", ", 101, 110, 150", ";")"#,
@@ -138,8 +144,58 @@ static SPANS1: &[&str] = &[
     r#"exit_example("sep-list-opt", "Uniform =;")"#,
     r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;", "sep-list-opt Uniform =;")"#,
 
-    r#"exit_text("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;", ";", "")"#,
+    r#"exit_l_sep_list_i("a:1", ",", "then", "b", ":", "2")"#,
+    r#"exit_l_sep_list_i("a:1, then b: 2", ",", "then", "c", ":", "3")"#,
+    r#"exit_l_sep_list("Victor", "=", "a:1, then b: 2, then c:3", ";")"#,
+    r#"exit_example("l-sep-list", "Victor  = a:1, then b: 2, then c:3;")"#,
+    r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;", "l-sep-list     Victor  = a:1, then b: 2, then c:3;")"#,
+    r#"exit_l_sep_list("Whiskey", "=", "d: 4", ";")"#,
+    r#"exit_example("l-sep-list", "Whiskey = d: 4;")"#,
+    r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;\n\nl-sep-list     Victor  = a:1, then b: 2, then c:3;", "l-sep-list     Whiskey = d: 4;")"#,
+
+    r#"exit_l_sep_list_opt_i("e: 5", ",", "then", "f", ":", "6")"#,
+    r#"exit_l_sep_list_opt_i("e: 5, then f:6", ",", "then", "g", ":", "7")"#,
+    r#"exit_l_sep_list_opt("Xray", "=", "e: 5, then f:6, then g: 7", ";")"#,
+    r#"exit_example("l-sep-list-opt", "Xray    = e: 5, then f:6, then g: 7;")"#,
+    r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;\n\nl-sep-list     Victor  = a:1, then b: 2, then c:3;\nl-sep-list     Whiskey = d: 4;", "l-sep-list-opt Xray    = e: 5, then f:6, then g: 7;")"#,
+    r#"exit_l_sep_list_opt("Yankee", "=", ";")"#,
+    r#"exit_example("l-sep-list-opt", "Yankee  =;")"#,
+    r#"exit_i("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;\n\nl-sep-list     Victor  = a:1, then b: 2, then c:3;\nl-sep-list     Whiskey = d: 4;\nl-sep-list-opt Xray    = e: 5, then f:6, then g: 7;", "l-sep-list-opt Yankee  =;")"#,
+
+    r#"exit_text("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;\n\nl-sep-list     Victor  = a:1, then b: 2, then c:3;\nl-sep-list     Whiskey = d: 4;\nl-sep-list-opt Xray    = e: 5, then f:6, then g: 7;\nl-sep-list-opt Yankee  =;", ";", "")"#,
 ];
+
+static TXT2: &str = r#"
+;
+star    Alpha   = +, *, *;
+plus    Bravo   = +, *, *;
+l-star  Charlie = +, *, *, *;
+l-plus  Delta   = +, *, *, *;
+rrec    Echo    = +, *, *;
+l-rrec  Foxtrot = +, *, *, *;
+lrec    Golf    = +, *, *;
+
+star-a   India  = [ *- + *- ];
+plus-a   Juliet = [ *- + *- ];
+l-star-a Kilo   = [ *- + *- + *- ];
+l-plus-a Lima   = [ *- + *- + *- ];
+
+star    Mike     = +;
+l-star  November = +;
+rrec    Oscar    = +;
+l-rrec  Papa     = +;
+lrec    Quebec   = +;
+
+sep-list       Romeo   = *, then *, then *;
+sep-list       Sierra  = *;
+sep-list-opt   Tango   = *, then *;
+sep-list-opt   Uniform =;
+l-sep-list     Victor  = *, then *, then *;
+l-sep-list     Whisky  = *;
+l-sep-list-opt Xray    = *, then *;
+l-sep-list-opt Yankee  =;
+"#;
+
 
 // -------------------------------------------------------------------------
 // test helper
