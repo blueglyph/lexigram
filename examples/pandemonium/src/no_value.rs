@@ -13,39 +13,42 @@ use lexigram_core::parser::{LLParser, Terminate};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
-use crate::{SPANS1, TXT1};
+use crate::{SPANS1, SPANS2, TXT1, TXT2};
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 #[test]
 fn test_pandemonium() {
-    if VERBOSE { println!("{:=<80}\n{TXT1}\n{0:-<80}", ""); }
     let mut demo = PanDemo::new();
-    match demo.parse(TXT1) {
-        Ok(PanDemoResult { log, spans, rebuilt_txt }) => {
-            if VERBOSE {
-                println!("parsing successful\n{log}");
-                println!("Spans:\n{}", spans.join("\n"));
-            }
-            // checks that the text rebuilt from spans matches the original:
-            assert!(TXT1.contains(&rebuilt_txt), "rebuilt text is wrong:\n{rebuilt_txt:?}");
-            // checks the individual spans:
-            // (tedious visual verification each time the test changes!)
-            assert_eq!(
-                spans, SPANS1, "span mismatch:\n{}",
-                spans.iter().zip(SPANS1).enumerate()
-                    .find_map(|(i, (left, right))| {
-                        if left != right {
-                            Some(format!("{i}:\t{left}\n\t{right}"))
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap()
-            );
-        },
-        Err(log) => panic!("errors during parsing:\n{log}"),
+    static TESTS: &[(&str, &[&str])] = &[(TXT1, SPANS1), (TXT2, SPANS2)];
+    for (i, &(txt, expected_spans)) in TESTS.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\nTest {i}\n{0:-<80}", ""); }
+        match demo.parse(txt) {
+            Ok(PanDemoResult { log, spans, rebuilt_txt }) => {
+                if VERBOSE {
+                    println!("parsing successful\n{log}");
+                    println!("Spans:\n{}", spans.join("\n"));
+                }
+                // checks that the text rebuilt from spans matches the original:
+                assert!(txt.contains(&rebuilt_txt), "rebuilt text is wrong in test {i}:\n{rebuilt_txt:?}");
+                // checks the individual spans:
+                // (tedious visual verification each time the test changes!)
+                assert_eq!(
+                    spans, expected_spans, "span mismatch in test {i}:\n{}",
+                    spans.iter().zip(expected_spans).enumerate()
+                        .find_map(|(i, (left, right))| {
+                            if left != right {
+                                Some(format!("{i}:\t{left}\n\t{right}"))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| "different number of strings".to_string())
+                );
+            },
+            Err(log) => panic!("errors during parsing in test {i}:\n{log}"),
+        }
     }
 }
 
@@ -146,6 +149,10 @@ impl PandemoniumListener for PanDemoListener<'_> {
 
     fn exit_i(&mut self, _ctx: CtxI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
+    }
+
+    fn exit_nv_i(&mut self, ctx: CtxNvI, spans: Vec<PosSpan>) {
+        self.spans.push(format!("exit_nv_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
     }
 
     fn exit_example(&mut self, _ctx: CtxExample, spans: Vec<PosSpan>) {

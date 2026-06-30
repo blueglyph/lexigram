@@ -16,43 +16,46 @@ use crate::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 use listener_types::*;
 use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
-use crate::{SPANS1, TXT1};
+use crate::{SPANS1, SPANS2, TXT1, TXT2};
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 #[test]
 fn test_pandemonium() {
-    if VERBOSE { println!("{:=<80}\n{TXT1}\n{0:-<80}", ""); }
     let mut demo = PanDemo::new();
-    match demo.parse(TXT1) {
-        Ok(PanDemoResult { log, values, spans, rebuilt_txt }) => {
-            let result_values = values.iter().map(|(id, v)| format!("[{id}][{v}]")).to_vec();
-            if VERBOSE {
-                println!("parsing successful\n{log}");
-                println!("Values:{}\n", result_values.iter().map(|s| format!("\n    {s:?}")).join(""));
-                println!("spans:{}", spans.iter().map(|s| format!("\n    r#\"{s}\"#,")).join(""));
-            }
-            // checks that the values have been correctly captured from the context data:
-            assert_eq!(result_values, VALUES1, "value mismatch");
-            // checks that the text rebuilt from spans matches the original:
-            assert!(TXT1.contains(&rebuilt_txt), "rebuilt text is wrong:\n{rebuilt_txt:?}");
-            // checks the individual spans:
-            // (tedious visual verification each time the test changes!)
-            assert_eq!(
-                spans, SPANS1, "span mismatch:\n{}",
-                spans.iter().zip(SPANS1).enumerate()
-                    .find_map(|(i, (left, right))| {
-                        if left != right {
-                            Some(format!("{i}:\t{left}\n\t{right}"))
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap()
-            );
-        },
-        Err(log) => panic!("errors during parsing:\n{log}"),
+    static TESTS: &[(&str, &[&str], &[&str])] = &[(TXT1, VALUES1, SPANS1), (TXT2, VALUES2, SPANS2)];
+    for (i, &(txt, expected_values, expected_spans)) in TESTS.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\nTest {i}\n{0:-<80}", ""); }
+        match demo.parse(txt) {
+            Ok(PanDemoResult { log, values, spans, rebuilt_txt }) => {
+                let result_values = values.iter().map(|(id, v)| format!("[{id}][{v}]")).to_vec();
+                if VERBOSE {
+                    println!("parsing successful\n{log}");
+                    println!("Values:{}\n", result_values.iter().map(|s| format!("\n    {s:?},")).join(""));
+                    println!("spans:{}", spans.iter().map(|s| format!("\n    r#\"{s}\"#,")).join(""));
+                }
+                // checks that the values have been correctly captured from the context data:
+                assert_eq!(result_values, expected_values, "value mismatch");
+                // checks that the text rebuilt from spans matches the original:
+                assert!(txt.contains(&rebuilt_txt), "rebuilt text is wrong:\n{rebuilt_txt:?}");
+                // checks the individual spans:
+                // (tedious visual verification each time the test changes!)
+                assert_eq!(
+                    spans, expected_spans, "span mismatch:\n{}",
+                    spans.iter().zip(expected_spans).enumerate()
+                        .find_map(|(i, (left, right))| {
+                            if left != right {
+                                Some(format!("{i}:\t{left}\n\t{right}"))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or_else(|| "different number of strings".to_string())
+                );
+            },
+            Err(log) => panic!("errors during parsing:\n{log}"),
+        }
     }
 }
 
@@ -81,6 +84,33 @@ static VALUES1: &[&str] = &[
     "[Victor][<a:1><b:2><c:3>]",
     "[Whiskey][<d:4>]",
     "[Xray][<e/5><f/6><g/7>]",
+    "[Yankee][-]",
+];
+
+static VALUES2: &[&str] = &[
+    "[Alpha][*]",
+    "[Bravo][+]",
+    "[Charlie][4]",
+    "[Delta][false,false,true]",
+    "[Echo][2]",
+    "[Foxtrot][false,false,false,true]",
+    "[Golf][2]",
+    "[India][+*-*]",
+    "[Juliet][+*-+]",
+    "[Kilo][false|true|false|true|false]",
+    "[Lima][false||true||false||true||false]",
+    "[Mike][*]",
+    "[November][0]",
+    "[Oscar][0]",
+    "[Papa][true]",
+    "[Quebec][0]",
+    "[Romeo][*,then+]",
+    "[Sierra][*,then+]",
+    "[Tango][a]",
+    "[Uniform][b]",
+    "[Victor][2]",
+    "[Whiskey][0]",
+    "[Xray][1]",
     "[Yankee][-]",
 ];
 
@@ -206,7 +236,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
     }
 
     fn exit_nv_i(&mut self, acc: &mut SynNvI, ctx: CtxNvI, spans: Vec<PosSpan>) {
-        self.spans.push(format!("exit_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
+        self.spans.push(format!("exit_nv_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         let CtxNvI::V1 { nv_example: SynNvExample() } = ctx;
     }
 
@@ -556,6 +586,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         self.spans.push(format!("exit_nv_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_star -> Id "=" "+" ("," "*")* ";"
         let CtxNvStar::V1 { id } = ctx;
+        self.add_value(id, "*".to_string());
         SynNvStar()
     }
 
@@ -563,6 +594,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         self.spans.push(format!("exit_nv_plus({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_plus -> Id "=" "+" ("," "*")+ ";"
         let CtxNvPlus::V1 { id } = ctx;
+        self.add_value(id, "+".to_string());
         SynNvPlus()
     }
 
@@ -570,54 +602,61 @@ impl PandemoniumListener for PanDemoListener<'_> {
         self.spans.push(format!("exit_nv_l_star({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_star -> Id "=" "+" (<L> "," "*")* ";"
         let CtxNvLStar::V1 { id, star } = ctx;
+        self.add_value(id, star.0.to_string());
         SynNvLStar()
     }
 
     fn init_nv_l_star_i(&mut self) -> SynNvLStarI {
-        SynNvLStarI()
+        SynNvLStarI(0)
     }
 
     fn exit_nv_l_star_i(&mut self, acc: &mut SynNvLStarI, ctx: CtxNvLStarI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_star_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
         let CtxNvLStarI::V1 = ctx;
+        acc.0 += 1;
     }
 
     fn exit_nv_l_plus(&mut self, ctx: CtxNvLPlus, spans: Vec<PosSpan>) -> SynNvLPlus {
         self.spans.push(format!("exit_nv_l_plus({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_plus -> Id "=" "+" (<L> "," "*")+ ";"
-        let CtxNvLPlus::V1 { id, plus } = ctx;
+        let CtxNvLPlus::V1 { id, plus: SynNvLPlusI(items) } = ctx;
+        self.add_value(id, items.iter().map(bool::to_string).join(","));
         SynNvLPlus()
     }
 
     fn init_nv_l_plus_i(&mut self) -> SynNvLPlusI {
-        SynNvLPlusI()
+        SynNvLPlusI(vec![])
     }
 
     fn exit_nv_l_plus_i(&mut self, acc: &mut SynNvLPlusI, ctx: CtxNvLPlusI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_plus_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
         let CtxNvLPlusI::V1 { last_iteration } = ctx;
+        acc.0.push(last_iteration);
     }
 
     fn exit_nv_rrec(&mut self, ctx: CtxNvRrec, spans: Vec<PosSpan>) -> SynNvRrec {
         self.spans.push(format!("exit_nv_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_rrec -> Id "=" "+" nv_rrec_i
-        let CtxNvRrec::V1 { id, nv_rrec_i } = ctx;
+        let CtxNvRrec::V1 { id, nv_rrec_i: SynNvRrecI(n) } = ctx;
+        self.add_value(id, n.to_string());
         SynNvRrec()
     }
 
     fn exit_nv_l_rrec(&mut self, ctx: CtxNvLRrec, spans: Vec<PosSpan>) -> SynNvLRrec {
         self.spans.push(format!("exit_nv_l_rrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_rrec -> Id "=" "+" nv_l_rrec_i
-        let CtxNvLRrec::V1 { id, nv_l_rrec_i } = ctx;
+        let CtxNvLRrec::V1 { id, nv_l_rrec_i: SynNvLRrecI(items) } = ctx;
+        self.add_value(id, items.iter().map(bool::to_string).join(","));
         SynNvLRrec()
     }
 
     fn exit_nv_lrec(&mut self, ctx: CtxNvLrec, spans: Vec<PosSpan>) -> SynNvLrec {
         self.spans.push(format!("exit_nv_lrec({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_lrec -> Id "=" nv_lrec_i ";"
-        let CtxNvLrec::V1 { id, nv_lrec_i } = ctx;
+        let CtxNvLrec::V1 { id, nv_lrec_i: SynNvLrecI(n) } = ctx;
+        self.add_value(id, n.to_string());
         SynNvLrec()
     }
 
@@ -625,6 +664,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         self.spans.push(format!("exit_nv_star_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_star_a -> Id "=" "[" ("+" | "*" "-")* "]" ";"
         let CtxNvStarA::V1 { id } = ctx;
+        self.add_value(id, "+*-*".to_string());
         SynNvStarA()
     }
 
@@ -632,141 +672,148 @@ impl PandemoniumListener for PanDemoListener<'_> {
         self.spans.push(format!("exit_nv_plus_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_plus_a -> Id "=" "[" ("+" | "*" "-")+ "]" ";"
         let CtxNvPlusA::V1 { id } = ctx;
+        self.add_value(id, "+*-+".to_string());
         SynNvPlusA()
     }
 
     fn exit_nv_l_star_a(&mut self, ctx: CtxNvLStarA, spans: Vec<PosSpan>) -> SynNvLStarA {
         self.spans.push(format!("exit_nv_l_star_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_star_a -> Id "=" "[" (<L> "+" | "*" "-")* "]" ";"
-        let CtxNvLStarA::V1 { id, star } = ctx;
+        let CtxNvLStarA::V1 { id, star: SynNvLStarAI(items) } = ctx;
+        self.add_value(id, items.iter().map(bool::to_string).join("|"));
         SynNvLStarA()
     }
 
     fn init_nv_l_star_a_i(&mut self) -> SynNvLStarAI {
-        SynNvLStarAI()
+        SynNvLStarAI(vec![])
     }
 
     fn exit_nv_l_star_a_i(&mut self, acc: &mut SynNvLStarAI, ctx: CtxNvLStarAI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_star_a_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        acc.0.push(match ctx {
             // `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")* "]" ";"`
-            CtxNvLStarAI::V1 => {}
+            CtxNvLStarAI::V1 => true,
             // `"*" "-"` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )* "]" ";"`
-            CtxNvLStarAI::V2 => {}
-        }
+            CtxNvLStarAI::V2 => false,
+        });
     }
 
     fn exit_nv_l_plus_a(&mut self, ctx: CtxNvLPlusA, spans: Vec<PosSpan>) -> SynNvLPlusA {
         self.spans.push(format!("exit_nv_l_plus_a({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" "-")+ "]" ";"
-        let CtxNvLPlusA::V1 { id, plus } = ctx;
+        let CtxNvLPlusA::V1 { id, plus: SynNvLPlusAI(items) } = ctx;
+        self.add_value(id, items.iter().map(bool::to_string).join("||"));
         SynNvLPlusA()
     }
 
     fn init_nv_l_plus_a_i(&mut self) -> SynNvLPlusAI {
-        SynNvLPlusAI()
+        SynNvLPlusAI(vec![])
     }
 
     fn exit_nv_l_plus_a_i(&mut self, acc: &mut SynNvLPlusAI, ctx: CtxNvLPlusAI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_plus_a_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        acc.0.push(match ctx {
             // `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")+ "]" ";"`
-            CtxNvLPlusAI::V1 { last_iteration } => {}
+            CtxNvLPlusAI::V1 { last_iteration } => true,
             // `"*" "-"` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )+ "]" ";"`
-            CtxNvLPlusAI::V2 { last_iteration } => {}
-        }
+            CtxNvLPlusAI::V2 { last_iteration } => false,
+        });
     }
 
     fn exit_nv_sep_list(&mut self, ctx: CtxNvSepList, spans: Vec<PosSpan>) -> SynNvSepList {
         self.spans.push(format!("exit_nv_sep_list({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_sep_list -> Id "=" ("*" / "," "then")+ ";"
         let CtxNvSepList::V1 { id } = ctx;
+        self.add_value(id, "*,then+".to_string());
         SynNvSepList()
     }
 
     fn exit_nv_sep_list_opt(&mut self, ctx: CtxNvSepListOpt, spans: Vec<PosSpan>) -> SynNvSepListOpt {
         self.spans.push(format!("exit_nv_sep_list_opt({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        let (id, str) = match ctx {
             // nv_sep_list_opt -> Id "=" ("*" / "," "then")+ ";"
-            CtxNvSepListOpt::V1 { id } => {}
+            CtxNvSepListOpt::V1 { id } => (id, "a"),
             // nv_sep_list_opt -> Id "=" ";"
-            CtxNvSepListOpt::V2 { id } => {}
-        }
+            CtxNvSepListOpt::V2 { id } => (id, "b"),
+        };
+        self.add_value(id, str.to_string());
         SynNvSepListOpt()
     }
 
     fn exit_nv_l_sep_list(&mut self, ctx: CtxNvLSepList, spans: Vec<PosSpan>) -> SynNvLSepList {
         self.spans.push(format!("exit_nv_l_sep_list({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // nv_l_sep_list -> Id "=" (<L> "*" / "," "then")+ ";"
-        let CtxNvLSepList::V1 { id, plus } = ctx;
+        let CtxNvLSepList::V1 { id, plus: SynNvLSepListI(n) } = ctx;
+        self.add_value(id, n.to_string());
         SynNvLSepList()
     }
 
     fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) -> SynNvLSepListI {
-        SynNvLSepListI()
+        let InitCtxNvLSepListI::V1 = ctx;
+        SynNvLSepListI(0)
     }
 
     fn exit_nv_l_sep_list_i(&mut self, acc: &mut SynNvLSepListI, ctx: CtxNvLSepListI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_sep_list_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
         let CtxNvLSepListI::V1 = ctx;
+        acc.0 += 1;
     }
 
     fn exit_nv_l_sep_list_opt(&mut self, ctx: CtxNvLSepListOpt, spans: Vec<PosSpan>) -> SynNvLSepListOpt {
         self.spans.push(format!("exit_nv_l_sep_list_opt({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {
             // nv_l_sep_list_opt -> Id "=" (<L> "*" / "," "then")+ ";"
-            CtxNvLSepListOpt::V1 { id, plus } => {}
+            CtxNvLSepListOpt::V1 { id, plus: SynNvLSepListOptI(n) } => { self.add_value(id, n.to_string()); }
             // nv_l_sep_list_opt -> Id "=" ";"
-            CtxNvLSepListOpt::V2 { id } => {}
+            CtxNvLSepListOpt::V2 { id } => { self.add_value(id, "-".to_string()); }
         }
         SynNvLSepListOpt()
     }
 
     fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) -> SynNvLSepListOptI {
-        SynNvLSepListOptI()
+        SynNvLSepListOptI(0)
     }
 
     fn exit_nv_l_sep_list_opt_i(&mut self, acc: &mut SynNvLSepListOptI, ctx: CtxNvLSepListOptI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_sep_list_opt_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> "*" / "," "then"` iteration in `nv_l_sep_list_opt -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";" | Id "=" ";"`
         let CtxNvLSepListOptI::V1 = ctx;
+        acc.0 += 1;
     }
 
     fn exit_nv_rrec_i(&mut self, ctx: CtxNvRrecI, spans: Vec<PosSpan>) -> SynNvRrecI {
         self.spans.push(format!("exit_nv_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        SynNvRrecI(match ctx {
             // nv_rrec_i -> "," "*" nv_rrec_i
-            CtxNvRrecI::V1 { nv_rrec_i } => {}
+            CtxNvRrecI::V1 { nv_rrec_i: SynNvRrecI(n) } => n + 1,
             // nv_rrec_i -> ";"
-            CtxNvRrecI::V2 => {}
-        }
-        SynNvRrecI()
+            CtxNvRrecI::V2 => 0,
+        })
     }
 
     fn init_nv_l_rrec_i(&mut self) -> SynNvLRrecI {
-        SynNvLRrecI()
+        SynNvLRrecI(vec![])
     }
 
     fn exit_nv_l_rrec_i(&mut self, acc: &mut SynNvLRrecI, ctx: CtxNvLRrecI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_rrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {
             // nv_l_rrec_i -> <L> "," "*" nv_l_rrec_i
-            CtxNvLRrecI::V1 => {}
+            CtxNvLRrecI::V1 => { acc.0.push(false); }
             // nv_l_rrec_i -> ";"
-            CtxNvLRrecI::V2 => {}
+            CtxNvLRrecI::V2 => { acc.0.push(true); }
         }
     }
 
     fn exit_nv_lrec_i(&mut self, ctx: CtxNvLrecI, spans: Vec<PosSpan>) -> SynNvLrecI {
         self.spans.push(format!("exit_nv_lrec_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
-        match ctx {
+        SynNvLrecI(match ctx {
             // nv_lrec_i -> nv_lrec_i "," "*"
-            CtxNvLrecI::V1 { nv_lrec_i } => {}
+            CtxNvLrecI::V1 { nv_lrec_i: SynNvLrecI(n) } => n + 1,
             // nv_lrec_i -> "+"
-            CtxNvLrecI::V2 => {}
-        }
-        SynNvLrecI()
+            CtxNvLrecI::V2 => 0,
+        })
     }
 }
 
@@ -847,11 +894,11 @@ pub mod listener_types {
     /// User-defined type for `nv_l_star`
     #[derive(Debug, PartialEq)] pub struct SynNvLStar();
     /// User-defined type for `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLStarI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLStarI(pub usize);
     /// User-defined type for `nv_l_plus`
     #[derive(Debug, PartialEq)] pub struct SynNvLPlus();
     /// User-defined type for `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLPlusI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlusI(pub Vec<bool>);
     /// User-defined type for `nv_rrec`
     #[derive(Debug, PartialEq)] pub struct SynNvRrec();
     /// User-defined type for `nv_l_rrec`
@@ -865,11 +912,11 @@ pub mod listener_types {
     /// User-defined type for `nv_l_star_a`
     #[derive(Debug, PartialEq)] pub struct SynNvLStarA();
     /// User-defined type for `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)* "]" ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLStarAI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLStarAI(pub Vec<bool>);
     /// User-defined type for `nv_l_plus_a`
     #[derive(Debug, PartialEq)] pub struct SynNvLPlusA();
     /// User-defined type for `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" ":" Id)+ "]" ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLPlusAI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLPlusAI(pub Vec<bool>);
     /// User-defined type for `nv_sep_list`
     #[derive(Debug, PartialEq)] pub struct SynNvSepList();
     /// User-defined type for `nv_sep_list_opt`
@@ -877,17 +924,17 @@ pub mod listener_types {
     /// User-defined type for `nv_l_sep_list`
     #[derive(Debug, PartialEq)] pub struct SynNvLSepList();
     /// User-defined type for `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLSepListI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLSepListI(pub usize);
     /// User-defined type for `nv_l_sep_list_opt`
     #[derive(Debug, PartialEq)] pub struct SynNvLSepListOpt();
     /// User-defined type for `<L> "*" / "," "then"` iteration in `nv_l_sep_list_opt -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-    #[derive(Debug, PartialEq)] pub struct SynNvLSepListOptI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLSepListOptI(pub usize);
     /// User-defined type for `nv_rrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynNvRrecI();
+    #[derive(Debug, PartialEq)] pub struct SynNvRrecI(pub usize);
     /// User-defined type for `nv_l_rrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynNvLRrecI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLRrecI(pub Vec<bool>);
     /// User-defined type for `nv_lrec_i`
-    #[derive(Debug, PartialEq)] pub struct SynNvLrecI();
+    #[derive(Debug, PartialEq)] pub struct SynNvLrecI(pub usize);
 }
 
 // -------------------------------------------------------------------------

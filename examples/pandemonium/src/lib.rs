@@ -165,11 +165,12 @@ static SPANS1: &[&str] = &[
     r#"exit_text("star    Alpha   = a, 101, 110, 150;\nplus    Bravo   = 102, 120, 250;\nl-star  Charlie = 103, 130, 350;\nl-plus  Delta   = 104, 140, 450;\nrrec    Echo    = 105, 150, 550;\nl-rrec  Foxtrot = 106, 160, 650;\nlrec    Golf    = 107, 170, 750;\namb     Hotel   = 5 - 2*-6 + 3^2^4 / 81;\n\nstar-a   India  = [ 1:Alpha Beta 4:Delta Echo 10:Juliet ];\nplus-a   Juliet = [ 11:Kilo Lima Mike 26:Zoulou ];\nl-star-a Kilo   = [ 2:Beta Charlie 5:Echo ];\nl-plus-a Lima   = [ 21:Uniform Victor 25:Yankee ];\n\nstar    Mike     = x;\nl-star  November = 202;\nrrec    Oscar    = 203;\nl-rrec  Papa     = 204;\nlrec    Quebec   = 205;\n\nsep-list     Romeo   = a:1, then b: 2, then c:3;\nsep-list     Sierra  = d: 4;\nsep-list-opt Tango   = e: 5, then f:6, then g: 7;\nsep-list-opt Uniform =;\n\nl-sep-list     Victor  = a:1, then b: 2, then c:3;\nl-sep-list     Whiskey = d: 4;\nl-sep-list-opt Xray    = e: 5, then f:6, then g: 7;\nl-sep-list-opt Yankee  =;", ";", "")"#,
 ];
 
+/// Text to parser (no-values)
 static TXT2: &str = r#"
 ;
 star    Alpha   = +, *, *;
-plus    Bravo   = +, *, *;
-l-star  Charlie = +, *, *, *;
+plus    Bravo   = +, *, *, *;
+l-star  Charlie = +, *, *, *, *;
 l-plus  Delta   = +, *, *, *;
 rrec    Echo    = +, *, *;
 l-rrec  Foxtrot = +, *, *, *;
@@ -191,11 +192,123 @@ sep-list       Sierra  = *;
 sep-list-opt   Tango   = *, then *;
 sep-list-opt   Uniform =;
 l-sep-list     Victor  = *, then *, then *;
-l-sep-list     Whisky  = *;
+l-sep-list     Whiskey = *;
 l-sep-list-opt Xray    = *, then *;
 l-sep-list-opt Yankee  =;
 "#;
 
+/// Expected spans collected when parsing TXT2
+static SPANS2: &[&str] = &[
+    r#"exit_nv_star("Alpha", "=", "+", ", *, *", ";")"#,
+    r#"exit_nv_example("star", "Alpha   = +, *, *;")"#,
+    r#"exit_nv_i("", "star    Alpha   = +, *, *;")"#,
+    r#"exit_nv_plus("Bravo", "=", "+", ", *, *, *", ";")"#,
+    r#"exit_nv_example("plus", "Bravo   = +, *, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;", "plus    Bravo   = +, *, *, *;")"#,
+    r#"exit_nv_l_star_i("", ",", "*")"#,
+    r#"exit_nv_l_star_i(", *", ",", "*")"#,
+    r#"exit_nv_l_star_i(", *, *", ",", "*")"#,
+    r#"exit_nv_l_star_i(", *, *, *", ",", "*")"#,
+    r#"exit_nv_l_star("Charlie", "=", "+", ", *, *, *, *", ";")"#,
+    r#"exit_nv_example("l-star", "Charlie = +, *, *, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;", "l-star  Charlie = +, *, *, *, *;")"#,
+    r#"exit_nv_l_plus_i("", ",", "*")"#,
+    r#"exit_nv_l_plus_i(", *", ",", "*")"#,
+    r#"exit_nv_l_plus_i(", *, *", ",", "*")"#,
+    r#"exit_nv_l_plus("Delta", "=", "+", ", *, *, *", ";")"#,
+    r#"exit_nv_example("l-plus", "Delta   = +, *, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;", "l-plus  Delta   = +, *, *, *;")"#,
+    r#"exit_nv_rrec_i(";")"#,
+    r#"exit_nv_rrec_i(",", "*", ";")"#,
+    r#"exit_nv_rrec_i(",", "*", ", *;")"#,
+    r#"exit_nv_rrec("Echo", "=", "+", ", *, *;")"#,
+    r#"exit_nv_example("rrec", "Echo    = +, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;", "rrec    Echo    = +, *, *;")"#,
+    r#"exit_nv_l_rrec_i("", ",", "*")"#,
+    r#"exit_nv_l_rrec_i(", *", ",", "*")"#,
+    r#"exit_nv_l_rrec_i(", *, *", ",", "*")"#,
+    r#"exit_nv_l_rrec_i(", *, *, *", ";")"#,
+    r#"exit_nv_l_rrec("Foxtrot", "=", "+", ", *, *, *;")"#,
+    r#"exit_nv_example("l-rrec", "Foxtrot = +, *, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;", "l-rrec  Foxtrot = +, *, *, *;")"#,
+    r#"exit_nv_lrec_i("+")"#,
+    r#"exit_nv_lrec_i("+", ",", "*")"#,
+    r#"exit_nv_lrec_i("+, *", ",", "*")"#,
+    r#"exit_nv_lrec("Golf", "=", "+, *, *", ";")"#,
+    r#"exit_nv_example("lrec", "Golf    = +, *, *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;", "lrec    Golf    = +, *, *;")"#,
+
+    r#"exit_nv_star_a("India", "=", "[", "*- + *-", "]", ";")"#,
+    r#"exit_nv_example("star-a", "India  = [ *- + *- ];")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;", "star-a   India  = [ *- + *- ];")"#,
+    r#"exit_nv_plus_a("Juliet", "=", "[", "*- + *-", "]", ";")"#,
+    r#"exit_nv_example("plus-a", "Juliet = [ *- + *- ];")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];", "plus-a   Juliet = [ *- + *- ];")"#,
+    r#"exit_nv_l_star_a_i("", "*", "-")"#,
+    r#"exit_nv_l_star_a_i("*-", "+")"#,
+    r#"exit_nv_l_star_a_i("*- +", "*", "-")"#,
+    r#"exit_nv_l_star_a_i("*- + *-", "+")"#,
+    r#"exit_nv_l_star_a_i("*- + *- +", "*", "-")"#,
+    r#"exit_nv_l_star_a("Kilo", "=", "[", "*- + *- + *-", "]", ";")"#,
+    r#"exit_nv_example("l-star-a", "Kilo   = [ *- + *- + *- ];")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];", "l-star-a Kilo   = [ *- + *- + *- ];")"#,
+    r#"exit_nv_l_plus_a_i("", "*", "-")"#,
+    r#"exit_nv_l_plus_a_i("*-", "+")"#,
+    r#"exit_nv_l_plus_a_i("*- +", "*", "-")"#,
+    r#"exit_nv_l_plus_a_i("*- + *-", "+")"#,
+    r#"exit_nv_l_plus_a_i("*- + *- +", "*", "-")"#,
+    r#"exit_nv_l_plus_a("Lima", "=", "[", "*- + *- + *-", "]", ";")"#,
+    r#"exit_nv_example("l-plus-a", "Lima   = [ *- + *- + *- ];")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];", "l-plus-a Lima   = [ *- + *- + *- ];")"#,
+
+    r#"exit_nv_star("Mike", "=", "+", "", ";")"#,
+    r#"exit_nv_example("star", "Mike     = +;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];", "star    Mike     = +;")"#,
+    r#"exit_nv_l_star("November", "=", "+", "", ";")"#,
+    r#"exit_nv_example("l-star", "November = +;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;", "l-star  November = +;")"#,
+    r#"exit_nv_rrec_i(";")"#,
+    r#"exit_nv_rrec("Oscar", "=", "+", ";")"#,
+    r#"exit_nv_example("rrec", "Oscar    = +;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;", "rrec    Oscar    = +;")"#,
+    r#"exit_nv_l_rrec_i("", ";")"#,
+    r#"exit_nv_l_rrec("Papa", "=", "+", ";")"#,
+    r#"exit_nv_example("l-rrec", "Papa     = +;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;", "l-rrec  Papa     = +;")"#,
+    r#"exit_nv_lrec_i("+")"#,
+    r#"exit_nv_lrec("Quebec", "=", "+", ";")"#,
+    r#"exit_nv_example("lrec", "Quebec   = +;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;", "lrec    Quebec   = +;")"#,
+
+    r#"exit_nv_sep_list("Romeo", "=", "*, then *, then *", ";")"#,
+    r#"exit_nv_example("sep-list", "Romeo   = *, then *, then *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;", "sep-list       Romeo   = *, then *, then *;")"#,
+    r#"exit_nv_sep_list("Sierra", "=", "*", ";")"#,
+    r#"exit_nv_example("sep-list", "Sierra  = *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;", "sep-list       Sierra  = *;")"#,
+    r#"exit_nv_sep_list_opt("Tango", "=", "*, then *", ";")"#,
+    r#"exit_nv_example("sep-list-opt", "Tango   = *, then *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;", "sep-list-opt   Tango   = *, then *;")"#,
+    r#"exit_nv_sep_list_opt("Uniform", "=", ";")"#,
+    r#"exit_nv_example("sep-list-opt", "Uniform =;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;", "sep-list-opt   Uniform =;")"#,
+    r#"exit_nv_l_sep_list_i("*", ",", "then", "*")"#,
+    r#"exit_nv_l_sep_list_i("*, then *", ",", "then", "*")"#,
+    r#"exit_nv_l_sep_list("Victor", "=", "*, then *, then *", ";")"#,
+    r#"exit_nv_example("l-sep-list", "Victor  = *, then *, then *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;\nsep-list-opt   Uniform =;", "l-sep-list     Victor  = *, then *, then *;")"#,
+    r#"exit_nv_l_sep_list("Whiskey", "=", "*", ";")"#,
+    r#"exit_nv_example("l-sep-list", "Whiskey = *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;\nsep-list-opt   Uniform =;\nl-sep-list     Victor  = *, then *, then *;", "l-sep-list     Whiskey = *;")"#,
+    r#"exit_nv_l_sep_list_opt_i("*", ",", "then", "*")"#,
+    r#"exit_nv_l_sep_list_opt("Xray", "=", "*, then *", ";")"#,
+    r#"exit_nv_example("l-sep-list-opt", "Xray    = *, then *;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;\nsep-list-opt   Uniform =;\nl-sep-list     Victor  = *, then *, then *;\nl-sep-list     Whiskey = *;", "l-sep-list-opt Xray    = *, then *;")"#,
+    r#"exit_nv_l_sep_list_opt("Yankee", "=", ";")"#,
+    r#"exit_nv_example("l-sep-list-opt", "Yankee  =;")"#,
+    r#"exit_nv_i("star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;\nsep-list-opt   Uniform =;\nl-sep-list     Victor  = *, then *, then *;\nl-sep-list     Whiskey = *;\nl-sep-list-opt Xray    = *, then *;", "l-sep-list-opt Yankee  =;")"#,
+    r#"exit_text("", ";", "star    Alpha   = +, *, *;\nplus    Bravo   = +, *, *, *;\nl-star  Charlie = +, *, *, *, *;\nl-plus  Delta   = +, *, *, *;\nrrec    Echo    = +, *, *;\nl-rrec  Foxtrot = +, *, *, *;\nlrec    Golf    = +, *, *;\n\nstar-a   India  = [ *- + *- ];\nplus-a   Juliet = [ *- + *- ];\nl-star-a Kilo   = [ *- + *- + *- ];\nl-plus-a Lima   = [ *- + *- + *- ];\n\nstar    Mike     = +;\nl-star  November = +;\nrrec    Oscar    = +;\nl-rrec  Papa     = +;\nlrec    Quebec   = +;\n\nsep-list       Romeo   = *, then *, then *;\nsep-list       Sierra  = *;\nsep-list-opt   Tango   = *, then *;\nsep-list-opt   Uniform =;\nl-sep-list     Victor  = *, then *, then *;\nl-sep-list     Whiskey = *;\nl-sep-list-opt Xray    = *, then *;\nl-sep-list-opt Yankee  =;")"#,
+];
 
 // -------------------------------------------------------------------------
 // test helper
