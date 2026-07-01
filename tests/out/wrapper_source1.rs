@@ -2847,11 +2847,6 @@ pub(crate) mod rules_212_1 {
         V1 { id: String, plus: SynI },
     }
     #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> Id ":" type / "<" ">"` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "<" ">" ◄◄ )+ ")"`
-        V1 { id: String, type1: SynType },
-    }
-    #[derive(Debug)]
     pub enum CtxI {
         /// `<L> Id ":" type / "<" ">"` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "<" ">" ◄◄ )+ ")"`
         V1 { id: String, type1: SynType },
@@ -2894,7 +2889,7 @@ pub(crate) mod rules_212_1 {
         fn abort(&mut self, terminate: Terminate) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI;
+        fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i(&mut self, acc: &mut SynI) {}
@@ -3029,10 +3024,11 @@ pub(crate) mod rules_212_1 {
         fn init_i(&mut self) {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { id, type1 };
+            let ctx = CtxI::V1 { id, type1 };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i(ctx, spans);
+            let mut val = self.listener.init_i();
+            self.listener.exit_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::I(val));
         }
 
@@ -3040,8 +3036,9 @@ pub(crate) mod rules_212_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { id, type1 };
-            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..3);
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
@@ -3086,11 +3083,6 @@ pub(crate) mod rules_219_1 {
         V1 { x: String, plus: SynI, z: String },
     }
     #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
-        V1 { b: String },
-    }
-    #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
         V1 { b: String },
@@ -3125,7 +3117,7 @@ pub(crate) mod rules_219_1 {
         fn abort(&mut self, terminate: Terminate) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI;
+        fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i(&mut self, acc: &mut SynI) {}
@@ -3256,18 +3248,20 @@ pub(crate) mod rules_219_1 {
 
         fn init_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { b };
+            let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i(ctx, spans);
+            let mut val = self.listener.init_i();
+            self.listener.exit_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { b };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
@@ -3569,11 +3563,6 @@ pub(crate) mod rules_222_1 {
         V1 { id: String, plus: SynI },
     }
     #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> Id ":" type / ","` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "," ◄◄ )+ ")"`
-        V1 { id: String, type1: SynType },
-    }
-    #[derive(Debug)]
     pub enum CtxI {
         /// `<L> Id ":" type / ","` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "," ◄◄ )+ ")"`
         V1 { id: String, type1: SynType },
@@ -3616,7 +3605,7 @@ pub(crate) mod rules_222_1 {
         fn abort(&mut self, terminate: Terminate) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI;
+        fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i(&mut self, acc: &mut SynI) {}
@@ -3751,10 +3740,11 @@ pub(crate) mod rules_222_1 {
         fn init_i(&mut self) {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { id, type1 };
+            let ctx = CtxI::V1 { id, type1 };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i(ctx, spans);
+            let mut val = self.listener.init_i();
+            self.listener.exit_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::I(val));
         }
 
@@ -3762,8 +3752,9 @@ pub(crate) mod rules_222_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { id, type1 };
-            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }

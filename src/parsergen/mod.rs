@@ -2102,9 +2102,9 @@ impl ParserGen {
         (src_let, src_struct)
     }
 
-    fn source_update_span(n: &str) -> Vec<String> {
+    fn source_update_span(n: &str, is_mut: bool) -> Vec<String> {
         vec![
-            format!("        let spans = self.stack_span.drain(self.stack_span.len() - {n} ..).collect::<Vec<_>>();"),
+            format!("        let {}spans = self.stack_span.drain(self.stack_span.len() - {n} ..).collect::<Vec<_>>();", if is_mut { "mut " } else { "" }),
             "        self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));".to_string(),
         ]
     }
@@ -2156,7 +2156,7 @@ impl ParserGen {
             src_val.push(format!("            _ => panic!(\"unexpected alt id {{{alt_id_name}}} in method {fn_name}\"),"));
             src_val.push("        };".to_string());
             if self.options.gen_span_params {
-                src_span.extend(Self::source_update_span("n"));
+                src_span.extend(Self::source_update_span("n", false));
             }
             "val".to_string()
         } else {
@@ -2168,7 +2168,7 @@ impl ParserGen {
                 } else {
                     self.span_nbrs[a_id as usize]
                 };
-                src_span.extend(Self::source_update_span(&span_nbr.to_string()));
+                src_span.extend(Self::source_update_span(&span_nbr.to_string(), false));
             }
             if has_value {
                 let infos = &item_info[a_id as usize];
@@ -2400,24 +2400,24 @@ impl ParserGen {
                             println!();
                         }
                     }
-                    if flags & (ruleflag::SEP_LIST | ruleflag::L_FORM) == ruleflag::SEP_LIST | ruleflag::L_FORM {
-                        src.push("#[derive(Debug)]".to_string());
-                        src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
-                        let a_id = self.var_alts[nt as usize][0];
-                        let comment = format!("first {}", self.full_alt_components(a_id, None).1);
-                        let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
-                        src.push(format!("    /// {comment}"));
-                        let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
-                        let ctx_item = if ctx_content.is_empty() {
-                            if VERBOSE { println!("      {a_name},"); }
-                            format!("    {a_name},", )
-                        } else {
-                            if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
-                            format!("    {a_name} {{ {ctx_content} }},", )
-                        };
-                        src.push(ctx_item);
-                        src.push("}".to_string());
-                    }
+                    // if flags & (ruleflag::SEP_LIST | ruleflag::L_FORM) == ruleflag::SEP_LIST | ruleflag::L_FORM {
+                    //     src.push("#[derive(Debug)]".to_string());
+                    //     src.push(format!("pub enum InitCtx{} {{", self.nt_name[nt as usize].0));
+                    //     let a_id = self.var_alts[nt as usize][0];
+                    //     let comment = format!("first {}", self.full_alt_components(a_id, None).1);
+                    //     let ctx_content = self.source_infos(&self.item_info[a_id as usize], false, true);
+                    //     src.push(format!("    /// {comment}"));
+                    //     let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
+                    //     let ctx_item = if ctx_content.is_empty() {
+                    //         if VERBOSE { println!("      {a_name},"); }
+                    //         format!("    {a_name},", )
+                    //     } else {
+                    //         if VERBOSE { println!("      {a_name} {{ {ctx_content} }},"); }
+                    //         format!("    {a_name} {{ {ctx_content} }},", )
+                    //     };
+                    //     src.push(ctx_item);
+                    //     src.push("}".to_string());
+                    // }
                     src.push("#[derive(Debug)]".to_string());
                     src.push(format!("pub enum Ctx{} {{", self.nt_name[nt as usize].0));
                     if VERBOSE { println!("  context Ctx{}:", self.nt_name[nt as usize].0); }
@@ -2657,46 +2657,32 @@ impl ParserGen {
                         let (src_let, ctx_params) = Self::source_lets(&self.item_info[a as usize], &self.nt_name, indent, last_alt_id_maybe, "alt_id");
                         body_init.extend(src_let);
                         let ctx = if ctx_params.is_empty() {
-                            format!("InitCtx{nu}::{}", self.alt_info[a as usize].as_ref().unwrap().1)
+                            format!("Ctx{nu}::{}", self.alt_info[a as usize].as_ref().unwrap().1)
                         } else {
-                            format!("InitCtx{nu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
+                            format!("Ctx{nu}::{} {{ {ctx_params} }}", self.alt_info[a as usize].as_ref().unwrap().1)
                         };
                         body_init.push(format!("        let ctx = {ctx};"));
                         if has_span {
-                            body_init.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string()));
+                            body_init.extend(Self::source_update_span(&self.span_nbrs_sep_list[&a].to_string(), false));
                         }
                         body_init.push(format!(
-                            "        {}self.listener.{init_fn_name}(ctx{});",
-                            if has_value { "let val = " } else { "" },
+                            "        {}self.listener.{init_fn_name}();",
+                            if has_value { "let mut val = " } else { "" }));
+                        body_init.push(format!(
+                            "        self.listener.exit_{npl}({}ctx{});",
+                            if has_value { "&mut val, " } else { "" },
                             if has_span { ", spans" } else { "" }));
                         let ret = if has_value {
                             format!("-> {};", self.get_nt_type(nt as VarId))
                         } else {
-                            src_listener_decl.push("    #[allow(unused_variables)]".to_string());
                             "{}".to_string()
                         };
-                        src_listener_decl.push(format!(
-                            "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}) {ret}",
-                            if has_span { ", spans: Vec<PosSpan>" } else { "" }));
+                        src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {ret}"));
 
                         // skeleton (listener template)
                         let ret = if has_value { format!(" -> {}", self.get_nt_type(nt as VarId)) } else { String::new() };
                         src_skel.push(format!(
-                            "    fn {init_fn_name}(&mut self, ctx: InitCtx{nu}{}){ret} {{",
-                            if has_span { ", spans: Vec<PosSpan>" } else { "" }));
-                        let a_id = self.var_alts[nt][0];
-                        let a_info = &self.item_info[a_id as usize];
-                        if !a_info.is_empty() {
-                            let comment = format!(
-                                "value of `{}` before {}",
-                                self.item_ops[a_id as usize][1..].iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                                self.full_alt_components(a_id, None).1
-                            );
-                            let ctx_content = a_info.iter().map(|i| i.name.clone()).join(", ");
-                            let a_name = &self.alt_info[a_id as usize].as_ref().unwrap().1;
-                            src_skel.push(format!("        // {comment}"));
-                            src_skel.push(format!("        let InitCtx{nu}::{a_name} {{ {ctx_content} }} = ctx;"));
-                        }
+                            "    fn {init_fn_name}(&mut self){ret} {{"));
                         has_skel_init = true;
                     } else {
                         if has_value {
@@ -2788,7 +2774,7 @@ impl ParserGen {
         let nt = var as usize;
         let is_plus = flags & ruleflag::CHILD_PLUS != 0;
         let is_parent = nt == parent_nt;
-        let is_child_repeat_lform = self.nt_has_all_flags(var, ruleflag::CHILD_REPEAT_LFORM);
+        let is_child_repeat_lform = flags & ruleflag::CHILD_REPEAT_LFORM == ruleflag::CHILD_REPEAT_LFORM;
         let has_span = self.options.gen_span_params;
         let (nu, _nl, npl) = &self.nt_name[nt];
 
@@ -2957,9 +2943,7 @@ impl ParserGen {
                     let endpoints = self.child_repeat_endpoints.get(&var).unwrap();
                     let (src_val, val_name, src_span) = self.source_child_repeat_lets(
                         endpoints, &self.item_info, is_plus, &self.nt_name, &fn_name, nu, false, has_value, &alt_id_name);
-                    if true|| has_value {
-                        src_wrapper_impl.extend(src_val);
-                    }
+                    src_wrapper_impl.extend(src_val);
                     let vec_name = if flags & ruleflag::SEP_LIST != 0 { "sep_list_acc" } else if is_plus { "plus_acc" } else { "star_acc" };
                     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe { // has content only when has_value || has_span
                         src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
@@ -3016,7 +3000,11 @@ impl ParserGen {
                             src_wrapper_impl.push(lr_init_alt_ids.to_string());
                         }
                         if has_span {
-                            src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string()));
+                            let is_drained = is_child_repeat_lform && flags & ruleflag::SEP_LIST != 0;
+                            src_wrapper_impl.extend(Self::source_update_span(&self.span_nbrs[a as usize].to_string(), is_drained));
+                            if is_drained {
+                                src_wrapper_impl.push(format!("        spans.drain(..{});", self.span_nbrs[a as usize] - self.span_nbrs_sep_list[&a]));
+                            }
                         }
                     } else {
                         let ctx_value = self.gen_match_item(ctx, || self.span_nbrs[a as usize].to_string(), true);
@@ -3031,7 +3019,7 @@ impl ParserGen {
                         src_wrapper_impl.push(lr_init_alt_ids.to_string());
                     }
                     if has_span {
-                        src_wrapper_impl.extend(Self::source_update_span("n"));
+                        src_wrapper_impl.extend(Self::source_update_span("n", false));
                     }
                 }
                 if (is_rrec_lform | is_child_repeat_lform) && f_valued {

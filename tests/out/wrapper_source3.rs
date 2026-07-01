@@ -4576,11 +4576,6 @@ pub(crate) mod rules_902_1 {
         V2 { type1: String, id: String },
     }
     #[derive(Debug)]
-    pub enum InitCtxIdI {
-        /// first `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
-        V1 { id: String },
-    }
-    #[derive(Debug)]
     pub enum CtxIdI {
         /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
@@ -4658,7 +4653,7 @@ pub(crate) mod rules_902_1 {
         fn exit_inst_i(&mut self, acc: &mut SynInstI, ctx: CtxInstI, spans: Vec<PosSpan>);
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
-        fn init_id_i(&mut self, ctx: InitCtxIdI, spans: Vec<PosSpan>) -> SynIdI;
+        fn init_id_i(&mut self) -> SynIdI;
         fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_id_i(&mut self, acc: &mut SynIdI) {}
@@ -4872,18 +4867,20 @@ pub(crate) mod rules_902_1 {
 
         fn init_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxIdI::V1 { id };
+            let ctx = CtxIdI::V1 { id };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_id_i(ctx, spans);
+            let mut val = self.listener.init_id_i();
+            self.listener.exit_id_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::IdI(val));
         }
 
         fn exit_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxIdI::V1 { id };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_id_i(acc, ctx, spans);
         }
@@ -4992,11 +4989,6 @@ pub(crate) mod rules_902_2 {
         V2 { type1: String, id: String },
     }
     #[derive(Debug)]
-    pub enum InitCtxIdI {
-        /// first `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
-        V1 { id: String },
-    }
-    #[derive(Debug)]
     pub enum CtxIdI {
         /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
         V1 { id: String },
@@ -5058,8 +5050,7 @@ pub(crate) mod rules_902_2 {
         fn init_decl(&mut self) {}
         #[allow(unused_variables)]
         fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) {}
-        #[allow(unused_variables)]
-        fn init_id_i(&mut self, ctx: InitCtxIdI, spans: Vec<PosSpan>) {}
+        fn init_id_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_id_i(&mut self, ctx: CtxIdI, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
@@ -5251,17 +5242,19 @@ pub(crate) mod rules_902_2 {
 
         fn init_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxIdI::V1 { id };
+            let ctx = CtxIdI::V1 { id };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.init_id_i(ctx, spans);
+            self.listener.init_id_i();
+            self.listener.exit_id_i(ctx, spans);
         }
 
         fn exit_id_i(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxIdI::V1 { id };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             self.listener.exit_id_i(ctx, spans);
         }
 

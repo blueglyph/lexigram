@@ -4532,11 +4532,6 @@ pub(crate) mod rules_985_1 {
         V1 { a: String, plus: SynIvp },
     }
     #[derive(Debug)]
-    pub enum InitCtxIvp {
-        /// first `<L> B C / ","` iteration in `vp -> A ( ►► <L> B C / "," ◄◄ )+`
-        V1 { b: String, c: String },
-    }
-    #[derive(Debug)]
     pub enum CtxIvp {
         /// `<L> B C / ","` iteration in `vp -> A ( ►► <L> B C / "," ◄◄ )+`
         V1 { b: String, c: String },
@@ -4544,11 +4539,6 @@ pub(crate) mod rules_985_1 {
     #[derive(Debug)]
     pub enum CtxNp {
         /// `np -> "A" (<L> "B" "C" / ",")+`
-        V1,
-    }
-    #[derive(Debug)]
-    pub enum InitCtxInp {
-        /// first `<L> "B" "C" / ","` iteration in `np -> "A" ( ►► <L> "B" "C" / "," ◄◄ )+`
         V1,
     }
     #[derive(Debug)]
@@ -4560,11 +4550,6 @@ pub(crate) mod rules_985_1 {
     pub enum CtxXp {
         /// `xp -> A (<L> x y / ",")+`
         V1 { a: String },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxIxp {
-        /// first `<L> x y / ","` iteration in `xp -> A ( ►► <L> x y / "," ◄◄ )+`
-        V1,
     }
     #[derive(Debug)]
     pub enum CtxIxp {
@@ -4620,16 +4605,14 @@ pub(crate) mod rules_985_1 {
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
         fn exit_vp(&mut self, ctx: CtxVp, spans: Vec<PosSpan>) -> SynVp;
-        fn init_ivp(&mut self, ctx: InitCtxIvp, spans: Vec<PosSpan>) -> SynIvp;
+        fn init_ivp(&mut self) -> SynIvp;
         fn exit_ivp(&mut self, acc: &mut SynIvp, ctx: CtxIvp, spans: Vec<PosSpan>);
         fn exit_np(&mut self, ctx: CtxNp, spans: Vec<PosSpan>) -> SynNp;
-        #[allow(unused_variables)]
-        fn init_inp(&mut self, ctx: InitCtxInp, spans: Vec<PosSpan>) {}
+        fn init_inp(&mut self) {}
         #[allow(unused_variables)]
         fn exit_inp(&mut self, ctx: CtxInp, spans: Vec<PosSpan>) {}
         fn exit_xp(&mut self, ctx: CtxXp, spans: Vec<PosSpan>) -> SynXp;
-        #[allow(unused_variables)]
-        fn init_ixp(&mut self, ctx: InitCtxIxp, spans: Vec<PosSpan>) {}
+        fn init_ixp(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ixp(&mut self, ctx: CtxIxp, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
@@ -4776,10 +4759,11 @@ pub(crate) mod rules_985_1 {
         fn init_ivp(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack_t.pop().unwrap();
-            let ctx = InitCtxIvp::V1 { b, c };
+            let ctx = CtxIvp::V1 { b, c };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_ivp(ctx, spans);
+            let mut val = self.listener.init_ivp();
+            self.listener.exit_ivp(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::Ivp(val));
         }
 
@@ -4787,8 +4771,9 @@ pub(crate) mod rules_985_1 {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxIvp::V1 { b, c };
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::Ivp(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_ivp(acc, ctx, spans);
         }
@@ -4802,16 +4787,18 @@ pub(crate) mod rules_985_1 {
         }
 
         fn init_inp(&mut self) {
-            let ctx = InitCtxInp::V1;
+            let ctx = CtxInp::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.init_inp(ctx, spans);
+            self.listener.init_inp();
+            self.listener.exit_inp(ctx, spans);
         }
 
         fn exit_inp(&mut self) {
             let ctx = CtxInp::V1;
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             self.listener.exit_inp(ctx, spans);
         }
 
@@ -4825,16 +4812,18 @@ pub(crate) mod rules_985_1 {
         }
 
         fn init_ixp(&mut self) {
-            let ctx = InitCtxIxp::V1;
+            let ctx = CtxIxp::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.init_ixp(ctx, spans);
+            self.listener.init_ixp();
+            self.listener.exit_ixp(ctx, spans);
         }
 
         fn exit_ixp(&mut self) {
             let ctx = CtxIxp::V1;
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             self.listener.exit_ixp(ctx, spans);
         }
 
@@ -4890,11 +4879,6 @@ pub(crate) mod rules_985_2 {
         V1 { a: String, plus: SynIvp },
     }
     #[derive(Debug)]
-    pub enum InitCtxIvp {
-        /// first `<L> B C / ","` iteration in `vp -> A ( ►► <L> B C / "," ◄◄ )+`
-        V1 { b: String, c: String },
-    }
-    #[derive(Debug)]
     pub enum CtxIvp {
         /// `<L> B C / ","` iteration in `vp -> A ( ►► <L> B C / "," ◄◄ )+`
         V1 { b: String, c: String },
@@ -4902,11 +4886,6 @@ pub(crate) mod rules_985_2 {
     #[derive(Debug)]
     pub enum CtxNp {
         /// `np -> "A" (<L> "B" "C" / ",")+`
-        V1,
-    }
-    #[derive(Debug)]
-    pub enum InitCtxInp {
-        /// first `<L> "B" "C" / ","` iteration in `np -> "A" ( ►► <L> "B" "C" / "," ◄◄ )+`
         V1,
     }
     #[derive(Debug)]
@@ -4918,11 +4897,6 @@ pub(crate) mod rules_985_2 {
     pub enum CtxXp {
         /// `xp -> A (<L> x y / ",")+`
         V1 { a: String },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxIxp {
-        /// first `<L> x y / ","` iteration in `xp -> A ( ►► <L> x y / "," ◄◄ )+`
-        V1,
     }
     #[derive(Debug)]
     pub enum CtxIxp {
@@ -4978,16 +4952,14 @@ pub(crate) mod rules_985_2 {
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA) -> SynA;
         fn exit_vp(&mut self, ctx: CtxVp) -> SynVp;
-        fn init_ivp(&mut self, ctx: InitCtxIvp) -> SynIvp;
+        fn init_ivp(&mut self) -> SynIvp;
         fn exit_ivp(&mut self, acc: &mut SynIvp, ctx: CtxIvp);
         fn exit_np(&mut self, ctx: CtxNp) -> SynNp;
-        #[allow(unused_variables)]
-        fn init_inp(&mut self, ctx: InitCtxInp) {}
+        fn init_inp(&mut self) {}
         #[allow(unused_variables)]
         fn exit_inp(&mut self, ctx: CtxInp) {}
         fn exit_xp(&mut self, ctx: CtxXp) -> SynXp;
-        #[allow(unused_variables)]
-        fn init_ixp(&mut self, ctx: InitCtxIxp) {}
+        fn init_ixp(&mut self) {}
         #[allow(unused_variables)]
         fn exit_ixp(&mut self, ctx: CtxIxp) {}
         #[allow(unused_variables)]
@@ -5119,8 +5091,9 @@ pub(crate) mod rules_985_2 {
         fn init_ivp(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack_t.pop().unwrap();
-            let ctx = InitCtxIvp::V1 { b, c };
-            let val = self.listener.init_ivp(ctx);
+            let ctx = CtxIvp::V1 { b, c };
+            let mut val = self.listener.init_ivp();
+            self.listener.exit_ivp(&mut val, ctx);
             self.stack.push(EnumSynValue::Ivp(val));
         }
 
@@ -5139,8 +5112,9 @@ pub(crate) mod rules_985_2 {
         }
 
         fn init_inp(&mut self) {
-            let ctx = InitCtxInp::V1;
-            self.listener.init_inp(ctx);
+            let ctx = CtxInp::V1;
+            self.listener.init_inp();
+            self.listener.exit_inp(ctx);
         }
 
         fn exit_inp(&mut self) {
@@ -5156,8 +5130,9 @@ pub(crate) mod rules_985_2 {
         }
 
         fn init_ixp(&mut self) {
-            let ctx = InitCtxIxp::V1;
-            self.listener.init_ixp(ctx);
+            let ctx = CtxIxp::V1;
+            self.listener.init_ixp();
+            self.listener.exit_ixp(ctx);
         }
 
         fn exit_ixp(&mut self) {
