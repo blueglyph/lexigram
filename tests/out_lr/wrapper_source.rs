@@ -3520,11 +3520,6 @@ pub(crate) mod rules_219_1 {
         V1 { x: String, plus: SynI, z: String },
     }
     #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
-        V1 { b: String },
-    }
-    #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
         V1 { b: String },
@@ -3558,7 +3553,7 @@ pub(crate) mod rules_219_1 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI;
+        fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
     }
 
@@ -3680,18 +3675,20 @@ pub(crate) mod rules_219_1 {
 
         fn init_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { b };
+            let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i(ctx, spans);
+            let mut val = self.listener.init_i();
+            self.listener.exit_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::I(val));
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { b };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
@@ -3749,11 +3746,9 @@ pub(crate) mod rules_219_1 {
                 SynA(values)
             }
 
-            fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI {
-                if self.show_calls { println!("init_i({ctx:?}, {})", spans.iter().map(PosSpan::to_string).join(", ")); }
-                let InitCtxI::V1 { b } = ctx;
-                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
-                SynI(vec!["start".to_string(), b])
+            fn init_i(&mut self) -> SynI {
+                if self.show_calls { println!("init_i()"); }
+                SynI(vec!["start".to_string()])
             }
 
             fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
@@ -3832,11 +3827,6 @@ pub(crate) mod rules_219_2 {
         V1 { x: String, z: String },
     }
     #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
-        V1 { b: String },
-    }
-    #[derive(Debug)]
     pub enum CtxI {
         /// `<L> B / ","` iteration in `a -> X ( ►► <L> B / "," ◄◄ )+ Z`
         V1 { b: String },
@@ -3868,8 +3858,7 @@ pub(crate) mod rules_219_2 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        #[allow(unused_variables)]
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) {}
+        fn init_i(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {}
     }
@@ -3991,17 +3980,19 @@ pub(crate) mod rules_219_2 {
 
         fn init_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { b };
+            let ctx = CtxI::V1 { b };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.init_i(ctx, spans);
+            self.listener.init_i();
+            self.listener.exit_i(ctx, spans);
         }
 
         fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { b };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             self.listener.exit_i(ctx, spans);
         }
     }
@@ -4040,11 +4031,6 @@ pub(crate) mod rules_222_1 {
     pub enum CtxA {
         /// `a -> Id "(" (<L> Id ":" type / ",")+ ")"`
         V1 { id: String, plus: SynI },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxI {
-        /// first `<L> Id ":" type / ","` iteration in `a -> Id "(" ( ►► <L> Id ":" type / "," ◄◄ )+ ")"`
-        V1 { id: String, type1: SynType },
     }
     #[derive(Debug)]
     pub enum CtxI {
@@ -4088,7 +4074,7 @@ pub(crate) mod rules_222_1 {
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
         fn exit_a(&mut self, ctx: CtxA, spans: Vec<PosSpan>) -> SynA;
-        fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI;
+        fn init_i(&mut self) -> SynI;
         fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>);
         fn exit_type(&mut self, ctx: CtxType, spans: Vec<PosSpan>) -> SynType;
     }
@@ -4212,10 +4198,11 @@ pub(crate) mod rules_222_1 {
         fn init_i(&mut self) {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxI::V1 { id, type1 };
+            let ctx = CtxI::V1 { id, type1 };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i(ctx, spans);
+            let mut val = self.listener.init_i();
+            self.listener.exit_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::I(val));
         }
 
@@ -4223,8 +4210,9 @@ pub(crate) mod rules_222_1 {
             let type1 = self.stack.pop().unwrap().get_type();
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxI::V1 { id, type1 };
-            let spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 5 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::I(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i(acc, ctx, spans);
         }
@@ -4291,11 +4279,9 @@ pub(crate) mod rules_222_1 {
                 SynA(values)
             }
 
-            fn init_i(&mut self, ctx: InitCtxI, spans: Vec<PosSpan>) -> SynI {
-                if self.show_calls { println!("init_i({ctx:?}, [{}])", spans.iter().map(|s| s.to_string()).join(", ")); }
-                let InitCtxI::V1 { id, type1: SynType(type1) } = ctx;
-                self.spans.push(spans.iter().map(PosSpan::to_string).join(", "));
-                SynI(vec![(id, type1)])
+            fn init_i(&mut self) -> SynI {
+                if self.show_calls { println!("init_i()"); }
+                SynI(vec![])
             }
 
             fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
@@ -4321,7 +4307,7 @@ pub(crate) mod rules_222_1 {
             let sequences = vec![
                 (
                     "a ( b : bt , c : ct )", false, Some("a"),
-                    vec!["1:3, 1:4, 1:5", "1:3-5, 1:6, 1:7, 1:8, 1:9", "1:1, 1:2, 1:3-9, 1:10"],
+                    vec!["1:3, 1:4, 1:5", "1:7, 1:8, 1:9", "1:1, 1:2, 1:3-9, 1:10"],
                     Some(vec![("b", "bt"), ("c", "ct")])
                 ),
                 ("x", true, None, vec![], None),

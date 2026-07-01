@@ -1325,11 +1325,6 @@ pub mod pandemonium_parser {
         V1 { id: String, plus: SynLSepListI },
     }
     #[derive(Debug)]
-    pub enum InitCtxLSepListI {
-        /// first `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
-        V1 { id: String, num: String },
-    }
-    #[derive(Debug)]
     pub enum CtxLSepListI {
         /// `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
         V1 { id: String, num: String },
@@ -1340,11 +1335,6 @@ pub mod pandemonium_parser {
         V1 { id: String, plus: SynLSepListOptI },
         /// `l_sep_list_opt -> Id "=" ";"`
         V2 { id: String },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxLSepListOptI {
-        /// first `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-        V1 { id: String, num: String },
     }
     #[derive(Debug)]
     pub enum CtxLSepListOptI {
@@ -1523,11 +1513,6 @@ pub mod pandemonium_parser {
         V1 { id: String, plus: SynNvLSepListI },
     }
     #[derive(Debug)]
-    pub enum InitCtxNvLSepListI {
-        /// first `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
-        V1,
-    }
-    #[derive(Debug)]
     pub enum CtxNvLSepListI {
         /// `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
         V1,
@@ -1538,11 +1523,6 @@ pub mod pandemonium_parser {
         V1 { id: String, plus: SynNvLSepListOptI },
         /// `nv_l_sep_list_opt -> Id "=" ";"`
         V2 { id: String },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxNvLSepListOptI {
-        /// first `<L> "*" / "," "then"` iteration in `nv_l_sep_list_opt -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-        V1,
     }
     #[derive(Debug)]
     pub enum CtxNvLSepListOptI {
@@ -1868,13 +1848,13 @@ pub mod pandemonium_parser {
         fn exit_sep_list_opt(&mut self, ctx: CtxSepListOpt, spans: Vec<PosSpan>) -> SynSepListOpt;
         fn init_l_sep_list(&mut self) {}
         fn exit_l_sep_list(&mut self, ctx: CtxLSepList, spans: Vec<PosSpan>) -> SynLSepList;
-        fn init_l_sep_list_i(&mut self, ctx: InitCtxLSepListI, spans: Vec<PosSpan>) -> SynLSepListI;
+        fn init_l_sep_list_i(&mut self) -> SynLSepListI;
         fn exit_l_sep_list_i(&mut self, acc: &mut SynLSepListI, ctx: CtxLSepListI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_l_sep_list_i(&mut self, acc: &mut SynLSepListI) {}
         fn init_l_sep_list_opt(&mut self) {}
         fn exit_l_sep_list_opt(&mut self, ctx: CtxLSepListOpt, spans: Vec<PosSpan>) -> SynLSepListOpt;
-        fn init_l_sep_list_opt_i(&mut self, ctx: InitCtxLSepListOptI, spans: Vec<PosSpan>) -> SynLSepListOptI;
+        fn init_l_sep_list_opt_i(&mut self) -> SynLSepListOptI;
         fn exit_l_sep_list_opt_i(&mut self, acc: &mut SynLSepListOptI, ctx: CtxLSepListOptI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_l_sep_list_opt_i(&mut self, acc: &mut SynLSepListOptI) {}
@@ -1930,13 +1910,13 @@ pub mod pandemonium_parser {
         fn exit_nv_sep_list_opt(&mut self, ctx: CtxNvSepListOpt, spans: Vec<PosSpan>) -> SynNvSepListOpt;
         fn init_nv_l_sep_list(&mut self) {}
         fn exit_nv_l_sep_list(&mut self, ctx: CtxNvLSepList, spans: Vec<PosSpan>) -> SynNvLSepList;
-        fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) -> SynNvLSepListI;
+        fn init_nv_l_sep_list_i(&mut self) -> SynNvLSepListI;
         fn exit_nv_l_sep_list_i(&mut self, acc: &mut SynNvLSepListI, ctx: CtxNvLSepListI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_nv_l_sep_list_i(&mut self, acc: &mut SynNvLSepListI) {}
         fn init_nv_l_sep_list_opt(&mut self) {}
         fn exit_nv_l_sep_list_opt(&mut self, ctx: CtxNvLSepListOpt, spans: Vec<PosSpan>) -> SynNvLSepListOpt;
-        fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) -> SynNvLSepListOptI;
+        fn init_nv_l_sep_list_opt_i(&mut self) -> SynNvLSepListOptI;
         fn exit_nv_l_sep_list_opt_i(&mut self, acc: &mut SynNvLSepListOptI, ctx: CtxNvLSepListOptI, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_nv_l_sep_list_opt_i(&mut self, acc: &mut SynNvLSepListOptI) {}
@@ -2825,10 +2805,11 @@ pub mod pandemonium_parser {
         fn init_l_sep_list_i(&mut self) {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxLSepListI::V1 { id, num };
+            let ctx = CtxLSepListI::V1 { id, num };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_l_sep_list_i(ctx, spans);
+            let mut val = self.listener.init_l_sep_list_i();
+            self.listener.exit_l_sep_list_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::LSepListI(val));
         }
 
@@ -2836,8 +2817,9 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxLSepListI::V1 { id, num };
-            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..3);
             let Some(EnumSynValue::LSepListI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_sep_list_i(acc, ctx, spans);
         }
@@ -2869,10 +2851,11 @@ pub mod pandemonium_parser {
         fn init_l_sep_list_opt_i(&mut self) {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
-            let ctx = InitCtxLSepListOptI::V1 { id, num };
+            let ctx = CtxLSepListOptI::V1 { id, num };
             let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_l_sep_list_opt_i(ctx, spans);
+            let mut val = self.listener.init_l_sep_list_opt_i();
+            self.listener.exit_l_sep_list_opt_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::LSepListOptI(val));
         }
 
@@ -2880,8 +2863,9 @@ pub mod pandemonium_parser {
             let num = self.stack_t.pop().unwrap();
             let id = self.stack_t.pop().unwrap();
             let ctx = CtxLSepListOptI::V1 { id, num };
-            let spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 6 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..3);
             let Some(EnumSynValue::LSepListOptI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_l_sep_list_opt_i(acc, ctx, spans);
         }
@@ -3369,17 +3353,19 @@ pub mod pandemonium_parser {
         }
 
         fn init_nv_l_sep_list_i(&mut self) {
-            let ctx = InitCtxNvLSepListI::V1;
+            let ctx = CtxNvLSepListI::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_nv_l_sep_list_i(ctx, spans);
+            let mut val = self.listener.init_nv_l_sep_list_i();
+            self.listener.exit_nv_l_sep_list_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::NvLSepListI(val));
         }
 
         fn exit_nv_l_sep_list_i(&mut self) {
             let ctx = CtxNvLSepListI::V1;
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..3);
             let Some(EnumSynValue::NvLSepListI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_nv_l_sep_list_i(acc, ctx, spans);
         }
@@ -3409,17 +3395,19 @@ pub mod pandemonium_parser {
         }
 
         fn init_nv_l_sep_list_opt_i(&mut self) {
-            let ctx = InitCtxNvLSepListOptI::V1;
+            let ctx = CtxNvLSepListOptI::V1;
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_nv_l_sep_list_opt_i(ctx, spans);
+            let mut val = self.listener.init_nv_l_sep_list_opt_i();
+            self.listener.exit_nv_l_sep_list_opt_i(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::NvLSepListOptI(val));
         }
 
         fn exit_nv_l_sep_list_opt_i(&mut self) {
             let ctx = CtxNvLSepListOptI::V1;
-            let spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 4 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..3);
             let Some(EnumSynValue::NvLSepListOptI(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_nv_l_sep_list_opt_i(acc, ctx, spans);
         }

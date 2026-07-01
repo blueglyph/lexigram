@@ -222,21 +222,15 @@ mod listener {
             plus
         }
 
-        fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
-            // value of `io_option` before `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
-            let InitCtxIIoOpt::V1 { io_option } = ctx;
-            let mut acc = SynIIoOpt::new();
-            if let Err(e) = acc.fold(io_option) {
-                self.log.add_error(format!("at {}, {e}", spans[0]));
-            }
-            acc
+        fn init_i_io_opt(&mut self) -> SynIIoOpt {
+            SynIIoOpt::new()
         }
 
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>) {
             // `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
             let CtxIIoOpt::V1 { io_option } = ctx;
             if let Err(e) = acc.fold(io_option) {
-                self.log.add_error(format!("at {}, {e}", spans[2]));
+                self.log.add_error(format!("at {}, {e}", spans[0]));
             }
         }
 
@@ -340,19 +334,15 @@ mod listener {
             plus
         }
 
-        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
-            // value of `global_option` before `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
-            let InitCtxIGlobalOpt::V1 { global_option } = ctx;
-            let mut acc = SynGlobalOptions::new();
-            acc.fold(global_option);
-            acc
+        fn init_i_global_opt(&mut self) -> SynIGlobalOpt {
+            SynGlobalOptions::new()
         }
 
         fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>) {
             // `<L> "," global_option` iteration in `global_options -> global_option ( ►► <L> "," global_option ◄◄ )*`
             let CtxIGlobalOpt::V1 { global_option } = ctx;
             if let Err(e) = acc.fold(global_option) {
-                self.log.add_error(format!("at {}, {e}", spans[2]));
+                self.log.add_error(format!("at {}, {e}", spans[0]));
             }
         }
 
@@ -984,11 +974,6 @@ mod config_parser {
         V1 { plus: SynIIoOpt },
     }
     #[derive(Debug)]
-    pub enum InitCtxIIoOpt {
-        /// first `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
-        V1 { io_option: SynIoOption },
-    }
-    #[derive(Debug)]
     pub enum CtxIIoOpt {
         /// `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
         V1 { io_option: SynIoOption },
@@ -1017,11 +1002,6 @@ mod config_parser {
     pub enum CtxGlobalOptions {
         /// `global_options -> (<L> global_option / ",")+`
         V1 { plus: SynIGlobalOpt },
-    }
-    #[derive(Debug)]
-    pub enum InitCtxIGlobalOpt {
-        /// first `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
-        V1 { global_option: SynGlobalOption },
     }
     #[derive(Debug)]
     pub enum CtxIGlobalOpt {
@@ -1164,7 +1144,7 @@ mod config_parser {
         fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {}
         fn init_io_options(&mut self) {}
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions;
-        fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt;
+        fn init_i_io_opt(&mut self) -> SynIIoOpt;
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i_io_opt(&mut self, acc: &mut SynIIoOpt) {}
@@ -1174,7 +1154,7 @@ mod config_parser {
         fn exit_tag_opt(&mut self, ctx: CtxTagOpt, spans: Vec<PosSpan>) -> SynTagOpt;
         fn init_global_options(&mut self) {}
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions;
-        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt;
+        fn init_i_global_opt(&mut self) -> SynIGlobalOpt;
         fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>);
         #[allow(unused_variables)]
         fn exitloop_i_global_opt(&mut self, acc: &mut SynIGlobalOpt) {}
@@ -1432,18 +1412,20 @@ mod config_parser {
 
         fn init_i_io_opt(&mut self) {
             let io_option = self.stack.pop().unwrap().get_io_option();
-            let ctx = InitCtxIIoOpt::V1 { io_option };
+            let ctx = CtxIIoOpt::V1 { io_option };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i_io_opt(ctx, spans);
+            let mut val = self.listener.init_i_io_opt();
+            self.listener.exit_i_io_opt(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::IIoOpt(val));
         }
 
         fn exit_i_io_opt(&mut self) {
             let io_option = self.stack.pop().unwrap().get_io_option();
             let ctx = CtxIIoOpt::V1 { io_option };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::IIoOpt(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i_io_opt(acc, ctx, spans);
         }
@@ -1531,18 +1513,20 @@ mod config_parser {
 
         fn init_i_global_opt(&mut self) {
             let global_option = self.stack.pop().unwrap().get_global_option();
-            let ctx = InitCtxIGlobalOpt::V1 { global_option };
+            let ctx = CtxIGlobalOpt::V1 { global_option };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            let val = self.listener.init_i_global_opt(ctx, spans);
+            let mut val = self.listener.init_i_global_opt();
+            self.listener.exit_i_global_opt(&mut val, ctx, spans);
             self.stack.push(EnumSynValue::IGlobalOpt(val));
         }
 
         fn exit_i_global_opt(&mut self) {
             let global_option = self.stack.pop().unwrap().get_global_option();
             let ctx = CtxIGlobalOpt::V1 { global_option };
-            let spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
             let Some(EnumSynValue::IGlobalOpt(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i_global_opt(acc, ctx, spans);
         }

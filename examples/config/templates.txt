@@ -103,9 +103,7 @@
             SynIoOptions()
         }
 
-        fn init_i_io_opt(&mut self, ctx: InitCtxIIoOpt, spans: Vec<PosSpan>) -> SynIIoOpt {
-            // value of `io_option` before `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
-            let InitCtxIIoOpt::V1 { io_option } = ctx;
+        fn init_i_io_opt(&mut self) -> SynIIoOpt {
             SynIIoOpt()
         }
 
@@ -146,9 +144,7 @@
             SynGlobalOptions()
         }
 
-        fn init_i_global_opt(&mut self, ctx: InitCtxIGlobalOpt, spans: Vec<PosSpan>) -> SynIGlobalOpt {
-            // value of `global_option` before `<L> global_option / ","` iteration in `global_options -> ( ►► <L> global_option / "," ◄◄ )+`
-            let InitCtxIGlobalOpt::V1 { global_option } = ctx;
+        fn init_i_global_opt(&mut self) -> SynIGlobalOpt {
             SynIGlobalOpt()
         }
 

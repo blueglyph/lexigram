@@ -211,9 +211,7 @@ impl PandemoniumListener for Listener {
         SynLSepList()
     }
 
-    fn init_l_sep_list_i(&mut self, ctx: InitCtxLSepListI, spans: Vec<PosSpan>) -> SynLSepListI {
-        // value of `Id Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
-        let InitCtxLSepListI::V1 { id, num } = ctx;
+    fn init_l_sep_list_i(&mut self) -> SynLSepListI {
         SynLSepListI()
     }
 
@@ -232,9 +230,7 @@ impl PandemoniumListener for Listener {
         SynLSepListOpt()
     }
 
-    fn init_l_sep_list_opt_i(&mut self, ctx: InitCtxLSepListOptI, spans: Vec<PosSpan>) -> SynLSepListOptI {
-        // value of `Id Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-        let InitCtxLSepListOptI::V1 { id, num } = ctx;
+    fn init_l_sep_list_opt_i(&mut self) -> SynLSepListOptI {
         SynLSepListOptI()
     }
 
@@ -468,7 +464,7 @@ impl PandemoniumListener for Listener {
         SynNvLSepList()
     }
 
-    fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) -> SynNvLSepListI {
+    fn init_nv_l_sep_list_i(&mut self) -> SynNvLSepListI {
         SynNvLSepListI()
     }
 
@@ -487,7 +483,7 @@ impl PandemoniumListener for Listener {
         SynNvLSepListOpt()
     }
 
-    fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) -> SynNvLSepListOptI {
+    fn init_nv_l_sep_list_opt_i(&mut self) -> SynNvLSepListOptI {
         SynNvLSepListOptI()
     }
 
