@@ -149,7 +149,9 @@ struct WrapperSources {
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ParserType {
+    /// Top-down, non-recursive LL(1) parser
     LL1,
+    /// Bottom-up, LALR(1) parser
     LALR,
 }
 
@@ -232,16 +234,20 @@ pub struct ParserGen {
 }
 
 impl ParserGen {
-    /// Creates a [ParserGen] from a set of production rules and gives it a specific name, which is used
-    /// to name the user listener trait in the generated code.
+    /// Creates a [ParserGen] from a set of LL(1) production rules.
     ///
-    /// If `rules` already has a name, it is best to use the
-    /// [`BuildFrom<ProdRuleSet<T>>`](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn build_from_rules_ll1<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
+    /// `rules` must contain a name, which is used to name the user listener trait in the generated code.
+    pub fn build_from_rules_ll1<T>(mut rules: ProdRuleSet<T>) -> Self
     where
         ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
     {
         rules.log.add_note("building parser gen from rules...");
+        let name = rules.get_name()
+            .and_then(|n| Some(n.clone()))
+            .unwrap_or_else(|| {
+                rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
+                "Test".to_string()
+            });
         let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.make_parsing_table(true);
@@ -292,16 +298,20 @@ impl ParserGen {
         builder
     }
 
-    /// Creates a [ParserGen] from a set of production rules and gives it a specific name, which is used
-    /// to name the user listener trait in the generated code.
+    /// Creates a [ParserGen] from a set of LR production rules.
     ///
-    /// If `rules` already has a name, it is best to use the
-    /// [`BuildFrom<ProdRuleSet<T>>`](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn build_from_rules_lr<T>(mut rules: ProdRuleSet<T>, name: String) -> Self
+    /// `rules` must contain a name, which is used to name the user listener trait in the generated code.
+    pub fn build_lalr_from_rules_lr<T>(mut rules: ProdRuleSet<T>) -> Self
     where
         ProdRuleSet<LR>: BuildFrom<ProdRuleSet<T>>,
     {
         rules.log.add_note("building parser gen from rules...");
+        let name = rules.get_name()
+            .and_then(|n| Some(n.clone()))
+            .unwrap_or_else(|| {
+                rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
+                "Test".to_string()
+            });
         let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
         assert_eq!(lr_rules.get_log().num_errors(), 0);
         let parsing_table = lr_rules.make_parsing_table_lalr();
@@ -3373,9 +3383,8 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
     /// If the rule set has a name, it's transmitted to the parser generator to name the user
     /// listener trait in the generated code. If the rule set has no name, a default "Parser" name
     /// is used instead (unless the name is set with [`ParserGen::set_name()`].
-    fn build_from(mut rules: ProdRuleSet<T>) -> Self {
-        let name = rules.name.take().unwrap_or(DEFAULT_LISTENER_NAME.to_string());
-        ParserGen::build_from_rules_ll1(rules, name)
+    fn build_from(rules: ProdRuleSet<T>) -> Self {
+        ParserGen::build_from_rules_ll1(rules)
     }
 }
 

@@ -8,9 +8,9 @@ use std::fmt::{Display, Formatter};
 use lexigram_lib::build::{BuildError, BuildErrorSource, TryBuildFrom, TryBuildInto};
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::lexergen::{LexerGen, LexerGenOptions};
-use lexigram_lib::{file_utils, LL1};
+use lexigram_lib::{file_utils, General, LL1, LR};
 use lexigram_lib::log::{BufLog, LogReader, Logger};
-use lexigram_lib::parsergen::ParserGen;
+use lexigram_lib::parsergen::{ParserGen, ParserType};
 use lexigram_lib::file_utils::{DiffResult, SrcTagError};
 use lexigram_lib::lexer::Pos;
 use crate::{Gram, Lexi};
@@ -82,10 +82,19 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
             log.add_error(s);
             return Err(BuildError::new(log, BuildErrorSource::Gram));
         }
-        let ll1 = ProdRuleSet::<LL1>::try_build_from(gram)?;
+        let general = ProdRuleSet::<General>::try_build_from(gram)?;
+        let mut builder = match options.parser_type {
+            ParserType::LL1 => {
+                let ll1 = ProdRuleSet::<LL1>::try_build_from(general)?;
+                ParserGen::build_from_rules_ll1(ll1)
+            }
+            ParserType::LALR => {
+                let lr = ProdRuleSet::<LR>::try_build_from(general)?;
+                ParserGen::build_lalr_from_rules_lr(lr)
+            }
+        };
 
         // - generates Lexi's parser source code (parser + listener):
-        let mut builder = ParserGen::try_build_from(ll1)?;
         builder.set_options(options.into());
         builder.set_terminal_hooks(terminal_hooks);
         let (parser_log, parser_src, types_src, listener_src) = builder.try_gen_source_code()?;

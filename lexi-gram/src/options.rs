@@ -553,6 +553,14 @@ impl OptionsBuilder {
         self
     }
 
+    /// Sets the type of the generated parser.
+    ///
+    /// Default: [ParserType::LL1]
+    pub fn parser_type(&mut self, parser_type: ParserType) -> &mut Self {
+        self.options.parser_type = parser_type;
+        self
+    }
+
     /// Enables ANSI colour codes in log and stdout.
     ///
     /// Default: true

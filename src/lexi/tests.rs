@@ -278,7 +278,7 @@ fn write_lexiparser_source(replace_source: bool) {
         }
     }
     assert_eq!(rules.get_log().num_errors(), 0);
-    let ll1 = ProdRuleSet::<LL1>::build_from(rules);
+    let mut ll1 = ProdRuleSet::<LL1>::build_from(rules);
     if VERBOSE {
         if !ll1.get_log().is_empty() {
             println!("messages PRS<LL1>: {}", ll1.get_log().get_messages_str());
@@ -291,7 +291,8 @@ fn write_lexiparser_source(replace_source: bool) {
         }
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
-    let mut builder = ParserGen::build_from_rules_ll1(ll1, "LexiParser".to_string());
+    ll1.set_name("LexiParser".to_string());
+    let mut builder = ParserGen::build_from_rules_ll1(ll1);
     for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
         // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
         if builder.get_nt_parent(v).is_none() {

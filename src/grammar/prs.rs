@@ -198,8 +198,8 @@ impl<T> ProdRuleSet<T> {
         self.name.as_ref()
     }
 
-    pub fn set_name(&mut self, name: Option<String>) {
-        self.name = name;
+    pub fn set_name(&mut self, name: String) {
+        self.name = Some(name);
     }
 
     /// Returns a variable ID that doesn't exist yet.

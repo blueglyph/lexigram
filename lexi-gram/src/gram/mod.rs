@@ -9,7 +9,7 @@ use lexigram_lib::lexer::{CaretCol, Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto};
 use lexigram_lib::parser::LLParser;
-use lexigram_lib::{General, SymbolTable, LL1};
+use lexigram_lib::{General, SymbolTable, LL1, LR};
 use std::io::Cursor;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 
@@ -109,13 +109,13 @@ impl HasBuildErrorSource for Gram<'_, '_, '_> {
     const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
 }
 
-impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
-    /// Produces a [`ProdRuleSet<LL1>`] from a [`Gram`], by parsing the grammar
-    /// and creating the rule set, then transforming the result if necessary for an LL1 grammar.
+impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<General> {
+    /// Produces a [`ProdRuleSet<General>`] from a [`Gram`], by parsing the grammar
+    /// and creating the rule set.
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn build_from(mut gram: Gram<'l, 'p, 'ls>) -> ProdRuleSet<LL1> {
+    fn build_from(mut gram: Gram<'l, 'p, 'ls>) -> ProdRuleSet<General> {
         let _ = gram.make();
         let mut listener = gram.wrapper.give_listener();
         let name = listener.get_name().to_string();
@@ -128,7 +128,31 @@ impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
             }
         }
         let mut prs = ProdRuleSet::<General>::from(listener);
-        prs.set_name(Some(name));
+        prs.set_name(name);
+        prs
+    }
+}
+
+impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LL1> {
+    /// Produces a [`ProdRuleSet<LL1>`] from a [`Gram`], by parsing the grammar
+    /// and creating the rule set, then transforming the result if necessary for an LL1 grammar.
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(gram: Gram<'l, 'p, 'ls>) -> ProdRuleSet<LL1> {
+        let prs = ProdRuleSet::<General>::build_from(gram);
+        prs.build_into()
+    }
+}
+
+impl<'l, 'p, 'ls: 'l> BuildFrom<Gram<'l, 'p, 'ls>> for ProdRuleSet<LR> {
+    /// Produces a [`ProdRuleSet<LR>`] from a [`Gram`], by parsing the grammar
+    /// and creating the rule set, then transforming the result if necessary for an LR grammar.
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(gram: Gram<'l, 'p, 'ls>) -> ProdRuleSet<LR> {
+        let prs = ProdRuleSet::<General>::build_from(gram);
         prs.build_into()
     }
 }

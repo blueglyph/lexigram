@@ -6,7 +6,7 @@ use lexi_gram::{gencode, genspec};
 use lexi_gram::lexigram_lib::CollectJoin;
 use lexi_gram::lexigram_lib::lexer::CaretCol;
 use lexi_gram::lexigram_lib::lexergen::LexigramCrate;
-use lexi_gram::lexigram_lib::parsergen::NTValue;
+use lexi_gram::lexigram_lib::parsergen::{NTValue, ParserType};
 use lexi_gram::options::{Action, CodeLocation, Options, OptionsBuilder, Specification};
 use crate::{ExeAnsi, ExeError};
 
@@ -127,7 +127,7 @@ Other options related to the generated code:
                             which have a value are included in the contexts and must be
                             given a value in the corresponding exit callback.
 
-                            The list of nonterminals is defined by the argument <type>
+                            The list of nonterminals is defined by the argument <type>:
 
                             - none: no nonterminal
                             - parents: only top parents
@@ -145,6 +145,13 @@ Other options related to the generated code:
                                 --nt_value set "<default>,-inst,-decl"
 
 General options:
+
+  -t|--type <type>          Specifies the type of the generated parser:
+
+                            - LL (or LL1): top-down, non-recursive LL(1) parser
+                            - LALR (or LALR1): bottom-up LALR(1) parser
+
+                            By default, a non-recursive LL(1) parser is generated.
 
   --ansi <off/on/passive>   ANSI colour option for the output log and messages.
                             - off: no ANSI colours
@@ -266,6 +273,15 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
                     .map_err(|e| ExeError::Option(format!("error while parsing --indent {indent}: {e}")))?;
                 builder.indent(indent_value);
             }
+            "-t" | "--type" => {
+                let arg = take_argument(&mut args, "missing argument for --type")?.to_ascii_uppercase();
+                let parser_type = match arg.as_str() {
+                    "LL" | "LL1" => ParserType::LL1,
+                    "LALR" | "LALR1" => ParserType::LALR,
+                    _ => return Err(ExeError::Option(format!("ERROR: incorrect type after --type: {arg}"))),
+                };
+                builder.parser_type(parser_type);
+            }
             "--ansi" => {
                 let ansi_str = take_argument(&mut args, "missing argument after --ansi")?.to_ascii_lowercase();
                 ansi = match ansi_str.as_str() {
@@ -313,8 +329,8 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
                 builder.set_crate(LexigramCrate::Custom(path.to_string()));
             }
             "--nt-value" => {
-                let nt_type = take_argument(&mut args, "missing argument after --nt-value")?;
-                let nt_value = match nt_type {
+                let nt_type = take_argument(&mut args, "missing argument after --nt-value")?.to_ascii_lowercase();
+                let nt_value = match nt_type.as_str() {
                     "none" => NTValue::None,
                     "parents" => NTValue::Parents,
                     "default" => NTValue::Default,

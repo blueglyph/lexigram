@@ -2982,8 +2982,9 @@ fn build_errors() {
     for &(tr_id, expected_errors) in TESTS {
         let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(0);
         if ll1_maybe.is_none() { continue }
-        let ll1 = ll1_maybe.unwrap();
-        let mut builder = ParserGen::build_from_rules_ll1(ll1, "Test".to_string());
+        let mut ll1 = ll1_maybe.unwrap();
+        ll1.set_name("Test".to_string());
+        let mut builder = ParserGen::build_from_rules_ll1(ll1);
         builder.set_gen_span_params(true);
         builder.set_nt_value(NTValue::Default);
         builder.set_gen_parser(true);
