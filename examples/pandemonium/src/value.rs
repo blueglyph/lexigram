@@ -108,9 +108,9 @@ static VALUES2: &[&str] = &[
     "[Sierra][*,then+]",
     "[Tango][a]",
     "[Uniform][b]",
-    "[Victor][2]",
-    "[Whiskey][0]",
-    "[Xray][1]",
+    "[Victor][3]",
+    "[Whiskey][1]",
+    "[Xray][2]",
     "[Yankee][-]",
 ];
 
@@ -451,10 +451,8 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLSepList()
     }
 
-    fn init_l_sep_list_i(&mut self, ctx: InitCtxLSepListI, spans: Vec<PosSpan>) -> SynLSepListI {
-        // value of `Id Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
-        let InitCtxLSepListI::V1 { id, num } = ctx;
-        SynLSepListI(vec![format!("<{id}:{num}>")])
+    fn init_l_sep_list_i(&mut self) -> SynLSepListI {
+        SynLSepListI(vec![])
     }
 
     fn exit_l_sep_list_i(&mut self, acc: &mut SynLSepListI, ctx: CtxLSepListI, spans: Vec<PosSpan>) {
@@ -478,10 +476,8 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynLSepListOpt()
     }
 
-    fn init_l_sep_list_opt_i(&mut self, ctx: InitCtxLSepListOptI, spans: Vec<PosSpan>) -> SynLSepListOptI {
-        // value of `Id Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-        let InitCtxLSepListOptI::V1 { id, num } = ctx;
-        SynLSepListOptI(vec![format!("<{id}/{num}>")])
+    fn init_l_sep_list_opt_i(&mut self) -> SynLSepListOptI {
+        SynLSepListOptI(vec![])
     }
 
     fn exit_l_sep_list_opt_i(&mut self, acc: &mut SynLSepListOptI, ctx: CtxLSepListOptI, spans: Vec<PosSpan>) {
@@ -748,8 +744,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynNvLSepList()
     }
 
-    fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) -> SynNvLSepListI {
-        let InitCtxNvLSepListI::V1 = ctx;
+    fn init_nv_l_sep_list_i(&mut self) -> SynNvLSepListI {
         SynNvLSepListI(0)
     }
 
@@ -771,7 +766,7 @@ impl PandemoniumListener for PanDemoListener<'_> {
         SynNvLSepListOpt()
     }
 
-    fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) -> SynNvLSepListOptI {
+    fn init_nv_l_sep_list_opt_i(&mut self) -> SynNvLSepListOptI {
         SynNvLSepListOptI(0)
     }
 

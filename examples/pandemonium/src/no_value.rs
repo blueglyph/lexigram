@@ -238,11 +238,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
         let CtxLSepList::V1 { id } = ctx;
     }
 
-    fn init_l_sep_list_i(&mut self, ctx: InitCtxLSepListI, spans: Vec<PosSpan>) {
-        // value of `Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
-        let InitCtxLSepListI::V1 { id, num } = ctx;
-    }
-
     fn exit_l_sep_list_i(&mut self, ctx: CtxLSepListI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_l_sep_list_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
@@ -257,11 +252,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
             // l_sep_list_opt -> Id "=" ";"
             CtxLSepListOpt::V2 { id } => {}
         }
-    }
-
-    fn init_l_sep_list_opt_i(&mut self, ctx: InitCtxLSepListOptI, spans: Vec<PosSpan>) {
-        // value of `Num` before `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
-        let InitCtxLSepListOptI::V1 { id, num } = ctx;
     }
 
     fn exit_l_sep_list_opt_i(&mut self, ctx: CtxLSepListOptI, spans: Vec<PosSpan>) {
@@ -442,9 +432,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
         let CtxNvLSepList::V1 { id } = ctx;
     }
 
-    fn init_nv_l_sep_list_i(&mut self, ctx: InitCtxNvLSepListI, spans: Vec<PosSpan>) {
-    }
-
     fn exit_nv_l_sep_list_i(&mut self, ctx: CtxNvLSepListI, spans: Vec<PosSpan>) {
         self.spans.push(format!("exit_nv_l_sep_list_i({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         // `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
@@ -459,9 +446,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
             // nv_l_sep_list_opt -> Id "=" ";"
             CtxNvLSepListOpt::V2 { id } => {}
         }
-    }
-
-    fn init_nv_l_sep_list_opt_i(&mut self, ctx: InitCtxNvLSepListOptI, spans: Vec<PosSpan>) {
     }
 
     fn exit_nv_l_sep_list_opt_i(&mut self, ctx: CtxNvLSepListOptI, spans: Vec<PosSpan>) {
