@@ -172,7 +172,7 @@ impl ProdRuleSet<LR> {
         self.closure_lr0(s)
     }
 
-    pub fn calc_states_lr0(&self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
+    fn calc_states_lr0(&self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
         const VERBOSE: bool = false;
         let top_nt = self.start.unwrap();
         let mut states = vec![self.closure_lr0(vec![item!(top_nt, 0)])];

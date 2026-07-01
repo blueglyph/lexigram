@@ -323,7 +323,6 @@ impl ParserGen {
         let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = lr_rules;
         let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
-
         let mut builder = ParserGen {
             num_nt: parsing_table.num_nt,
             num_t_full: parsing_table.num_t_full,
@@ -368,15 +367,19 @@ impl ParserGen {
             let top_var_id = self.get_top_parent(var_id as VarId) as usize;
             self.nt_parent[top_var_id].push(var_id as VarId);
         }
-        self.apply_options();
-        self.calc_opcodes();
-        self.calc_span_nbrs();
     }
 
     pub fn set_options(&mut self, options: ParserGenOptions) {
         assert_eq!(options.parser_type, self.options.parser_type, "incompatible parser type");
         self.options = options;
+    }
+
+    /// To call after all options are set and before generating the source code
+    fn pre_calc_data(&mut self) {
         self.apply_options();
+        self.calc_opcodes();
+        self.add_opcode_hooks();
+        self.calc_span_nbrs();
     }
 
     /// Sets internal values accordingly to the options
@@ -403,7 +406,6 @@ impl ParserGen {
             self.options.gen_token_enums = true;
         }
         self.terminal_hooks = terminal_hooks;
-        self.add_opcode_hooks();
     }
 
     #[inline]
@@ -896,6 +898,7 @@ impl ParserGen {
     fn add_opcode_hooks(&mut self) {
         const VERBOSE: bool = false;
         if !self.options.parser_type.is_ll() { return }
+        assert!(!self.opcodes.is_empty(), "opcodes haven't been calculated");
         self.log.add_note("- adding hooks into opcodes...");
         let hooks: HashSet<TokenId> = self.terminal_hooks.iter().cloned().collect();
         let num_nt = self.num_nt;
@@ -1730,6 +1733,7 @@ impl ParserGen {
     /// * the indented source of the template for the user types
     /// * the indented source of the template for the listener implementation
     pub fn gen_source_code(&mut self) -> (String, String, String) {
+        self.pre_calc_data();
         self.log.add_note("generating source code...");
         if !self.log.has_no_errors() {
             return (String::new(), String::new(), String::new());

@@ -68,7 +68,8 @@ impl LLParserTables {
 impl BuildFrom<ParserGen> for LLParserTables {
     /// Creates a [`LLParserTables`], from which a parser can be created dynamically with
     /// [`parser_table.make_parser()`](LLParserTables::make_parser).
-    fn build_from(parser_gen: ParserGen) -> Self {
+    fn build_from(mut parser_gen: ParserGen) -> Self {
+        parser_gen.pre_calc_data();
         if !parser_gen.has_no_errors() {
             panic!("creation of LL parser tables failed:{}", parser_gen.log);
         }
