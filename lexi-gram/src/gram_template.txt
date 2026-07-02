@@ -46,8 +46,12 @@ impl GramParserListener for Listener {
     }
 
     fn exit_rule_name(&mut self, ctx: CtxRuleName, spans: Vec<PosSpan>) -> SynRuleName {
-        // rule_name -> Id
-        let CtxRuleName::V1 { id } = ctx;
+        match ctx {
+            // rule_name -> "<resolve>" Id
+            CtxRuleName::V1 { id } => {}
+            // rule_name -> Id
+            CtxRuleName::V2 { id } => {}
+        }
         SynRuleName()
     }
 

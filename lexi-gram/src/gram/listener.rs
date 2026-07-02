@@ -11,6 +11,7 @@ use lexigram_lib::{General, SymbolTable, VarId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
+use lexigram_lib::alt::ruleflag;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 use lexigram_lib::lexer::PosSpan;
@@ -28,6 +29,7 @@ pub struct GramListener<'ls> {
     curr_nt: Option<VarId>,
     stack_lform: Vec<PosSpan>,
     rules: Vec<VecTree<GrNode>>,
+    nt_flags: Vec<(VarId, u32)>,
     start_nt: Option<VarId>,
     disable_warning_unused_nt_t: bool,
     symbol_table: SymbolTable,
@@ -66,6 +68,7 @@ impl<'ls> GramListener<'ls> {
             curr_nt: None,
             stack_lform: Vec::new(),
             rules: Vec::new(),
+            nt_flags: Vec::new(),
             start_nt: None,
             disable_warning_unused_nt_t: false,
             symbol_table,
@@ -198,6 +201,9 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
         if no_error {
             for (v, rule) in gram_listener.rules.into_iter().index::<VarId>() {
                 rts.set_tree(v, rule);
+            }
+            for (var, flags) in gram_listener.nt_flags {
+                rts.set_flags(var, flags);
             }
             rts.set_symbol_table(gram_listener.symbol_table);
         }
@@ -345,13 +351,21 @@ impl GramParserListener for GramListener<'_> {
     // ;
     fn exit_rule_name(&mut self, ctx: CtxRuleName, _spans: Vec<PosSpan>) -> SynRuleName {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
-        let CtxRuleName::V1 { id: name } = ctx;
+        let (name, has_resolve) = match ctx {
+            // rule_name -> "<resolve>" Id
+            CtxRuleName::V1 { id } => (id, true),
+            // rule_name -> Id
+            CtxRuleName::V2 { id } => (id, false),
+        };
         self.curr_name = Some(name.clone());
         let Some(nt) = self.add_nt_symbol(&name) else {
             self.abort = Terminate::Abort;
             return SynRuleName(String::new());
         };
         self.curr_nt = Some(nt);
+        if has_resolve {
+            self.nt_flags.push((nt, ruleflag::RESOLVE_CONFLICT));
+        }
         if self.start_nt.is_none() {
             // the start rule is the first to be defined
             self.start_nt = Some(nt);

@@ -26,5 +26,6 @@ Lform           : '<L' ('=' ID)? '>';
 Rform           : '<R>';
 Pform           : '<P>';
 Greedy          : '<G>';
+ResolveTag      : '<resolve>';
 
 Id              : ID;

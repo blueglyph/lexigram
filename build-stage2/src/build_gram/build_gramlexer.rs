@@ -11,23 +11,24 @@ use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 // -------------------------------------------------------------------------
 // [terminal_symbols]
 
-static TERMINALS: [(&str, Option<&str>); 16] = [
-    ("Colon",    Some(":")),       // 0
-    ("Lparen",   Some("(")),       // 1
-    ("Or",       Some("|")),       // 2
-    ("Plus",     Some("+")),       // 3
-    ("Question", Some("?")),       // 4
-    ("Rparen",   Some(")")),       // 5
-    ("Semicolon",Some(";")),       // 6
-    ("Sep",      Some("/")),       // 7
-    ("Star",     Some("*")),       // 8
-    ("Grammar",  Some("grammar")), // 9
-    ("SymEof",   Some("EOF")),     // 10
-    ("Lform",    None),            // 11
-    ("Rform",    Some("<R>")),     // 12
-    ("Pform",    Some("<P>")),     // 13
-    ("Greedy",   Some("<G>")),     // 14
-    ("Id",       None),            // 15
+static TERMINALS: [(&str, Option<&str>); 17] = [
+    ("Colon",     Some(":")),         // 0
+    ("Lparen",    Some("(")),         // 1
+    ("Or",        Some("|")),         // 2
+    ("Plus",      Some("+")),         // 3
+    ("Question",  Some("?")),         // 4
+    ("Rparen",    Some(")")),         // 5
+    ("Semicolon", Some(";")),         // 6
+    ("Sep",       Some("/")),         // 7
+    ("Star",      Some("*")),         // 8
+    ("Grammar",   Some("grammar")),   // 9
+    ("SymEof",    Some("EOF")),       // 10
+    ("Lform",     None),              // 11
+    ("Rform",     Some("<R>")),       // 12
+    ("Pform",     Some("<P>")),       // 13
+    ("Greedy",    Some("<G>")),       // 14
+    ("ResolveTag",Some("<resolve>")), // 15
+    ("Id",        None),              // 16
 ];
 
 // [terminal_symbols]
@@ -49,53 +50,61 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
 
     let dfa_tables = DfaTables::new(
         btreemap![
-            0 => branch!('\t'-'\n', '\r', ' ' => 10, '(' => 11, ')' => 12, '*' => 13, '+' => 14, '/' => 15, ':' => 16, ';' => 17, '<' => 1, '?' => 18, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 19, 'E' => 20, 'g' => 21, '|' => 22),
-            1 => branch!('G' => 4, 'L' => 5, 'P' => 6, 'R' => 7),
+            0 => branch!('\t'-'\n', '\r', ' ' => 17, '(' => 18, ')' => 19, '*' => 20, '+' => 21, '/' => 22, ':' => 23, ';' => 24, '<' => 1, '?' => 25, 'A'-'D', 'F'-'Z', 'a'-'f', 'h'-'z' => 26, 'E' => 27, 'g' => 28, '|' => 29),
+            1 => branch!('G' => 4, 'L' => 5, 'P' => 6, 'R' => 7, 'r' => 8),
             2 => branch!(~['*'] => 2, ['*'] => 3),
-            3 => branch!(~['*', '/'] => 2, ['*'] => 3, ['/'] => 24),
-            4 => branch!('>' => 36),
-            5 => branch!('=' => 8, '>' => 33),
-            6 => branch!('>' => 35),
-            7 => branch!('>' => 34),
-            8 => branch!('A'-'Z', 'a'-'z' => 9),
-            9 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 33),
-            10 => branch!('\t'-'\n', '\r', ' ' => 10),
-            11 => branch!(),
-            12 => branch!(),
-            13 => branch!(),
-            14 => branch!(),
-            15 => branch!('*' => 2, '/' => 23),
-            16 => branch!(),
-            17 => branch!(),
+            3 => branch!(~['*', '/'] => 2, ['*'] => 3, ['/'] => 31),
+            4 => branch!('>' => 43),
+            5 => branch!('=' => 9, '>' => 40),
+            6 => branch!('>' => 42),
+            7 => branch!('>' => 41),
+            8 => branch!('e' => 11),
+            9 => branch!('A'-'Z', 'a'-'z' => 10),
+            10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 40),
+            11 => branch!('s' => 12),
+            12 => branch!('o' => 13),
+            13 => branch!('l' => 14),
+            14 => branch!('v' => 16),
+            15 => branch!('>' => 44),
+            16 => branch!('e' => 15),
+            17 => branch!('\t'-'\n', '\r', ' ' => 17),
             18 => branch!(),
-            19 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
-            20 => branch!('0'-'9', 'A'-'N', 'P'-'Z', '_', 'a'-'z' => 19, 'O' => 31),
-            21 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 19, 'r' => 25),
-            22 => branch!(),
-            23 => branch!(~['\n', '\r'] => 23),
+            19 => branch!(),
+            20 => branch!(),
+            21 => branch!(),
+            22 => branch!('*' => 2, '/' => 30),
+            23 => branch!(),
             24 => branch!(),
-            25 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 19, 'a' => 26),
-            26 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 19, 'm' => 27),
-            27 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 19, 'm' => 28),
-            28 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 19, 'a' => 29),
-            29 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 19, 'r' => 30),
-            30 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
-            31 => branch!('0'-'9', 'A'-'E', 'G'-'Z', '_', 'a'-'z' => 19, 'F' => 32),
-            32 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
-            33 => branch!(),
-            34 => branch!(),
-            35 => branch!(),
-            36 => branch!(),
+            25 => branch!(),
+            26 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 26),
+            27 => branch!('0'-'9', 'A'-'N', 'P'-'Z', '_', 'a'-'z' => 26, 'O' => 38),
+            28 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 26, 'r' => 32),
+            29 => branch!(),
+            30 => branch!(~['\n', '\r'] => 30),
+            31 => branch!(),
+            32 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 26, 'a' => 33),
+            33 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 26, 'm' => 34),
+            34 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'l', 'n'-'z' => 26, 'm' => 35),
+            35 => branch!('0'-'9', 'A'-'Z', '_', 'b'-'z' => 26, 'a' => 36),
+            36 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'q', 's'-'z' => 26, 'r' => 37),
+            37 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 26),
+            38 => branch!('0'-'9', 'A'-'E', 'G'-'Z', '_', 'a'-'z' => 26, 'F' => 39),
+            39 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 26),
+            40 => branch!(),
+            41 => branch!(),
+            42 => branch!(),
+            43 => branch!(),
+            44 => branch!(),
         ],
         Some(0),
         btreemap![
-            10 => term!(skip), 11 => term!(=1), 12 => term!(=5), 13 => term!(=8), 14 => term!(=3), 15 => term!(=7),
-            16 => term!(=0), 17 => term!(=6), 18 => term!(=4), 19 => term!(=15), 20 => term!(=15), 21 => term!(=15),
-            22 => term!(=2), 23 => term!(skip), 24 => term!(skip), 25 => term!(=15), 26 => term!(=15), 27 => term!(=15),
-            28 => term!(=15), 29 => term!(=15), 30 => term!(=9), 31 => term!(=15), 32 => term!(=10), 33 => term!(=11),
-            34 => term!(=12), 35 => term!(=13), 36 => term!(=14),
+            17 => term!(skip), 18 => term!(=1), 19 => term!(=5), 20 => term!(=8), 21 => term!(=3), 22 => term!(=7),
+            23 => term!(=0), 24 => term!(=6), 25 => term!(=4), 26 => term!(=16), 27 => term!(=16), 28 => term!(=16),
+            29 => term!(=2), 30 => term!(skip), 31 => term!(skip), 32 => term!(=16), 33 => term!(=16), 34 => term!(=16),
+            35 => term!(=16), 36 => term!(=16), 37 => term!(=9), 38 => term!(=16), 39 => term!(=10), 40 => term!(=11),
+            41 => term!(=12), 42 => term!(=13), 43 => term!(=14), 44 => term!(=15),
         ],
-        Some(10),
+        Some(17),
     );
 
     // [gramlexer_stage_2]

@@ -16,7 +16,7 @@ rule:
 ;
 
 rule_name:
-    Id
+    ResolveTag? Id
 ;
 
 prod:
