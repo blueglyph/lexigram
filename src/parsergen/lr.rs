@@ -1,14 +1,122 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
+use std::collections::HashMap;
 use std::marker::PhantomData;
+use iter_index::IndexerIterator;
 use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
-use lexigram_core::log::LogStatus;
+use lexigram_core::log::{LogReader, LogStatus, Logger};
 use lexigram_core::parser::lr_parser::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
-use crate::grammar::ProdRuleSet;
+use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::{SymbolTable, LALR, LR};
+use crate::parsergen::{ParserGen, ParserGenOptions, ParserType};
+
+impl ParserGen {
+    /// Creates a [ParserGen] from a set of LR production rules.
+    ///
+    /// `rules` must contain a name, which is used to name the user listener trait in the generated code.
+    pub fn build_lalr_from_rules_lr<T>(mut rules: ProdRuleSet<T>) -> Self
+    where
+        ProdRuleSet<LR>: BuildFrom<ProdRuleSet<T>>,
+    {
+        rules.log.add_note("building parser gen from rules...");
+        let name = rules.get_name()
+            .and_then(|n| Some(n.clone()))
+            .unwrap_or_else(|| {
+                rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
+                "Test".to_string()
+            });
+        let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
+        assert_eq!(lr_rules.get_log().num_errors(), 0);
+        let parsing_table = lr_rules.make_parsing_table_lalr();
+        let num_nt = lr_rules.get_num_nt();
+        let mut var_alts = vec![vec![]; num_nt];
+        for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
+            var_alts[*var_id as usize].push(alt_id);
+        }
+        let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
+        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = lr_rules;
+        let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
+        let mut builder = ParserGen {
+            num_nt: parsing_table.num_nt,
+            num_t_full: parsing_table.num_t_full,
+            alts: parsing_table.alts,
+            flags: parsing_table.flags,
+            parent: parsing_table.parent,
+            sep_info: SepInfo::Nt(sep_nt),
+            table: vec![],
+            num_states: parsing_table.num_states,
+            action: parsing_table.action,
+            goto: parsing_table.goto,
+            symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
+            name,
+            options: ParserGenOptions::default(),
+            nt_values: vec![false; num_nt],
+            nt_parent,
+            var_alts,
+            origin,
+            terminal_hooks: Vec::new(),
+            item_ops: Vec::new(),
+            opcodes: Vec::new(),
+            init_opcodes: Vec::new(),
+            nt_name: Vec::new(),
+            alt_info: Vec::new(),
+            item_info: Vec::new(),
+            child_repeat_endpoints: HashMap::new(),
+            gen_parser: true,
+            span_nbrs: Vec::new(),
+            span_nbrs_sep_list: HashMap::new(),
+            start: 0,
+            nt_conversion,
+            nt_type: HashMap::new(),
+            log: lr_rules.log,
+        };
+        builder.post_build_from_rules(ParserType::LALR);
+        builder
+    }
+
+    pub(super) fn source_build_parser_lalr(&mut self) -> Vec<String> {
+        static BASE_PARSER_LIBS: [&str; 6] = [
+            "::VarId",
+            "::LALR",
+            "::fixed_sym_table::FixedSymTable",
+            "::parser::lr_parser::LRAction",
+            "::parser::lr_parser::LRParser",
+            "::parser::lr_parser::LRStateId",
+        ];
+        self.log.add_note("generating LALR build_parser source...");
+        let num_nt_table = self.symbol_table.get_num_nt();
+        let num_t_table = self.symbol_table.get_num_t(); // includes <$> and <empty>
+        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        self.log.add_note(format!(
+            "- creating parsor tables: {num_t_table} terminals (including $ and empty), {num_nt_table} nonterminals, {} actions, {} gotos, {} productions",
+            self.action.len(), self.goto.len(), self.alts.len()));
+        let alt_nt_len = alts_to_alt_nt_len(&self.alts, &self.symbol_table);
+        vec![
+            format!("static NUM_NT: usize = {};", self.num_nt),
+            format!("static NUM_T_FULL: usize = {};", self.num_t_full),
+            format!("static ACTION: [LRAction; {}] = [{}];", self.action.len(), self.action.iter().map(|a| format!("LRAction::{a:?}")).join(", ")),
+            format!("static GOTO: [LRStateId; {}] = {:?};", self.goto.len(), self.goto),
+            format!("static ALT_NT_LEN: [(VarId, u16, u16); {}] = {:?};", alt_nt_len.len(), alt_nt_len),
+            format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = {:?};", self.symbol_table.get_terminals().to_vec()),
+            format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = {:?};", self.symbol_table.get_nonterminals().to_vec()),
+            String::new(),
+            "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
+            "    LRParser::new(".to_string(),
+            "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
+            "        FixedSymTable::new(".to_string(),
+            "            SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
+            "            SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
+            "        )".to_string(),
+            "    )".to_string(),
+            "}".to_string(),
+        ]
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 
 /// Tables and parameters used to create a [`LRParser`]. This type is used as a return object from the parser generator,
 /// when the LRParser must be created dynamically; for example, in tests or in situations where the grammar isn't

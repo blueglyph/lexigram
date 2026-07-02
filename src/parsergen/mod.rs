@@ -7,11 +7,11 @@ use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
 use lexigram_core::alt::Alternative;
 use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
-use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, ProdRuleSet, SepInfo, SepNt, SepNtInfo};
-use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId, LL1, LR};
+use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, SepInfo, SepNt, SepNtInfo};
+use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId};
 use crate::fixed_sym_table::{SymInfoTable};
 use crate::alt::ruleflag;
-use crate::build::{BuildError, BuildErrorSource, BuildFrom, HasBuildErrorSource};
+use crate::build::{BuildError, BuildErrorSource, HasBuildErrorSource};
 use crate::CollectJoin;
 use crate::grammar::ll1::LL1ParsingTable;
 use crate::grammar::origin::{FromPRS, Origin};
@@ -26,7 +26,7 @@ pub mod ll1;
 pub(crate) mod tests;
 
 pub use ll1::LLParserTables;
-use crate::parsergen::lr::alts_to_alt_nt_len;
+
 // ---------------------------------------------------------------------------------------------
 
 pub(crate) fn symbol_to_code(s: &Symbol) -> String {
@@ -234,133 +234,6 @@ pub struct ParserGen {
 }
 
 impl ParserGen {
-    /// Creates a [ParserGen] from a set of LL(1) production rules.
-    ///
-    /// `rules` must contain a name, which is used to name the user listener trait in the generated code.
-    pub fn build_from_rules_ll1<T>(mut rules: ProdRuleSet<T>) -> Self
-    where
-        ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>,
-    {
-        rules.log.add_note("building parser gen from rules...");
-        let name = rules.get_name()
-            .and_then(|n| Some(n.clone()))
-            .unwrap_or_else(|| {
-                rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
-                "Test".to_string()
-            });
-        let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
-        assert_eq!(ll1_rules.get_log().num_errors(), 0);
-        let parsing_table = ll1_rules.make_parsing_table(true);
-        let num_nt = ll1_rules.get_num_nt();
-        let start = ll1_rules.get_start().unwrap();
-        let mut var_alts = vec![vec![]; num_nt];
-        for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
-            var_alts[*var_id as usize].push(alt_id);
-        }
-        let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = ll1_rules;
-        let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
-        let mut builder = ParserGen {
-            num_nt: parsing_table.num_nt,
-            num_t_full: parsing_table.num_t_full,
-            alts: parsing_table.alts,
-            flags: parsing_table.flags,
-            parent: parsing_table.parent,
-            sep_info: SepInfo::Nt(sep_nt),
-            table: parsing_table.table,
-            num_states: 0,
-            action: vec![],
-            goto: vec![],
-            symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
-            name,
-            options: ParserGenOptions::default(),
-            nt_values: vec![false; num_nt],
-            nt_parent,
-            var_alts,
-            origin,
-            terminal_hooks: Vec::new(),
-            item_ops: Vec::new(),
-            opcodes: Vec::new(),
-            init_opcodes: Vec::new(),
-            nt_name: Vec::new(),
-            alt_info: Vec::new(),
-            item_info: Vec::new(),
-            child_repeat_endpoints: HashMap::new(),
-            gen_parser: true,
-            span_nbrs: Vec::new(),
-            span_nbrs_sep_list: HashMap::new(),
-            start,
-            nt_conversion,
-            nt_type: HashMap::new(),
-            log: ll1_rules.log,
-        };
-        builder.post_build_from_rules(ParserType::LL1);
-        builder
-    }
-
-    /// Creates a [ParserGen] from a set of LR production rules.
-    ///
-    /// `rules` must contain a name, which is used to name the user listener trait in the generated code.
-    pub fn build_lalr_from_rules_lr<T>(mut rules: ProdRuleSet<T>) -> Self
-    where
-        ProdRuleSet<LR>: BuildFrom<ProdRuleSet<T>>,
-    {
-        rules.log.add_note("building parser gen from rules...");
-        let name = rules.get_name()
-            .and_then(|n| Some(n.clone()))
-            .unwrap_or_else(|| {
-                rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
-                "Test".to_string()
-            });
-        let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
-        assert_eq!(lr_rules.get_log().num_errors(), 0);
-        let parsing_table = lr_rules.make_parsing_table_lalr();
-        let num_nt = lr_rules.get_num_nt();
-        let mut var_alts = vec![vec![]; num_nt];
-        for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
-            var_alts[*var_id as usize].push(alt_id);
-        }
-        let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = lr_rules;
-        let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
-        let mut builder = ParserGen {
-            num_nt: parsing_table.num_nt,
-            num_t_full: parsing_table.num_t_full,
-            alts: parsing_table.alts,
-            flags: parsing_table.flags,
-            parent: parsing_table.parent,
-            sep_info: SepInfo::Nt(sep_nt),
-            table: vec![],
-            num_states: parsing_table.num_states,
-            action: parsing_table.action,
-            goto: parsing_table.goto,
-            symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
-            name,
-            options: ParserGenOptions::default(),
-            nt_values: vec![false; num_nt],
-            nt_parent,
-            var_alts,
-            origin,
-            terminal_hooks: Vec::new(),
-            item_ops: Vec::new(),
-            opcodes: Vec::new(),
-            init_opcodes: Vec::new(),
-            nt_name: Vec::new(),
-            alt_info: Vec::new(),
-            item_info: Vec::new(),
-            child_repeat_endpoints: HashMap::new(),
-            gen_parser: true,
-            span_nbrs: Vec::new(),
-            span_nbrs_sep_list: HashMap::new(),
-            start: 0,
-            nt_conversion,
-            nt_type: HashMap::new(),
-            log: lr_rules.log,
-        };
-        builder.post_build_from_rules(ParserType::LALR);
-        builder
-    }
-
     fn post_build_from_rules(&mut self, parser_type: ParserType) {
         self.options.parser_type = parser_type;
         for var_id in 0..self.num_nt {
@@ -1788,155 +1661,6 @@ impl ParserGen {
             ParserType::LL1 => self.source_build_parser_ll1(),
             ParserType::LALR => self.source_build_parser_lalr(),
         }
-    }
-
-    fn source_build_parser_ll1(&mut self) -> Vec<String> {
-        static BASE_PARSER_LIBS: [&str; 5] = [
-            "::VarId",
-            "::AltId",
-            "::parser::OpCode",
-            "::parser::LLParser",
-            "::fixed_sym_table::FixedSymTable",
-        ];
-        static ALT_PARSER_LIBS: [&str; 2] = [
-            "::alt::Alternative",
-            "::parser::Symbol",
-        ];
-
-        self.log.add_note("generating LL1 build_parser source...");
-        let num_nt = self.symbol_table.get_num_nt();
-        let num_t = self.symbol_table.get_num_t();
-        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
-        self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
-        let mut src = vec![
-            format!("const PARSER_NUM_T: usize = {num_t};"),
-            format!("const PARSER_NUM_NT: usize = {num_nt};"),
-            format!("static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
-                     self.symbol_table.get_terminals().map(|(s, os)|
-                         format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some({s:?})")).unwrap_or("None".to_string()))).join(", ")),
-            format!("static SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
-                     self.symbol_table.get_nonterminals().map(|s| format!("{s:?}")).join(", ")),
-            format!("static ALT_VAR: [VarId; {}] = [{}];",
-                    self.alts.len(),
-                    self.alts.iter().map(|(v, _)| format!("{v}")).join(", ")),
-        ];
-        if self.options.include_alts {
-            self.options.used_libs.extend(ALT_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
-            src.push(format!("static ALTERNATIVES: [&[Symbol]; {}] = [{}];",
-                             self.alts.len(),
-                             self.alts.iter().map(|(_, f)| format!("&[{}]", f.iter().map(symbol_to_code).join(", "))).join(", ")));
-        }
-        self.log.add_note(format!("- creating parsing tables: {} items, {} opcodes", self.table.len(), self.opcodes.len()));
-        src.extend(vec![
-            format!(
-                "static PARSING_TABLE: [AltId; {}] = [{}];",
-                self.table.len(),
-                self.table.iter().map(|v| format!("{v}")).join(", ")),
-            format!(
-                "static OPCODES: [&[OpCode]; {}] = [{}];",
-                self.opcodes.len(),
-                self.opcodes.iter().map(|strip| format!("&[{}]", strip.iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
-            format!(
-                "static INIT_OPCODES: [OpCode; {}] = [{}];",
-                self.init_opcodes.len(),
-                self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
-            format!("static START_SYMBOL: VarId = {};\n", self.start),
-        ]);
-        if self.options.gen_token_enums {
-            src.add_space();
-            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
-            src.push("#[repr(u16)]".to_string());
-            src.push("pub enum Term {".to_string());
-            let cols = self.symbol_table.get_terminals().enumerate()
-                .map(|(t, (s, s_opt))| vec![
-                    // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
-                    // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
-                    format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
-                    format!("{s} = {t},", )])
-                .to_vec();
-            src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
-            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
-            src.push("#[repr(u16)]".to_string());
-            src.push("pub enum NTerm {".to_string());
-            let cols = self.symbol_table.get_nonterminals().index()
-                .map(|(t, s)| vec![
-                    format!(
-                        "    #[doc = \"`{s}`{}\"]",
-                        if let Some(p) = self.get_nt_parent(t) {
-                            format!(", parent: `{}`", Symbol::NT(p).to_str(self.get_symbol_table()))
-                        } else {
-                            String::new()
-                        }),
-                    format!("{} = {t},", s.to_camelcase())])
-                .to_vec();
-            src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
-            src.push("pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
-            src.push("    SYMBOLS_T[t as usize]".to_string());
-            src.push("}\n".to_string());
-        }
-        src.extend(vec![
-            "pub fn build_parser() -> LLParser<'static> {{".to_string(),
-            "    let symbol_table = FixedSymTable::new(".to_string(),
-            "        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),".to_string(),
-            "        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
-            "    );".to_string(),
-            "    LLParser::new(".to_string(),
-            "        PARSER_NUM_NT, PARSER_NUM_T + 1,".to_string(),
-            "        &ALT_VAR,".to_string(),
-            if self.options.include_alts {
-                "        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),".to_string()
-            } else {
-                "        Vec::new(),".to_string()
-            },
-            "        OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),".to_string(),
-            "        INIT_OPCODES.to_vec(),".to_string(),
-            "        &PARSING_TABLE,".to_string(),
-            "        symbol_table,".to_string(),
-            "        START_SYMBOL".to_string(),
-            "    )".to_string(),
-            "}}".to_string(),
-        ]);
-        src
-    }
-
-    fn source_build_parser_lalr(&mut self) -> Vec<String> {
-        static BASE_PARSER_LIBS: [&str; 6] = [
-            "::VarId",
-            "::LALR",
-            "::fixed_sym_table::FixedSymTable",
-            "::parser::lr_parser::LRAction",
-            "::parser::lr_parser::LRParser",
-            "::parser::lr_parser::LRStateId",
-        ];
-        self.log.add_note("generating LALR build_parser source...");
-        let num_nt_table = self.symbol_table.get_num_nt();
-        let num_t_table = self.symbol_table.get_num_t(); // includes <$> and <empty>
-        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
-        self.log.add_note(format!(
-            "- creating parsor tables: {num_t_table} terminals (including $ and empty), {num_nt_table} nonterminals, {} actions, {} gotos, {} productions",
-            self.action.len(), self.goto.len(), self.alts.len()));
-        let alt_nt_len = alts_to_alt_nt_len(&self.alts, &self.symbol_table);
-        vec![
-            format!("static NUM_NT: usize = {};", self.num_nt),
-            format!("static NUM_T_FULL: usize = {};", self.num_t_full),
-            format!("static ACTION: [LRAction; {}] = [{}];", self.action.len(), self.action.iter().map(|a| format!("LRAction::{a:?}")).join(", ")),
-            format!("static GOTO: [LRStateId; {}] = {:?};", self.goto.len(), self.goto),
-            format!("static ALT_NT_LEN: [(VarId, u16, u16); {}] = {:?};", alt_nt_len.len(), alt_nt_len),
-            format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = {:?};", self.symbol_table.get_terminals().to_vec()),
-            format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = {:?};", self.symbol_table.get_nonterminals().to_vec()),
-            String::new(),
-            "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
-            "    LRParser::new(".to_string(),
-            "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
-            "        FixedSymTable::new(".to_string(),
-            "            SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
-            "            SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
-            "        )".to_string(),
-            "    )".to_string(),
-            "}".to_string(),
-        ]
     }
 
     fn get_info_type(&self, infos: &[ItemInfo], info: &ItemInfo) -> String {
@@ -3367,17 +3091,6 @@ impl LogReader for ParserGen {
 
 impl HasBuildErrorSource for ParserGen {
     const SOURCE: BuildErrorSource = BuildErrorSource::ParserGen;
-}
-
-impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
-    /// Creates a [`ParserGen`] from a set of production rules.
-    ///
-    /// If the rule set has a name, it's transmitted to the parser generator to name the user
-    /// listener trait in the generated code. If the rule set has no name, a default "Parser" name
-    /// is used instead (unless the name is set with [`ParserGen::set_name()`].
-    fn build_from(rules: ProdRuleSet<T>) -> Self {
-        ParserGen::build_from_rules_ll1(rules)
-    }
 }
 
 impl Default for ParserGenOptions {
