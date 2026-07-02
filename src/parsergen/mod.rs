@@ -2413,13 +2413,13 @@ impl ParserGen {
                             body_init.push(format!("        let val = self.listener.{init_fn_name}();"));
                             src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                             src_skel.push(format!("    fn {init_fn_name}(&mut self) -> {} {{", self.get_nt_type(nt as VarId)));
+                            has_skel_init = true;
                         } else {
                             src_listener_decl.push(format!("    fn {init_fn_name}(&mut self) {{}}"));
                             if has_span {
                                 body_init.push(format!("        self.listener.{init_fn_name}();"));
                             }
                         }
-                        has_skel_init = true;
                     }
                     if has_value {
                         body_init.push(format!("        self.stack.push(EnumSynValue::{nu}(val));"));
@@ -2465,7 +2465,7 @@ impl ParserGen {
         } else {
             // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
         }
-        if has_skel_init && is_ll {
+        if has_skel_init {
             if has_value {
                 src_skel.push(format!("        {}()", self.get_nt_type(nt as VarId)));
             }
