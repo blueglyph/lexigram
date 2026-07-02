@@ -138,9 +138,9 @@ mod test {
         let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
             (1, vec![
                 // no error
-                (": ( | + ? ) ; * grammar EOF <L> <L=a> <R> <P> <G> / a bc d_e1",
-                 vec![0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 11, 12, 13, 14, 7, 15, 15, 15],
-                 vec![":", "(", "|", "+", "?", ")", ";", "*", "grammar", "EOF", "<L>", "<L=a>", "<R>", "<P>", "<G>", "/", "a", "bc", "d_e1"]),
+                (": ( | + ? ) ; * grammar EOF <L> <L=a> <R> <P> <G> <resolve> / a bc d_e1",
+                 vec![0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 11, 12, 13, 14, 15, 7, 16, 16, 16],
+                 vec![":", "(", "|", "+", "?", ")", ";", "*", "grammar", "EOF", "<L>", "<L=a>", "<R>", "<P>", "<G>", "<resolve>", "/", "a", "bc", "d_e1"]),
             ]),
         ];
         let mut lexer = build_lexer();
