@@ -20,7 +20,7 @@ pub use lexigram_core::lexer;
 pub use lexigram_core::parser;
 
 mod macros;
-mod take_until;
+mod adaptors;
 mod cproduct;
 pub mod build;
 pub mod segments;

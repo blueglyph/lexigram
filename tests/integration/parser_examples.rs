@@ -253,15 +253,20 @@ pub(crate) mod listener7 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener7]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 4;
-    static ACTION: [LRAction; 32] = [LRAction::Shift(1), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Accept, LRAction::Error, LRAction::Reduce(1), LRAction::Reduce(1), LRAction::Error, LRAction::Error, LRAction::Reduce(3), LRAction::Reduce(3), LRAction::Error, LRAction::Error, LRAction::Shift(6), LRAction::Shift(3), LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Error, LRAction::Reduce(0), LRAction::Error, LRAction::Reduce(2), LRAction::Reduce(2), LRAction::Error];
-    static GOTO: [LRStateId; 24] = [2, 8, 8, 8, 4, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7, 8, 8, 8, 8, 8, 8, 8];
-    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [(0, 3, 2), (1, 1, 1), (2, 2, 0), (2, 1, 0), (3, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [("A", None), ("C", None), ("Id", None)];
-    static SYMBOL_TABLE_NT: [&str; 4] = ["a", "b", "a_1", "<goal>"];
+    static ACTION: [LRAction; 32] = [
+        LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRA,LRE,LRR(1),LRR(1),LRE,LRE,LRR(3),LRR(3),LRE,LRE,LRS(6),LRS(3),LRE,LRE,LRE,LRE,LRR(0),LRE,LRR(2),LRR(2),LRE];
+    static GOTO: [LRStateId; 24] = [
+        2,8,8,8,4,5,8,8,8,8,8,8,8,8,8,8,7,8,8,8,8,8,8,8];
+    static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
+        (0, 3, 2),(1, 1, 1),(2, 2, 0),(2, 1, 0),(3, 1, 0)];
+    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+        ("A", None),("C", None),("Id", None)];
+    static SYMBOL_TABLE_NT: [&str; 4] = [
+        "a","b","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(

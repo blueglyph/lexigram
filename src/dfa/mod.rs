@@ -15,7 +15,7 @@ use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::build::{BuildErrorSource, BuildFrom, HasBuildErrorSource};
 use crate::segments::Segments;
 use crate::segmap::Seg;
-use crate::take_until::TakeUntilIterator;
+use crate::adaptors::TakeUntilIterator;
 
 // ---------------------------------------------------------------------------------------------
 

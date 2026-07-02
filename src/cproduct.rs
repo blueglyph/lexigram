@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------------------------
 
 use lexigram_core::CollectJoin;
-use crate::take_until::TakeMutUntilIterator;
+use crate::adaptors::TakeMutUntilIterator;
 
 pub struct RepeaterIter<I: Iterator> {
     iter: I,

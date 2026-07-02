@@ -12,6 +12,7 @@ use crate::build::BuildFrom;
 use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::{SymbolTable, LALR, LR};
 use crate::parsergen::{ParserGen, ParserGenOptions, ParserType};
+use crate::adaptors::FlagLastIterator;
 
 impl ParserGen {
     /// Creates a [ParserGen] from a set of LR production rules.
@@ -78,13 +79,17 @@ impl ParserGen {
     }
 
     pub(super) fn source_build_parser_lalr(&mut self) -> Vec<String> {
-        static BASE_PARSER_LIBS: [&str; 6] = [
+        static BASE_PARSER_LIBS: [&str; 10] = [
             "::VarId",
             "::LALR",
             "::fixed_sym_table::FixedSymTable",
-            "::parser::lr_parser::LRAction",
             "::parser::lr_parser::LRParser",
             "::parser::lr_parser::LRStateId",
+            "::parser::lr_parser::LRAction",
+            "::parser::lr_parser::LRAction::Shift as LRS",
+            "::parser::lr_parser::LRAction::Error as LRE",
+            "::parser::lr_parser::LRAction::Reduce as LRR",
+            "::parser::lr_parser::LRAction::Accept as LRA",
         ];
         self.log.add_note("generating LALR build_parser source...");
         let num_nt_table = self.symbol_table.get_num_nt();
@@ -94,14 +99,64 @@ impl ParserGen {
             "- creating parsor tables: {num_t_table} terminals (including $ and empty), {num_nt_table} nonterminals, {} actions, {} gotos, {} productions",
             self.action.len(), self.goto.len(), self.alts.len()));
         let alt_nt_len = alts_to_alt_nt_len(&self.alts, &self.symbol_table);
-        vec![
+        let mut src = vec![
             format!("static NUM_NT: usize = {};", self.num_nt),
             format!("static NUM_T_FULL: usize = {};", self.num_t_full),
-            format!("static ACTION: [LRAction; {}] = [{}];", self.action.len(), self.action.iter().map(|a| format!("LRAction::{a:?}")).join(", ")),
-            format!("static GOTO: [LRStateId; {}] = {:?};", self.goto.len(), self.goto),
-            format!("static ALT_NT_LEN: [(VarId, u16, u16); {}] = {:?};", alt_nt_len.len(), alt_nt_len),
-            format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = {:?};", self.symbol_table.get_terminals().to_vec()),
-            format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = {:?};", self.symbol_table.get_nonterminals().to_vec()),
+            format!("static ACTION: [LRAction; {}] = [", self.action.len()),
+        ];
+        const ACTION_CHUNK: usize = 35;
+        assert!(!self.action.is_empty(), "action table is empty");
+        src.extend(
+            self.action.chunks(ACTION_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, actions)|
+                    format!(
+                        "    {}{}",
+                        actions.into_iter().map(|a| match a {
+                            LRAction::Error => "LRE".to_string(),
+                            LRAction::Shift(s) => format!("LRS({s})"),
+                            LRAction::Reduce(r) => format!("LRR({r})"),
+                            LRAction::Accept => "LRA".to_string(),
+                        }).join(","),
+                        if is_last { "];" } else { "," })));
+        const GOTO_CHUNK: usize = 40;
+        assert!(!self.goto.is_empty(), "goto table is empty");
+        src.push(format!("static GOTO: [LRStateId; {}] = [", self.goto.len()));
+        src.extend(
+            self.goto.chunks(GOTO_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, gotos)|
+                    format!(
+                        "    {}{}",
+                        gotos.into_iter().map(LRStateId::to_string).join(","),
+                        if is_last { "];" } else { "," })));
+        const ALT_CHUNK: usize = 25;
+        assert!(!alt_nt_len.is_empty(), "alt_nt_len table is empty");
+        src.push(format!("static ALT_NT_LEN: [(VarId, u16, u16); {}] = [", alt_nt_len.len()));
+        src.extend(
+            alt_nt_len.chunks(ALT_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, terminals)|
+                    format!("    {}{}", terminals.iter().map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        const T_CHUNK: usize = 10;
+        assert!(self.symbol_table.get_num_t() > 0, "terminal table is empty");
+        src.push(format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = ["));
+        let mut it = self.symbol_table.get_terminals();
+        src.extend(
+            (0..(self.symbol_table.get_num_t() + T_CHUNK - 1) / T_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, _)|
+                    format!("    {}{}", (0..T_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        const NT_CHUNK: usize = 20;
+        assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
+        src.push(format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = ["));
+        let mut it = self.symbol_table.get_nonterminals();
+        src.extend(
+            (0..(self.symbol_table.get_num_nt() + NT_CHUNK - 1) / NT_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, _)|
+                    format!("    {}{}", (0..NT_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        src.extend([
             String::new(),
             "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
             "    LRParser::new(".to_string(),
@@ -112,7 +167,8 @@ impl ParserGen {
             "        )".to_string(),
             "    )".to_string(),
             "}".to_string(),
-        ]
+        ]);
+        src
     }
 }
 

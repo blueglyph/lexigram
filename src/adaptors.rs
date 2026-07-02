@@ -82,6 +82,62 @@ impl<T, I: Iterator<Item=T>, P: FnMut(&mut T) -> bool> TakeMutUntilIterator<T, P
 
 // ---------------------------------------------------------------------------------------------
 
+#[derive(Clone)]
+pub struct FlagFirstLast<I: Iterator> {
+    iter: I,
+    first: bool,
+    next: Option<I::Item>,
+}
+
+impl<I: Iterator> Iterator for FlagFirstLast<I> {
+    type Item = (bool, bool, I::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (is_first, val) = if !self.first {
+            (false, self.next.take()?)
+        } else {
+            self.first = false;
+            (true, self.iter.next()?)
+        };
+        self.next = self.iter.next();
+        let is_last = self.next.is_none();
+        Some((is_first, is_last, val))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    fn count(self) -> usize {
+        self.iter.count()
+    }
+}
+
+pub trait FlagLastIterator<T>: Iterator<Item=T> {
+    /// Creates an iterator that gives status flags with the iteration value.
+    ///
+    /// The status flags are:
+    /// * `is_first`: is it the first iteration?
+    /// * `is_last`: is it the last iteration?
+    ///
+    /// The iterator values are (`is_first`, `is_last`, `value`), where `value` is
+    /// the value of the original iterator.
+    ///
+    /// ## Example
+    /// ```ignored
+    /// let values = vec![1, 2, 3];
+    /// let result = values.into_iter().flag_first_last().collect::<Vec<_>>();
+    /// assert_eq!(result, vec![(true, false, 1), (false, false, 2), (false, true, 3)]);
+    /// ```
+    fn flag_first_last(self) -> FlagFirstLast<Self> where Self: Sized {
+        FlagFirstLast { iter: self, first: true, next: None }
+    }
+}
+
+impl<T, I: Iterator<Item=T>> FlagLastIterator<T> for I {}
+
+// ---------------------------------------------------------------------------------------------
+
 #[cfg(test)]
 mod tests {
     use super:: *;
@@ -128,5 +184,33 @@ mod tests {
         }).map(|x| *x).collect::<Vec<_>>();
         assert_eq!(result, vec![2, 3, 4]);
         assert_eq!(v, vec![2, 3, 4, 4, 5]);
+    }
+
+    struct Dummy<T> {
+        values: Vec<Option<T>>
+    }
+
+    impl<T: Sized> Dummy<T> {
+        fn new<I: IntoIterator<Item=Option<T>>>(values: I) -> Self {
+            Dummy { values: values.into_iter().collect() }
+        }
+    }
+
+    impl<T> Iterator for Dummy<T> {
+        type Item = T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.values.pop().unwrap_or(None)
+        }
+    }
+    #[test]
+    fn flag_first_last() {
+        assert_eq!(vec![1, 2, 3].into_iter().flag_first_last().collect::<Vec<_>>(), vec![(true, false, 1), (false, false, 2), (false, true, 3)]);
+        assert_eq!(vec![1].into_iter().flag_first_last().collect::<Vec<_>>(), vec![(true, true, 1)]);
+        assert_eq!(vec![].into_iter().flag_first_last().collect::<Vec<(bool, bool, i32)>>(), vec![]);
+        let dummy = Dummy::new([Some(6), Some(5), None, Some(3), Some(2), Some(1)]);
+        let mut it = dummy.into_iter().flag_first_last();
+        let result = (0..6).map(|_| it.next()).collect::<Vec<_>>();
+        assert_eq!(result, vec![Some((true, false, 1)), Some((false, false, 2)), Some((false, true, 3)), None, None, None]);
     }
 }
