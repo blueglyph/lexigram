@@ -3,6 +3,7 @@
 #![cfg(test)]
 
 mod ll1;
+pub mod lalr;
 
 /// Text to parse
 static TXT1: &str = r#"

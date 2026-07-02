@@ -554,8 +554,6 @@ impl PandemoniumListener for PanDemoListener<'_> {
         })
     }
 
-    // TODO:
-
     fn exit_nv_example(&mut self, ctx: CtxNvExample, spans: Vec<PosSpan>) -> SynNvExample {
         self.spans.push(format!("exit_nv_example({})", spans.into_iter().map(|s| format!("{:?}", self.extract_text(&s))).join(", ")));
         match ctx {

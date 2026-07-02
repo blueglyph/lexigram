@@ -1,0 +1,523 @@
+// --------------------------------------------------------------------------------
+// Template for the user implementation of PandemoniumListener
+
+struct Listener {
+    log: BufLog,
+}
+
+#[allow(unused)]
+impl PandemoniumListener for Listener {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText {
+        // text -> ":" (<L> example)* ";" (<L> nv_example)*
+        let CtxText::V1 { star, star1 } = ctx;
+        SynText()
+    }
+
+    fn init_i(&mut self) -> SynI {
+        SynI()
+    }
+
+    fn exit_i(&mut self, acc: &mut SynI, ctx: CtxI, spans: Vec<PosSpan>) {
+        // `<L> example` iteration in `text -> ":" ( ►► <L> example ◄◄ )* ";" (<L> nv_example)*`
+        let CtxI::V1 { example } = ctx;
+    }
+
+    fn init_nv_i(&mut self) -> SynNvI {
+        SynNvI()
+    }
+
+    fn exit_nv_i(&mut self, acc: &mut SynNvI, ctx: CtxNvI, spans: Vec<PosSpan>) {
+        // `<L> nv_example` iteration in `text -> ":" (<L> example)* ";" ( ►► <L> nv_example ◄◄ )*`
+        let CtxNvI::V1 { nv_example } = ctx;
+    }
+
+    fn exit_example(&mut self, ctx: CtxExample, spans: Vec<PosSpan>) -> SynExample {
+        match ctx {
+            // example -> "star" star
+            CtxExample::V1 { star } => {}
+            // example -> "plus" plus
+            CtxExample::V2 { plus } => {}
+            // example -> "l-star" l_star
+            CtxExample::V3 { l_star } => {}
+            // example -> "l-plus" l_plus
+            CtxExample::V4 { l_plus } => {}
+            // example -> "rrec" rrec
+            CtxExample::V5 { rrec } => {}
+            // example -> "l-rrec" l_rrec
+            CtxExample::V6 { l_rrec } => {}
+            // example -> "lrec" lrec
+            CtxExample::V7 { lrec } => {}
+            // example -> "amb" amb
+            CtxExample::V8 { amb } => {}
+            // example -> "star-a" star_a
+            CtxExample::V9 { star_a } => {}
+            // example -> "plus-a" plus_a
+            CtxExample::V10 { plus_a } => {}
+            // example -> "l-star-a" l_star_a
+            CtxExample::V11 { l_star_a } => {}
+            // example -> "l-plus-a" l_plus_a
+            CtxExample::V12 { l_plus_a } => {}
+            // example -> "sep-list" sep_list
+            CtxExample::V13 { sep_list } => {}
+            // example -> "sep-list-opt" sep_list_opt
+            CtxExample::V14 { sep_list_opt } => {}
+            // example -> "l-sep-list" l_sep_list
+            CtxExample::V15 { l_sep_list } => {}
+            // example -> "l-sep-list-opt" l_sep_list_opt
+            CtxExample::V16 { l_sep_list_opt } => {}
+        }
+        SynExample()
+    }
+
+    fn exit_star(&mut self, ctx: CtxStar, spans: Vec<PosSpan>) -> SynStar {
+        // star -> Id "=" Id ("," Num)* ";"
+        let CtxStar::V1 { id, star } = ctx;
+        SynStar()
+    }
+
+    fn exit_plus(&mut self, ctx: CtxPlus, spans: Vec<PosSpan>) -> SynPlus {
+        // plus -> Id "=" Num ("," Num)+ ";"
+        let CtxPlus::V1 { id, num, plus } = ctx;
+        SynPlus()
+    }
+
+    fn exit_l_star(&mut self, ctx: CtxLStar, spans: Vec<PosSpan>) -> SynLStar {
+        // l_star -> Id "=" Num (<L> "," Num)* ";"
+        let CtxLStar::V1 { id, num, star } = ctx;
+        SynLStar()
+    }
+
+    fn init_l_star_i(&mut self) -> SynLStarI {
+        SynLStarI()
+    }
+
+    fn exit_l_star_i(&mut self, acc: &mut SynLStarI, ctx: CtxLStarI, spans: Vec<PosSpan>) {
+        // `<L> "," Num` iteration in `l_star -> Id "=" Num ( ►► <L> "," Num ◄◄ )* ";"`
+        let CtxLStarI::V1 { num } = ctx;
+    }
+
+    fn exit_l_plus(&mut self, ctx: CtxLPlus, spans: Vec<PosSpan>) -> SynLPlus {
+        // l_plus -> Id "=" Num (<L> "," Num)+ ";"
+        let CtxLPlus::V1 { id, num, plus } = ctx;
+        SynLPlus()
+    }
+
+    fn init_l_plus_i(&mut self) -> SynLPlusI {
+        SynLPlusI()
+    }
+
+    fn exit_l_plus_i(&mut self, acc: &mut SynLPlusI, ctx: CtxLPlusI, spans: Vec<PosSpan>) {
+        // `<L> "," Num` iteration in `l_plus -> Id "=" Num ( ►► <L> "," Num ◄◄ )+ ";"`
+        let CtxLPlusI::V1 { num } = ctx;
+    }
+
+    fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) -> SynRrec {
+        // rrec -> Id "=" Num rrec_i
+        let CtxRrec::V1 { id, num, rrec_i } = ctx;
+        SynRrec()
+    }
+
+    fn exit_l_rrec(&mut self, ctx: CtxLRrec, spans: Vec<PosSpan>) -> SynLRrec {
+        // l_rrec -> Id "=" Num l_rrec_i
+        let CtxLRrec::V1 { id, num, l_rrec_i } = ctx;
+        SynLRrec()
+    }
+
+    fn exit_lrec(&mut self, ctx: CtxLrec, spans: Vec<PosSpan>) -> SynLrec {
+        // lrec -> Id "=" lrec_i ";"
+        let CtxLrec::V1 { id, lrec_i } = ctx;
+        SynLrec()
+    }
+
+    fn exit_amb(&mut self, ctx: CtxAmb, spans: Vec<PosSpan>) -> SynAmb {
+        // amb -> Id "=" amb_i ";"
+        let CtxAmb::V1 { id, amb_i } = ctx;
+        SynAmb()
+    }
+
+    fn exit_star_a(&mut self, ctx: CtxStarA, spans: Vec<PosSpan>) -> SynStarA {
+        // star_a -> Id "=" "[" (Id | Num ":" Id)* "]" ";"
+        let CtxStarA::V1 { id, star } = ctx;
+        SynStarA()
+    }
+
+    fn exit_plus_a(&mut self, ctx: CtxPlusA, spans: Vec<PosSpan>) -> SynPlusA {
+        // plus_a -> Id "=" "[" (Id | Num ":" Id)+ "]" ";"
+        let CtxPlusA::V1 { id, plus } = ctx;
+        SynPlusA()
+    }
+
+    fn exit_l_star_a(&mut self, ctx: CtxLStarA, spans: Vec<PosSpan>) -> SynLStarA {
+        // l_star_a -> Id "=" "[" (<L> Id | Num ":" Id)* "]" ";"
+        let CtxLStarA::V1 { id, star } = ctx;
+        SynLStarA()
+    }
+
+    fn init_l_star_a_i(&mut self) -> SynLStarAI {
+        SynLStarAI()
+    }
+
+    fn exit_l_star_a_i(&mut self, acc: &mut SynLStarAI, ctx: CtxLStarAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> Id` iteration in `l_star_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)* "]" ";"`
+            CtxLStarAI::V1 { id } => {}
+            // `Num ":" Id` iteration in `l_star_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )* "]" ";"`
+            CtxLStarAI::V2 { num, id } => {}
+        }
+    }
+
+    fn exit_l_plus_a(&mut self, ctx: CtxLPlusA, spans: Vec<PosSpan>) -> SynLPlusA {
+        // l_plus_a -> Id "=" "[" (<L> Id | Num ":" Id)+ "]" ";"
+        let CtxLPlusA::V1 { id, plus } = ctx;
+        SynLPlusA()
+    }
+
+    fn init_l_plus_a_i(&mut self) -> SynLPlusAI {
+        SynLPlusAI()
+    }
+
+    fn exit_l_plus_a_i(&mut self, acc: &mut SynLPlusAI, ctx: CtxLPlusAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> Id` iteration in `l_plus_a -> Id "=" "[" ( ►► <L> Id ◄◄  | Num ":" Id)+ "]" ";"`
+            CtxLPlusAI::V1 { id } => {}
+            // `Num ":" Id` iteration in `l_plus_a -> Id "=" "[" (<L> Id |  ►► Num ":" Id ◄◄ )+ "]" ";"`
+            CtxLPlusAI::V2 { num, id } => {}
+        }
+    }
+
+    fn exit_sep_list(&mut self, ctx: CtxSepList, spans: Vec<PosSpan>) -> SynSepList {
+        // sep_list -> Id "=" (Id ":" Num / "," "then")+ ";"
+        let CtxSepList::V1 { id, plus } = ctx;
+        SynSepList()
+    }
+
+    fn exit_sep_list_opt(&mut self, ctx: CtxSepListOpt, spans: Vec<PosSpan>) -> SynSepListOpt {
+        match ctx {
+            // sep_list_opt -> Id "=" (Id ":" Num / "," "then")+ ";"
+            CtxSepListOpt::V1 { id, plus } => {}
+            // sep_list_opt -> Id "=" ";"
+            CtxSepListOpt::V2 { id } => {}
+        }
+        SynSepListOpt()
+    }
+
+    fn exit_l_sep_list(&mut self, ctx: CtxLSepList, spans: Vec<PosSpan>) -> SynLSepList {
+        // l_sep_list -> Id "=" (<L> Id ":" Num / "," "then")+ ";"
+        let CtxLSepList::V1 { id, plus } = ctx;
+        SynLSepList()
+    }
+
+    fn init_l_sep_list_i(&mut self) -> SynLSepListI {
+        SynLSepListI()
+    }
+
+    fn exit_l_sep_list_i(&mut self, acc: &mut SynLSepListI, ctx: CtxLSepListI, spans: Vec<PosSpan>) {
+        // `<L> Id ":" Num / "," "then"` iteration in `l_sep_list -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";"`
+        let CtxLSepListI::V1 { id, num } = ctx;
+    }
+
+    fn exit_l_sep_list_opt(&mut self, ctx: CtxLSepListOpt, spans: Vec<PosSpan>) -> SynLSepListOpt {
+        match ctx {
+            // l_sep_list_opt -> Id "=" (<L> Id ":" Num / "," "then")+ ";"
+            CtxLSepListOpt::V1 { id, plus } => {}
+            // l_sep_list_opt -> Id "=" ";"
+            CtxLSepListOpt::V2 { id } => {}
+        }
+        SynLSepListOpt()
+    }
+
+    fn init_l_sep_list_opt_i(&mut self) -> SynLSepListOptI {
+        SynLSepListOptI()
+    }
+
+    fn exit_l_sep_list_opt_i(&mut self, acc: &mut SynLSepListOptI, ctx: CtxLSepListOptI, spans: Vec<PosSpan>) {
+        // `<L> Id ":" Num / "," "then"` iteration in `l_sep_list_opt -> Id "=" ( ►► <L> Id ":" Num / "," "then" ◄◄ )+ ";" | Id "=" ";"`
+        let CtxLSepListOptI::V1 { id, num } = ctx;
+    }
+
+    fn exit_rrec_i(&mut self, ctx: CtxRrecI, spans: Vec<PosSpan>) -> SynRrecI {
+        match ctx {
+            // rrec_i -> "," Num rrec_i
+            CtxRrecI::V1 { num, rrec_i } => {}
+            // rrec_i -> ";"
+            CtxRrecI::V2 => {}
+        }
+        SynRrecI()
+    }
+
+    fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) -> SynLRrecI {
+        match ctx {
+            // l_rrec_i -> l_rrec_i "," Num
+            CtxLRrecI::V1 { l_rrec_i, num } => {}
+            // l_rrec_i -> ";"
+            CtxLRrecI::V2 => {}
+        }
+        SynLRrecI()
+    }
+
+    fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) -> SynLrecI {
+        match ctx {
+            // lrec_i -> lrec_i "," Num
+            CtxLrecI::V1 { lrec_i, num } => {}
+            // lrec_i -> Num
+            CtxLrecI::V2 { num } => {}
+        }
+        SynLrecI()
+    }
+
+    fn exit_amb_i(&mut self, ctx: CtxAmbI, spans: Vec<PosSpan>) -> SynAmbI {
+        match ctx {
+            // amb_i -> "-" amb_i
+            CtxAmbI::V1 { amb_i } => {}
+            // amb_i -> <R> amb_i "^" amb_i
+            CtxAmbI::V2 { amb_i } => {}
+            // amb_i -> amb_i "*" amb_i
+            CtxAmbI::V3 { amb_i } => {}
+            // amb_i -> amb_i <P> "/" amb_i
+            CtxAmbI::V4 { amb_i } => {}
+            // amb_i -> amb_i "+" amb_i
+            CtxAmbI::V5 { amb_i } => {}
+            // amb_i -> amb_i <P> "-" amb_i
+            CtxAmbI::V6 { amb_i } => {}
+            // amb_i -> "(" amb_i ")"
+            CtxAmbI::V7 { amb_i } => {}
+            // amb_i -> Id
+            CtxAmbI::V8 { id } => {}
+            // amb_i -> Num
+            CtxAmbI::V9 { num } => {}
+        }
+        SynAmbI()
+    }
+
+    fn exit_nv_example(&mut self, ctx: CtxNvExample, spans: Vec<PosSpan>) -> SynNvExample {
+        match ctx {
+            // nv_example -> "star" nv_star
+            CtxNvExample::V1 { nv_star } => {}
+            // nv_example -> "plus" nv_plus
+            CtxNvExample::V2 { nv_plus } => {}
+            // nv_example -> "l-star" nv_l_star
+            CtxNvExample::V3 { nv_l_star } => {}
+            // nv_example -> "l-plus" nv_l_plus
+            CtxNvExample::V4 { nv_l_plus } => {}
+            // nv_example -> "rrec" nv_rrec
+            CtxNvExample::V5 { nv_rrec } => {}
+            // nv_example -> "l-rrec" nv_l_rrec
+            CtxNvExample::V6 { nv_l_rrec } => {}
+            // nv_example -> "lrec" nv_lrec
+            CtxNvExample::V7 { nv_lrec } => {}
+            // nv_example -> "star-a" nv_star_a
+            CtxNvExample::V8 { nv_star_a } => {}
+            // nv_example -> "plus-a" nv_plus_a
+            CtxNvExample::V9 { nv_plus_a } => {}
+            // nv_example -> "l-star-a" nv_l_star_a
+            CtxNvExample::V10 { nv_l_star_a } => {}
+            // nv_example -> "l-plus-a" nv_l_plus_a
+            CtxNvExample::V11 { nv_l_plus_a } => {}
+            // nv_example -> "sep-list" nv_sep_list
+            CtxNvExample::V12 { nv_sep_list } => {}
+            // nv_example -> "sep-list-opt" nv_sep_list_opt
+            CtxNvExample::V13 { nv_sep_list_opt } => {}
+            // nv_example -> "l-sep-list" nv_l_sep_list
+            CtxNvExample::V14 { nv_l_sep_list } => {}
+            // nv_example -> "l-sep-list-opt" nv_l_sep_list_opt
+            CtxNvExample::V15 { nv_l_sep_list_opt } => {}
+        }
+        SynNvExample()
+    }
+
+    fn exit_nv_star(&mut self, ctx: CtxNvStar, spans: Vec<PosSpan>) -> SynNvStar {
+        // nv_star -> Id "=" "+" ("," "*")* ";"
+        let CtxNvStar::V1 { id } = ctx;
+        SynNvStar()
+    }
+
+    fn exit_nv_plus(&mut self, ctx: CtxNvPlus, spans: Vec<PosSpan>) -> SynNvPlus {
+        // nv_plus -> Id "=" "+" ("," "*")+ ";"
+        let CtxNvPlus::V1 { id } = ctx;
+        SynNvPlus()
+    }
+
+    fn exit_nv_l_star(&mut self, ctx: CtxNvLStar, spans: Vec<PosSpan>) -> SynNvLStar {
+        // nv_l_star -> Id "=" "+" (<L> "," "*")* ";"
+        let CtxNvLStar::V1 { id, star } = ctx;
+        SynNvLStar()
+    }
+
+    fn init_nv_l_star_i(&mut self) -> SynNvLStarI {
+        SynNvLStarI()
+    }
+
+    fn exit_nv_l_star_i(&mut self, acc: &mut SynNvLStarI, ctx: CtxNvLStarI, spans: Vec<PosSpan>) {
+        // `<L> "," "*"` iteration in `nv_l_star -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )* ";"`
+        let CtxNvLStarI::V1 = ctx;
+    }
+
+    fn exit_nv_l_plus(&mut self, ctx: CtxNvLPlus, spans: Vec<PosSpan>) -> SynNvLPlus {
+        // nv_l_plus -> Id "=" "+" (<L> "," "*")+ ";"
+        let CtxNvLPlus::V1 { id, plus } = ctx;
+        SynNvLPlus()
+    }
+
+    fn init_nv_l_plus_i(&mut self) -> SynNvLPlusI {
+        SynNvLPlusI()
+    }
+
+    fn exit_nv_l_plus_i(&mut self, acc: &mut SynNvLPlusI, ctx: CtxNvLPlusI, spans: Vec<PosSpan>) {
+        // `<L> "," "*"` iteration in `nv_l_plus -> Id "=" "+" ( ►► <L> "," "*" ◄◄ )+ ";"`
+        let CtxNvLPlusI::V1 = ctx;
+    }
+
+    fn exit_nv_rrec(&mut self, ctx: CtxNvRrec, spans: Vec<PosSpan>) -> SynNvRrec {
+        // nv_rrec -> Id "=" "+" nv_rrec_i
+        let CtxNvRrec::V1 { id, nv_rrec_i } = ctx;
+        SynNvRrec()
+    }
+
+    fn exit_nv_l_rrec(&mut self, ctx: CtxNvLRrec, spans: Vec<PosSpan>) -> SynNvLRrec {
+        // nv_l_rrec -> Id "=" "+" nv_l_rrec_i
+        let CtxNvLRrec::V1 { id, nv_l_rrec_i } = ctx;
+        SynNvLRrec()
+    }
+
+    fn exit_nv_lrec(&mut self, ctx: CtxNvLrec, spans: Vec<PosSpan>) -> SynNvLrec {
+        // nv_lrec -> Id "=" nv_lrec_i ";"
+        let CtxNvLrec::V1 { id, nv_lrec_i } = ctx;
+        SynNvLrec()
+    }
+
+    fn exit_nv_star_a(&mut self, ctx: CtxNvStarA, spans: Vec<PosSpan>) -> SynNvStarA {
+        // nv_star_a -> Id "=" "[" ("+" | "*" "-")* "]" ";"
+        let CtxNvStarA::V1 { id } = ctx;
+        SynNvStarA()
+    }
+
+    fn exit_nv_plus_a(&mut self, ctx: CtxNvPlusA, spans: Vec<PosSpan>) -> SynNvPlusA {
+        // nv_plus_a -> Id "=" "[" ("+" | "*" "-")+ "]" ";"
+        let CtxNvPlusA::V1 { id } = ctx;
+        SynNvPlusA()
+    }
+
+    fn exit_nv_l_star_a(&mut self, ctx: CtxNvLStarA, spans: Vec<PosSpan>) -> SynNvLStarA {
+        // nv_l_star_a -> Id "=" "[" (<L> "+" | "*" "-")* "]" ";"
+        let CtxNvLStarA::V1 { id, star } = ctx;
+        SynNvLStarA()
+    }
+
+    fn init_nv_l_star_a_i(&mut self) -> SynNvLStarAI {
+        SynNvLStarAI()
+    }
+
+    fn exit_nv_l_star_a_i(&mut self, acc: &mut SynNvLStarAI, ctx: CtxNvLStarAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> "+"` iteration in `nv_l_star_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")* "]" ";"`
+            CtxNvLStarAI::V1 => {}
+            // `"*" "-"` iteration in `nv_l_star_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )* "]" ";"`
+            CtxNvLStarAI::V2 => {}
+        }
+    }
+
+    fn exit_nv_l_plus_a(&mut self, ctx: CtxNvLPlusA, spans: Vec<PosSpan>) -> SynNvLPlusA {
+        // nv_l_plus_a -> Id "=" "[" (<L> "+" | "*" "-")+ "]" ";"
+        let CtxNvLPlusA::V1 { id, plus } = ctx;
+        SynNvLPlusA()
+    }
+
+    fn init_nv_l_plus_a_i(&mut self) -> SynNvLPlusAI {
+        SynNvLPlusAI()
+    }
+
+    fn exit_nv_l_plus_a_i(&mut self, acc: &mut SynNvLPlusAI, ctx: CtxNvLPlusAI, spans: Vec<PosSpan>) {
+        match ctx {
+            // `<L> "+"` iteration in `nv_l_plus_a -> Id "=" "[" ( ►► <L> "+" ◄◄  | "*" "-")+ "]" ";"`
+            CtxNvLPlusAI::V1 => {}
+            // `"*" "-"` iteration in `nv_l_plus_a -> Id "=" "[" (<L> "+" |  ►► "*" "-" ◄◄ )+ "]" ";"`
+            CtxNvLPlusAI::V2 => {}
+        }
+    }
+
+    fn exit_nv_sep_list(&mut self, ctx: CtxNvSepList, spans: Vec<PosSpan>) -> SynNvSepList {
+        // nv_sep_list -> Id "=" ("*" / "," "then")+ ";"
+        let CtxNvSepList::V1 { id } = ctx;
+        SynNvSepList()
+    }
+
+    fn exit_nv_sep_list_opt(&mut self, ctx: CtxNvSepListOpt, spans: Vec<PosSpan>) -> SynNvSepListOpt {
+        match ctx {
+            // nv_sep_list_opt -> Id "=" ("*" / "," "then")+ ";"
+            CtxNvSepListOpt::V1 { id } => {}
+            // nv_sep_list_opt -> Id "=" ";"
+            CtxNvSepListOpt::V2 { id } => {}
+        }
+        SynNvSepListOpt()
+    }
+
+    fn exit_nv_l_sep_list(&mut self, ctx: CtxNvLSepList, spans: Vec<PosSpan>) -> SynNvLSepList {
+        // nv_l_sep_list -> Id "=" (<L> "*" / "," "then")+ ";"
+        let CtxNvLSepList::V1 { id, plus } = ctx;
+        SynNvLSepList()
+    }
+
+    fn init_nv_l_sep_list_i(&mut self) -> SynNvLSepListI {
+        SynNvLSepListI()
+    }
+
+    fn exit_nv_l_sep_list_i(&mut self, acc: &mut SynNvLSepListI, ctx: CtxNvLSepListI, spans: Vec<PosSpan>) {
+        // `<L> "*" / "," "then"` iteration in `nv_l_sep_list -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";"`
+        let CtxNvLSepListI::V1 = ctx;
+    }
+
+    fn exit_nv_l_sep_list_opt(&mut self, ctx: CtxNvLSepListOpt, spans: Vec<PosSpan>) -> SynNvLSepListOpt {
+        match ctx {
+            // nv_l_sep_list_opt -> Id "=" (<L> "*" / "," "then")+ ";"
+            CtxNvLSepListOpt::V1 { id, plus } => {}
+            // nv_l_sep_list_opt -> Id "=" ";"
+            CtxNvLSepListOpt::V2 { id } => {}
+        }
+        SynNvLSepListOpt()
+    }
+
+    fn init_nv_l_sep_list_opt_i(&mut self) -> SynNvLSepListOptI {
+        SynNvLSepListOptI()
+    }
+
+    fn exit_nv_l_sep_list_opt_i(&mut self, acc: &mut SynNvLSepListOptI, ctx: CtxNvLSepListOptI, spans: Vec<PosSpan>) {
+        // `<L> "*" / "," "then"` iteration in `nv_l_sep_list_opt -> Id "=" ( ►► <L> "*" / "," "then" ◄◄ )+ ";" | Id "=" ";"`
+        let CtxNvLSepListOptI::V1 = ctx;
+    }
+
+    fn exit_nv_rrec_i(&mut self, ctx: CtxNvRrecI, spans: Vec<PosSpan>) -> SynNvRrecI {
+        match ctx {
+            // nv_rrec_i -> "," "*" nv_rrec_i
+            CtxNvRrecI::V1 { nv_rrec_i } => {}
+            // nv_rrec_i -> ";"
+            CtxNvRrecI::V2 => {}
+        }
+        SynNvRrecI()
+    }
+
+    fn exit_nv_l_rrec_i(&mut self, ctx: CtxNvLRrecI, spans: Vec<PosSpan>) -> SynNvLRrecI {
+        match ctx {
+            // nv_l_rrec_i -> nv_l_rrec_i "," "*"
+            CtxNvLRrecI::V1 { nv_l_rrec_i } => {}
+            // nv_l_rrec_i -> ";"
+            CtxNvLRrecI::V2 => {}
+        }
+        SynNvLRrecI()
+    }
+
+    fn exit_nv_lrec_i(&mut self, ctx: CtxNvLrecI, spans: Vec<PosSpan>) -> SynNvLrecI {
+        match ctx {
+            // nv_lrec_i -> nv_lrec_i "," "*"
+            CtxNvLrecI::V1 { nv_lrec_i } => {}
+            // nv_lrec_i -> "+"
+            CtxNvLrecI::V2 => {}
+        }
+        SynNvLrecI()
+    }
+}
+
+// --------------------------------------------------------------------------------
