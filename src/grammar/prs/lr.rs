@@ -254,7 +254,7 @@ impl ProdRuleSet<LR> {
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();

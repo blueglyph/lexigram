@@ -55,6 +55,40 @@ fn prs_calc_lr_table() {
             r#"13 |  -   -  r2  | -  -  -  -  - "#,
             r#"---+-------------+---------------"#,
         ], &[]),
+        (2001, 0, 0, &[
+            // - 0: a -> a_1 ";"
+            // - 1: b -> "*"
+            // - 2: a_1 -> a_1 b
+            // - 3: a_1 -> ε
+            // - 4: <goal> -> a
+            //
+            // state 0:
+            // - <goal> -> • a
+            // - a -> • a_1 ";"
+            // - a_1 -> • a_1 b
+            // - a_1 -> ε •
+            // state 1:
+            // - <goal> -> a •, [$]
+            // state 2:
+            // - a -> a_1 • ";"
+            // - a_1 -> a_1 • b
+            // - b -> • "*"
+            // state 3:
+            // - a -> a_1 ";" •, [$]
+            // state 4:
+            // - b -> "*" •, [";","*"]
+            // state 5:
+            // - a_1 -> a_1 b •, [";","*"]
+            r#"  | ";" "*"  $  | a b a_1"#,
+            r#"--+-------------+--------"#,
+            r#"0 | r3  r3   -  | 1 -  2 "#,
+            r#"1 |  -   -  acc | - -  - "#,
+            r#"2 | s3  s4   -  | - 5  - "#,
+            r#"3 |  -   -  r0  | - -  - "#,
+            r#"4 | r1  r1   -  | - -  - "#,
+            r#"5 | r2  r2   -  | - -  - "#,
+            r#"--+-------------+--------"#,
+        ], &[]),
 
         // resolved conflicts
         (601, 0, 0, &[
@@ -166,13 +200,13 @@ fn prs_calc_lr_table() {
     ];
     static INDENT0: &str = "        ";
     static INDENT1: &str = "            ";
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_conflict) in TESTS {
-        // if !matches!(test_id, 601) { continue }
+        if !matches!(test_id, 2001) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
