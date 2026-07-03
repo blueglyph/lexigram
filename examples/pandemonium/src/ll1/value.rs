@@ -16,7 +16,7 @@ use crate::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 use listener_types::*;
 use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
-use crate::{SPANS1, SPANS2, TXT1, TXT2};
+use crate::ll1::{SPANS1, SPANS2, TXT1, TXT2};
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;

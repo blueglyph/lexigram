@@ -12,17 +12,17 @@ impl PandemoniumListener for Listener {
     }
 
     fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) {
-        // text -> ":" (<L> example)* ";" (<L> nv_example)*
+        // text -> (<L> example)* ";" (<L> nv_example)*
         let CtxText::V1 = ctx;
     }
 
     fn exit_i(&mut self, ctx: CtxI, spans: Vec<PosSpan>) {
-        // `<L> example` iteration in `text -> ":" ( ►► <L> example ◄◄ )* ";" (<L> nv_example)*`
+        // `<L> example` iteration in `text -> ( ►► <L> example ◄◄ )* ";" (<L> nv_example)*`
         let CtxI::V1 = ctx;
     }
 
     fn exit_nv_i(&mut self, ctx: CtxNvI, spans: Vec<PosSpan>) {
-        // `<L> nv_example` iteration in `text -> ":" (<L> example)* ";" ( ►► <L> nv_example ◄◄ )*`
+        // `<L> nv_example` iteration in `text -> (<L> example)* ";" ( ►► <L> nv_example ◄◄ )*`
         let CtxNvI::V1 = ctx;
     }
 
@@ -38,28 +38,26 @@ impl PandemoniumListener for Listener {
             CtxExample::V4 => {}
             // example -> "rrec" rrec
             CtxExample::V5 => {}
-            // example -> "l-rrec" l_rrec
-            CtxExample::V6 => {}
             // example -> "lrec" lrec
-            CtxExample::V7 => {}
+            CtxExample::V6 => {}
             // example -> "amb" amb
-            CtxExample::V8 => {}
+            CtxExample::V7 => {}
             // example -> "star-a" star_a
-            CtxExample::V9 => {}
+            CtxExample::V8 => {}
             // example -> "plus-a" plus_a
-            CtxExample::V10 => {}
+            CtxExample::V9 => {}
             // example -> "l-star-a" l_star_a
-            CtxExample::V11 => {}
+            CtxExample::V10 => {}
             // example -> "l-plus-a" l_plus_a
-            CtxExample::V12 => {}
+            CtxExample::V11 => {}
             // example -> "sep-list" sep_list
-            CtxExample::V13 => {}
+            CtxExample::V12 => {}
             // example -> "sep-list-opt" sep_list_opt
-            CtxExample::V14 => {}
+            CtxExample::V13 => {}
             // example -> "l-sep-list" l_sep_list
-            CtxExample::V15 => {}
+            CtxExample::V14 => {}
             // example -> "l-sep-list-opt" l_sep_list_opt
-            CtxExample::V16 => {}
+            CtxExample::V15 => {}
         }
     }
 
@@ -96,11 +94,6 @@ impl PandemoniumListener for Listener {
     fn exit_rrec(&mut self, ctx: CtxRrec, spans: Vec<PosSpan>) {
         // rrec -> Id "=" Num rrec_i
         let CtxRrec::V1 { id, num } = ctx;
-    }
-
-    fn exit_l_rrec(&mut self, ctx: CtxLRrec, spans: Vec<PosSpan>) {
-        // l_rrec -> Id "=" Num l_rrec_i
-        let CtxLRrec::V1 { id, num } = ctx;
     }
 
     fn exit_lrec(&mut self, ctx: CtxLrec, spans: Vec<PosSpan>) {
@@ -204,15 +197,6 @@ impl PandemoniumListener for Listener {
         }
     }
 
-    fn exit_l_rrec_i(&mut self, ctx: CtxLRrecI, spans: Vec<PosSpan>) {
-        match ctx {
-            // l_rrec_i -> l_rrec_i "," Num
-            CtxLRrecI::V1 { num } => {}
-            // l_rrec_i -> ";"
-            CtxLRrecI::V2 => {}
-        }
-    }
-
     fn exit_lrec_i(&mut self, ctx: CtxLrecI, spans: Vec<PosSpan>) {
         match ctx {
             // lrec_i -> lrec_i "," Num
@@ -257,26 +241,24 @@ impl PandemoniumListener for Listener {
             CtxNvExample::V4 => {}
             // nv_example -> "rrec" nv_rrec
             CtxNvExample::V5 => {}
-            // nv_example -> "l-rrec" nv_l_rrec
-            CtxNvExample::V6 => {}
             // nv_example -> "lrec" nv_lrec
-            CtxNvExample::V7 => {}
+            CtxNvExample::V6 => {}
             // nv_example -> "star-a" nv_star_a
-            CtxNvExample::V8 => {}
+            CtxNvExample::V7 => {}
             // nv_example -> "plus-a" nv_plus_a
-            CtxNvExample::V9 => {}
+            CtxNvExample::V8 => {}
             // nv_example -> "l-star-a" nv_l_star_a
-            CtxNvExample::V10 => {}
+            CtxNvExample::V9 => {}
             // nv_example -> "l-plus-a" nv_l_plus_a
-            CtxNvExample::V11 => {}
+            CtxNvExample::V10 => {}
             // nv_example -> "sep-list" nv_sep_list
-            CtxNvExample::V12 => {}
+            CtxNvExample::V11 => {}
             // nv_example -> "sep-list-opt" nv_sep_list_opt
-            CtxNvExample::V13 => {}
+            CtxNvExample::V12 => {}
             // nv_example -> "l-sep-list" nv_l_sep_list
-            CtxNvExample::V14 => {}
+            CtxNvExample::V13 => {}
             // nv_example -> "l-sep-list-opt" nv_l_sep_list_opt
-            CtxNvExample::V15 => {}
+            CtxNvExample::V14 => {}
         }
     }
 
@@ -313,11 +295,6 @@ impl PandemoniumListener for Listener {
     fn exit_nv_rrec(&mut self, ctx: CtxNvRrec, spans: Vec<PosSpan>) {
         // nv_rrec -> Id "=" "+" nv_rrec_i
         let CtxNvRrec::V1 { id } = ctx;
-    }
-
-    fn exit_nv_l_rrec(&mut self, ctx: CtxNvLRrec, spans: Vec<PosSpan>) {
-        // nv_l_rrec -> Id "=" "+" nv_l_rrec_i
-        let CtxNvLRrec::V1 { id } = ctx;
     }
 
     fn exit_nv_lrec(&mut self, ctx: CtxNvLrec, spans: Vec<PosSpan>) {
@@ -413,15 +390,6 @@ impl PandemoniumListener for Listener {
             CtxNvRrecI::V1 => {}
             // nv_rrec_i -> ";"
             CtxNvRrecI::V2 => {}
-        }
-    }
-
-    fn exit_nv_l_rrec_i(&mut self, ctx: CtxNvLRrecI, spans: Vec<PosSpan>) {
-        match ctx {
-            // nv_l_rrec_i -> nv_l_rrec_i "," "*"
-            CtxNvLRrecI::V1 => {}
-            // nv_l_rrec_i -> ";"
-            CtxNvLRrecI::V2 => {}
         }
     }
 

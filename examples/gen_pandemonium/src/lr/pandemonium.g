@@ -8,7 +8,6 @@ example:
 |   L_Star l_star
 |   L_Plus l_plus
 |   Rrec rrec
-|   L_Rrec l_rrec
 |   Lrec lrec
 |   Amb amb
 |   Star_A star_a
@@ -28,7 +27,6 @@ plus:   Id Equal Num (Comma Num)+ Semi;
 l_star: Id Equal Num (<L=l_star_i> Comma Num)* Semi;
 l_plus: Id Equal Num (<L=l_plus_i> Comma Num)+ Semi;
 rrec:   Id Equal Num rrec_i;
-l_rrec: Id Equal Num l_rrec_i;
 lrec:   Id Equal lrec_i Semi;
 amb:    Id Equal amb_i Semi;
 
@@ -44,12 +42,6 @@ l_sep_list_opt: Id Equal ((<L=l_sep_list_opt_i> Id Colon Num / Comma Then)+)? Se
 
 rrec_i:
     Comma Num rrec_i
-|   Semi
-;
-
-// mimicking the LL1 behaviour
-l_rrec_i:
-    l_rrec_i Comma Num
 |   Semi
 ;
 
@@ -77,7 +69,6 @@ nv_example:
 |   L_Star nv_l_star
 |   L_Plus nv_l_plus
 |   Rrec nv_rrec
-|   L_Rrec nv_l_rrec
 |   Lrec nv_lrec
 |   Star_A nv_star_a
 |   Plus_A nv_plus_a
@@ -94,7 +85,6 @@ nv_plus:   Id Equal Add (Comma Mul)+ Semi;
 nv_l_star: Id Equal Add (<L=nv_l_star_i> Comma Mul)* Semi;
 nv_l_plus: Id Equal Add (<L=nv_l_plus_i> Comma Mul)+ Semi;
 nv_rrec:   Id Equal Add nv_rrec_i;
-nv_l_rrec: Id Equal Add nv_l_rrec_i;
 nv_lrec:   Id Equal nv_lrec_i Semi;
 
 nv_star_a:   Id Equal Lsbracket (Add | Mul Sub)* Rsbracket Semi;
@@ -109,12 +99,6 @@ nv_l_sep_list_opt: Id Equal ((<L=nv_l_sep_list_opt_i> Mul / Comma Then)+)? Semi;
 
 nv_rrec_i:
     Comma Mul nv_rrec_i
-|   Semi
-;
-
-// mimicking the LL1 behaviour
-nv_l_rrec_i:
-    nv_l_rrec_i Comma Mul
 |   Semi
 ;
 

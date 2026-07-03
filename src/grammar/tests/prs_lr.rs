@@ -56,29 +56,6 @@ fn prs_calc_lr_table() {
             r#"---+-------------+---------------"#,
         ], &[]),
         (2001, 0, 0, &[
-            // - 0: a -> a_1 ";"
-            // - 1: b -> "*"
-            // - 2: a_1 -> a_1 b
-            // - 3: a_1 -> ε
-            // - 4: <goal> -> a
-            //
-            // state 0:
-            // - <goal> -> • a
-            // - a -> • a_1 ";"
-            // - a_1 -> • a_1 b
-            // - a_1 -> ε •, [";","*"]  <===
-            // state 1:
-            // - <goal> -> a •, [$]
-            // state 2:
-            // - a -> a_1 • ";"
-            // - a_1 -> a_1 • b
-            // - b -> • "*"
-            // state 3:
-            // - a -> a_1 ";" •, [$]
-            // state 4:
-            // - b -> "*" •, [";","*"]
-            // state 5:
-            // - a_1 -> a_1 b •, [";","*"]
             r#"  | ";" "*"  $  | a b a_1"#,
             r#"--+-------------+--------"#,
             r#"0 | r3  r3   -  | 1 -  2 "#,
@@ -157,7 +134,7 @@ fn prs_calc_lr_table() {
             r#"--+--------------+------"#,
         ], &[]),
         (121, 0, 0, &[
-            // a -> A b+ C; b -> Id;
+            // a -> A b* C; b -> Id;
             // - 0: a -> A a_1 C
             // - 1: b -> Id
             // - 2: a_1 -> a_1 b
@@ -206,7 +183,7 @@ fn prs_calc_lr_table() {
     const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_conflict) in TESTS {
-        if !matches!(test_id, 2001) { continue }
+        // if !matches!(test_id, 2001) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -356,7 +333,7 @@ mod parse {
         ];
         const VERBOSE: bool = false;
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-            if !matches!(grammar_id, 102|103|121|122) { continue }
+            // if !matches!(grammar_id, 102|103|121|122) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
             let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
             lalr1.set_start(start);

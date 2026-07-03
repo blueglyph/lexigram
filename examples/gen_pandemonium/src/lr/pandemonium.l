@@ -27,7 +27,6 @@ Star                    : 'star';
 Plus                    : 'plus';
 L_Star                  : 'l-star';
 L_Plus                  : 'l-plus';
-L_Rrec                  : 'l-rrec';
 Rrec                    : 'rrec';
 Lrec                    : 'lrec';
 Amb                     : 'amb';

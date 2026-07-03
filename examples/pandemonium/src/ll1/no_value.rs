@@ -13,7 +13,7 @@ use lexigram_core::parser::{LLParser, Terminate};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
-use crate::{SPANS1, SPANS2, TXT1, TXT2};
+use crate::ll1::{SPANS1, SPANS2, TXT1, TXT2};
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
