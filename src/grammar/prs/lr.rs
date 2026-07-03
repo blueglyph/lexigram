@@ -104,6 +104,10 @@ impl ProdRuleSet<LR> {
         self.prules[item.nt as usize][item.alt_idx as usize].get(item.pos as usize)
     }
 
+    fn is_item_sym_empty(&self, item: &LRItem) -> bool {
+        self.prules[item.nt as usize][item.alt_idx as usize].is_sym_empty()
+    }
+
     pub(crate) fn item_to_str(&self, item: &LRItem) -> String {
         let alt = &self.item_alt(item);
         let left = alt.v[..item.pos as usize].iter().map(|s| s.to_str_quote(self.get_symbol_table())).join(" ");
@@ -222,6 +226,14 @@ impl ProdRuleSet<LR> {
                 break;
             }
         }
+        // reductions of ε items
+        for (state_id, state) in states.iter().index::<LRStateId>() {
+            for (item_id, item) in state.iter().index::<ItemId>() {
+                if self.is_item_sym_empty(item) {
+                    reductions.push((state_id, item_id));
+                }
+            }
+        }
         if VERBOSE {
             println!(
                 "calc_states():{}",
@@ -254,7 +266,7 @@ impl ProdRuleSet<LR> {
     /// Information Processing Letters, Volume 31, Issue 5, 1989, pp. 233-238.
     /// doi:10.1016/0020-0190(89)90079-3
     fn calc_states_lalr(&mut self) -> (Vec<Vec<LRItem>>, Vec<BTreeMap<Symbol, LRStateId>>, Vec<(LRStateId, ItemId)>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         
         self.add_lr_goal_nt();
         let orig_start = self.original_start.unwrap();

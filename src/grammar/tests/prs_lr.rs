@@ -66,7 +66,7 @@ fn prs_calc_lr_table() {
             // - <goal> -> • a
             // - a -> • a_1 ";"
             // - a_1 -> • a_1 b
-            // - a_1 -> ε •
+            // - a_1 -> ε •, [";","*"]  <===
             // state 1:
             // - <goal> -> a •, [$]
             // state 2:
@@ -200,7 +200,7 @@ fn prs_calc_lr_table() {
     ];
     static INDENT0: &str = "        ";
     static INDENT1: &str = "            ";
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = false;
