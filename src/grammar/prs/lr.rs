@@ -486,10 +486,12 @@ impl ProdRuleSet<LR> {
                         }
                     }
                     _ => {
-                        self.log.add_warning(format!(
-                            "- calc_table: conflict for state {s}, terminal {}: {}/{}",
-                            self.symbol(t).to_str(self.get_symbol_table()),
-                            *action_cell, act));
+                        if act != *action_cell {
+                            self.log.add_warning(format!(
+                                "- calc_table: conflict for state {s}, terminal {}: {}/{}",
+                                self.symbol(t).to_str(self.get_symbol_table()),
+                                *action_cell, act));
+                        }
                     }
                 }
             }
