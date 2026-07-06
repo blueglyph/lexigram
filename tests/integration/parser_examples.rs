@@ -258,9 +258,9 @@ pub(crate) mod listener7 {
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 4;
     static ACTION: [LRAction; 32] = [
-        LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRA,LRE,LRR(1),LRR(1),LRE,LRE,LRR(3),LRR(3),LRE,LRE,LRS(6),LRS(3),LRE,LRE,LRE,LRE,LRR(0),LRE,LRR(2),LRR(2),LRE];
-    static GOTO: [LRStateId; 24] = [
-        2,8,8,8,4,5,8,8,8,8,8,8,8,8,8,8,7,8,8,8,8,8,8,8];
+        LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(4),LRE,LRE,LRS(6),LRS(4),LRE,LRE,LRE,LRE,LRA,LRE,LRR(1),LRR(1),LRE,LRE,LRR(3),LRR(3),LRE,LRE,LRE,LRE,LRR(0),LRE,LRR(2),LRR(2),LRE];
+    static GOTO: [LRStateId; 9] = [
+        3,8,8,8,5,2,8,7,8];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 3, 2),(1, 1, 1),(2, 2, 0),(2, 1, 0),(3, 1, 0)];
     static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [

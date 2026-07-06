@@ -445,10 +445,6 @@ impl ProdRuleSet<LR> {
                     action_reduce
                 };
                 let action_cell = &mut action[t as usize + s as usize * num_t_full];
-                // TODO: better resolver for other issues?
-                // pub const R_ASSOC: u32 = 256;
-                // pub const GREEDY: u32 = 8192;   ?
-                // pub const PREC_EQ: u32 = 16384;
                 match (act, *action_cell) {
                     (_, LRAction::Error) => *action_cell = act,
                     (LRAction::Reduce(_), LRAction::Shift(shift)) if solve_conflict => {
@@ -503,6 +499,7 @@ impl ProdRuleSet<LR> {
             num_nt,
             num_t_full,
             num_states,
+            num_goto: num_states,
             alts,
             action,
             goto,
@@ -520,8 +517,12 @@ impl ProdRuleSet<LR> {
     /// Creates the LR parsing table for an LALR parser.
     ///
     /// If an error occurred during the process, it's reported in the log.
-    pub fn make_parsing_table_lalr(&mut self) -> LRParsingTable {
-        self.make_parsing_table_with_states_lalr().0
+    pub fn make_parsing_table_lalr(&mut self, compressed: bool) -> LRParsingTable {
+        let mut table = self.make_parsing_table_with_states_lalr().0;
+        if compressed {
+            table.compress_goto();
+        }
+        table
     }
 }
 
@@ -561,14 +562,15 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct LRParsingTable {
     pub num_nt: usize,                      // doesn't include the goal NT
     pub num_t_full: usize,                  // includes the end symbol
     pub num_states: usize,
+    pub num_goto: usize,
     pub alts: Vec<(VarId, Alternative)>,
-    pub action: Vec<LRAction>,
-    pub goto: Vec<LRStateId>,
+    pub action: Vec<LRAction>,              // num_states * num_t_full items
+    pub goto: Vec<LRStateId>,               // num_goto * num_nt items
     pub flags: Vec<u32>,                    // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>,         // NT -> parent NT
 }
@@ -576,6 +578,43 @@ pub struct LRParsingTable {
 impl LRParsingTable {
     pub(crate) fn symbol(&self, t: TokenId) -> Symbol {
         if self.num_t_full > 1 + t as usize { Symbol::T(t) } else { Symbol::End }
+    }
+
+    /// Renumber the states to compress the GOTO table, keeping the used rows at the beginning and
+    /// removing the empty ones.
+    ///
+    /// The resulting GOTO table has `num_goto` * `num_nt` items instead of `num_states` * `num_nt`
+    /// for an uncompressed table (`num_goto` <= `num_states`).
+    ///
+    /// State 0 remains the starting state.
+    pub fn compress_goto(&mut self) {
+        let (mut first_states, mut last_states): (Vec<LRStateId>, Vec<LRStateId>) = (vec![], vec![]);
+        let mut first_goto: Vec<LRStateId> = vec![];
+        let (mut first_action, mut last_action): (Vec<LRAction>, Vec<LRAction>) = (vec![], vec![]);
+        let goto_empty = self.num_states as LRStateId;
+        // the starting state automatically remains in row 0, since that state always has at least one goto to the accepting state,
+        // so there's no need to process it differently
+        for (state, (gotos, actions)) in self.goto.chunks(self.num_nt).zip(self.action.chunks(self.num_t_full)).index::<LRStateId>() {
+            if gotos.iter().any(|goto| *goto != goto_empty) {
+                first_states.push(state);
+                first_goto.extend(gotos);
+                first_action.extend(actions);
+            } else {
+                last_states.push(state);
+                last_action.extend(actions);
+            }
+        }
+        self.num_goto = first_states.len();
+        let mut order = vec![self.num_states as LRStateId; self.num_states + 1];
+        // updates the state numbers in gotos and shifts:
+        for (new, old) in first_states.into_iter().chain(last_states).index() {
+            order[old as usize] = new;
+        }
+        self.goto = first_goto.into_iter().map(|g| order[g as usize]).collect();
+        self.action = first_action.into_iter().chain(last_action).map(|a| match a {
+            LRAction::Shift(s) => LRAction::Shift(order[s as usize]),
+            _ => a,
+        }).collect();
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
@@ -607,8 +646,12 @@ impl LRParsingTable {
         for s in 0..num_states {
             let action_s = (0..num_t_full).map(|t| format!("{:^w$}", action[s * num_t_full + t].to_string(), w = t_len[t])).join(" ");
             let goto_s = (0..num_nt).map(|nt| {
-                let val = goto[s * num_nt + nt];
-                if num_states > val as usize { format!("{val:^w$}", w = nt_len[nt]) } else { format!("{:^w$}", "-", w = nt_len[nt]) }
+                if s < self.num_goto {
+                    let val = goto[s * num_nt + nt];
+                    if num_states > val as usize { format!("{val:^w$}", w = nt_len[nt]) } else { format!("{:^w$}", "-", w = nt_len[nt]) }
+                } else {
+                    format!("{:^w$}", "", w = nt_len[nt])
+                }
             }).join(" ");
             lines.push(format!("{s:>w$} | {action_s} | {goto_s}", w = max_sw));
         }

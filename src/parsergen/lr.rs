@@ -31,7 +31,7 @@ impl ParserGen {
             });
         let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
         assert_eq!(lr_rules.get_log().num_errors(), 0);
-        let parsing_table = lr_rules.make_parsing_table_lalr();
+        let parsing_table = lr_rules.make_parsing_table_lalr(true);
         let num_nt = lr_rules.get_num_nt();
         let mut var_alts = vec![vec![]; num_nt];
         for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
@@ -234,7 +234,7 @@ pub fn alts_to_alt_nt_len(alts: &Vec<(VarId, Alternative)>, symtable: &SymbolTab
 
 impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
     fn build_from(mut source: ProdRuleSet<LR>) -> Self {
-        let table = source.make_parsing_table_lalr();
+        let table = source.make_parsing_table_lalr(true);
         if !source.has_no_errors() {
             panic!("creation of LALR parsing table failed:{}", source.log);
         }

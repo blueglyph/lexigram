@@ -8,7 +8,7 @@ use crate::grammar::tests::TestRules;
 
 #[test]
 fn prs_calc_lr_table() {
-    static TESTS: &[(u32, VarId, usize, &[&str], &[&str])] = &[
+    static TESTS: &[(u32, VarId, usize, &[&str], usize, &[&str], &[&str])] = &[
         (14, 0, 0, &[
             r#"  | Op Id  $  | a b c"#,
             r#"--+-----------+------"#,
@@ -20,6 +20,18 @@ fn prs_calc_lr_table() {
             r#"5 | -  -  r1  | - - -"#,
             r#"6 | -  r2  -  | - - -"#,
             r#"7 | -  -  r0  | - - -"#,
+            r#"--+-----------+------"#,
+        ], 3, &[
+            r#"  | Op Id  $  | a b c"#,
+            r#"--+-----------+------"#,
+            r#"0 | s1 s3  -  | 4 2 5"#,
+            r#"1 | -  s3  -  | - - 6"#,
+            r#"2 | -  s3  -  | - - 7"#,
+            r#"3 | -  r3 r3  |      "#,
+            r#"4 | -  -  acc |      "#,
+            r#"5 | -  -  r1  |      "#,
+            r#"6 | -  r2  -  |      "#,
+            r#"7 | -  -  r0  |      "#,
             r#"--+-----------+------"#,
         ], &[]),
         (552, 0, 0, &[
@@ -34,6 +46,19 @@ fn prs_calc_lr_table() {
             r#"6 |  -  s1 s2   -   -  | - 8"#,
             r#"7 | r3  -   -  r3  r3  | - -"#,
             r#"8 | r0  -   -  r0  r0  | - -"#,
+            r#"--+--------------------+----"#,
+        ], 3, &[
+            r#"  | "-" Id "(" ")"  $  | e t"#,
+            r#"--+--------------------+----"#,
+            r#"0 |  -  s3 s1   -   -  | 4 5"#,
+            r#"1 |  -  s3 s1   -   -  | 6 5"#,
+            r#"2 |  -  s3 s1   -   -  | - 8"#,
+            r#"3 | r2  -   -  r2  r2  |    "#,
+            r#"4 | s2  -   -   -  acc |    "#,
+            r#"5 | r1  -   -  r1  r1  |    "#,
+            r#"6 | s2  -   -  s7   -  |    "#,
+            r#"7 | r3  -   -  r3  r3  |    "#,
+            r#"8 | r0  -   -  r0  r0  |    "#,
             r#"--+--------------------+----"#,
         ], &[]),
         (2000, 0, 1, &[
@@ -54,6 +79,24 @@ fn prs_calc_lr_table() {
             r#"12 | r5  r5   -  | -  -  -  -  - "#,
             r#"13 |  -   -  r2  | -  -  -  -  - "#,
             r#"---+-------------+---------------"#,
+        ], 4, &[
+            r#"   | "a" "b"  $  | s  a  b  c  d "#,
+            r#"---+-------------+---------------"#,
+            r#" 0 | s1  s2   -  | 4  -  -  -  - "#,
+            r#" 1 | s5   -   -  | -  6  3  -  - "#,
+            r#" 2 | s7   -   -  | -  8  3  -  - "#,
+            r#" 3 | r6  r6   -  | -  -  -  11 12"#,
+            r#" 4 |  -   -  acc |               "#,
+            r#" 5 | r4  s9   -  |               "#,
+            r#" 6 | s10  -   -  |               "#,
+            r#" 7 |  -  r4   -  |               "#,
+            r#" 8 |  -  s13  -  |               "#,
+            r#" 9 |  -   -  r1  |               "#,
+            r#"10 |  -   -  r0  |               "#,
+            r#"11 | r3  r3   -  |               "#,
+            r#"12 | r5  r5   -  |               "#,
+            r#"13 |  -   -  r2  |               "#,
+            r#"---+-------------+---------------"#,
         ], &[]),
         (2001, 0, 0, &[
             r#"  | ";" "*"  $  | a b a_1"#,
@@ -64,6 +107,16 @@ fn prs_calc_lr_table() {
             r#"3 |  -   -  r0  | - -  - "#,
             r#"4 | r1  r1   -  | - -  - "#,
             r#"5 | r2  r2   -  | - -  - "#,
+            r#"--+-------------+--------"#,
+        ], 2, &[
+            r#"  | ";" "*"  $  | a b a_1"#,
+            r#"--+-------------+--------"#,
+            r#"0 | r3  r3   -  | 2 -  1 "#,
+            r#"1 | s3  s4   -  | - 5  - "#,
+            r#"2 |  -   -  acc |        "#,
+            r#"3 |  -   -  r0  |        "#,
+            r#"4 | r1  r1   -  |        "#,
+            r#"5 | r2  r2   -  |        "#,
             r#"--+-------------+--------"#,
         ], &[]),
 
@@ -79,6 +132,18 @@ fn prs_calc_lr_table() {
             r#"5 |  -   -  s1  s2  -  | 7"#,
             r#"6 | r0  r0   -  -  r0  | -"#,
             r#"7 | s4  r1   -  -  r1  | -"#,
+            r#"--+--------------------+--"#,
+        ], 3, &[
+            r#"  | "*" "+" Num Id  $  | e"#,
+            r#"--+--------------------+--"#,
+            r#"0 |  -   -  s3  s4  -  | 5"#,
+            r#"1 |  -   -  s3  s4  -  | 6"#,
+            r#"2 |  -   -  s3  s4  -  | 7"#,
+            r#"3 | r2  r2   -  -  r2  |  "#,
+            r#"4 | r3  r3   -  -  r3  |  "#,
+            r#"5 | s1  s2   -  -  acc |  "#,
+            r#"6 | r0  r0   -  -  r0  |  "#,
+            r#"7 | s1  r1   -  -  r1  |  "#,
             r#"--+--------------------+--"#,
         ], &[]),
 
@@ -97,8 +162,22 @@ fn prs_calc_lr_table() {
             r#"8 | -  -  r0  | - -"#,
             r#"9 | -  -  r1  | - -"#,
             r#"--+-----------+----"#,
+        ], 3, &[
+            r#"  | A  B   $  | s a"#,
+            r#"--+-----------+----"#,
+            r#"0 | s1 s2  -  | 3 -"#,
+            r#"1 | s4 -   -  | - 5"#,
+            r#"2 | s4 -   -  | - 6"#,
+            r#"3 | -  -  acc |    "#,
+            r#"4 | s7 r2  -  |    "#,
+            r#"5 | s8 -   -  |    "#,
+            r#"6 | -  s9  -  |    "#,
+            r#"7 | r3 r3  -  |    "#,
+            r#"8 | -  -  r0  |    "#,
+            r#"9 | -  -  r1  |    "#,
+            r#"--+-----------+----"#,
         ], &[
-            "conflict for state 4, terminal A: s7/r2",
+            "- calc_table: conflict for state 4, terminal A: s7/r2",
         ]),
         (102, 0, 0, &[
             // a -> A B* C;
@@ -115,13 +194,18 @@ fn prs_calc_lr_table() {
             r#"4 | -  r1 r1  -  | -  - "#,
             r#"5 | -  -  -  r0  | -  - "#,
             r#"--+--------------+------"#,
+        ], 2, &[
+            r#"  | A  B  C   $  | a a_1"#,
+            r#"--+--------------+------"#,
+            r#"0 | s1 -  -   -  | 2  - "#,
+            r#"1 | -  r2 r2  -  | -  3 "#,
+            r#"2 | -  -  -  acc |      "#,
+            r#"3 | -  s4 s5  -  |      "#,
+            r#"4 | -  r1 r1  -  |      "#,
+            r#"5 | -  -  -  r0  |      "#,
+            r#"--+--------------+------"#,
         ], &[]),
         (103, 0, 0, &[
-            // a -> A B+ C;
-            // - 0: a -> A a_1 C
-            // - 1: a_1 -> a_1 B
-            // - 2: a_1 -> B
-            // - 3: <goal> -> a
             r#"  | A  B  C   $  | a a_1"#,
             r#"--+--------------+------"#,
             r#"0 | s1 -  -   -  | 2  - "#,
@@ -131,6 +215,17 @@ fn prs_calc_lr_table() {
             r#"4 | -  s5 s6  -  | -  - "#,
             r#"5 | -  r1 r1  -  | -  - "#,
             r#"6 | -  -  -  r0  | -  - "#,
+            r#"--+--------------+------"#,
+        ], 2, &[
+            r#"  | A  B  C   $  | a a_1"#,
+            r#"--+--------------+------"#,
+            r#"0 | s1 -  -   -  | 2  - "#,
+            r#"1 | -  s3 -   -  | -  4 "#,
+            r#"2 | -  -  -  acc |      "#,
+            r#"3 | -  r2 r2  -  |      "#,
+            r#"4 | -  s5 s6  -  |      "#,
+            r#"5 | -  r1 r1  -  |      "#,
+            r#"6 | -  -  -  r0  |      "#,
             r#"--+--------------+------"#,
         ], &[]),
         (121, 0, 0, &[
@@ -149,6 +244,17 @@ fn prs_calc_lr_table() {
             r#"4 | -  -  -  r0  | - -  - "#,
             r#"5 | -  r1 r1  -  | - -  - "#,
             r#"6 | -  r2 r2  -  | - -  - "#,
+            r#"--+--------------+--------"#,
+        ], 3, &[
+            r#"  | A  C  Id  $  | a b a_1"#,
+            r#"--+--------------+--------"#,
+            r#"0 | s1 -  -   -  | 3 -  - "#,
+            r#"1 | -  r3 r3  -  | - -  2 "#,
+            r#"2 | -  s4 s5  -  | - 6  - "#,
+            r#"3 | -  -  -  acc |        "#,
+            r#"4 | -  -  -  r0  |        "#,
+            r#"5 | -  r1 r1  -  |        "#,
+            r#"6 | -  r2 r2  -  |        "#,
             r#"--+--------------+--------"#,
         ], &[]),
         (122, 0, 0, &[
@@ -169,9 +275,22 @@ fn prs_calc_lr_table() {
             r#"6 | -  -  -  r0  | - -  - "#,
             r#"7 | -  r2 r2  -  | - -  - "#,
             r#"--+--------------+--------"#,
+        ], 3, &[
+            r#"  | A  C  Id  $  | a b a_1"#,
+            r#"--+--------------+--------"#,
+            r#"0 | s1 -  -   -  | 3 -  - "#,
+            r#"1 | -  -  s4  -  | - 5  2 "#,
+            r#"2 | -  s6 s4  -  | - 7  - "#,
+            r#"3 | -  -  -  acc |        "#,
+            r#"4 | -  r1 r1  -  |        "#,
+            r#"5 | -  r3 r3  -  |        "#,
+            r#"6 | -  -  -  r0  |        "#,
+            r#"7 | -  r2 r2  -  |        "#,
+            r#"--+--------------+--------"#,
         ], &[]),
         /* template:
         (, 0, 0, &[
+        ], 0, &[
         ], &[]),
         */
     ];
@@ -182,7 +301,7 @@ fn prs_calc_lr_table() {
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = false;
     let mut errors = 0;
-    for &(test_id, start, expected_warnings, expected_lines, expected_conflict) in TESTS {
+    for &(test_id, start, expected_warnings, expected_lines, expected_ngoto, expected_compressed, expected_conflict) in TESTS {
         // if !matches!(test_id, 2001) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
@@ -192,6 +311,8 @@ fn prs_calc_lr_table() {
         let mut lr = TestRules(test_id).to_prs_lr().unwrap();
         lr.set_start(start);
         let (parsing_table, states) = lr.make_parsing_table_with_states_lalr();
+        let mut compressed_table = parsing_table.clone();
+        compressed_table.compress_goto();
         let fail = if lr.has_no_errors() {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
@@ -210,6 +331,8 @@ fn prs_calc_lr_table() {
                 println!("{msg}: incorrect action table size");
             }
             let result_lines = parsing_table.to_str(lr.get_symbol_table());
+            let result_ngoto = compressed_table.num_goto;
+            let result_compressed = compressed_table.to_str(lr.get_symbol_table());
             if VERBOSE || SHOW_ANSWER_ONLY {
                 if !SHOW_ANSWER_ONLY {
                     println!("table has {} conflict(s)", result_conflict.len());
@@ -227,10 +350,13 @@ fn prs_calc_lr_table() {
                     println!("{str}");
                 }
                 println!("{}", result_lines.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n"));
+                let compressed_str = result_compressed.iter().map(|s| format!("\n{INDENT1}r#\"{s}\"#,")).join("");
                 if has_conflict {
-                    println!("{INDENT0}], &[{}\n{INDENT0}]),", result_conflict.iter().map(|s| format!("\n{INDENT1}\"{s}\",")).join(""));
+                    println!(
+                        "{INDENT0}], {result_ngoto}, &[{compressed_str}\n{INDENT0}], &[{}\n{INDENT0}]),",
+                        result_conflict.iter().map(|s| format!("\n{INDENT1}\"{s}\",")).join(""));
                 } else {
-                    println!("{INDENT0}], &[]),");
+                    println!("{INDENT0}], {result_ngoto}, &[{compressed_str}\n{INDENT0}], &[]),", );
                 }
             }
             let conflict_mismatch = expected_conflict.len() != result_conflict.len()
@@ -239,11 +365,13 @@ fn prs_calc_lr_table() {
                 false,
                 conflict_mismatch,
                 result_lines != expected_lines,
+                result_ngoto != expected_ngoto,
+                result_compressed != expected_compressed,
                 !lr.log.has_no_errors(),
                 result_warnings != expected_warnings,
             ]
         } else {
-            [true, false, false, false, false]
+            [true, false, false, false, false, false, false]
         };
         if fail.iter().any(|f| *f) {
             errors += 1;
@@ -252,10 +380,12 @@ fn prs_calc_lr_table() {
                 if fail[0] { print!(", couldn't generate parsing table"); }
                 if fail[1] { print!(", conflicts mismatch"); }
                 if fail[2] { print!(", wrong result"); }
-                if fail[3] { print!(", errors in log"); }
-                if fail[4] { print!(", warnings in log"); }
+                if fail[3] { print!(", wrong number of gotos"); }
+                if fail[4] { print!(", wrong compressed result"); }
+                if fail[5] { print!(", errors in log"); }
+                if fail[6] { print!(", warnings in log"); }
                 println!();
-                if fail[0] || fail[3] || fail[4] {
+                if fail[0] || fail[5] || fail[6] {
                     println!("Log:\n{}", lr.log);
                 }
             }
@@ -340,7 +470,7 @@ mod parse {
             let symtab = lalr1.symbol_table.clone();
             if VERBOSE {
                 lalr1.print_alts();
-                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr().to_str(lalr1.get_symbol_table()).join("\n"));
+                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr(false).to_str(lalr1.get_symbol_table()).join("\n"));
             }
             let ptables = LRParserTables::build_from(lalr1);
             let mut parser: LRParser<LALR> = ptables.make_parser();
