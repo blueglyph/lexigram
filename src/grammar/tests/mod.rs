@@ -432,6 +432,21 @@ impl TestRules {
                 r#"a -> b* ";";"#,
                 r#"b -> "*";"#,
             ],
+            // many nonterminals per state in GOTO table:
+            2002 => vec![
+                r#"a -> "a" b;"#,
+                r#"b -> c | d | e | f;"#,
+                r#"c -> "c";"#,
+                r#"d -> "d";"#,
+                r#"e -> "e";"#,
+                r#"f -> "f";"#,
+            ],
+            // many states per nonterminal in GOTO table:
+            2003 => vec![
+                r#"e -> e "+" t | t;"#,
+                r#"t -> t "*" f | f;"#,
+                r#"f -> Id | "(" e ")";"#,
+            ],
 
             // -----------------------------------------------------------------------------
             // 25xx = non-LR(1)
