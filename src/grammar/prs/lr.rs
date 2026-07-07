@@ -407,7 +407,6 @@ impl ProdRuleSet<LR> {
     }
 
     pub(crate) fn make_parsing_table_with_states_lalr(&mut self) -> (LRParsingTable, Vec<Vec<LRItem>>) {
-        const VERBOSE: bool = false;
         self.log.add_note("- calculating LALR parsing table...");
         let (states, gotos, reductions) = self.calc_states_lalr();
         if !self.log.has_no_errors() {
@@ -506,11 +505,6 @@ impl ProdRuleSet<LR> {
             flags: self.flags.clone(),
             parent: self.parent.clone(),
         };
-        let table_str = table.to_str(self.get_symbol_table()).join("\n");
-        if VERBOSE {
-            println!("Table:\n{table_str}");
-        }
-        self.log.add_note(format!("Parsing table:\n{table_str}"));
         (table, states)
     }
 
@@ -522,6 +516,8 @@ impl ProdRuleSet<LR> {
         if compressed {
             table.compress_goto();
         }
+        let table_str = table.to_str(self.get_symbol_table()).join("\n");
+        self.log.add_note(format!("Parsing table:\n{table_str}"));
         table
     }
 }
