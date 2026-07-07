@@ -6,13 +6,13 @@
 use gramparser_types::*;
 use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
 
-const PARSER_NUM_T: usize = 17;
+const PARSER_NUM_T: usize = 18;
 const PARSER_NUM_NT: usize = 14;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Sep", Some("/")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("ResolveTag", Some("<resolve>")), ("Id", None)];
+static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Sep", Some("/")), ("Star", Some("*")), ("StrLit", None), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("ResolveTag", Some("<resolve>")), ("Id", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_alt", "prod_factor", "prod_atom", "prod_alt_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
-static ALT_VAR: [VarId; 28] = [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
-static PARSING_TABLE: [AltId; 252] = [28, 28, 28, 28, 28, 28, 28, 28, 28, 0, 28, 28, 28, 28, 28, 28, 28, 29, 28, 28, 28, 28, 28, 28, 28, 28, 28, 1, 28, 28, 28, 28, 28, 29, 29, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 2, 2, 29, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 3, 3, 29, 29, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 4, 5, 28, 28, 6, 6, 28, 28, 6, 6, 6, 28, 28, 6, 6, 6, 6, 6, 28, 6, 28, 28, 7, 7, 28, 28, 7, 7, 7, 28, 28, 7, 7, 7, 7, 7, 28, 7, 28, 28, 8, 29, 28, 28, 29, 29, 8, 28, 28, 29, 8, 8, 8, 8, 28, 8, 28, 28, 14, 29, 29, 29, 29, 29, 15, 29, 28, 29, 10, 11, 12, 13, 28, 9, 28, 28, 16, 17, 28, 28, 17, 17, 16, 28, 28, 17, 16, 16, 16, 16, 28, 16, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 18, 18, 19, 28, 28, 20, 28, 28, 21, 21, 28, 28, 28, 21, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 22, 28, 28, 28, 23, 28, 28, 28, 28, 29, 29, 29, 28, 27, 27, 24, 25, 27, 27, 27, 26, 28, 27, 27, 27, 27, 27, 28, 27, 28];
-static OPCODES: [&[OpCode]; 28] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(16), OpCode::T(9)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(16), OpCode::T(15)], &[OpCode::Exit(5), OpCode::T(16)], &[OpCode::NT(11), OpCode::Exit(6), OpCode::NT(6)], &[OpCode::Exit(7), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(9), OpCode::T(16)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(13)], &[OpCode::Exit(13), OpCode::T(14)], &[OpCode::Exit(14), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Exit(15), OpCode::T(7)], &[OpCode::Loop(9), OpCode::Exit(16), OpCode::NT(7)], &[OpCode::Exit(17)], &[OpCode::Loop(10), OpCode::Exit(18), OpCode::NT(3)], &[OpCode::Exit(19)], &[OpCode::Loop(11), OpCode::Exit(20), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(6)], &[OpCode::Exit(23), OpCode::T(6), OpCode::T(10)], &[OpCode::Exit(24), OpCode::T(3)], &[OpCode::Exit(25), OpCode::T(4)], &[OpCode::Exit(26), OpCode::T(8)], &[OpCode::Exit(27)]];
+static ALT_VAR: [VarId; 29] = [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
+static PARSING_TABLE: [AltId; 266] = [29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 0, 29, 29, 29, 29, 29, 29, 29, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 1, 29, 29, 29, 29, 29, 30, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 2, 2, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 3, 3, 30, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 4, 5, 29, 29, 6, 6, 29, 29, 6, 6, 6, 29, 6, 29, 6, 6, 6, 6, 6, 29, 6, 29, 29, 7, 7, 29, 29, 7, 7, 7, 29, 7, 29, 7, 7, 7, 7, 7, 29, 7, 29, 29, 8, 30, 29, 29, 30, 30, 8, 29, 8, 29, 30, 8, 8, 8, 8, 29, 8, 29, 29, 14, 30, 30, 30, 30, 30, 15, 30, 16, 29, 30, 10, 11, 12, 13, 29, 9, 29, 29, 17, 18, 29, 29, 18, 18, 17, 29, 17, 29, 18, 17, 17, 17, 17, 29, 17, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 19, 19, 20, 29, 29, 21, 29, 29, 22, 22, 29, 29, 29, 29, 22, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 23, 29, 29, 29, 29, 24, 29, 29, 29, 29, 30, 30, 30, 29, 28, 28, 25, 26, 28, 28, 28, 27, 28, 29, 28, 28, 28, 28, 28, 29, 28, 29];
+static OPCODES: [&[OpCode]; 29] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(17), OpCode::T(10)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(17), OpCode::T(16)], &[OpCode::Exit(5), OpCode::T(17)], &[OpCode::NT(11), OpCode::Exit(6), OpCode::NT(6)], &[OpCode::Exit(7), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(9), OpCode::T(17)], &[OpCode::Exit(10), OpCode::T(12)], &[OpCode::Exit(11), OpCode::T(13)], &[OpCode::Exit(12), OpCode::T(14)], &[OpCode::Exit(13), OpCode::T(15)], &[OpCode::Exit(14), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Exit(15), OpCode::T(7)], &[OpCode::Exit(16), OpCode::T(9)], &[OpCode::Loop(9), OpCode::Exit(17), OpCode::NT(7)], &[OpCode::Exit(18)], &[OpCode::Loop(10), OpCode::Exit(19), OpCode::NT(3)], &[OpCode::Exit(20)], &[OpCode::Loop(11), OpCode::Exit(21), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(22)], &[OpCode::Exit(23), OpCode::T(6)], &[OpCode::Exit(24), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(25), OpCode::T(3)], &[OpCode::Exit(26), OpCode::T(4)], &[OpCode::Exit(27), OpCode::T(8)], &[OpCode::Exit(28)]];
 static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
 static START_SYMBOL: VarId = 0;
 
@@ -103,6 +103,8 @@ pub enum CtxProdAtom {
     V6 { prod: SynProd },
     /// `prod_atom -> "/"`
     V7,
+    /// `prod_atom -> StrLit`
+    V8 { strlit: String },
 }
 
 /// Computed `prod_factor*` array in `prod_alt ->  ►► prod_factor* ◄◄ `
@@ -230,23 +232,23 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     0 => self.exit_file(),                      // file -> header rules
                     1 => self.exit_header(),                    // header -> "grammar" Id ";"
                     2 => self.inter_rules(),                    // rules -> rule rules_1
-                    18 => self.exit_rules1(),                   // rules_1 -> rule rules_1
-                    19 => self.exitloop_rules1(),               // rules_1 -> ε
-                    22 |                                        // rule_1 -> ";"
-                    23 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
+                    19 => self.exit_rules1(),                   // rules_1 -> rule rules_1
+                    20 => self.exitloop_rules1(),               // rules_1 -> ε
+                    23 |                                        // rule_1 -> ";"
+                    24 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
                  /* 3 */                                        // rule -> rule_name ":" prod rule_1 (never called)
                     4 |                                         // rule_name -> "<resolve>" Id
                     5 => self.exit_rule_name(alt_id),           // rule_name -> Id
                     6 => self.inter_prod(),                     // prod -> prod_alt prod_1
-                    20 => self.exit_prod1(),                    // prod_1 -> "|" prod_alt prod_1
-                    21 => self.exitloop_prod1(),                // prod_1 -> ε
+                    21 => self.exit_prod1(),                    // prod_1 -> "|" prod_alt prod_1
+                    22 => self.exitloop_prod1(),                // prod_1 -> ε
                     7 => self.exit_prod_alt(),                  // prod_alt -> prod_alt_1
-                    16 => self.exit_prod_alt1(),                // prod_alt_1 -> prod_factor prod_alt_1
-                    17 => {}                                    // prod_alt_1 -> ε
-                    24 |                                        // prod_factor_1 -> "+"
-                    25 |                                        // prod_factor_1 -> "?"
-                    26 |                                        // prod_factor_1 -> "*"
-                    27 => self.exit_prod_factor(alt_id),        // prod_factor_1 -> ε
+                    17 => self.exit_prod_alt1(),                // prod_alt_1 -> prod_factor prod_alt_1
+                    18 => {}                                    // prod_alt_1 -> ε
+                    25 |                                        // prod_factor_1 -> "+"
+                    26 |                                        // prod_factor_1 -> "?"
+                    27 |                                        // prod_factor_1 -> "*"
+                    28 => self.exit_prod_factor(alt_id),        // prod_factor_1 -> ε
                  /* 8 */                                        // prod_factor -> prod_atom prod_factor_1 (never called)
                     9 |                                         // prod_atom -> Id
                     10 |                                        // prod_atom -> Lform
@@ -254,7 +256,8 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     12 |                                        // prod_atom -> "<P>"
                     13 |                                        // prod_atom -> "<G>"
                     14 |                                        // prod_atom -> "(" prod ")"
-                    15 => self.exit_prod_atom(alt_id),          // prod_atom -> "/"
+                    15 |                                        // prod_atom -> "/"
+                    16 => self.exit_prod_atom(alt_id),          // prod_atom -> StrLit
                     _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }
@@ -381,12 +384,12 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_rule(&mut self, alt_id: AltId) {
         let (n, ctx) = match alt_id {
-            22 => {
+            23 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 (4, CtxRule::V2 { rule_name, prod })
             }
-            23 => {
+            24 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 (5, CtxRule::V1 { rule_name, prod })
@@ -467,19 +470,19 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_factor(&mut self, alt_id: AltId) {
         let (n, ctx) = match alt_id {
-            24 => {
+            25 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 (2, CtxProdFactor::V1 { prod_atom })
             }
-            25 => {
+            26 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 (2, CtxProdFactor::V3 { prod_atom })
             }
-            26 => {
+            27 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 (2, CtxProdFactor::V2 { prod_atom })
             }
-            27 => {
+            28 => {
                 let prod_atom = self.stack.pop().unwrap().get_prod_atom();
                 (1, CtxProdFactor::V4 { prod_atom })
             }
@@ -516,6 +519,10 @@ impl<T: GramParserListener> Wrapper<T> {
             }
             15 => {
                 (1, CtxProdAtom::V7)
+            }
+            16 => {
+                let strlit = self.stack_t.pop().unwrap();
+                (1, CtxProdAtom::V8 { strlit })
             }
             _ => panic!("unexpected alt id {alt_id} in method exit_prod_atom")
         };

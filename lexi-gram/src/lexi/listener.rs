@@ -17,6 +17,7 @@ use lexigram_lib::parser::Terminate;
 use lexigram_lib::segments::Segments;
 use crate::lexi::lexiparser::*;
 use crate::lexi::lexiparser::lexiparser_types::*;
+use crate::literals;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum LexActionOption {
@@ -806,7 +807,7 @@ impl LexiParserListener for LexiListener<'_> {
         SynOptStrLit(match ctx {
             // opt_str_lit -> ":" StrLit
             CtxOptStrLit::V1 { strlit } => {
-                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
+                let s = literals::decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
                     self.log_error(&spans[1], &format!("cannot decode the string literal {strlit}: {e}"));
                     format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
                 });
@@ -999,7 +1000,7 @@ impl LexiParserListener for LexiListener<'_> {
             CtxItem::V2 { charlit: [a, b] } => {         // item -> CharLit ".." CharLit
                 let [first, last] = [(0, a), (1, b)]
                     .map(|(i, lit)| {
-                        decode_char(&lit[1..lit.len() - 1]).unwrap_or_else(|e| {
+                        literals::decode_char(&lit[1..lit.len() - 1]).unwrap_or_else(|e| {
                             errors.push((&spans[2 * i], format!("cannot decode character literal '{lit}': {e}")));
                             '♫' // we make up the result to leave a chance to parser to continue
                         })
@@ -1009,14 +1010,14 @@ impl LexiParserListener for LexiListener<'_> {
             CtxItem::V3 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
-                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
+                let c = literals::decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
                     errors.push((&spans[0], format!("cannot decode character literal {charlit}: {e}")));
                     '♫' // we make up the result to leave a chance to the parser to continue
                 });
                 (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
             }
             CtxItem::V4 { strlit } => {          // item -> StrLit
-                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
+                let s = literals::decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
                     errors.push((&spans[0], format!("cannot decode string literal {strlit}: {e}")));
                     format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
                 });
@@ -1061,7 +1062,7 @@ impl LexiParserListener for LexiListener<'_> {
                 Segments::dot()
             }
             CtxCharSet::V3 { fixedset } => {          // char_set -> FixedSet
-                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
+                literals::decode_fixed_set(&fixedset).unwrap_or_else(|e| {
                     self.log_error(&spans[0], &format!("cannot decode character set [{fixedset}]: {e}"));
                     segments!('♫') // we make up the result to leave a chance to the parser to continue
                 })
@@ -1081,7 +1082,7 @@ impl LexiParserListener for LexiListener<'_> {
         let seg = match ctx {
             CtxCharSetOne::V1 { setchar: [a, b] } => {     // char_set_one -> SetChar "-" SetChar
                 let [first, last] = [(0, a), (1, b)].map(|(i, sc)| {
-                    decode_set_char(&sc).unwrap_or_else(|e| {
+                    literals::decode_set_char(&sc).unwrap_or_else(|e| {
                         errors.push((&spans[2 * i], format!("cannot decode character {sc}: {e}")));
                         '♫' // we make up the result to leave a chance to the parser to continue
                     })
@@ -1089,14 +1090,14 @@ impl LexiParserListener for LexiListener<'_> {
                 Segments::from((first, last))
             }
             CtxCharSetOne::V2 { setchar } => {     // char_set_one -> SetChar
-                let single = decode_set_char(&setchar).unwrap_or_else(|e| {
+                let single = literals::decode_set_char(&setchar).unwrap_or_else(|e| {
                     errors.push((&spans[0], format!("cannot decode character {setchar}: {e}")));
                     '♫' // we make up the result to leave a chance to the parser to continue
                 });
                 Segments::from(single)
             }
             CtxCharSetOne::V3 { fixedset } => {    // char_set_one -> FixedSet
-                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
+                literals::decode_fixed_set(&fixedset).unwrap_or_else(|e| {
                     errors.push((&spans[0], format!("cannot decode character set [{fixedset}]: {e}")));
                     segments!('♫') // we make up the result to leave a chance to the parser to continue
                 })
@@ -1107,121 +1108,5 @@ impl LexiParserListener for LexiListener<'_> {
             self.log_error(span, &msg);
         }
         SynCharSetOne(seg)
-    }
-}
-
-/// Decodes a string literal (without its surrounding quotes). There must be at least two characters in `strlit`.
-pub(crate) fn decode_str(strlit: &str) -> Result<String, String> {
-    let mut result = String::new();
-    let mut chars = strlit.chars();
-    while let Some(c) = chars.next() {
-        match c {
-            '\\' => {
-                result.push(match chars.next().ok_or(format!("'\\' incomplete escape code in string literal '{strlit}'"))? {
-                    'n' => '\n',
-                    'r' => '\r',
-                    't' => '\t',
-                    '\'' => '\'',
-                    '\\' => '\\',
-                    'u' => {
-                        if !matches!(chars.next(), Some('{')) { return Err(format!("malformed unicode literal in string literal '{strlit}' (missing '{{')")); }
-                        let mut hex = String::new();
-                        loop {
-                            let Some(h) = chars.next() else { return Err(format!("malformed unicode literal in string literal '{strlit}' (missing '}}')")); };
-                            if h == '}' { break; }
-                            hex.push(h);
-                        };
-                        let code = u32::from_str_radix(&hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
-                        char::from_u32(code).ok_or_else(|| format!("'{hex}' isn't a valid unicode hexadecimal value"))?
-                    }
-                    unknown => return Err(format!("unknown escape code '\\{unknown}' in string literal '{strlit}'"))
-                });
-            }
-            _ => result.push(c)
-        }
-    }
-    Ok(result)
-}
-
-/// Decodes a single character literal (without its surrounding quotes). There must be exactly one character in `char`,
-/// so this function assumes there's at least one byte but can handle malformed character literals.
-fn decode_char(char: &str) -> Result<char, String> {
-    // fragment Char        : EscChar | ~[\n\r\t'\\];
-    // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
-    // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
-    // fragment HexDigit    : [0-9a-fA-F];
-    let mut chars = char.chars();
-    let c = chars.next();
-    if c == Some('\\') {
-        match chars.next().ok_or("'\\' incomplete escape code in character literal".to_string())? {
-            'n' => Ok('\n'),
-            'r' => Ok('\r'),
-            't' => Ok('\t'),
-            '\'' => Ok('\''),
-            '\\' => Ok('\\'),
-            'u' => {
-                if !matches!(chars.next(), Some('{')) { return Err(format!("malformed unicode literal in string literal '{char}' (missing '{{')")); }
-                let mut hex = String::new();
-                loop {
-                    let Some(h) = chars.next() else { return Err(format!("malformed unicode literal in string literal '{char}' (missing '}}')")); };
-                    if h == '}' { break; }
-                    hex.push(h);
-                };
-                let code = u32::from_str_radix(&hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
-                let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
-                Ok(u)
-            }
-            _ => Err(format!("unknown escape code '{char}'")), // shouldn't happen
-        }
-
-    } else {
-        c.ok_or(format!("'{char}' is not a valid character literal"))
-    }
-}
-
-/// Decodes one character that is used inside `[` ... `]`. There must be exactly one character in `setchar`,
-/// so this function assumes there's at least one byte but can handle malformed character literals.
-fn decode_set_char(setchar: &str) -> Result<char, String> {
-    // SET_CHAR             : (EscSetChar | ~[\n\r\t\\\]]);
-    // fragment EscSetChar  : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-    // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
-    // fragment HexDigit    : [0-9a-fA-F];
-    let bytes = setchar.as_bytes();
-    if bytes[0] == b'\\' {
-        match bytes.get(1).ok_or("'\\' incomplete escape code in set character literal".to_string())? {
-            b'n' => Ok('\n'),
-            b'r' => Ok('\r'),
-            b't' => Ok('\t'),
-            b'[' => Ok('['),
-            b']' => Ok(']'),
-            b'-' => Ok('-'),
-            b'\\' => Ok('\\'),
-            b'u' => {
-                if bytes[2] != b'{' || !matches!(setchar.chars().last(), Some('}')) {
-                    return Err(format!("malformed unicode literal '{setchar}'"));
-                }
-                let hex = &setchar[3..setchar.len() - 1];
-                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
-                let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
-                Ok(u)
-            }
-            _ => Err(format!("unknown escape code '{setchar}'")), // shouldn't happen
-        }
-    } else {
-        setchar.chars().next().ok_or(format!("'{setchar}' is not a valid set character literal"))
-    }
-}
-
-fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
-    // FIXED_SET       : ('\\w' | '\\d');
-    let bytes = fixedset.as_bytes();
-    if bytes[0] != b'\\' {
-        Err(format!("unknown shorthand code '{fixedset}'")) // shouldn't happen
-    } else {
-        match fixedset.as_bytes()[1] {
-            b'd' => Ok(segments!('0'-'9')),
-            b'w' => Ok(segments!('0'-'9', '_', 'A'-'Z', 'a'-'z')),
-            _ => Err(format!("unknown shorthand code '{fixedset}'")), // shouldn't happen
-        }
     }
 }

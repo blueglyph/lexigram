@@ -159,7 +159,7 @@ pub fn get_valid_segments<'a, R: Read>(lexer: &Lexer<'a, R>, state: LexStateId) 
 }
 
 mod listener {
-    use crate::lexi::listener::decode_str;
+    use crate::literals::decode_str;
 
     #[test]
     fn decode_str_is_ok() {

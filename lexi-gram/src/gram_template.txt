@@ -101,6 +101,8 @@ impl GramParserListener for Listener {
             CtxProdAtom::V6 { prod } => {}
             // prod_atom -> "/"
             CtxProdAtom::V7 => {}
+            // prod_atom -> StrLit
+            CtxProdAtom::V8 { strlit } => {}
         }
         SynProdAtom()
     }

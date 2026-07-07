@@ -5,6 +5,7 @@ pub mod gram;
 pub mod gen_parser;
 pub mod options;
 mod tests;
+mod literals;
 
 // Main object:
 pub use lexi::Lexi;

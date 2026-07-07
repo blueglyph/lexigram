@@ -7,7 +7,7 @@ use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSe
 use lexigram_lib::build::BuildFrom;
 use lexigram_lib::log::{BufLog, LogMsg, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::{Symbol, Terminate};
-use lexigram_lib::{General, SymbolTable, VarId};
+use lexigram_lib::{General, SymbolTable, TokenId, VarId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
@@ -16,6 +16,7 @@ use lexigram_lib::CollectJoin;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};
 use lexigram_lib::lexer::PosSpan;
 use lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
+use crate::literals::decode_str;
 
 pub struct GramListener<'ls> {
     verbose: bool,
@@ -478,6 +479,7 @@ impl GramParserListener for GramListener<'_> {
     // |   Greedy
     // |   Lparen prod Rparen
     // |   Sep
+    // |   StrLit
     // ;
     fn exit_prod_atom(&mut self, ctx: CtxProdAtom, spans: Vec<PosSpan>) -> SynProdAtom {
         if self.verbose { println!("exit_prod_atom({ctx:?})"); }
@@ -553,6 +555,27 @@ impl GramParserListener for GramListener<'_> {
 
             CtxProdAtom::V7 => {                        // prod_atom -> "/"
                 (self.curr.as_mut().unwrap().add(None, GrNode::Sep), None)
+            }
+            CtxProdAtom::V8 { strlit } => {             // prod_atom -> StrLit
+                match decode_str(&strlit[1..strlit.len() - 1]) {
+                    Ok(s) => {
+                        // checks if a fixed terminal has the same string
+                        let t_maybe = self.symbol_table.get_terminals().index::<TokenId>()
+                            .find_map(|(t, (_name, str_maybe))| if matches!(str_maybe, Some(str) if str == s) { Some(t) } else { None });
+                        if let Some(t) = t_maybe {
+                            (self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(t))), None)
+                        } else {
+                            self.log_error(&spans[0], &format!("undefined string literal {strlit}"));
+                            self.abort = Terminate::Abort;
+                            return SynProdAtom(0, None /* don't care */)
+                        }
+                    }
+                    Err(e) => {
+                        self.log_error(&spans[0], &format!("cannot decode string literal {strlit}: {e}"));
+                        self.abort = Terminate::Abort;
+                        return SynProdAtom(0, None /* don't care */)
+                    }
+                }
             }
         };
         SynProdAtom(id, lform)

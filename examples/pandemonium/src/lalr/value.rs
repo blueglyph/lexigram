@@ -19,7 +19,7 @@ use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
 use crate::lalr::{SPANS1, SPANS2, TXT1, TXT2};
 
-const VERBOSE: bool = true;
+const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
 
 #[test]

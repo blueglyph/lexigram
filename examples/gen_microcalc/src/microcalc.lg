@@ -32,8 +32,8 @@ Print                   : 'print';
 Return                  : 'return';
 While                   : 'while';
 
-SComment                : BLOCK_COMMENT              -> skip;
-SLineComment            : LINE_COMMENT               -> skip;
+SComment                : BLOCK_COMMENT             -> skip;
+SLineComment            : LINE_COMMENT              -> skip;
 SWhiteSpace             : [ \n\r\t]+                -> skip;
 
 Id                      : [a-zA-Z][a-zA-Z_0-9]*;
@@ -50,48 +50,50 @@ Num                     : '0b' BinInteger | '0x' HexInteger | DecInteger;
 
 grammar MicroCalc;
 
+// Here we use string literals instead of terminal IDs when possible
+
 program:
     function+
 ;
 
 function:
-    Def Id Lpar fun_params Rpar instruction
+    'def' Id '(' fun_params ')' instruction
 ;
 
 fun_params:
-    (Id / Comma)+
+    (Id / ',')+
 |
 ;
 
 block:
-    Lbracket instruction* Rbracket
+    '{' instruction* '}'
 ;
 
 instruction:
-    Let Id Equal expr Semi
-|   Id Equal expr Semi
-|   Return expr Semi
-|   Print expr Semi
-|   Id Lpar fun_args Rpar Semi
-|   If expr instruction (<G> Else instruction)?
-|   While expr block
+    'let' Id '=' expr ';'
+|   Id '=' expr ';'
+|   'return' expr ';'
+|   'print' expr ';'
+|   Id '(' fun_args ')' ';'
+|   'if' expr instruction (<G> 'else' instruction)?
+|   'while' expr block
 |   block
 ;
 
 expr:
-    Sub expr
-|   expr <R> Exp expr
-|   expr (Mul | <P> Div) expr
-|   expr (Add | <P> Sub) expr
-|   Not expr
-|   expr (Eq | <P> Ne | <P> Lt | <P> Gt | <P> Le | <P> Ge) expr
-|   Lpar expr Rpar
-|   Id Lpar fun_args Rpar
+    '-' expr
+|   expr <R> '^' expr
+|   expr ('*' | <P> '/') expr
+|   expr ('+' | <P> '-') expr
+|   '!' expr
+|   expr ('==' | <P> '!=' | <P> '<' | <P> '>' | <P> '<=' | <P> '>=') expr
+|   '(' expr ')'
+|   Id '(' fun_args ')'
 |   Id
 |   Num
 ;
 
 fun_args:
-    (expr / Comma)+
+    (expr / ',')+
 |
 ;

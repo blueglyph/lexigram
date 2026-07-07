@@ -40,4 +40,5 @@ prod_atom:
 |   Greedy
 |   Lparen prod Rparen
 |   Sep
+|   StrLit
 ;
