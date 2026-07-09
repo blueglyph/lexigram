@@ -473,35 +473,55 @@ impl ProdRuleSet<LR> {
                     (LRAction::Reduce(_), LRAction::Shift(shift)) if solve_conflict => {
                         let mut left_alt_id = *alt_idx as usize;        // left op: what's potentially reduced
                         let nt_red = *nt;
-                        let right_item = &states[shift as usize][0];    // right op: what's potentially shifted
-                        let nt_shift = right_item.nt;
-                        if nt_shift != nt_red {
-                            self.log.add_warning(format!(
-                                "- calc_table: conflict for state {s}, terminal {}: {}/{}, cannot solve conflict between nonterminals {} and {}",
-                                self.symbol(t).to_str(self.get_symbol_table()),
-                                *action_cell, act,
-                                Symbol::NT(nt_shift).to_str(self.get_symbol_table()),
-                                Symbol::NT(nt_red).to_str(self.get_symbol_table())));
-                        } else {
-                            // compare priority of shift_alt_id and alt_id
-                            let mut right_alt_id = right_item.alt_idx as usize;
-                            let prules = &self.prules[*nt as usize];
-                            let left_alt = &prules[left_alt_id];
-                            let is_left_rassoc = left_alt.flags & ruleflag::R_ASSOC != 0;
-                            // note: normally, the first alt of this NT mustn't have the flag PREC_EQ, but we check underflow anyway:
-                            while left_alt_id > 0 && prules[left_alt_id].flags & ruleflag::PREC_EQ != 0 { left_alt_id -= 1; }
-                            while right_alt_id > 0 && prules[right_alt_id].flags & ruleflag::PREC_EQ != 0 { right_alt_id -= 1; }
-                            let resolved = if left_alt_id == right_alt_id {
-                                // same priority: if left is right-assoc => shift, else reduce
-                                if is_left_rassoc { *action_cell } else { act }
+                        let prules = &self.prules[*nt as usize];
+                        let (mut is_r, mut is_s) = (false, false);
+                        let right_items = states[shift as usize].iter().filter(|item| item.pos > 0).to_vec();
+                        for right_item in &right_items {                 // right op: what's potentially shifted
+                            let nt_shift = right_item.nt;
+                            if nt_shift != nt_red {
+                                self.log.add_warning(format!(
+                                    "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}), different nonterminals",
+                                    self.symbol(t).to_str(self.get_symbol_table()),
+                                    // reduction:
+                                    act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
+                                    // shift:
+                                    *action_cell, self.item_to_str(right_item)));
                             } else {
-                                // if priority(left) < priority(right) => shift, else reduce
-                                if left_alt_id > right_alt_id { *action_cell } else { act }
-                            };
-                            self.log.add_note(format!("- calc_table: conflict for state {s}, terminal {}: {}/{} => resolved as {}",
+                                // compare priority of shift_alt_id and alt_id
+                                let mut right_alt_id = right_item.alt_idx as usize;
+                                let left_alt = &prules[left_alt_id];
+                                let is_left_rassoc = left_alt.flags & ruleflag::R_ASSOC != 0;
+                                // note: normally, the first alt of this NT mustn't have the flag PREC_EQ, but we check underflow anyway:
+                                while left_alt_id > 0 && prules[left_alt_id].flags & ruleflag::PREC_EQ != 0 { left_alt_id -= 1; }
+                                while right_alt_id > 0 && prules[right_alt_id].flags & ruleflag::PREC_EQ != 0 { right_alt_id -= 1; }
+                                if left_alt_id == right_alt_id {
+                                    // same priority: if left is right-assoc => shift, else reduce
+                                    if is_left_rassoc { is_s = true; } else { is_r = true; }
+                                } else {
+                                    // if priority(left) < priority(right) => shift, else reduce
+                                    if left_alt_id > right_alt_id { is_s = true; } else { is_r = true; }
+                                }
+                            }
+                        }
+                        if is_r != is_s {
+                            let resolved = if is_r { act } else { *action_cell };
+                            self.log.add_note(format!(
+                                "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}) => resolved as {}",
                                 self.symbol(t).to_str(self.get_symbol_table()),
-                                *action_cell, act, resolved));
+                                // reduction:
+                                act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
+                                // shift:
+                                *action_cell, right_items.iter().map(|r| self.item_to_str(r)).join(", "),
+                                resolved));
                             *action_cell = resolved;
+                        } else if is_r && is_s {
+                            self.log.add_warning(format!(
+                                "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}), conflicting priorities",
+                                self.symbol(t).to_str(self.get_symbol_table()),
+                                // reduction:
+                                act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
+                                // shift:
+                                *action_cell, right_items.iter().map(|r| self.item_to_str(r)).join(", ")));
                         }
                     }
                     _ => {
