@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
@@ -17,7 +18,7 @@ pub type DotPos = u16;
 /// Item index in a state's list of items
 pub type ItemId = u16;
 
-#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct LRItem {
     /// position of dot in item (index of following symbol: 0 = • "a" a "a")
     pub pos: DotPos,
@@ -32,6 +33,26 @@ pub struct LRItem {
 impl LRItem {
     fn prefix(&self) -> Option<impl Iterator<Item=TokenId>> {
         self.prefix.as_ref().map(|p| p.iter().copied())
+    }
+}
+
+impl PartialOrd for LRItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for LRItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.pos == 0 || other.pos == 0 {
+            // core items (dot pos != 0) have priority, no matter the alt ID
+            self.pos.cmp(&other.pos).reverse()
+                .then(self.alt_idx.cmp(&other.alt_idx))
+        } else {
+            // core items are compared by alt ID, then by the position of the dot
+            self.alt_idx.cmp(&other.alt_idx)
+                .then(self.pos.cmp(&other.pos).reverse())
+        }
     }
 }
 
@@ -100,6 +121,7 @@ impl ProdRuleSet<LR> {
         &self.prules[item.nt as usize][item.alt_idx as usize]
     }
 
+    /// Next symbol of the item, on the right of the dot.
     fn item_symbol(&self, item: &LRItem) -> Option<&Symbol> {
         self.prules[item.nt as usize][item.alt_idx as usize].get(item.pos as usize)
     }
@@ -138,27 +160,29 @@ impl ProdRuleSet<LR> {
         item.pos as usize >= self.item_alt(&item).len()
     }
 
-    fn closure_lr0(&self, mut items: Vec<LRItem>) -> Vec<LRItem> {
-        let mut set_items = HashSet::<LRItem>::from_iter(items.clone());
+    fn closure_lr0(&self, items: Vec<LRItem>) -> Vec<LRItem> {
+        let mut set_items = HashSet::<LRItem>::from_iter(items);
         loop {
-            let n = items.len();
-            for idx_item in 0..n {
-                let item = &items[idx_item];
+            let n = set_items.len();
+            let mut extra = HashSet::new();
+            for item in &set_items {
                 if let Some(&Symbol::NT(nt)) = self.item_symbol(&item) {
                     for (alt_id, alt) in self.prules[nt as usize].iter().enumerate() {
                         let pos = if alt.is_sym_empty() { 1 } else { 0 };
                         let new_item = item!(nt, alt_id as AltId, pos);
-                        if !set_items.contains(&new_item) {
-                            set_items.insert(new_item.clone());
-                            items.push(new_item);
-                        }
+                        extra.insert(new_item.clone());
                     }
                 }
             }
-            if items.len() == n {
-                break;
+            if !extra.is_empty() {
+                set_items.extend(extra);
+            }
+            if set_items.len() == n {
+                break
             }
         }
+        let mut items = Vec::<LRItem>::from_iter(set_items);
+        items.sort();
         items
     }
 
