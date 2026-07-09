@@ -47,10 +47,12 @@ impl Ord for LRItem {
         if self.pos == 0 || other.pos == 0 {
             // core items (dot pos != 0) have priority, no matter the alt ID
             self.pos.cmp(&other.pos).reverse()
+                .then(self.nt.cmp(&other.nt))
                 .then(self.alt_idx.cmp(&other.alt_idx))
         } else {
             // core items are compared by alt ID, then by the position of the dot
             self.alt_idx.cmp(&other.alt_idx)
+                .then(self.nt.cmp(&other.nt))
                 .then(self.pos.cmp(&other.pos).reverse())
         }
     }
@@ -174,9 +176,7 @@ impl ProdRuleSet<LR> {
                     }
                 }
             }
-            if !extra.is_empty() {
-                set_items.extend(extra);
-            }
+            set_items.extend(extra);
             if set_items.len() == n {
                 break
             }

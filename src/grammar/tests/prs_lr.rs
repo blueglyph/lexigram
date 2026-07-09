@@ -131,7 +131,7 @@ fn prs_calc_lr_table() {
             r#"4 |  -   -  s1  s2  -  | 6"#,
             r#"5 |  -   -  s1  s2  -  | 7"#,
             r#"6 | r0  r0   -  -  r0  | -"#,
-            r#"7 | s4  s5   -  -  r1  | -"#,
+            r#"7 | s4  r1   -  -  r1  | -"#,
             r#"--+--------------------+--"#,
         ], 3, &[
             r#"  | "*" "+" Num Id  $  | e"#,
@@ -143,7 +143,7 @@ fn prs_calc_lr_table() {
             r#"4 | r3  r3   -  -  r3  |  "#,
             r#"5 | s1  s2   -  -  acc |  "#,
             r#"6 | r0  r0   -  -  r0  |  "#,
-            r#"7 | s1  s2   -  -  r1  |  "#,
+            r#"7 | s1  r1   -  -  r1  |  "#,
             r#"--+--------------------+--"#,
         ], &[]),
 
@@ -560,13 +560,13 @@ fn prs_calc_lr_table() {
     ];
     static INDENT0: &str = "        ";
     static INDENT1: &str = "            ";
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
     const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_ngoto, expected_compressed, expected_conflict) in TESTS {
-        if !matches!(test_id, 601) { continue }
+        // if !matches!(test_id, 552) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
