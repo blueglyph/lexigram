@@ -480,7 +480,7 @@ impl ProdRuleSet<LR> {
                             let nt_shift = right_item.nt;
                             if nt_shift != nt_red {
                                 self.log.add_warning(format!(
-                                    "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}), different nonterminals",
+                                    "- calc_table: conflict in state {s} for {:?}: {} ({}) vs {} ({}), different nonterminals",
                                     self.symbol(t).to_str(self.get_symbol_table()),
                                     // reduction:
                                     act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
@@ -506,7 +506,7 @@ impl ProdRuleSet<LR> {
                         if is_r != is_s {
                             let resolved = if is_r { act } else { *action_cell };
                             self.log.add_note(format!(
-                                "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}) => resolved as {}",
+                                "- calc_table: conflict in state {s} for {:?}: {} ({}) vs {} ({}) => resolved as {}",
                                 self.symbol(t).to_str(self.get_symbol_table()),
                                 // reduction:
                                 act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
@@ -516,7 +516,7 @@ impl ProdRuleSet<LR> {
                             *action_cell = resolved;
                         } else if is_r && is_s {
                             self.log.add_warning(format!(
-                                "- calc_table: conflict in state {s} for {}: {} ({}) vs {} ({}), conflicting priorities",
+                                "- calc_table: conflict in state {s} for {:?}: {} ({}) vs {} ({}), conflicting priorities",
                                 self.symbol(t).to_str(self.get_symbol_table()),
                                 // reduction:
                                 act, prules[left_alt_id].to_rule_str(nt_red, self.get_symbol_table(), 0),
@@ -527,7 +527,7 @@ impl ProdRuleSet<LR> {
                     _ => {
                         if act != *action_cell {
                             self.log.add_warning(format!(
-                                "- calc_table: conflict for state {s}, terminal {}: {}/{}",
+                                "- calc_table: conflict in state {s} for {:?}: {}/{}",
                                 self.symbol(t).to_str(self.get_symbol_table()),
                                 *action_cell, act));
                         }

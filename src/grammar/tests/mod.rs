@@ -469,6 +469,24 @@ impl TestRules {
                 r#"|   Id"#,
                 r#"|   Num;"#,
             ],
+            // dangling "else" problem can be solved by placing the "else" production first
+            // and using `<resolve>`. It gives "else" more priority and still enables to
+            // parse chains of if-then-if-then. (OK)
+            2006 => vec![
+                r#"<resolve>s ->"#,
+                r#"     "if" Num "then" s "else" s"#,
+                r#"|    "if" Num "then" s"#,
+                r#"|    Id;"#,
+            ],
+            // If the "else" production is second, the conflict is solved with a
+            // reduction (s -> "if" Id "then" s), so the shift of the "else" will never occur.
+            // It can only parse if-then and chained if-then-if-then statements. (BAD)
+            2007 => vec![
+                r#"<resolve>s ->"#,
+                r#"     "if" Num "then" s"#,
+                r#"|    "if" Num "then" s "else" s"#,
+                r#"|    Id;"#,
+            ],
 
             // -----------------------------------------------------------------------------
             // 24xx = non-LALR(1)

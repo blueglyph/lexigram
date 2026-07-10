@@ -122,6 +122,12 @@ fn prs_calc_lr_table() {
 
         // resolved conflicts
         (601, 0, 0, &[
+            // - 0: e -> e "*" e
+            // - 1: e -> e "+" e
+            // - 2: e -> Num
+            // - 3: e -> Id
+            // - 4: <goal> -> e
+            //
             r#"  | "*" "+" Num Id  $  | e"#,
             r#"--+--------------------+--"#,
             r#"0 |  -   -  s1  s2  -  | 3"#,
@@ -145,7 +151,80 @@ fn prs_calc_lr_table() {
             r#"6 | r0  r0   -  -  r0  |  "#,
             r#"7 | s1  r1   -  -  r1  |  "#,
             r#"--+--------------------+--"#,
-        ], &[]),
+        ], &[
+            // conflict in state 6 for "*": r0 (e -> e "*" e) vs s4 (e -> e "*" • e) => resolved as r0
+            // conflict in state 6 for "+": r0 (e -> e "*" e) vs s5 (e -> e "+" • e) => resolved as r0
+            // conflict in state 7 for "*": r1 (e -> e "+" e) vs s4 (e -> e "*" • e) => resolved as s4
+            // conflict in state 7 for "+": r1 (e -> e "+" e) vs s5 (e -> e "+" • e) => resolved as r1
+        ]),
+        (2006, 0, 0, &[
+            // - 0: s -> "if" Num "then" s "else" s
+            // - 1: s -> "if" Num "then" s
+            // - 2: s -> Id
+            // - 3: <goal> -> s
+            //
+            r#"  | "if" Num "then" "else" Id  $  | s"#,
+            r#"--+-------------------------------+--"#,
+            r#"0 |  s1   -    -      -    s2  -  | 3"#,
+            r#"1 |  -   s4    -      -    -   -  | -"#,
+            r#"2 |  -    -    -      r2   -  r2  | -"#,
+            r#"3 |  -    -    -      -    -  acc | -"#,
+            r#"4 |  -    -    s5     -    -   -  | -"#,
+            r#"5 |  s1   -    -      -    s2  -  | 6"#,
+            r#"6 |  -    -    -      s7   -  r1  | -"#,
+            r#"7 |  s1   -    -      -    s2  -  | 8"#,
+            r#"8 |  -    -    -      r0   -  r0  | -"#,
+            r#"--+-------------------------------+--"#,
+        ], 3, &[
+            r#"  | "if" Num "then" "else" Id  $  | s"#,
+            r#"--+-------------------------------+--"#,
+            r#"0 |  s3   -    -      -    s4  -  | 5"#,
+            r#"1 |  s3   -    -      -    s4  -  | 7"#,
+            r#"2 |  s3   -    -      -    s4  -  | 8"#,
+            r#"3 |  -   s6    -      -    -   -  |  "#,
+            r#"4 |  -    -    -      r2   -  r2  |  "#,
+            r#"5 |  -    -    -      -    -  acc |  "#,
+            r#"6 |  -    -    s1     -    -   -  |  "#,
+            r#"7 |  -    -    -      s2   -  r1  |  "#,
+            r#"8 |  -    -    -      r0   -  r0  |  "#,
+            r#"--+-------------------------------+--"#,
+        ], &[
+            // conflict in state 6 for "else": r1 (s -> "if" Num "then" s) vs s7 (s -> "if" Num "then" s "else" • s) => resolved as s7
+        ]),
+        (2007, 0, 0, &[
+            // - 0: s -> "if" Num "then" s
+            // - 1: s -> "if" Num "then" s "else" s
+            // - 2: s -> Id
+            // - 3: <goal> -> s
+            //
+            r#"  | "if" Num "then" "else" Id  $  | s"#,
+            r#"--+-------------------------------+--"#,
+            r#"0 |  s1   -    -      -    s2  -  | 3"#,
+            r#"1 |  -   s4    -      -    -   -  | -"#,
+            r#"2 |  -    -    -      r2   -  r2  | -"#,
+            r#"3 |  -    -    -      -    -  acc | -"#,
+            r#"4 |  -    -    s5     -    -   -  | -"#,
+            r#"5 |  s1   -    -      -    s2  -  | 6"#,
+            r#"6 |  -    -    -      r0   -  r0  | -"#,
+            r#"7 |  s1   -    -      -    s2  -  | 8"#,
+            r#"8 |  -    -    -      r1   -  r1  | -"#,
+            r#"--+-------------------------------+--"#,
+        ], 3, &[
+            r#"  | "if" Num "then" "else" Id  $  | s"#,
+            r#"--+-------------------------------+--"#,
+            r#"0 |  s3   -    -      -    s4  -  | 5"#,
+            r#"1 |  s3   -    -      -    s4  -  | 7"#,
+            r#"2 |  s3   -    -      -    s4  -  | 8"#,
+            r#"3 |  -   s6    -      -    -   -  |  "#,
+            r#"4 |  -    -    -      r2   -  r2  |  "#,
+            r#"5 |  -    -    -      -    -  acc |  "#,
+            r#"6 |  -    -    s1     -    -   -  |  "#,
+            r#"7 |  -    -    -      r0   -  r0  |  "#,
+            r#"8 |  -    -    -      r1   -  r1  |  "#,
+            r#"--+-------------------------------+--"#,
+        ], &[
+            // conflict in state 6 for "else": r0 (s -> "if" Num "then" s) vs s7 (s -> "if" Num "then" s "else" • s) => resolved as r0
+        ]),
 
         // non-LR(1) grammar
         (2500, 0, 0, &[
@@ -177,7 +256,7 @@ fn prs_calc_lr_table() {
             r#"9 | -  -  r1  |    "#,
             r#"--+-----------+----"#,
         ], &[
-            "- calc_table: conflict for state 4, terminal A: s7/r2",
+            r#"- calc_table: conflict in state 4 for "A": s7/r2"#,
         ]),
         (102, 0, 0, &[
             // a -> A B* C;
@@ -185,6 +264,7 @@ fn prs_calc_lr_table() {
             // - 1: a_1 -> a_1 B
             // - 2: a_1 -> ε
             // - 3: <goal> -> a
+            //
             r#"  | A  B  C   $  | a a_1"#,
             r#"--+--------------+------"#,
             r#"0 | s1 -  -   -  | 2  - "#,
@@ -235,6 +315,7 @@ fn prs_calc_lr_table() {
             // - 2: a_1 -> a_1 b
             // - 3: a_1 -> ε
             // - 4: <goal> -> a
+            //
             r#"  | A  C  Id  $  | a b a_1"#,
             r#"--+--------------+--------"#,
             r#"0 | s1 -  -   -  | 2 -  - "#,
@@ -264,6 +345,7 @@ fn prs_calc_lr_table() {
             // - 2: a_1 -> a_1 b
             // - 3: a_1 -> b
             // - 4: <goal> -> a
+            //
             r#"  | A  C  Id  $  | a b a_1"#,
             r#"--+--------------+--------"#,
             r#"0 | s1 -  -   -  | 2 -  - "#,
@@ -299,6 +381,7 @@ fn prs_calc_lr_table() {
             // - 7: e -> "e"
             // - 8: f -> "f"
             // - 9: <goal> -> a
+            //
             r#"   | "a" "c" "d" "e" "f"  $  | a  b  c  d  e  f "#,
             r#"---+-------------------------+------------------"#,
             r#" 0 | s1   -   -   -   -   -  | 2  -  -  -  -  - "#,
@@ -339,6 +422,7 @@ fn prs_calc_lr_table() {
             // - 4: f -> Id
             // - 5: f -> "(" e ")"
             // - 6: <goal> -> e
+            //
             r#"   | "+" "*" Id  "(" ")"  $  | e  t  f "#,
             r#"---+-------------------------+---------"#,
             r#" 0 |  -   -  s1  s2   -   -  | 3  4  5 "#,
@@ -380,43 +464,28 @@ fn prs_calc_lr_table() {
             // - 5: b -> "c"
             // - 6: <goal> -> s
             //
-            // state 0:
-            // - s -> • "a" a "d"
-            // - s -> • "b" b "d"
-            // - s -> • "a" b "e"
-            // - s -> • "b" a "e"
-            // - <goal> -> • s
-            // state 1:
-            // - a -> • "c"
-            // - b -> • "c"
-            // - s -> "a" • a "d"
-            // - s -> "a" • b "e"
-            // state 2:
-            // - a -> • "c"
-            // - b -> • "c"
-            // - s -> "b" • b "d"
-            // - s -> "b" • a "e"
+            // state 0:                     state 5:
+            // - s -> • "a" a "d"           - s -> "a" a • "d"
+            // - s -> • "b" b "d"           state 6:
+            // - s -> • "a" b "e"           - s -> "a" b • "e"
+            // - s -> • "b" a "e"           state 7:
+            // - <goal> -> • s              - s -> "b" a • "e"
+            // state 1:                     state 8:
+            // - a -> • "c"                 - s -> "b" b • "d"
+            // - b -> • "c"                 state 9:
+            // - s -> "a" • a "d"           - s -> "a" a "d" •, [$]
+            // - s -> "a" • b "e"           state 10:
+            // state 2:                     - s -> "a" b "e" •, [$]
+            // - a -> • "c"                 state 11:
+            // - b -> • "c"                 - s -> "b" a "e" •, [$]
+            // - s -> "b" • b "d"           state 12:
+            // - s -> "b" • a "e"           - s -> "b" b "d" •, [$]
             // state 3:
             // - <goal> -> s •, [$]
             // state 4:
             // - a -> "c" •, ["d","e"]      <== this state should be split for states 1 & 2
             // - b -> "c" •, ["d","e"]
-            // state 5:
-            // - s -> "a" a • "d"
-            // state 6:
-            // - s -> "a" b • "e"
-            // state 7:
-            // - s -> "b" a • "e"
-            // state 8:
-            // - s -> "b" b • "d"
-            // state 9:
-            // - s -> "a" a "d" •, [$]
-            // state 10:
-            // - s -> "a" b "e" •, [$]
-            // state 11:
-            // - s -> "b" a "e" •, [$]
-            // state 12:
-            // - s -> "b" b "d" •, [$]
+            //
             r#"   | "a" "d" "b" "e" "c"  $  | s  a  b "#,
             r#"---+-------------------------+---------"#,
             r#" 0 | s1   -  s2   -   -   -  | 3  -  - "#,
@@ -451,8 +520,8 @@ fn prs_calc_lr_table() {
             r#"12 |  -   -   -   -   -  r1  |         "#,
             r#"---+-------------------------+---------"#,
         ], &[
-            "- calc_table: conflict for state 4, terminal d: r4/r5",
-            "- calc_table: conflict for state 4, terminal e: r4/r5",
+            r#"- calc_table: conflict in state 4 for "d": r4/r5"#,
+            r#"- calc_table: conflict in state 4 for "e": r4/r5"#,
         ]),
         (2004, 0, 0, &[
             r#"   | "-" "^" "*" "/" "+" "(" ")" Id  Num  $  | amb_i"#,
@@ -548,9 +617,9 @@ fn prs_calc_lr_table() {
             r#"18 | r1  s4  r1  r1   -  r1   -   -  r1  |      "#,
             r#"---+-------------------------------------+------"#,
         ], &[
-            r#"state 15 for *: r2 (amb_i -> amb_i "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
-            r#"state 16 for *: r3 (amb_i -> amb_i "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
-            r#"state 18 for *: r1 (amb_i -> <R> amb_i "*" "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
+            r#"state 15 for "*": r2 (amb_i -> amb_i "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
+            r#"state 16 for "*": r3 (amb_i -> amb_i "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
+            r#"state 18 for "*": r1 (amb_i -> <R> amb_i "*" "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
         ]),
         /* template:
         (, 0, 0, &[
@@ -566,7 +635,7 @@ fn prs_calc_lr_table() {
     const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_ngoto, expected_compressed, expected_conflict) in TESTS {
-        // if !matches!(test_id, 552) { continue }
+        if !matches!(test_id, 2006..2008) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -611,7 +680,7 @@ fn prs_calc_lr_table() {
                         .map(|(i, items)|
                             format!("{INDENT1}// state {i}:{}", items.iter().map(|i| format!("\n{INDENT1}// - {}", lr.item_to_str(i))).join("")))
                         .join("\n");
-                    println!("{str}");
+                    println!("{str}\n{INDENT1}//");
                 }
                 println!("{}", result_lines.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n"));
                 let compressed_str = result_compressed.iter().map(|s| format!("\n{INDENT1}r#\"{s}\"#,")).join("");
@@ -707,6 +776,45 @@ mod parse {
             (601, 0, 3, 2, vec![
                 ("1 + 2 * 3", None),
             ]),
+            (2006, 0, 4, 1, vec![
+                // - 0: s -> "if" Num "then" s "else" s
+                // - 1: s -> "if" Num "then" s
+                // - 2: s -> Id
+                ("if 1 then if 2 then t2", None),
+                //                    ^^
+                //          ^^^^^^^^^^^^
+                //^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 }
+                ("if 1 then if 2 then t2 else e2", None),
+                //                    ^^
+                //                            ^^
+                //          ^^^^^^^^^^^^^^^^^^^^
+                //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 else e2 }
+                ("if 1 then if 2 then t2 else e2 else e1", None),
+                //                    ^^
+                //                            ^^
+                //          ^^^^^^^^^^^^^^^^^^^^
+                //                                    ^^
+                //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 else e2 } else e1
+            ]),
+            (2007, 0, 4, 1, vec![
+                // - 0: s -> "if" Num "then" s
+                // - 1: s -> "if" Num "then" s "else" s
+                // - 2: s -> Id
+                ("if 1 then if 2 then t2", None),
+                //                    ^^
+                //          ^^^^^^^^^^^^
+                //^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 }
+                ("if 1 then if 2 then t2 else e2", Some([r#"syntax error: unexpected token 'else' on "else", line 1, col 8"#])),
+                //                    ^^
+                //          ^^^^^^^^^^^^
+                //^^^^^^^^^^^^^^^^^^^^^^
+                //                       ^^^^ error
+                ("if 1 then if 2 then t2 else e2 else e1", Some([r#"syntax error: unexpected token 'else' on "else", line 1, col 8"#])),
+                //                    ^^
+                //          ^^^^^^^^^^^^
+                //^^^^^^^^^^^^^^^^^^^^^^
+                //                       ^^^^ error
+            ]),
             (102, 0, 1, 999, vec![
                 ("A x y z C", None),
             ]),
@@ -733,7 +841,7 @@ mod parse {
         ];
         const VERBOSE: bool = false;
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-            // if !matches!(grammar_id, 102|103|121|122) { continue }
+            if !matches!(grammar_id, 2006|2007) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
             let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
             lalr1.set_start(start);
