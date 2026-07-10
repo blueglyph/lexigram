@@ -9,12 +9,13 @@
 This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) project, a lexer/parser generator.
 
 Distinctive features:
-* Predictive, non-recursive LL(1) parser.
-* Automatic transformation of left-recursive and ambiguous rules, with automatic left factorization.
-* Grammar-driven listener pattern for better flexibility and to avoid mixing grammar with Rust source code.
+* Non-recursive LL(1) parser or LALR(1) parser (for now).
+* LL(1): automatic transformation of left-recursive/ambiguous rules and left factorization.
+* LL/LR: conflict resolution in parsing tables for ambiguous rules according to priority and associativity.
+* Grammar-driven listener pattern for better flexibility and to avoid mixing grammar with target (Rust) source code.
 * Listener methods called directly during parsing, rather than after reconstructing a concrete syntax tree.
 * Low-latency variants for right-recursive rules and `*`/`+` repetitions.
-* Able to parse continuous input streams.
+* Ability to parse continuous input streams.
 
 You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
 
@@ -34,11 +35,13 @@ This project is still under development and shouldn't be considered fully stable
 * for the **tools**
   * check robustness in corner cases, in particular by detecting problematic syntactic and lexical rules
   * improve error messages
-  * refactor big methods
 * for the **generated code**
   * improve performances
+* for **bottom-up parsers** (still in development in a branch)
+  * add error recovery, token interception and other missing features of LL(1) generator  
+  * extend to safer LR parsers than LALR
 
-_The code and the documentation were entirely written by a human._
+_The code and the documentation were entirely written by a human (strict non-AI policy)._
 
 # Releases
 
