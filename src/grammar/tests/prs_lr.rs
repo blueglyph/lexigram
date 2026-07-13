@@ -731,7 +731,7 @@ mod parse {
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use lexigram_core::parser::{Call, ListenerWrapper, Symbol};
     use lexigram_core::{AltId, CollectJoin, VarId};
-    use lexigram_core::parser::lr_parser::LRParser;
+    use lexigram_core::parser::lr::LRParser;
     use crate::grammar::tests::TestRules;
     use crate::{make_stream, SymbolTable, LALR};
     use crate::build::BuildFrom;

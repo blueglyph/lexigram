@@ -6,7 +6,7 @@ use vectree::VecTree;
 use lexigram_core::log::LogMsg;
 use lexigram_core::{CharLen, TokenId};
 use lexigram_core::alt::Alternative;
-use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
+use lexigram_core::parser::lr::{LRAction, LRStateId};
 use crate::grammar::{grtree_to_str, GrTreeExt, NTConversion, SepInfo, SepNt, SepNtInfo};
 use crate::{columns_to_str, indent_source, AltId, NameFixer, NameTransformer, SourceSpacer, StructLibs, SymbolTable, VarId};
 use crate::fixed_sym_table::{SymInfoTable};

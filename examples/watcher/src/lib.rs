@@ -9,7 +9,8 @@ use lexigram_core::char_reader::CharReader;
 use lexigram_core::CollectJoin;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::{LLParser, Terminate};
+use lexigram_core::parser::Terminate;
+use lexigram_core::parser::ll1::LLParser;
 use watcher_lexer::build_lexer;
 use watcher_parser::*;
 
@@ -559,7 +560,7 @@ pub mod watcher_parser {
 
     // [watcher_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 11;
     const PARSER_NUM_NT: usize = 11;

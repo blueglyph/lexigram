@@ -4,7 +4,7 @@
 // [gramparser]
 
 use gramparser_types::*;
-use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
 const PARSER_NUM_T: usize = 18;
 const PARSER_NUM_NT: usize = 14;

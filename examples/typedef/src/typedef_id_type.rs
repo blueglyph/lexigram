@@ -7,7 +7,7 @@ use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::LLParser;
+use lexigram_core::parser::ll1::LLParser;
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use lexigram_core::{CollectJoin, TokenId};
 use typedef_id_type_lexer::build_lexer;
@@ -417,7 +417,7 @@ pub mod typedef_id_type_parser {
 
     // [typedef_id_type_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_id_type_types::*;
 
     const PARSER_NUM_T: usize = 10;

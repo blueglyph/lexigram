@@ -3527,7 +3527,7 @@ pub(crate) mod rules_222_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 222 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 3;

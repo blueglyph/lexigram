@@ -134,7 +134,7 @@ mod parser {
     // This code is generated with lexigram version 0.9.4 from lexi-gram/src/tests.rs
     // and corresponds to the grammar above between tags [parser_grammar]
 
-    use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode}};
+    use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 3;

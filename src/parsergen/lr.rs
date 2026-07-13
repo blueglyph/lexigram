@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use lexigram_core::log::{LogReader, LogStatus, Logger};
-use lexigram_core::parser::lr_parser::{LRAction, LRParser, LRStateId};
+use lexigram_core::parser::lr::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
@@ -83,13 +83,13 @@ impl ParserGen {
             "::VarId",
             "::LALR",
             "::fixed_sym_table::FixedSymTable",
-            "::parser::lr_parser::LRParser",
-            "::parser::lr_parser::LRStateId",
-            "::parser::lr_parser::LRAction",
-            "::parser::lr_parser::LRAction::Shift as LRS",
-            "::parser::lr_parser::LRAction::Error as LRE",
-            "::parser::lr_parser::LRAction::Reduce as LRR",
-            "::parser::lr_parser::LRAction::Accept as LRA",
+            "::parser::lr::LRParser",
+            "::parser::lr::LRStateId",
+            "::parser::lr::LRAction",
+            "::parser::lr::LRAction::Shift as LRS",
+            "::parser::lr::LRAction::Error as LRE",
+            "::parser::lr::LRAction::Reduce as LRR",
+            "::parser::lr::LRAction::Accept as LRA",
         ];
         self.log.add_note("generating LALR build_parser source...");
         let num_nt_table = self.symbol_table.get_num_nt();

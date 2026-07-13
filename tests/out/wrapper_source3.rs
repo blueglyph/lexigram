@@ -14,7 +14,7 @@ pub(crate) mod rules_630_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 630 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -312,7 +312,7 @@ pub(crate) mod rules_631_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 631 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -610,7 +610,7 @@ pub(crate) mod rules_632_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 632 #1, start e]
 
-    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Symbol, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;

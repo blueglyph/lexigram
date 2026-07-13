@@ -8,7 +8,7 @@ use lexigram_lib::char_reader::CharReader;
 use lexigram_lib::lexer::{CaretCol, Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::build::{BuildFrom, BuildInto};
-use lexigram_lib::parser::LLParser;
+use lexigram_lib::parser::ll1::LLParser;
 use lexigram_lib::{General, SymbolTable, LL1, LR};
 use std::io::Cursor;
 use lexigram_lib::build::{BuildErrorSource, HasBuildErrorSource};

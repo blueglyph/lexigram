@@ -8,7 +8,7 @@ use lexigram_core::log::{LogMsg, LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
-use lexigram_core::parser::lr_parser::{LRAction, LRStateId};
+use lexigram_core::parser::lr::{LRAction, LRStateId};
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRule, ProdRuleSet, SepInfo};
 use crate::{btreemap, btreeset, item, prule, General, SymbolTable, LR};

@@ -13,7 +13,7 @@ pub(crate) mod rules_13_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 13 #1, start s]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 6;
@@ -353,7 +353,7 @@ pub(crate) mod rules_102_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 102 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 4;
@@ -651,7 +651,7 @@ pub(crate) mod rules_103_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 103 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 4;
@@ -950,7 +950,7 @@ pub(crate) mod rules_109_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 109 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 6;
@@ -1279,7 +1279,7 @@ pub(crate) mod rules_119_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 119 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 5;
@@ -1580,7 +1580,7 @@ pub(crate) mod rules_120_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 120 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 5;
@@ -2508,7 +2508,7 @@ pub(crate) mod rules_200_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 200 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 4;
@@ -3020,7 +3020,7 @@ pub(crate) mod rules_201_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 201 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 4;
@@ -3539,7 +3539,7 @@ pub(crate) mod rules_219_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 219 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 2;
     static NUM_T_FULL: usize = 5;
@@ -4058,7 +4058,7 @@ pub(crate) mod rules_222_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 222 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 6;
@@ -5235,7 +5235,7 @@ pub(crate) mod rules_504_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 504 #1, start a]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 1;
     static NUM_T_FULL: usize = 5;

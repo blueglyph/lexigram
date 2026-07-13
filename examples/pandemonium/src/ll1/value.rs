@@ -10,7 +10,8 @@ use lexigram_core::CollectJoin;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::{LLParser, Terminate};
+use lexigram_core::parser::Terminate;
+use lexigram_core::parser::ll1::LLParser;
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use crate::level_string::{ls_binary_op, ls_prefix_op, LevelString};
 use listener_types::*;
@@ -1136,7 +1137,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 32;

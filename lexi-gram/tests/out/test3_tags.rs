@@ -180,7 +180,7 @@ pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
 
 // [test3_parser_tag]
 
-use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 use super::listener_types::test1::*;
 
 const PARSER_NUM_T: usize = 14;

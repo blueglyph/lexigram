@@ -10,7 +10,7 @@ use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::Terminate;
-use lexigram_core::parser::lr_parser::LRParser;
+use lexigram_core::parser::lr::LRParser;
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use pandemonium_lexer::build_lexer;
 use pandemonium_parser::*;
@@ -774,7 +774,7 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 63;
     static NUM_T_FULL: usize = 32;

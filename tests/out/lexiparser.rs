@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;

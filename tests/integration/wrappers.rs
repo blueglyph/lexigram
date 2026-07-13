@@ -249,7 +249,8 @@ pub mod precedence_type {
     use lexigram_lib::parser::Symbol;
     use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
     use lexigram_core::log::BufLog;
-    use lexigram_lib::parser::{LLParser, ListenerWrapper, ParserError, ParserToken};
+    use lexigram_core::parser::ll1::LLParser;
+    use lexigram_lib::parser::{ListenerWrapper, ParserError, ParserToken};
     use crate::integration::wrappers::level_string::LevelString;
 
     const TOK_NUM: TokenId = 3;

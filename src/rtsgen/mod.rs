@@ -19,7 +19,8 @@ use crate::grammar::{GrNode, GrTree, RuleTreeSet};
 use crate::char_reader::CharReader;
 use crate::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use crate::parser::{LLParser, Symbol};
+use lexigram_core::parser::ll1::LLParser;
+use crate::parser::Symbol;
 use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
 use crate::rtsgen::rtsgen_parser::*;
@@ -750,7 +751,7 @@ pub mod rtsgen_parser {
 
     // [rtsgen_parser]
 
-    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 25;

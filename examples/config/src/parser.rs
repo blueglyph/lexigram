@@ -9,8 +9,8 @@ use lexi_gram::options::Options;
 use listener::Listener;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, TokenSpliterator};
-use lexigram_core::log::{BufLog, Logger, LogStatus};
-use lexigram_core::parser::LLParser;
+use lexigram_core::log::{BufLog, LogStatus, Logger};
+use lexigram_core::parser::ll1::LLParser;
 
 const VERBOSE_WRAPPER: bool = false;
 
@@ -904,7 +904,7 @@ mod config_parser {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, LLParser, ListenerWrapper, OpCode, Terminate}};
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 29;

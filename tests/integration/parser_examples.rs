@@ -8,7 +8,7 @@ pub(crate) mod listener1 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener1]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -47,7 +47,7 @@ pub(crate) mod listener2 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener2]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -86,7 +86,7 @@ pub(crate) mod listener3 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener3]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -125,7 +125,7 @@ pub(crate) mod listener4 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener4]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
@@ -164,7 +164,7 @@ pub(crate) mod listener5 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener5]
 
-    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode, Symbol}};
+    use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 2;
@@ -207,7 +207,7 @@ pub(crate) mod listener6 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener6]
 
-    use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{LLParser, OpCode}};
+    use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, ll1::LLParser}};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 2;
@@ -253,7 +253,7 @@ pub(crate) mod listener7 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener7]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr_parser::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 4;
@@ -457,13 +457,9 @@ pub(crate) mod listener7 {
     // -------------------------------------------------------------------------
 
     mod test {
-        use std::collections::HashMap;
-        use iter_index::IndexerIterator;
         use lexigram_core::CollectJoin;
-        use lexigram_core::lexer::{CaretCol, Pos};
         use lexigram_core::log::BufLog;
-        use lexigram_core::parser::{ParserToken, Symbol};
-        use lexigram_lib::{make_stream, symbols};
+        use lexigram_lib::make_stream;
         use super::*;
 
         struct Listener {

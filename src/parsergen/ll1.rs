@@ -3,10 +3,11 @@
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use lexigram_core::alt::Alternative;
-use lexigram_core::parser::{LLParser, OpCode, Symbol};
+use lexigram_core::parser::{OpCode, Symbol};
 use lexigram_core::{AltId, CollectJoin, VarId, LL1};
 use lexigram_core::fixed_sym_table::FixedSymTable;
 use lexigram_core::log::{LogReader, LogStatus, Logger};
+use lexigram_core::parser::ll1::LLParser;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, TryBuildFrom};
 use crate::{columns_to_str, NameTransformer, SourceSpacer};
 use crate::grammar::ll1::LL1ParsingTable;
@@ -83,7 +84,7 @@ impl ParserGen {
             "::VarId",
             "::AltId",
             "::parser::OpCode",
-            "::parser::LLParser",
+            "::parser::ll1::LLParser",
             "::fixed_sym_table::FixedSymTable",
         ];
         static ALT_PARSER_LIBS: [&str; 2] = [
