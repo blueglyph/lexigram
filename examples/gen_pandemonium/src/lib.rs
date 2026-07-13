@@ -17,8 +17,8 @@ use lexigram_lib::parsergen::NTValue;
 
 static LEXICON_LL1_FILENAME: &str = "src/ll1/pandemonium.l";
 static GRAMMAR_LL1_FILENAME: &str = "src/ll1/pandemonium.g";
-static LEXICON_LR_FILENAME: &str = "src/lr/pandemonium.l";
-static GRAMMAR_LR_FILENAME: &str = "src/lr/pandemonium.g";
+static LEXICON_LR_FILENAME: &str = "src/lalr/pandemonium.l";
+static GRAMMAR_LR_FILENAME: &str = "src/lalr/pandemonium.g";
 static NT_VALUES: [NTValue; 2] = [NTValue::Default, NTValue::None];
 static SOURCE_LL1_FILENAMES: [&str; 2] = ["../pandemonium/src/ll1/value.rs", "../pandemonium/src/ll1/no_value.rs"];
 static TMPL_LL1_FILENAMES: [&str; 2] = ["../pandemonium/src/ll1/tpl_value.txt", "../pandemonium/src/ll1/tpl_no_value.txt"];
