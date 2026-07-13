@@ -1,0 +1,58 @@
+    // --------------------------------------------------------------------------------
+    // Template for the user implementation of TerminateListener
+
+    struct Listener {
+        log: BufLog,
+    }
+
+    #[allow(unused)]
+    impl TerminateListener for Listener {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog {
+            // log -> (<L> line)*
+            let CtxLog::V1 { star } = ctx;
+            SynLog()
+        }
+
+        fn init_log_i(&mut self) -> SynLogI {
+            SynLogI()
+        }
+
+        fn exit_log_i(&mut self, acc: &mut SynLogI, ctx: CtxLogI, spans: Vec<PosSpan>) {
+            // `<L> line` iteration in `log -> ( ►► <L> line ◄◄ )*`
+            let CtxLogI::V1 { line } = ctx;
+        }
+
+        fn exit_line(&mut self, ctx: CtxLine, spans: Vec<PosSpan>) -> SynLine {
+            match ctx {
+                // line -> message
+                CtxLine::V1 { message } => {}
+                // line -> Process Id
+                CtxLine::V2 { process, id } => {}
+                // line -> End Id
+                CtxLine::V3 { end, id } => {}
+                // line -> "SHUTDOWN"
+                CtxLine::V4 => {}
+            }
+            SynLine()
+        }
+
+        fn exit_message(&mut self, ctx: CtxMessage, spans: Vec<PosSpan>) -> SynMessage {
+            match ctx {
+                // message -> Note Message
+                CtxMessage::V1 { note, message } => {}
+                // message -> Warning Message
+                CtxMessage::V2 { warning, message } => {}
+                // message -> Error Message
+                CtxMessage::V3 { error, message } => {}
+                // message -> Header Message
+                CtxMessage::V4 { header, message } => {}
+            }
+            SynMessage()
+        }
+    }
+
+    // --------------------------------------------------------------------------------

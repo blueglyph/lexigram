@@ -1,5 +1,3 @@
-// [terminate_lexicon]
-
 lexicon Terminate;
 
 fragment TO_END_LINE: ~[\n\r]+;
@@ -27,10 +25,6 @@ mode ID_MODE; // -----------------------------------------------
 
 Id                  : [a-zA-Z][a-zA-Z_0-9]*     -> mode(DEFAULT_MODE);
 
-// [terminate_lexicon]
-
-// [terminate_grammar]
-
 grammar Terminate;
 
 log:
@@ -47,5 +41,3 @@ message:
     (Note | Warning | Error) Message
 |   Header Message
 ;
-
-// [terminate_grammar]
