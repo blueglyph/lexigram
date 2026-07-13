@@ -131,6 +131,8 @@ impl<'a, T> LRParser<'a, T> {
                 LRAction::Accept => {
                     if VERBOSE { println!("- accept"); }
                     wrapper.switch(Call::End(Terminate::None), 0, 0, None);
+                    stack_state.pop();
+                    stack_state.pop();
                     break
                 }
                 _ => {
@@ -167,6 +169,11 @@ impl<'a, T> LRParser<'a, T> {
             wrapper.abort();
             Err(err)
         } else {
+            assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
+            assert!(stack_state.is_empty(), "stack_state: {}", stack_state.iter().map(LRStateId::to_string).collect::<Vec<_>>().join(", "));
+            assert!(wrapper.is_stack_empty(), "symbol stack isn't empty");
+            assert!(wrapper.is_stack_t_empty(), "text stack isn't empty");
+            assert!(wrapper.is_stack_span_empty(), "span stack isn't empty");
             Ok(())
         }
     }
