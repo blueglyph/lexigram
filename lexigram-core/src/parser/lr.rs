@@ -71,8 +71,8 @@ impl<'a, T> LRParser<'a, T> {
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
         let mut error = None;
-        let mut s: LRStateId = 0;
-        let mut stack_state = vec![s];
+        let mut state: LRStateId = 0;
+        let mut stack_state = vec![state];
         let mut stack_t = vec![];
         let mut advance_stream = true;
         let mut stream_pos = None;
@@ -100,31 +100,31 @@ impl<'a, T> LRParser<'a, T> {
             }
             if VERBOSE {
                 println!(
-                    "states [{}] -> {s}, stack_t [{}], input: token {} = {stream_str:?}",
+                    "states [{}] -> {state}, stack_t [{}], input: token {} = {stream_str:?}",
                     stack_state.iter().map(|s| s.to_string()).join(" "),
                     stack_t.iter().map(|s| format!("{s:?}")).join(", "),
                     Symbol::T(stream_sym).to_str(sym_table)
                 );
             }
-            match self.action[stream_sym as usize + s as usize * self.num_t_full] {
-                LRAction::Shift(new_s) => {
-                    if VERBOSE { println!("- shift({new_s})"); }
-                    stack_state.push(new_s);
+            match self.action[stream_sym as usize + state as usize * self.num_t_full] {
+                LRAction::Shift(new_state) => {
+                    if VERBOSE { println!("- shift({new_state})"); }
+                    stack_state.push(new_state);
                     if self.symbol_table.is_token_data(stream_sym) {
                         stack_t.push(std::mem::take(&mut stream_str));
                     }
                     wrapper.push_span(stream_span.take());
-                    s = new_s;
+                    state = new_state;
                     advance_stream = true;
                 }
                 LRAction::Reduce(alt) => {
                     // alt: s -> ω
                     let (nt, alt_len, nbr_t) = self.alt_nt_len[alt as usize];   // s
                     stack_state.drain(stack_state.len() - alt_len as usize..);  // pop |ω| states
-                    let new_s = *stack_state.last().unwrap();
-                    stack_state.push(self.goto[nt as usize + new_s as usize * self.num_nt]);
-                    s = *stack_state.last().unwrap();
-                    if VERBOSE { println!("- reduce({alt}) -> state {new_s} -> goto {s}"); }
+                    let pop_state = *stack_state.last().unwrap();
+                    state = self.goto[nt as usize + pop_state as usize * self.num_nt];
+                    stack_state.push(state);
+                    if VERBOSE { println!("- reduce({alt}) -> state {pop_state} -> goto {state}"); }
                     let t_data = stack_t.drain(stack_t.len() - nbr_t as usize ..).to_vec();
                     wrapper.switch(Call::Exit, nt, alt, Some(t_data));
                 }
