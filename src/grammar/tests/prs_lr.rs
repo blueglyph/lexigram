@@ -621,6 +621,62 @@ fn prs_calc_lr_table() {
             r#"state 16 for "*": r3 (amb_i -> amb_i "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
             r#"state 18 for "*": r1 (amb_i -> <R> amb_i "*" "*" amb_i) vs s9 (amb_i -> amb_i "*" • "*" amb_i, amb_i -> amb_i "*" • amb_i), conflicting priorities"#,
         ]),
+        (2008, 0, 0, &[
+            // - 0: prog -> head inst ";"
+            // - 1: head -> "fn" Id ":"
+            // - 2: inst -> Type ids
+            // - 3: inst -> "typedef" Type Id
+            // - 4: inst -> Id "=" Num
+            // - 5: ids -> ids "," Id
+            // - 6: ids -> Id
+            // - 7: <goal> -> prog
+            //
+            r#"   | Type ";" "fn" Id  ":" "typedef" "=" Num ","  $  | prog head inst ids"#,
+            r#"---+-------------------------------------------------+-------------------"#,
+            r#" 0 |  -    -   s1   -   -      -      -   -   -   -  |  2    3    -    - "#,
+            r#" 1 |  -    -   -   s4   -      -      -   -   -   -  |  -    -    -    - "#,
+            r#" 2 |  -    -   -    -   -      -      -   -   -  acc |  -    -    -    - "#,
+            r#" 3 |  s5   -   -   s6   -     s7      -   -   -   -  |  -    -    8    - "#,
+            r#" 4 |  -    -   -    -  s9      -      -   -   -   -  |  -    -    -    - "#,
+            r#" 5 |  -    -   -   s10  -      -      -   -   -   -  |  -    -    -   11 "#,
+            r#" 6 |  -    -   -    -   -      -     s12  -   -   -  |  -    -    -    - "#,
+            r#" 7 | s13   -   -    -   -      -      -   -   -   -  |  -    -    -    - "#,
+            r#" 8 |  -   s14  -    -   -      -      -   -   -   -  |  -    -    -    - "#,
+            r#" 9 |  r1   -   -   r1   -     r1      -   -   -   -  |  -    -    -    - "#,
+            r#"10 |  -   r6   -    -   -      -      -   -  r6   -  |  -    -    -    - "#,
+            r#"11 |  -   r2   -    -   -      -      -   -  s15  -  |  -    -    -    - "#,
+            r#"12 |  -    -   -    -   -      -      -  s16  -   -  |  -    -    -    - "#,
+            r#"13 |  -    -   -   s17  -      -      -   -   -   -  |  -    -    -    - "#,
+            r#"14 |  -    -   -    -   -      -      -   -   -  r0  |  -    -    -    - "#,
+            r#"15 |  -    -   -   s18  -      -      -   -   -   -  |  -    -    -    - "#,
+            r#"16 |  -   r4   -    -   -      -      -   -   -   -  |  -    -    -    - "#,
+            r#"17 |  -   r3   -    -   -      -      -   -   -   -  |  -    -    -    - "#,
+            r#"18 |  -   r5   -    -   -      -      -   -  r5   -  |  -    -    -    - "#,
+            r#"---+-------------------------------------------------+-------------------"#,
+        ], 3, &[
+            r#"   | Type ";" "fn" Id  ":" "typedef" "=" Num ","  $  | prog head inst ids"#,
+            r#"---+-------------------------------------------------+-------------------"#,
+            r#" 0 |  -    -   s3   -   -      -      -   -   -   -  |  4    1    -    - "#,
+            r#" 1 |  s2   -   -   s6   -     s7      -   -   -   -  |  -    -    8    - "#,
+            r#" 2 |  -    -   -   s10  -      -      -   -   -   -  |  -    -    -   11 "#,
+            r#" 3 |  -    -   -   s5   -      -      -   -   -   -  |                   "#,
+            r#" 4 |  -    -   -    -   -      -      -   -   -  acc |                   "#,
+            r#" 5 |  -    -   -    -  s9      -      -   -   -   -  |                   "#,
+            r#" 6 |  -    -   -    -   -      -     s12  -   -   -  |                   "#,
+            r#" 7 | s13   -   -    -   -      -      -   -   -   -  |                   "#,
+            r#" 8 |  -   s14  -    -   -      -      -   -   -   -  |                   "#,
+            r#" 9 |  r1   -   -   r1   -     r1      -   -   -   -  |                   "#,
+            r#"10 |  -   r6   -    -   -      -      -   -  r6   -  |                   "#,
+            r#"11 |  -   r2   -    -   -      -      -   -  s15  -  |                   "#,
+            r#"12 |  -    -   -    -   -      -      -  s16  -   -  |                   "#,
+            r#"13 |  -    -   -   s17  -      -      -   -   -   -  |                   "#,
+            r#"14 |  -    -   -    -   -      -      -   -   -  r0  |                   "#,
+            r#"15 |  -    -   -   s18  -      -      -   -   -   -  |                   "#,
+            r#"16 |  -   r4   -    -   -      -      -   -   -   -  |                   "#,
+            r#"17 |  -   r3   -    -   -      -      -   -   -   -  |                   "#,
+            r#"18 |  -   r5   -    -   -      -      -   -  r5   -  |                   "#,
+            r#"---+-------------------------------------------------+-------------------"#,
+        ], &[]),
         /* template:
         (, 0, 0, &[
         ], 0, &[
@@ -635,13 +691,14 @@ fn prs_calc_lr_table() {
     const SHOW_STATES: bool = false;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_ngoto, expected_compressed, expected_conflict) in TESTS {
-        if !matches!(test_id, 2006..2008) { continue }
+        // if !matches!(test_id, 2006..2008) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
         }
         let msg = format!("## ERROR ## test {test_id}, start={start}");
-        let mut lr = TestRules(test_id).to_prs_lr().unwrap();
+        let testrules = TestRules::new(test_id);
+        let mut lr = testrules.to_prs_lr().unwrap();
         lr.set_start(start);
         let (parsing_table, states) = lr.make_parsing_table_with_states_lalr();
         let mut compressed_table = parsing_table.clone();
@@ -843,7 +900,7 @@ mod parse {
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
             if !matches!(grammar_id, 2006|2007) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
-            let mut lalr1 = TestRules(grammar_id).to_prs_lr().unwrap();
+            let mut lalr1 = TestRules::new(grammar_id).to_prs_lr().unwrap();
             lalr1.set_start(start);
             let symtab = lalr1.symbol_table.clone();
             if VERBOSE {

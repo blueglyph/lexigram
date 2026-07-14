@@ -38,8 +38,10 @@ impl RtsGenListener for Listener {
         match ctx {
             // decl_terminal -> Terminal "=" TerminalCst
             CtxDeclTerminal::V1 { terminal, terminalcst } => {}
-            // decl_terminal -> Terminal
+            // decl_terminal -> Terminal "hook"
             CtxDeclTerminal::V2 { terminal } => {}
+            // decl_terminal -> Terminal
+            CtxDeclTerminal::V3 { terminal } => {}
         }
         SynDeclTerminal()
     }

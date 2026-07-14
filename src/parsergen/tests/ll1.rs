@@ -2980,7 +2980,7 @@ fn build_errors() {
 
     const VERBOSE: bool = false;
     for &(tr_id, expected_errors) in TESTS {
-        let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(0);
+        let ll1_maybe = TestRules::new(tr_id).to_prs_ll1_with_start(0);
         if ll1_maybe.is_none() { continue }
         let mut ll1 = ll1_maybe.unwrap();
         ll1.set_name("Test".to_string());

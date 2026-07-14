@@ -18,7 +18,7 @@ mod gen_integration {
     fn get_source(tr_id: u32, indent: usize, include_alts: bool, gen_wrapper: bool, parser_type: ParserType, name: String) -> String {
         const VERBOSE: bool = false;
 
-        let mut rules = TestRules(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
+        let mut rules = TestRules::new(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
         rules.set_name(name);
         assert_eq!(rules.get_log().num_errors(), 0, "building {tr_id} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let mut builder = match parser_type {
@@ -170,7 +170,7 @@ mod parser_source {
     #[test]
     fn alternatives() {
         for include_alts in [false, true] {
-            let mut ll1 = TestRules(900).to_prs_ll1().unwrap();
+            let mut ll1 = TestRules::new(900).to_prs_ll1().unwrap();
             ll1.set_name("simple".to_string());
             assert_eq!(ll1.get_log().num_errors(), 0, "building the LL(1) failed:\n{}", ll1.get_log());
             let mut builder = ParserGen::build_from_rules_ll1(ll1);
@@ -273,7 +273,7 @@ pub(super) mod wrapper_source {
                 .expect(&format!("No wrapper filename for test {tr_id} and {parser_type:?}"));
             let (mut builder, original_str) = match parser_type {
                 ParserType::LL1 => {
-                    let ll1_maybe = TestRules(tr_id).to_prs_ll1_with_start(start_nt);
+                    let ll1_maybe = TestRules::new(tr_id).to_prs_ll1_with_start(start_nt);
                     if ll1_maybe.is_none() { continue }
                     let mut ll1 = ll1_maybe.unwrap();
                     ll1.set_name("Test".to_string());
@@ -297,7 +297,7 @@ pub(super) mod wrapper_source {
                     (ParserGen::build_from_rules_ll1(ll1), original_str)
                 }
                 ParserType::LALR => {
-                    let lr_maybe = TestRules(tr_id).to_prs_lr_with_start(start_nt);
+                    let lr_maybe = TestRules::new(tr_id).to_prs_lr_with_start(start_nt);
                     let Some(mut lr) = lr_maybe else { continue };
                     lr.set_name("Test".to_string());
                     let original_str = lr.get_original_str(8);
@@ -667,7 +667,7 @@ pub(super) mod wrapper_source {
             let expected_full = expected_full.into_iter()
                 .map(|opt| if let Some(s) = opt { format!("Some(r#\"{s}\"#)") } else { "None".to_string() })
                 .to_vec();
-            let mut ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
+            let mut ll1 = TestRules::new(tr_id).to_prs_ll1().unwrap();
             ll1.set_name("Test".to_string());
             let original_str = ll1.get_original_str(12);
             let builder = ParserGen::build_from_rules_ll1(ll1);

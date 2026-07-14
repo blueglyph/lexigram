@@ -102,7 +102,7 @@ where
         if verbose && !show_answer_only {
             println!("{:=<80}\ntest {test_id}:", "");
         }
-        let rts = TestRules(test_id).to_rts_general().unwrap();
+        let rts = TestRules::new(test_id).to_rts_general().unwrap();
         let symtab = rts.get_symbol_table();
         let original_rules = rts.get_non_empty_nts()
                 .map(|(v, t)| format!("            // {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, Some(v), symtab, false)))
@@ -779,7 +779,7 @@ where
         if verbose && !show_answer_only {
             println!("{:=<80}\ntest {test_id}:", "");
         }
-        let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
+        let mut ll1 = TestRules::new(test_id).to_prs_ll1().unwrap();
         ll1.set_start(start);
         let set_to_test = f(&mut ll1);
         let symtab = ll1.get_symbol_table();
@@ -1386,7 +1386,7 @@ fn prs_calc_table() {
             println!("{:=<80}\ntest {test_id}:", "");
         }
         let msg = format!("## ERROR ## test {test_id}, start={start}");
-        let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
+        let mut ll1 = TestRules::new(test_id).to_prs_ll1().unwrap();
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
         let LL1ParsingTable { num_nt, num_t_full: num_t, alts, table, .. } = &parsing_table;
@@ -1518,7 +1518,7 @@ fn prs_grammar_notes() {
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id:?}:", "");
         }
-        let mut ll1 = TestRules(ll_id).to_prs_ll1().unwrap();
+        let mut ll1 = TestRules::new(ll_id).to_prs_ll1().unwrap();
         if VERBOSE {
             ll1.print_rules(false, false);
         }
@@ -1554,7 +1554,7 @@ fn prs_grammar_notes() {
 
 #[test]
 fn build_prs_error() {
-    let rts = TestRules(1004).to_rts_general().unwrap();
+    let rts = TestRules::new(1004).to_rts_general().unwrap();
     let text = format!("rts errors: {}", rts.get_log().num_errors());
     assert_eq!(rts.get_log().num_errors(), 0, "{text}");
     let rts_normalized = RuleTreeSet::<Normalized>::build_from(rts.clone());

@@ -26,13 +26,24 @@ fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug)]
-pub struct TestRules(pub u32);
+#[derive(Clone, Debug)]
+pub struct TestRules {
+    test_id: u32,
+    rts: Option<RuleTreeSet<General>>,
+    terminal_hooks: Vec<TokenId>,
+}
 
 #[allow(unused)]
 impl TestRules {
-    pub fn to_rts_general(self) -> Option<RuleTreeSet<General>> {
-        let specs = match self.0 {
+    pub fn new(test_id: u32) -> Self {
+        let mut testrules = TestRules { test_id, rts: None, terminal_hooks: vec![] };
+        testrules.make_rts_general();
+        testrules
+    }
+
+    fn make_rts_general(&mut self) {
+        self.rts = None;
+        let specs = match self.test_id {
             // 0xx = basic, &, |, distribution, ?
             // -----------------------------------------------------------------------------
             0 => vec![r#"a -> A;"#],
@@ -487,6 +498,17 @@ impl TestRules {
                 r#"|    "if" Num "then" s "else" s"#,
                 r#"|    Id;"#,
             ],
+            //
+            2008 => vec![
+                r#"token Type hook;"#,
+                r#"prog -> head inst ";";"#,
+                r#"head -> "fn" Id ":";"#,
+                r#"inst -> Type ids"#,
+                r#"|       "typedef" Type Id"#,
+                r#"|       Id "=" Num;"#,
+                r#"ids ->  ids "," Id"#,
+                r#"|       Id;"#,
+            ],
 
             // -----------------------------------------------------------------------------
             // 24xx = non-LALR(1)
@@ -504,40 +526,50 @@ impl TestRules {
                 r#"s -> A a A | B a B;"#,
                 r#"a -> A | A A;"#,
             ],
-            _ => return None
+            _ => return,
         };
         let mut text = specs.join("\n");
         if text.starts_with("[TOKENS0] ") {
             text = format!("{}\n{}", r#"token Mul = "*", Add = "+", Op = "!", Num, Id;"#, &text[10..]);
         }
-        match RtsGen::new().parse(text.clone()) {
+        let mut rtsgen = RtsGen::new();
+        match rtsgen.parse(text.clone()) {
             Ok(mut rts) => {
-                self.manual_transform(&mut rts);
-                Some(rts)
+                self.rts = Some(rts);
+                self.terminal_hooks = rtsgen.give_terminal_hooks();
+                self.manual_transform();
             },
             Err(log) => panic!("Error while parsing those rules:\n{:-<80}\n{text}\n{:-<80}\nLog:\n{log}\n{:-<80}", "", "", ""),
         }
     }
 
-    fn manual_transform(&self, rts: &mut RuleTreeSet<General>) {
-        match self.0 {
+    fn manual_transform(&mut self) {
+        match self.test_id {
             // manual transformations:
             1004 => {
                 // removing one NT from the symbol table to create a mismatch:
-                rts.symbol_table.as_mut().unwrap().remove_nonterminal(1);
+                self.rts.as_mut().unwrap().symbol_table.as_mut().unwrap().remove_nonterminal(1);
             }
             1008 => {
-                rts.start = None;
+                self.rts.as_mut().unwrap().start = None;
             }
             _ => {}
         }
     }
 
-    pub fn to_rts_normalized(self) -> Option<RuleTreeSet<Normalized>> {
-        self.to_rts_general().map(|rts| rts.build_into())
+    pub fn give_terminal_hooks(&mut self) -> Vec<TokenId> {
+        take(&mut self.terminal_hooks)
     }
 
-    pub fn to_prs_general(self) -> Option<ProdRuleSet<General>> {
+    pub fn to_rts_general(mut self) -> Option<RuleTreeSet<General>> {
+        self.rts
+    }
+
+    pub fn to_rts_normalized(mut self) -> Option<RuleTreeSet<Normalized>> {
+        self.rts.map(|rts| rts.build_into())
+    }
+
+    pub fn to_prs_general(mut self) -> Option<ProdRuleSet<General>> {
         self.to_rts_normalized().map(|rts| rts.build_into())
     }
 

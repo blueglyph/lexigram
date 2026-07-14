@@ -14,7 +14,7 @@ decl:
 ;
 
 decl_terminal:
-    Terminal (Equal TerminalCst)?
+    Terminal (Equal TerminalCst | Hook)?
 ;
 
 ruleset:

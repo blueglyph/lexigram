@@ -39,6 +39,7 @@ RTag                    : '<R>';
 GTag                    : '<G>';
 ResolveTag              : '<resolve>';
 
+Hook                    : 'hook';
 Token                   : 'token';
 
 TerminalCst             : StrLiteral;

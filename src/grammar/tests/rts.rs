@@ -57,7 +57,7 @@ fn ruletreeset_to_str() {
     const VERBOSE: bool = false;
     let mut errors = 0;
     for (test_id, (rts_id, var, node_maybe, emphasis_maybe, expected_str)) in tests.into_iter().enumerate() {
-        let rts = TestRules(rts_id).to_rts_general().unwrap();
+        let rts = TestRules::new(rts_id).to_rts_general().unwrap();
         let result_str = rts.to_str(var, node_maybe, emphasis_maybe);
         if VERBOSE {
             // println!("{test_id} ({rule_id})");
@@ -104,7 +104,7 @@ fn cleanup_tree() {
     let mut errors = 0;
     for (test_id, root, expected_false, expected_true) in tests {
         if VERBOSE { println!("{:=<80}\ntest {test_id}:", ""); }
-        let rules = TestRules(test_id).to_rts_general().unwrap();
+        let rules = TestRules::new(test_id).to_rts_general().unwrap();
         let sym_tab = rules.symbol_table.clone();
         let st = sym_tab.as_ref();
         let mut result = vec![];
@@ -271,7 +271,7 @@ fn rts_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected, expected_orig) in tests {
-        let mut rules = TestRules(test_id).to_rts_general().unwrap();
+        let mut rules = TestRules::new(test_id).to_rts_general().unwrap();
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_trees_iter()
             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, Some(v), sym_tab, false)))
