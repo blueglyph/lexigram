@@ -548,6 +548,7 @@ impl ProdRuleSet<LR> {
             goto,
             flags: self.flags.clone(),
             parent: self.parent.clone(),
+            init_hook: false,
         };
         (table, states)
     }
@@ -613,6 +614,7 @@ pub struct LRParsingTable {
     pub goto: Vec<LRStateId>,               // num_goto * num_nt items
     pub flags: Vec<u32>,                    // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>,         // NT -> parent NT
+    pub init_hook: bool,                    // initial terminal must be intercepted
 }
 
 impl LRParsingTable {

@@ -16,8 +16,15 @@ pub enum LRAction {
     #[default]
     Error,
     Shift(LRStateId),
+    ShiftHook(LRStateId),
     Reduce(AltId),
     Accept,
+}
+
+impl LRAction {
+    pub fn is_hook(&self) -> bool {
+        matches!(self, LRAction::ShiftHook(_))
+    }
 }
 
 impl Display for LRAction {
@@ -25,6 +32,7 @@ impl Display for LRAction {
         match self {
             LRAction::Error => write!(f, "-"),
             LRAction::Shift(s) => write!(f, "s{s}"),
+            LRAction::ShiftHook(s) => write!(f, "sh{s}"),
             LRAction::Reduce(a) => write!(f, "r{a}"),
             LRAction::Accept => write!(f, "acc"),
         }
@@ -39,6 +47,7 @@ pub struct LRParser<'a, T> {
     goto: &'a [LRStateId],
     alt_nt_len: &'a [(VarId, u16, u16)],    // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,            // must include terminals <$> and <empty> at the end
+    init_hook: bool,                        // first terminal must be intercepted
     _phantom: PhantomData<T>,
 }
 
@@ -49,9 +58,10 @@ impl<'a, T> LRParser<'a, T> {
         action: &'a [LRAction],
         goto: &'a [LRStateId],
         alt_nt_len: &'a [(VarId, u16, u16)],
-        symbol_table: FixedSymTable
+        symbol_table: FixedSymTable,
+        init_hook: bool
     ) -> Self {
-        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, _phantom: PhantomData }
+        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, _phantom: PhantomData }
     }
 
     /// Parses the entire `stream`, calling the (listener) [wrapper](ListenerWrapper) with the
@@ -79,12 +89,18 @@ impl<'a, T> LRParser<'a, T> {
         let mut stream_span = PosSpan::empty();
         let mut stream_sym = TokenId::default();
         let mut stream_str = String::default();
+        let mut hook = self.init_hook;
         loop {
             if advance_stream {
                 (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
                     stream_pos = Some(span.first_forced());
                     stream_span = span;
-                    (t, s)
+                    if !hook {
+                        (t, s)
+                    } else {
+                        hook = false;
+                        (wrapper.hook(t, stream_str.as_str(), &stream_span), s)
+                }
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end
                     if let Some((_t, s, span)) = stream.next() {
@@ -106,8 +122,10 @@ impl<'a, T> LRParser<'a, T> {
                     Symbol::T(stream_sym).to_str(sym_table)
                 );
             }
-            match self.action[stream_sym as usize + state as usize * self.num_t_full] {
-                LRAction::Shift(new_state) => {
+            let action = self.action[stream_sym as usize + state as usize * self.num_t_full];
+            match action {
+                LRAction::Shift(new_state) | LRAction::ShiftHook(new_state) => {
+                    hook = action.is_hook(); 
                     if VERBOSE { println!("- shift({new_state})"); }
                     stack_state.push(new_state);
                     if self.symbol_table.is_token_data(stream_sym) {

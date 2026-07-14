@@ -205,6 +205,7 @@ pub struct ParserGen {
     action: Vec<LRAction>,
     #[allow(unused)]
     goto: Vec<LRStateId>,
+    init_hook: bool,
 
     symbol_table: SymbolTable,
     terminal_hooks: Vec<TokenId>,

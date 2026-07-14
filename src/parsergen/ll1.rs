@@ -52,6 +52,7 @@ impl ParserGen {
             num_states: 0,
             action: vec![],
             goto: vec![],
+            init_hook: false,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
             options: ParserGenOptions::default(),

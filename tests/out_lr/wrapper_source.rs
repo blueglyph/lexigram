@@ -35,7 +35,8 @@ pub(crate) mod rules_13_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -374,7 +375,8 @@ pub(crate) mod rules_102_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -672,7 +674,8 @@ pub(crate) mod rules_103_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -973,7 +976,8 @@ pub(crate) mod rules_109_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -1301,7 +1305,8 @@ pub(crate) mod rules_119_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -1602,7 +1607,8 @@ pub(crate) mod rules_120_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -2529,7 +2535,8 @@ pub(crate) mod rules_200_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -3041,7 +3048,8 @@ pub(crate) mod rules_201_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -3561,7 +3569,8 @@ pub(crate) mod rules_219_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -4081,7 +4090,8 @@ pub(crate) mod rules_222_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 
@@ -5256,7 +5266,8 @@ pub(crate) mod rules_504_1 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 

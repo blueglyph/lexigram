@@ -274,7 +274,8 @@ pub(crate) mod listener7 {
             FixedSymTable::new(
                 SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
-            )
+            ),
+            false
         )
     }
 

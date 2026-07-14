@@ -51,6 +51,7 @@ impl ParserGen {
             num_states: parsing_table.num_states,
             action: parsing_table.action,
             goto: parsing_table.goto,
+            init_hook: parsing_table.init_hook,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
             options: ParserGenOptions::default(),
@@ -79,22 +80,50 @@ impl ParserGen {
     }
 
     pub(super) fn source_build_parser_lalr(&mut self) -> Vec<String> {
-        static BASE_PARSER_LIBS: [&str; 10] = [
+        static BASE_PARSER_LIBS: [&str; 6] = [
             "::VarId",
             "::LALR",
             "::fixed_sym_table::FixedSymTable",
             "::parser::lr::LRParser",
             "::parser::lr::LRStateId",
             "::parser::lr::LRAction",
-            "::parser::lr::LRAction::Shift as LRS",
+        ];
+        static BASE_PARSER_LRACTION_LIBS : [&str; 5] = [
             "::parser::lr::LRAction::Error as LRE",
+            "::parser::lr::LRAction::Shift as LRS",
+            "::parser::lr::LRAction::ShiftHook as LRSH",
             "::parser::lr::LRAction::Reduce as LRR",
             "::parser::lr::LRAction::Accept as LRA",
         ];
         self.log.add_note("generating LALR build_parser source...");
+        let mut action_used = [false, false, false, false, false];
+        let actions = self.action.chunks(ACTION_CHUNK)
+            .flag_first_last()
+            .map(|(_, is_last, actions)|
+                format!(
+                    "    {}{}",
+                    actions.into_iter().map(|a| {
+                        let (str, id) = match a {
+                            LRAction::Error => ("LRE".to_string(), 0),
+                            LRAction::Shift(s) => (format!("LRS({s})"), 1),
+                            LRAction::ShiftHook(s) => (format!("LRSH({s})"), 2),
+                            LRAction::Reduce(r) => (format!("LRR({r})"), 3),
+                            LRAction::Accept => ("LRA".to_string(), 4),
+                        };
+                        action_used[id] = true;
+                        str
+                    }).join(","),
+                    if is_last { "];" } else { "," }))
+            .to_vec();
         let num_nt_table = self.symbol_table.get_num_nt();
         let num_t_table = self.symbol_table.get_num_t(); // includes <$> and <empty>
-        self.options.used_libs.extend(BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        self.options.used_libs.extend(
+            BASE_PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate))
+        );
+        self.options.used_libs.extend(
+            BASE_PARSER_LRACTION_LIBS.into_iter().enumerate()
+                .filter_map(|(i, s)| if action_used[i] { Some(format!("{}{s}", self.options.lib_crate)) } else { None } )
+        );
         self.log.add_note(format!(
             "- creating parsor tables: {num_t_table} terminals (including $ and empty), {num_nt_table} nonterminals, {} actions, {} gotos, {} productions",
             self.action.len(), self.goto.len(), self.alts.len()));
@@ -106,19 +135,7 @@ impl ParserGen {
         ];
         const ACTION_CHUNK: usize = 35;
         assert!(!self.action.is_empty(), "action table is empty");
-        src.extend(
-            self.action.chunks(ACTION_CHUNK)
-                .flag_first_last()
-                .map(|(_, is_last, actions)|
-                    format!(
-                        "    {}{}",
-                        actions.into_iter().map(|a| match a {
-                            LRAction::Error => "LRE".to_string(),
-                            LRAction::Shift(s) => format!("LRS({s})"),
-                            LRAction::Reduce(r) => format!("LRR({r})"),
-                            LRAction::Accept => "LRA".to_string(),
-                        }).join(","),
-                        if is_last { "];" } else { "," })));
+        src.extend(actions);
         const GOTO_CHUNK: usize = 40;
         assert!(!self.goto.is_empty(), "goto table is empty");
         src.push(format!("static GOTO: [LRStateId; {}] = [", self.goto.len()));
@@ -164,7 +181,8 @@ impl ParserGen {
             "        FixedSymTable::new(".to_string(),
             "            SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
             "            SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
-            "        )".to_string(),
+            "        ),".to_string(),
+            format!("        {}", self.init_hook),
             "    )".to_string(),
             "}".to_string(),
         ]);
@@ -189,6 +207,7 @@ pub struct LRParserTables<T> {
     goto: Vec<LRStateId>,
     alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
+    init_hook: bool,
     _phantom: PhantomData<T>,
 }
 
@@ -199,9 +218,10 @@ impl<T> LRParserTables<T> {
         action: Vec<LRAction>,
         goto: Vec<LRStateId>,
         alt_nt_len: Vec<(VarId, u16, u16)>,
-        symbol_table: FixedSymTable
+        symbol_table: FixedSymTable,
+        init_hook: bool
     ) -> Self {
-        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, _phantom: PhantomData }
+        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, _phantom: PhantomData }
     }
 
     pub fn make_parser(&self) -> LRParser<'_, T> {
@@ -211,7 +231,8 @@ impl<T> LRParserTables<T> {
             &self.action,
             &self.goto,
             &self.alt_nt_len,
-            self.symbol_table.clone())
+            self.symbol_table.clone(),
+            self.init_hook)
     }
 }
 
@@ -250,6 +271,7 @@ impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
             table.goto,
             alts_to_alt_nt_len(&table.alts, &symtable),
             symtable.to_fixed_sym_table(),
+            false
         )
     }
 }
