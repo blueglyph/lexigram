@@ -271,7 +271,7 @@ impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
             table.goto,
             alts_to_alt_nt_len(&table.alts, &symtable),
             symtable.to_fixed_sym_table(),
-            false
+            table.init_hook
         )
     }
 }
