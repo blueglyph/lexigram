@@ -170,6 +170,7 @@ pub struct ProdRuleSet<T> {
     pub(crate) follow: Vec<HashSet<Symbol>>,
     pub(crate) original_start: Option<VarId>, // original top replaced by extra "goal" nonterminal in LR grammars
     pub(crate) sep_info: SepInfo,
+    pub(crate) terminal_hooks: Vec<TokenId>,
     pub(super) _phantom: PhantomData<T>
 }
 
@@ -258,6 +259,10 @@ impl<T> ProdRuleSet<T> {
             self.parent.resize(child + 1, None);
         }
         self.parent[child] = Some(parent);
+    }
+
+    pub fn set_terminal_hooks(&mut self, terminal_hooks: Vec<TokenId>) {
+        self.terminal_hooks = terminal_hooks;
     }
 
     #[allow(unused)]
@@ -1223,6 +1228,7 @@ impl ProdRuleSet<General> {
             follow: Vec::new(),
             original_start: None,
             sep_info: SepInfo::None,
+            terminal_hooks: Vec::new(),
             _phantom: PhantomData
         }
     }
@@ -1242,6 +1248,7 @@ pub struct ProdRuleSetTables {
     options: ProdRuleSetOptions,
     nt_conversion: HashMap<VarId, NTConversion>,
     sep_nt: Vec<SepNt>,
+    terminal_hooks: Vec<TokenId>,
 }
 
 impl ProdRuleSetTables {
@@ -1257,6 +1264,7 @@ impl ProdRuleSetTables {
         options: ProdRuleSetOptions,
         nt_conversion: HashMap<VarId, NTConversion>,
         sep_info: Vec<SepNt>,
+        terminal_hooks: Vec<TokenId>,
     ) -> Self {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
@@ -1265,7 +1273,8 @@ impl ProdRuleSetTables {
             prules,
             origin, t, nt, flags, parent, start, options,
             nt_conversion,
-            sep_nt: sep_info
+            sep_nt: sep_info,
+            terminal_hooks
         }
     }
 

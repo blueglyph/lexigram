@@ -570,7 +570,10 @@ impl TestRules {
     }
 
     pub fn to_prs_general(mut self) -> Option<ProdRuleSet<General>> {
-        self.to_rts_normalized().map(|rts| rts.build_into())
+        let terminal_hooks = self.give_terminal_hooks();
+        let mut prs_maybe = self.to_rts_normalized().map(|rts| rts.build_into());
+        prs_maybe.as_mut().map(|prs: &mut ProdRuleSet<General>| prs.set_terminal_hooks(terminal_hooks));
+        prs_maybe
     }
 
     pub fn to_prs_ll1(self) -> Option<ProdRuleSet<LL1>> {

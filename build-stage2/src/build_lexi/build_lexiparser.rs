@@ -101,7 +101,8 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         Some(0),
         ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
         hashmap![],
-        vec![SepNt { nt_parent: 4, nt_child: 19, item_len: 1 }, SepNt { nt_parent: 9, nt_child: 20, item_len: 1 }, SepNt { nt_parent: 12, nt_child: 21, item_len: 1 }]
+        vec![SepNt { nt_parent: 4, nt_child: 19, item_len: 1 }, SepNt { nt_parent: 9, nt_child: 20, item_len: 1 }, SepNt { nt_parent: 12, nt_child: 21, item_len: 1 }],
+        vec![]
     );
 
     // [lexiparser_stage_2]

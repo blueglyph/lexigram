@@ -38,7 +38,7 @@ impl ParserGen {
             var_alts[*var_id as usize].push(alt_id);
         }
         let nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
-        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, .. } = lr_rules;
+        let ProdRuleSet { symbol_table, nt_conversion, origin, sep_info, terminal_hooks, .. } = lr_rules;
         let SepInfo::Nt(sep_nt) = sep_info else { panic!("unprocessed ProdRuleSet<LL1>") };
         let mut builder = ParserGen {
             num_nt: parsing_table.num_nt,
@@ -59,7 +59,7 @@ impl ParserGen {
             nt_parent,
             var_alts,
             origin,
-            terminal_hooks: Vec::new(),
+            terminal_hooks,         // the LR transformation has already been done, but just for the sake of coherency
             item_ops: Vec::new(),
             opcodes: Vec::new(),
             init_opcodes: Vec::new(),

@@ -71,6 +71,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         Some(0),
         ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
         hashmap![],
+        vec![],
         vec![]
     );
 

@@ -198,7 +198,8 @@ impl ProdRuleSet<LL1> {
         source.push(format!("    {:?},", self.options));
         source.push(format!("    hashmap![{}],", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
         let SepInfo::Nt(sep_nt) = &self.sep_info else { panic!() };
-        source.push(format!("    vec![{}]", sep_nt.iter().map(|i| format!("{i:?}")).join(", ")));
+        source.push(format!("    vec![{}],", sep_nt.iter().map(|i| format!("{i:?}")).join(", ")));
+        source.push(format!("    vec![{}]", self.terminal_hooks.iter().map(TokenId::to_string).join(", ")));
         source.push(");".to_string());
         indent_source(vec![source], indent)
     }
@@ -226,6 +227,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
             follow: Vec::new(),
             original_start: None,
             sep_info: SepInfo::Nt(source.sep_nt),
+            terminal_hooks: source.terminal_hooks,
             _phantom: PhantomData,
         }
     }
@@ -261,6 +263,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             follow: rules.follow,
             original_start: None,
             sep_info: rules.sep_info,
+            terminal_hooks: rules.terminal_hooks,
             _phantom: PhantomData,
         }
     }

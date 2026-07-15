@@ -385,10 +385,11 @@ impl ProdRuleSet<LR> {
             nt_conversion: Default::default(),
             log: Default::default(),
             options: Default::default(),
-            first: vec![],
-            follow: vec![],
+            first: Vec::new(),
+            follow: Vec::new(),
             original_start: None,
             sep_info: SepInfo::None,
+            terminal_hooks: Vec::new(),
             _phantom: Default::default(),
         };
         g_p.calc_first();
@@ -561,6 +562,7 @@ impl ProdRuleSet<LR> {
         if compressed {
             table.compress_goto();
         }
+        table.apply_terminal_hooks(&self.terminal_hooks);
         let table_str = table.to_str(self.get_symbol_table()).join("\n");
         self.log.add_note(format!("Parsing table:\n{table_str}"));
         table
@@ -596,6 +598,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
             follow: rules.follow,
             original_start: None,
             sep_info: rules.sep_info,
+            terminal_hooks: rules.terminal_hooks,
             _phantom: PhantomData,
         }
     }
@@ -657,6 +660,44 @@ impl LRParsingTable {
             LRAction::Shift(s) => LRAction::Shift(order[s as usize]),
             _ => a,
         }).collect();
+    }
+
+    /// Transforms the `action` table and `init_hook` to allow the parser to call a listener
+    /// hook before specific tokens are checked. This allows the user to transform any other
+    /// token that may be extracted, like an `Id` to a `Type`, before that token influences
+    /// the parsing.
+    ///
+    /// For example, in the following table, state 1 jumps to states 3, 4, or 5 depending on
+    /// the token. If `Id` may actually be a declared type, like in some languages, it must
+    /// be determined before the token is used, so before jumping to state 1. The `s1` of
+    /// state 0 is transformed to `sh0`, which will call the listener hook right after the
+    /// token is extracted, but before it's used to fetch the next state.
+    ///
+    /// ```text
+    ///   | Type "{" "}" Id  ";" "=" Num "print"  $  | prog inst | productions
+    /// --+------------------------------------------+-----------+--------------------------
+    /// 0 |  -   s1   -   -   -   -   -     -     -  |  2    -   | 0: prog -> "{" inst "}"
+    /// 1 |  s3   -   -  s4   -   -   -    s5     -  |  -    6   | 1: inst -> Type Id ";"
+    /// 2 |  -    -   -   -   -   -   -     -    acc |  -    -   | 2: inst -> Id "=" Num ";"
+    /// 3 |  -    -   -  s7   -   -   -     -     -  |  -    -   | 3: inst -> "print" Id ";"
+    /// [...]
+    /// ```
+    pub fn apply_terminal_hooks(&mut self, terminal_hooks: &[TokenId]) {
+        for &t in terminal_hooks {
+            let tu = t as usize;
+            // we only need to spot the states where a Shift or a Reduce action is performed
+            // on the terminal `t`, and change the Shift actions to those states
+            for state in 0..self.num_states {
+                if matches!(self.action[state * self.num_t_full + tu], LRAction::Shift(_) | LRAction::Reduce(_)) {
+                    // change all the Shift actions going to that state to ShiftHook
+                    for action in self.action.iter_mut() {
+                        if *action == LRAction::Shift(state as LRStateId) {
+                            *action = LRAction::ShiftHook(state as LRStateId);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> Vec<String> {
