@@ -263,17 +263,17 @@ pub(crate) mod listener7 {
         3,8,8,8,5,2,8,7,8];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 3, 2),(1, 1, 1),(2, 2, 0),(2, 1, 0),(3, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
         ("A", None),("C", None),("Id", None)];
-    static SYMBOL_TABLE_NT: [&str; 4] = [
+    static SYMBOLS_NT: [&str; 4] = [
         "a","b","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -508,7 +508,7 @@ pub(crate) mod listener7 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 2, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 2, 999, VERBOSE);
                 let mut listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {

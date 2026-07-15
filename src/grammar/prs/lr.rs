@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
-use lexigram_core::log::{LogMsg, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogMsg, LogStatus, Logger};
 use lexigram_core::parser::Symbol;
 use lexigram_core::{AltId, CollectJoin, TokenId, VarId};
 use lexigram_core::alt::{ruleflag, Alternative};
@@ -562,7 +562,7 @@ impl ProdRuleSet<LR> {
         if compressed {
             table.compress_goto();
         }
-        table.apply_terminal_hooks(&self.terminal_hooks);
+        table.apply_terminal_hooks(&self.terminal_hooks, &mut self.log);
         let table_str = table.to_str(self.get_symbol_table()).join("\n");
         self.log.add_note(format!("Parsing table:\n{table_str}"));
         table
@@ -682,18 +682,28 @@ impl LRParsingTable {
     /// 3 |  -    -   -  s7   -   -   -     -     -  |  -    -   | 3: inst -> "print" Id ";"
     /// [...]
     /// ```
-    pub fn apply_terminal_hooks(&mut self, terminal_hooks: &[TokenId]) {
+    pub fn apply_terminal_hooks(&mut self, terminal_hooks: &[TokenId], log: &mut BufLog) {
+        log.add_note(format!("apply terminal hooks to parsing table"));
         for &t in terminal_hooks {
             let tu = t as usize;
             // we only need to spot the states where a Shift or a Reduce action is performed
             // on the terminal `t`, and change the Shift actions to those states
             for state in 0..self.num_states {
-                if matches!(self.action[state * self.num_t_full + tu], LRAction::Shift(_) | LRAction::Reduce(_)) {
+                if matches!(self.action[state * self.num_t_full + tu], LRAction::Shift(_) | LRAction::ShiftHook(_) | LRAction::Reduce(_)) {
                     // change all the Shift actions going to that state to ShiftHook
-                    for action in self.action.iter_mut() {
-                        if *action == LRAction::Shift(state as LRStateId) {
-                            *action = LRAction::ShiftHook(state as LRStateId);
+                    if state != 0 {
+                        let mut n = 0;
+                        for action in self.action.iter_mut() {
+                            if *action == LRAction::Shift(state as LRStateId) {
+                                *action = LRAction::ShiftHook(state as LRStateId);
+                                n += 1;
+                            }
                         }
+                        log.add_note(format!("- token {t}: {n} Shift action(s) to state {state} are changed"));
+                    } else {
+                        // no shift to state 0, however, we must hook the first terminal
+                        log.add_note(format!("- token {t}: used in state 0, so init_hook is true"));
+                        self.init_hook = true;
                     }
                 }
             }
@@ -705,6 +715,7 @@ impl LRParsingTable {
         let &LRParsingTable { num_nt, num_t_full, num_states, ref action, ref goto, .. } = self;
         let max_sw = (num_states as LRStateId - 1).ilog10() as usize + 1;
         let max_sws = LRAction::Shift(num_states as LRStateId - 1).to_string().len()
+            .max(LRAction::Shift(num_states as LRStateId - 1).to_string().len())
             .max(LRAction::Reduce(self.alts.len() as AltId - 1).to_string().len());
         let max_ntw = (num_states as VarId - 1).ilog10() as usize + 1;
         let t_str = (0..num_t_full as TokenId).map(|t| self.symbol(t).to_str_quote(symbol_table)).to_vec();

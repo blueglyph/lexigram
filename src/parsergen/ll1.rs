@@ -3,13 +3,12 @@
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use lexigram_core::alt::Alternative;
-use lexigram_core::parser::{OpCode, Symbol};
+use lexigram_core::parser::OpCode;
 use lexigram_core::{AltId, CollectJoin, VarId, LL1};
 use lexigram_core::fixed_sym_table::FixedSymTable;
 use lexigram_core::log::{LogReader, LogStatus, Logger};
 use lexigram_core::parser::ll1::LLParser;
 use crate::build::{BuildError, BuildErrorSource, BuildFrom, TryBuildFrom};
-use crate::{columns_to_str, NameTransformer, SourceSpacer};
 use crate::grammar::ll1::LL1ParsingTable;
 use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::parsergen::{symbol_to_code, ParserGen, ParserGenOptions, ParserType};
@@ -132,40 +131,7 @@ impl ParserGen {
                 self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
         ]);
-        if self.options.gen_token_enums {
-            src.add_space();
-            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
-            src.push("#[repr(u16)]".to_string());
-            src.push("pub enum Term {".to_string());
-            let cols = self.symbol_table.get_terminals().enumerate()
-                .map(|(t, (s, s_opt))| vec![
-                    // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
-                    // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
-                    format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
-                    format!("{s} = {t},", )])
-                .to_vec();
-            src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
-            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
-            src.push("#[repr(u16)]".to_string());
-            src.push("pub enum NTerm {".to_string());
-            let cols = self.symbol_table.get_nonterminals().index()
-                .map(|(t, s)| vec![
-                    format!(
-                        "    #[doc = \"`{s}`{}\"]",
-                        if let Some(p) = self.get_nt_parent(t) {
-                            format!(", parent: `{}`", Symbol::NT(p).to_str(self.get_symbol_table()))
-                        } else {
-                            String::new()
-                        }),
-                    format!("{} = {t},", s.to_camelcase())])
-                .to_vec();
-            src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
-            src.push("pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
-            src.push("    SYMBOLS_T[t as usize]".to_string());
-            src.push("}\n".to_string());
-        }
+        src.extend(self.source_token_enums());
         src.extend(vec![
             "pub fn build_parser() -> LLParser<'static> {{".to_string(),
             "    let symbol_table = FixedSymTable::new(".to_string(),

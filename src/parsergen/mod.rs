@@ -1657,6 +1657,46 @@ impl ParserGen {
         self.options.used_libs.gen_source_code()
     }
 
+    fn source_token_enums(&self) -> Vec<String> {
+        let mut src = vec![];
+        if self.options.gen_token_enums {
+            src.add_space();
+            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
+            src.push("#[repr(u16)]".to_string());
+            src.push("pub enum Term {".to_string());
+            let cols = self.symbol_table.get_terminals().enumerate()
+                .map(|(t, (s, s_opt))| vec![
+                    // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
+                    // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
+                    format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
+                    format!("{s} = {t},", )])
+                .to_vec();
+            src.extend(columns_to_str(cols, Some(vec![16, 0])));
+            src.push("}\n".to_string());
+            src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
+            src.push("#[repr(u16)]".to_string());
+            src.push("pub enum NTerm {".to_string());
+            let num_nt = if self.options.parser_type.is_lr() { self.num_nt - 1 } else { self.num_nt };
+            let cols = self.symbol_table.get_nonterminals().into_iter().take(num_nt).index()
+                .map(|(t, s)| vec![
+                    format!(
+                        "    #[doc = \"`{s}`{}\"]",
+                        if let Some(p) = self.get_nt_parent(t) {
+                            format!(", parent: `{}`", Symbol::NT(p).to_str(self.get_symbol_table()))
+                        } else {
+                            String::new()
+                        }),
+                    format!("{} = {t},", s.to_camelcase())])
+                .to_vec();
+            src.extend(columns_to_str(cols, Some(vec![16, 0])));
+            src.push("}\n".to_string());
+            src.push("pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
+            src.push("    SYMBOLS_T[t as usize]".to_string());
+            src.push("}\n".to_string());
+        }
+        src
+    }
+
     fn source_build_parser(&mut self) -> Vec<String> {
         match self.options.parser_type {
             ParserType::LL1 => self.source_build_parser_ll1(),

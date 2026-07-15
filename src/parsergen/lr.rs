@@ -157,7 +157,7 @@ impl ParserGen {
                     format!("    {}{}", terminals.iter().map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
         const T_CHUNK: usize = 10;
         assert!(self.symbol_table.get_num_t() > 0, "terminal table is empty");
-        src.push(format!("static SYMBOL_TABLE_T: [(&str, Option<&str>); {num_t_table}] = ["));
+        src.push(format!("static SYMBOLS_T: [(&str, Option<&str>); {num_t_table}] = ["));
         let mut it = self.symbol_table.get_terminals();
         src.extend(
             (0..(self.symbol_table.get_num_t() + T_CHUNK - 1) / T_CHUNK)
@@ -166,21 +166,22 @@ impl ParserGen {
                     format!("    {}{}", (0..T_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
         const NT_CHUNK: usize = 20;
         assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
-        src.push(format!("static SYMBOL_TABLE_NT: [&str; {num_nt_table}] = ["));
+        src.push(format!("static SYMBOLS_NT: [&str; {num_nt_table}] = ["));
         let mut it = self.symbol_table.get_nonterminals();
         src.extend(
             (0..(self.symbol_table.get_num_nt() + NT_CHUNK - 1) / NT_CHUNK)
                 .flag_first_last()
                 .map(|(_, is_last, _)|
                     format!("    {}{}", (0..NT_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        src.extend(self.source_token_enums());
         src.extend([
             String::new(),
             "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
             "    LRParser::new(".to_string(),
             "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
             "        FixedSymTable::new(".to_string(),
-            "            SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
-            "            SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
+            "            SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
+            "            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
             "        ),".to_string(),
             format!("        {}", self.init_hook),
             "    )".to_string(),

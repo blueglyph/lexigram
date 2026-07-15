@@ -415,17 +415,17 @@ pub mod terminate_parser {
         2,1,18,18,18,18,10,11];
     static ALT_NT_LEN: [(VarId, u16, u16); 12] = [
         (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 2, 2),(2, 2, 2),(2, 1, 0),(3, 2, 2),(3, 2, 2),(3, 2, 2),(3, 2, 2),(4, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 9] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 9] = [
         ("Process", None),("End", None),("Shutdown", Some("SHUTDOWN")),("Note", None),("Warning", None),("Error", None),("Header", None),("Message", None),("Id", None)];
-    static SYMBOL_TABLE_NT: [&str; 5] = [
+    static SYMBOLS_NT: [&str; 5] = [
         "log","log_i","line","message","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )

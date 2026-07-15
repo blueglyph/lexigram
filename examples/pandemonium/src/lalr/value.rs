@@ -1518,12 +1518,12 @@ pub mod pandemonium_parser {
         (28, 2, 0),(28, 2, 0),(28, 2, 0),(28, 2, 0),(29, 5, 1),(30, 5, 1),(31, 5, 1),(32, 3, 0),(32, 0, 0),(33, 5, 1),(34, 3, 0),(34, 2, 0),(35, 4, 1),(36, 4, 1),(37, 6, 1),(38, 6, 1),(39, 6, 1),(40, 2, 0),(40, 3, 0),(40, 0, 0),(41, 6, 1),(42, 2, 0),(42, 1, 0),(42, 3, 0),(42, 2, 0),
         (43, 4, 1),(44, 4, 1),(44, 3, 1),(45, 4, 1),(46, 4, 0),(46, 1, 0),(47, 4, 1),(47, 3, 1),(48, 4, 0),(48, 1, 0),(49, 3, 0),(49, 1, 0),(50, 3, 0),(50, 1, 0),(51, 3, 1),(51, 0, 0),(52, 3, 1),(52, 2, 1),(53, 2, 1),(53, 4, 2),(53, 0, 0),(54, 2, 1),(54, 1, 1),(54, 4, 2),(54, 3, 2),
         (55, 6, 2),(55, 3, 2),(56, 6, 2),(56, 3, 2),(57, 3, 0),(57, 0, 0),(58, 3, 0),(58, 2, 0),(59, 2, 0),(59, 3, 0),(59, 0, 0),(60, 2, 0),(60, 1, 0),(60, 3, 0),(60, 2, 0),(61, 4, 0),(61, 1, 0),(62, 4, 0),(62, 1, 0),(63, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 31] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 31] = [
         ("Add", Some("+")),("Div", Some("/")),("Equal", Some("=")),("Exp", Some("^")),("Lpar", Some("(")),("Lsbracket", Some("[")),("Mul", Some("*")),("Rpar", Some(")")),("Rsbracket", Some("]")),("Sub", Some("-")),
         ("Colon", Some(":")),("Comma", Some(",")),("Semi", Some(";")),("Then", Some("then")),("Star", Some("star")),("Plus", Some("plus")),("L_Star", Some("l-star")),("L_Plus", Some("l-plus")),("Rrec", Some("rrec")),("Lrec", Some("lrec")),
         ("Amb", Some("amb")),("Star_A", Some("star-a")),("Plus_A", Some("plus-a")),("L_Star_A", Some("l-star-a")),("L_Plus_A", Some("l-plus-a")),("SepList", Some("sep-list")),("SepList_Opt", Some("sep-list-opt")),("L_SepList", Some("l-sep-list")),("L_SepList_Opt", Some("l-sep-list-opt")),("Id", None),
         ("Num", None)];
-    static SYMBOL_TABLE_NT: [&str; 64] = [
+    static SYMBOLS_NT: [&str; 64] = [
         "text","i","nv_i","example","star","plus","l_star","l_star_i","l_plus","l_plus_i","rrec","lrec","amb","star_a","plus_a","l_star_a","l_star_a_i","l_plus_a","l_plus_a_i","sep_list",
         "sep_list_opt","l_sep_list","l_sep_list_i","l_sep_list_opt","l_sep_list_opt_i","rrec_i","lrec_i","amb_i","nv_example","nv_star","nv_plus","nv_l_star","nv_l_star_i","nv_l_plus","nv_l_plus_i","nv_rrec","nv_lrec","nv_star_a","nv_plus_a","nv_l_star_a",
         "nv_l_star_a_i","nv_l_plus_a","nv_l_plus_a_i","nv_sep_list","nv_sep_list_opt","nv_l_sep_list","nv_l_sep_list_i","nv_l_sep_list_opt","nv_l_sep_list_opt_i","nv_rrec_i","nv_lrec_i","star_1","plus_1","star_a_1","plus_a_1","sep_list_1","sep_list_opt_1","nv_star_1","nv_plus_1","nv_star_a_1",
@@ -1533,8 +1533,8 @@ pub mod pandemonium_parser {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )

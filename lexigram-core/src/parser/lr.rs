@@ -32,7 +32,7 @@ impl Display for LRAction {
         match self {
             LRAction::Error => write!(f, "-"),
             LRAction::Shift(s) => write!(f, "s{s}"),
-            LRAction::ShiftHook(s) => write!(f, "sh{s}"),
+            LRAction::ShiftHook(s) => write!(f, "${s}"),
             LRAction::Reduce(a) => write!(f, "r{a}"),
             LRAction::Accept => write!(f, "acc"),
         }
@@ -96,10 +96,13 @@ impl<'a, T> LRParser<'a, T> {
                     stream_pos = Some(span.first_forced());
                     stream_span = span;
                     if !hook {
-                        (t, s)
+                        let new_t = wrapper.intercept_token(t, &s, &stream_span);
+                        (new_t, s)
                     } else {
                         hook = false;
-                        (wrapper.hook(t, stream_str.as_str(), &stream_span), s)
+                        let new_t = wrapper.hook(t, s.as_str(), &stream_span);
+                        if VERBOSE { println!("  hook changed {} to {}", Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table))) }
+                        (new_t, s)
                 }
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end

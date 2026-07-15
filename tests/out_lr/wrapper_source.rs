@@ -24,17 +24,17 @@ pub(crate) mod rules_13_1 {
         5,10,10,8,10,9];
     static ALT_NT_LEN: [(VarId, u16, u16); 6] = [
         (0, 3, 1),(0, 1, 0),(0, 2, 0),(1, 1, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 5] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("Id", None),("Eq", Some("=")),("Exit", Some("exit")),("Return", Some("return")),("Num", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "s","val","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -325,7 +325,7 @@ pub(crate) mod rules_13_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 0, 4, false);
+                let stream = make_stream(input, SYMBOLS_T, true, 0, 4, false);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -364,17 +364,17 @@ pub(crate) mod rules_102_1 {
         2,6,6,3];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 0, 0),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
         ("A", None),("B", None),("C", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -620,7 +620,7 @@ pub(crate) mod rules_102_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -663,17 +663,17 @@ pub(crate) mod rules_103_1 {
         2,7,7,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
         ("A", None),("B", None),("C", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -920,7 +920,7 @@ pub(crate) mod rules_103_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -965,17 +965,17 @@ pub(crate) mod rules_109_1 {
         5,14,14,14,14,7,14,11,14,14,13,14];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 4, 1),(1, 1, 1),(2, 5, 1),(2, 3, 1),(3, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 5] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("Id", None),("LPar", Some("(")),("Colon", Some(":")),("Comma", Some(",")),("RPar", Some(")"))];
-    static SYMBOL_TABLE_NT: [&str; 4] = [
+    static SYMBOLS_NT: [&str; 4] = [
         "a","type","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -1251,7 +1251,7 @@ pub(crate) mod rules_109_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 0, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 0, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -1294,17 +1294,17 @@ pub(crate) mod rules_119_1 {
         2,8,8,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
         ("X", None),("B", None),("Comma", Some(",")),("Z", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -1545,7 +1545,7 @@ pub(crate) mod rules_119_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -1596,17 +1596,17 @@ pub(crate) mod rules_120_1 {
         2,8,8,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
         ("A", None),("Id", None),("Comma", Some(",")),("C", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","a_1","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -1840,7 +1840,7 @@ pub(crate) mod rules_120_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -2524,17 +2524,17 @@ pub(crate) mod rules_200_1 {
         2,6,6,3];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 0, 0),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
         ("A", None),("B", None),("C", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","i","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -2802,7 +2802,7 @@ pub(crate) mod rules_200_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans, expected_spans_b) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -3037,17 +3037,17 @@ pub(crate) mod rules_201_1 {
         2,7,7,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 3] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
         ("A", None),("B", None),("C", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","i","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -3321,7 +3321,7 @@ pub(crate) mod rules_201_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans, expected_spans_b) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -3558,17 +3558,17 @@ pub(crate) mod rules_219_1 {
         2,8,8,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
         ("X", None),("B", None),("Comma", Some(",")),("Z", None)];
-    static SYMBOL_TABLE_NT: [&str; 3] = [
+    static SYMBOLS_NT: [&str; 3] = [
         "a","i","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -3835,7 +3835,7 @@ pub(crate) mod rules_219_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -4079,17 +4079,17 @@ pub(crate) mod rules_222_1 {
         5,14,14,14,7,14,14,14,11,14,14,13];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 4, 1),(1, 5, 1),(1, 3, 1),(2, 1, 1),(3, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 5] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("Id", None),("LPar", Some("(")),("Colon", Some(":")),("Comma", Some(",")),("RPar", Some(")"))];
-    static SYMBOL_TABLE_NT: [&str; 4] = [
+    static SYMBOLS_NT: [&str; 4] = [
         "a","i","type","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -4383,7 +4383,7 @@ pub(crate) mod rules_222_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_id, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 0, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 0, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -5255,17 +5255,17 @@ pub(crate) mod rules_504_1 {
         3];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 2, 1),(0, 2, 1),(0, 1, 1),(0, 1, 1),(1, 1, 0)];
-    static SYMBOL_TABLE_T: [(&str, Option<&str>); 4] = [
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
         ("A", None),("B", None),("C", None),("D", None)];
-    static SYMBOL_TABLE_NT: [&str; 2] = [
+    static SYMBOLS_NT: [&str; 2] = [
         "a","<goal>"];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
             FixedSymTable::new(
-                SYMBOL_TABLE_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOL_TABLE_NT.into_iter().map(|s| s.to_string()).collect()
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
             false
         )
@@ -5521,7 +5521,7 @@ pub(crate) mod rules_504_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOL_TABLE_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {

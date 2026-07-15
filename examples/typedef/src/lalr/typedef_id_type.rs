@@ -1,0 +1,860 @@
+// Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
+
+#![cfg(test)]
+
+use std::collections::HashMap;
+use std::io::Cursor;
+use lexigram_core::char_reader::CharReader;
+use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
+use lexigram_core::log::{BufLog, LogMsg, LogStatus, Logger};
+use lexigram_core::text_span::{GetLine, GetTextSpan};
+use lexigram_core::{CollectJoin, TokenId, LALR};
+use lexigram_core::parser::lr::LRParser;
+use typedef_id_type_lexer::build_lexer;
+use typedef_id_type_parser::*;
+use listener_id_type_types::*;
+
+const VERBOSE: bool = false;
+const VERBOSE_WRAPPER: bool = false;
+
+static TXT1: &str = r#"
+float a, b;
+typedef int type_int;
+typedef type_int type_int2;
+type_int c;
+type_int2 d;
+a = 0;
+print a;
+"#;
+
+static TXT2: &str = r#"
+int wrong, wrong2;
+float wrong;
+int a, b,
+    c, wrong2;
+print wrong;
+"#;
+
+static TXT3: &str = r#"
+typedef int a;
+typedef float a;
+a b;
+b = 5;
+"#;
+
+#[test]
+fn test_id_type_lexer() {
+    let tests = vec![
+        (
+            TXT1,
+            "a:float, b:float, c:int, d:int",
+            "type_int2:int, type_int:int",
+            vec![],
+            vec![
+                "token=Id, text='float', span=2:1-5 -> Type",
+                "token=Id, text='a', span=2:7 -> Id",
+                "token=Id, text='b', span=2:10 -> Id",
+                "token=Typedef, text='typedef', span=3:1-7 -> Typedef",
+                "token=Id, text='int', span=3:9-11 -> Type",
+                "token=Id, text='type_int', span=3:13-20 -> Id",
+                "token=Typedef, text='typedef', span=4:1-7 -> Typedef",
+                "token=Id, text='type_int', span=4:9-16 -> Type",
+                "token=Id, text='type_int2', span=4:18-26 -> Id",
+                "token=Id, text='type_int', span=5:1-8 -> Type",
+                "token=Id, text='c', span=5:10 -> Id",
+                "token=Id, text='type_int2', span=6:1-9 -> Type",
+                "token=Id, text='d', span=6:11 -> Id",
+                "token=Id, text='a', span=7:1 -> Id",
+                "token=Num, text='0', span=7:5 -> Num",
+                "token=Print, text='print', span=8:1-5 -> Print",
+                "token=Id, text='a', span=8:7 -> Id",
+            ],
+        ),
+        (
+            TXT2,
+            "", "",
+            vec!["var 'wrong' was already declared", "var 'wrong2' was already declared"],
+            vec![],
+        ),
+        (
+            TXT3,
+            "", "",
+            vec![r#"syntax error: unexpected token 'Type' on "a""#],
+            vec![],
+        ),
+    ];
+    let mut parser = IdTypeParser::new();
+    for (test_id, (txt, expected_vars, expected_types, expected_errors, expected_calls)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80} {test_id}\n{txt}\n{0:-<80}", ""); }
+        match parser.parse(txt) {
+            Ok(ParserData { vars, types, log, hook_calls }) => {
+                let mut lvars = vars.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                lvars.sort();
+                let result_vars = lvars.join(", ");
+                let mut ltypes = types.into_iter().map(|(k, v)| format!("{k}:{v}")).to_vec();
+                ltypes.sort();
+                let result_types = ltypes.join(", ");
+                if VERBOSE {
+                    println!("parsing successful\n{log}\nvars: {result_vars}\ntypes: {result_types}\nhook_calls: {hook_calls:?}");
+                }
+
+                assert_eq!(result_vars, expected_vars, "var mismatch in test {test_id}");
+                assert_eq!(result_types, expected_types, "type mismatch in test {test_id}");
+                assert_eq!(hook_calls, expected_calls, "hook call mismatch in test {test_id}");
+                assert!(expected_errors.is_empty(), "errors were expected in test {test_id}: {expected_errors:?}");
+            }
+            Err(log) => {
+                assert!(!expected_errors.is_empty(), "unexpected error(s) in test {test_id}\n{log}");
+                if VERBOSE {
+                    println!("errors during parsing:\n{log}");
+                }
+                let mut errors = log.get_errors();
+                for exp_err in expected_errors {
+                    let mut next_err = errors.next();
+                    while let Some(err) = next_err {
+                        if err.get_inner_str().contains(exp_err) {
+                            break;
+                        }
+                        next_err = errors.next();
+                    }
+                    if next_err.is_none() {
+                        panic!("didn't find this expected error in test {test_id}: {exp_err}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ParserData {
+    pub vars: HashMap<String, String>,
+    pub types: HashMap<String, String>,
+    pub log: BufLog,
+    pub hook_calls: Vec<String>,
+}
+
+pub struct IdTypeParser<'l, 'p, 'ls> {
+    lexer: Lexer<'l, Cursor<&'l str>>,
+    parser: LRParser<'p, LALR>,
+    wrapper: Option<Wrapper<IdTypeListener<'ls>>>,
+}
+
+impl<'l, 'ls: 'l> IdTypeParser<'l, '_, 'ls> {
+    /// Creates a new parser
+    pub fn new() -> Self {
+        let lexer = build_lexer();
+        let parser = build_parser();
+        IdTypeParser { lexer, parser, wrapper: None }
+    }
+
+    /// Parses a text.
+    ///
+    /// On success, returns
+    /// * `vars`, a `HashMap<String, String>` that contains the variables and their resolved type
+    /// * `types`, a `HashMap<String, String>` that contains the defined types and what type they resolve to
+    /// * `log`, a `BufLog` object.
+    ///
+    /// On failure, returns the log with the error messages.
+    pub fn parse(&mut self, text: &'ls str) -> Result<ParserData, BufLog> {
+        self.wrapper = Some(Wrapper::new(IdTypeListener::new(), VERBOSE_WRAPPER));
+        let stream = CharReader::new(Cursor::new(text));
+        self.lexer.attach_stream(stream);
+        self.wrapper.as_mut().unwrap().get_listener_mut().attach_lines(text.lines().collect());
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, pos_span)|
+            panic!("unexpected channel {ch} while parsing a file at {pos_span}, \"{text}\"")
+        );
+        if let Err(e) = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens) {
+            self.wrapper.as_mut().unwrap().get_listener_mut().get_log_mut().add_error(e.to_string());
+        }
+        let IdTypeListener { log, vars, types, hook_calls, .. } = self.wrapper.take().unwrap().give_listener();
+        if log.has_no_errors() {
+            Ok(ParserData { vars, types, log, hook_calls })
+        } else {
+            Err(log)
+        }
+    }
+}
+
+// listener
+
+struct IdTypeListener<'ls> {
+    log: BufLog,
+    lines: Option<Vec<&'ls str>>,
+    vars: HashMap<String, String>,
+    types: HashMap<String, String>,
+    hook_calls: Vec<String>,
+}
+
+impl<'ls> IdTypeListener<'ls> {
+    fn new() -> Self {
+        IdTypeListener {
+            log: BufLog::new(),
+            lines: None,
+            vars: HashMap::new(),
+            types: HashMap::new(),
+            hook_calls: vec![],
+        }
+    }
+
+    fn attach_lines(&mut self, lines: Vec<&'ls str>) {
+        self.lines = Some(lines);
+    }
+
+    fn solve_type<'s>(&'s self, mut typ: &'s str) -> &'s str {
+        while let Some(solved) = self.types.get(typ) {
+           typ = solved.as_str();
+        }
+        typ
+    }
+}
+
+impl GetLine for IdTypeListener<'_> {
+    fn get_line(&self, n: usize) -> &str {
+        self.lines.as_ref().unwrap()[n - 1]
+    }
+}
+
+// listener trait implementation
+
+#[allow(unused)]
+impl TypedefListener for IdTypeListener<'_> {
+    fn get_log_mut(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        if let Some(span) = span_opt {
+            match &mut msg {
+                LogMsg::NoLogStore => {}
+                LogMsg::Note(s)
+                | LogMsg::Info(s)
+                | LogMsg::Warning(s)
+                | LogMsg::Error(s) => {
+                    *s = format!("{s}:\n{}", self.annotate_text(&span))
+                }
+            }
+        }
+        self.get_log_mut().add(msg);
+    }
+
+    fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+        // println!("  hook(token: {}, text: {text}, span: {span})", get_term_name(token).0);
+        let new = match text {
+            "int" | "float" | "double" => Term::Type as u16,
+            t => {
+                if self.types.contains_key(t) {
+                    Term::Type as u16
+                } else {
+                    token
+                }
+            }
+        };
+        let report = format!("token={}, text='{text}', span={span} -> {}", get_term_name(token).0, get_term_name(new).0);
+        if VERBOSE {
+            println!("    {report},");
+        }
+        self.hook_calls.push(report);
+        new
+    }
+
+    fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
+        SynProgram()
+    }
+
+    fn exit_stmt(&mut self, _ctx: CtxStmt, _spans: Vec<PosSpan>) -> SynStmt {
+        SynStmt()
+    }
+
+    fn exit_decl(&mut self, ctx: CtxDecl, mut spans: Vec<PosSpan>) -> SynDecl {
+        match ctx {
+            // decl -> Type Id (<L> "," Id)* ";"
+            CtxDecl::V1 { type1, plus: SynIdI(mut ids) } => {
+                for (i, (id, span)) in ids.into_iter().enumerate() {
+                    if let Some(prev) = self.vars.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                        self.log.add_error(format!("var '{id}' was already declared ({}):\n{}", &span, self.annotate_text(&span)));
+                    }
+                }
+            }
+            // decl -> "typedef" Type Id ";"
+            CtxDecl::V2 { type1, id } => {
+                if let Some(prev) = self.types.insert(id.clone(), self.solve_type(&type1).to_string()) {
+                    self.log.add_error(format!("type '{id}' was already defined ({}):\n{}", &spans[2], self.annotate_text(&spans[2])));
+                }
+            }
+        }
+        SynDecl()
+    }
+
+    fn init_id_i(&mut self) -> SynIdI {
+        SynIdI(vec![])
+    }
+
+    fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, mut spans: Vec<PosSpan>) {
+        // `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";"`
+        let CtxIdI::V1 { id } = ctx;
+        let span = spans.pop().unwrap();
+        acc.0.push((id, span));
+    }
+
+    fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
+        SynInst()
+    }
+
+    fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
+        SynExpr()
+    }
+}
+
+//==============================================================================
+
+pub mod listener_id_type_types {
+    use lexigram_core::lexer::PosSpan;
+
+    /// User-defined type for `program`
+    #[derive(Debug, PartialEq)] pub struct SynProgram();
+    /// User-defined type for `stmt`
+    #[derive(Debug, PartialEq)] pub struct SynStmt();
+    /// User-defined type for `decl`
+    #[derive(Debug, PartialEq)] pub struct SynDecl();
+    /// User-defined type for `<L> "," Id` iteration in `decl -> Type Id ( ►► <L> "," Id ◄◄ )* ";" | "typedef" Type Id ";"`
+    #[derive(Debug, PartialEq)] pub struct SynIdI(pub Vec<(String, PosSpan)>);
+    /// User-defined type for `inst`
+    #[derive(Debug, PartialEq)] pub struct SynInst();
+    /// User-defined type for `expr`
+    #[derive(Debug, PartialEq)] pub struct SynExpr();
+}
+
+pub mod typedef_id_type_lexer {
+    // Generated code, don't modify manually anything between the tags below
+
+    // [typedef_id_type_lexer]
+
+    use std::collections::HashMap;
+    use std::io::Read;
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
+
+    const NBR_GROUPS: u32 = 22;
+    const INITIAL_STATE: LexStateId = 0;
+    const FIRST_END_STATE: LexStateId = 4;
+    const NBR_STATES: LexStateId = 26;
+    static ASCII_TO_GROUP: [GroupId; 128] = [
+         13,  13,  13,  13,  13,  13,  13,  13,  13,   0,  21,  13,  13,  21,  13,  13,   // 0-15
+         13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,   // 16-31
+          0,  13,  13,  13,  13,  13,  13,  13,  13,  13,  11,   1,   2,   3,  13,   4,   // 32-47
+          5,   5,   5,   5,   5,   5,   5,   5,   5,   5,  13,   6,  13,   7,  13,  13,   // 48-63
+         13,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   // 64-79
+          8,   8,   8,   8,   8,   8,   8,   8,   8,   8,   8,  13,  13,  13,  13,  12,   // 80-95
+         13,   8,   8,   8,  17,  16,  18,   8,   8,  19,   8,   8,   8,   8,  20,   8,   // 96-111
+          9,   8,  14,   8,  10,   8,   8,   8,   8,  15,   8,  13,  13,  13,  13,  13,   // 112-127
+    ];
+    static UTF8_TO_GROUP: [(char, GroupId); 0] = [
+    ];
+    static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
+        (Seg(128, 55295), 13),
+        (Seg(57344, 1114111), 13),
+    ];
+    static TERMINAL_TABLE: [Terminal;22] = [
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    ];
+    static STATE_TABLE: [LexStateId; 573] = [
+          4,   5,   6,   7,   1,   8,   9,  10,  11,  12,  13,  26,  26,  26,  11,  11,  11,  11,  11,  11,  11,   4, // state 0
+         26,  26,  26,  26,  24,  26,  26,  26,  26,  26,  26,   2,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 1
+          2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 2
+          2,   2,   2,   2,  25,   2,   2,   2,   2,   2,   2,   3,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2, // state 3
+          4,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,   4, // state 4 <skip>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 5 <end:4>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 6 <end:0>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 7 <end:3>
+         26,  26,  26,  26,  26,   8,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 8 <end:7>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 9 <end:1>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 10 <end:2>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 11 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  20,  11,  11,  11,  11,  11,  11,  26, // state 12 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  14,  11,  11,  11,  11,  11,  26, // state 13 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  15,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 14 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  16,  11,  11,  11,  11,  26, // state 15 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  17,  11,  11,  11,  26, // state 16 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  18,  11,  11,  11,  11,  26, // state 17 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  19,  11,  11,  26, // state 18 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 19 <end:5>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  21,  11,  26, // state 20 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  22,  26, // state 21 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  23,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 22 <end:8>
+         26,  26,  26,  26,  26,  11,  26,  26,  11,  11,  11,  26,  11,  26,  11,  11,  11,  11,  11,  11,  11,  26, // state 23 <end:6>
+         24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  24,  26, // state 24 <skip>
+         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26, // state 25 <skip>
+         26 // error group in [nbr_state * nbr_group + nbr_group]
+    ];
+
+    pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
+        Lexer::new(
+            // parameters
+            NBR_GROUPS,
+            INITIAL_STATE,
+            FIRST_END_STATE,
+            NBR_STATES,
+            // tables
+            &ASCII_TO_GROUP,
+            HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
+            SegMap::<GroupId>::from(SEG_TO_GROUP),
+            &STATE_TABLE,
+            &TERMINAL_TABLE,
+        )
+    }
+
+    // [typedef_id_type_lexer]
+}
+
+pub mod typedef_id_type_parser {
+    // Generated code, don't modify manually anything between the tags below
+
+    // [typedef_id_type_parser]
+
+    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS, ShiftHook as LRSH}, LRParser, LRStateId}}};
+    use super::listener_id_type_types::*;
+
+    static NUM_NT: usize = 7;
+    static NUM_T_FULL: usize = 11;
+    static ACTION: [LRAction; 341] = [
+        LRE,LRE,LRE,LRE,LRE,LRR(2),LRR(2),LRE,LRR(2),LRR(2),LRR(2),LRE,LRE,LRE,LRE,LRE,LRSH(9),LRSH(2),LRE,LRS(10),LRSH(3),LRR(0),LRE,LRE,LRE,LRSH(4),LRE,LRE,LRE,LRS(15),LRS(16),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRS(18),LRE,LRE,LRE,LRE,LRE,LRSH(4),LRE,LRE,LRE,LRS(15),LRS(16),LRE,LRE,LRE,LRE,LRE,LRSH(4),LRE,LRE,LRE,LRS(15),LRS(16),LRE,LRE,LRE,LRE,LRE,LRSH(4),
+        LRE,LRE,LRE,LRS(15),LRS(16),LRE,LRE,LRE,LRE,LRE,LRSH(4),LRE,LRE,LRE,LRS(15),LRS(16),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRSH(14),LRE,LRE,LRE,LRSH(5),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(1),LRR(1),LRE,LRR(1),LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRE,LRR(3),LRR(3),LRE,
+        LRR(3),LRR(3),LRR(3),LRE,LRE,LRE,LRE,LRE,LRR(4),LRR(4),LRE,LRR(4),LRR(4),LRR(4),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(20),LRE,LRE,LRE,LRR(15),LRE,LRR(15),LRR(15),LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRR(14),LRE,LRR(14),LRR(14),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRSH(22),LRE,LRSH(6),LRSH(7),LRE,LRE,LRE,LRE,LRE,LRE,LRR(8),LRR(8),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRSH(24),
+        LRSH(25),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRSH(26),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(11),LRE,LRR(11),LRR(11),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRR(10),LRR(10),LRE,LRR(10),LRR(10),LRR(10),LRE,LRSH(29),LRE,LRSH(6),LRSH(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(30),LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRR(5),LRR(5),LRE,LRR(5),LRR(5),LRR(5),LRE,LRE,LRE,LRE,LRE,LRR(6),LRR(6),LRE,LRR(6),LRR(6),LRR(6),LRE,LRR(13),LRE,LRR(13),LRR(13),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(12),LRE,LRR(12),LRR(12),LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(9),LRR(9),LRE,LRR(9),LRR(9),LRR(9),LRR(7),LRR(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE];
+    static GOTO: [LRStateId; 56] = [
+        8,1,31,31,31,31,31,31,31,11,12,31,13,31,31,31,31,31,31,31,17,31,31,31,31,19,31,31,31,31,31,31,31,31,21,31,31,31,31,31,
+        31,23,31,31,31,31,31,31,27,31,31,31,31,31,31,28];
+    static ALT_NT_LEN: [(VarId, u16, u16); 17] = [
+        (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 1, 0),(3, 3, 1),(3, 4, 2),(4, 3, 1),(4, 1, 1),(5, 4, 1),(5, 3, 0),(6, 2, 0),(6, 3, 0),(6, 3, 0),(6, 1, 1),(6, 1, 1),(7, 1, 0)];
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("Comma", Some(",")),("SemiColon", Some(";")),("Eq", Some("=")),("Sub", Some("-")),("Add", Some("+")),("Typedef", Some("typedef")),("Print", Some("print")),("Num", None),("Id", None),("Type", None)];
+    static SYMBOLS_NT: [&str; 8] = [
+        "program","stmt_i","stmt","decl","id_i","inst","expr","<goal>"];
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "','"]        Comma = 0,
+        #[doc = "';'"]        SemiColon = 1,
+        #[doc = "'='"]        Eq = 2,
+        #[doc = "'-'"]        Sub = 3,
+        #[doc = "'+'"]        Add = 4,
+        #[doc = "'typedef'"]  Typedef = 5,
+        #[doc = "'print'"]    Print = 6,
+        #[doc = "(variable)"] Num = 7,
+        #[doc = "(variable)"] Id = 8,
+        #[doc = "(variable)"] Type = 9,
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`program`"]                   Program = 0,
+        #[doc = "`stmt_i`, parent: `program`"] StmtI = 1,
+        #[doc = "`stmt`"]                      Stmt = 2,
+        #[doc = "`decl`"]                      Decl = 3,
+        #[doc = "`id_i`, parent: `decl`"]      IdI = 4,
+        #[doc = "`inst`"]                      Inst = 5,
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
+
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+            ),
+            true
+        )
+    }
+
+    #[derive(Debug)]
+    pub enum CtxProgram {
+        /// `program -> (<L> stmt)*`
+        V1,
+    }
+    #[derive(Debug)]
+    pub enum CtxStmtI {
+        /// `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
+        V1 { stmt: SynStmt },
+    }
+    #[derive(Debug)]
+    pub enum CtxStmt {
+        /// `stmt -> decl`
+        V1 { decl: SynDecl },
+        /// `stmt -> inst`
+        V2 { inst: SynInst },
+    }
+    #[derive(Debug)]
+    pub enum CtxDecl {
+        /// `decl -> Type (<L> Id / ",")+ ";"`
+        V1 { type1: String, plus: SynIdI },
+        /// `decl -> "typedef" Type Id ";"`
+        V2 { type1: String, id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxIdI {
+        /// `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+        V1 { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxInst {
+        /// `inst -> Id "=" expr ";"`
+        V1 { id: String, expr: SynExpr },
+        /// `inst -> "print" expr ";"`
+        V2 { expr: SynExpr },
+    }
+    #[derive(Debug)]
+    pub enum CtxExpr {
+        /// `expr -> "-" expr`
+        V1 { expr: SynExpr },
+        /// `expr -> expr "+" expr`
+        V2 { expr: [SynExpr; 2] },
+        /// `expr -> expr <P> "-" expr`
+        V3 { expr: [SynExpr; 2] },
+        /// `expr -> Id`
+        V4 { id: String },
+        /// `expr -> Num`
+        V5 { num: String },
+    }
+
+    #[derive(Debug)]
+    enum EnumSynValue { Program(SynProgram), Stmt(SynStmt), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
+
+    impl EnumSynValue {
+        fn get_program(self) -> SynProgram {
+            if let EnumSynValue::Program(val) = self { val } else { panic!() }
+        }
+        fn get_stmt(self) -> SynStmt {
+            if let EnumSynValue::Stmt(val) = self { val } else { panic!() }
+        }
+        fn get_decl(self) -> SynDecl {
+            if let EnumSynValue::Decl(val) = self { val } else { panic!() }
+        }
+        fn get_id_i(self) -> SynIdI {
+            if let EnumSynValue::IdI(val) = self { val } else { panic!() }
+        }
+        fn get_inst(self) -> SynInst {
+            if let EnumSynValue::Inst(val) = self { val } else { panic!() }
+        }
+        fn get_expr(self) -> SynExpr {
+            if let EnumSynValue::Expr(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TypedefListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, program: SynProgram, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
+        fn init_stmt_i(&mut self) {}
+        #[allow(unused_variables)]
+        fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {}
+        fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt;
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
+        fn init_id_i(&mut self) -> SynIdI;
+        fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>);
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<EnumSynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+    }
+
+    impl<T: TypedefListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_program(),                   // program -> stmt_i
+                        1 => self.exit_stmt_i(),                    // stmt_i -> <L> stmt_i stmt
+                        2 => self.init_stmt_i(),                    // stmt_i -> <L> ε
+                        3 |                                         // stmt -> decl
+                        4 => self.exit_stmt(alt_id),                // stmt -> inst
+                        5 |                                         // decl -> Type id_i ";"
+                        6 => self.exit_decl(alt_id),                // decl -> "typedef" Type Id ";"
+                        7 => self.exit_id_i(),                      // id_i -> <L> id_i "," Id
+                        8 => self.init_id_i(),                      // id_i -> <L> Id
+                        9 |                                         // inst -> Id "=" expr ";"
+                        10 => self.exit_inst(alt_id),               // inst -> "print" expr ";"
+                        11 |                                        // expr -> "-" expr
+                        12 |                                        // expr -> expr "+" expr
+                        13 |                                        // expr -> <P> expr "-" expr
+                        14 |                                        // expr -> Id
+                        15 => self.exit_expr(alt_id),               // expr -> Num
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_program();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+                _ => panic!("unexpected call {call:?}, nt {nt}, alt_id {alt_id}")
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+
+        fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.hook(token, text, span)
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
+        }
+    }
+
+    impl<T: TypedefListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_program(&mut self) {
+            let ctx = CtxProgram::V1;
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_program(ctx, spans);
+            self.stack.push(EnumSynValue::Program(val));
+        }
+
+        fn init_stmt_i(&mut self) {
+            self.listener.init_stmt_i();
+            self.stack_span.push(PosSpan::empty());
+        }
+
+        fn exit_stmt_i(&mut self) {
+            let stmt = self.stack.pop().unwrap().get_stmt();
+            let ctx = CtxStmtI::V1 { stmt };
+            let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            self.listener.exit_stmt_i(ctx, spans);
+        }
+
+        fn exit_stmt(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                3 => {
+                    let decl = self.stack.pop().unwrap().get_decl();
+                    (1, CtxStmt::V1 { decl })
+                }
+                4 => {
+                    let inst = self.stack.pop().unwrap().get_inst();
+                    (1, CtxStmt::V2 { inst })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_stmt")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_stmt(ctx, spans);
+            self.stack.push(EnumSynValue::Stmt(val));
+        }
+
+        fn exit_decl(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                5 => {
+                    let plus = self.stack.pop().unwrap().get_id_i();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (3, CtxDecl::V1 { type1, plus })
+                }
+                6 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let type1 = self.stack_t.pop().unwrap();
+                    (4, CtxDecl::V2 { type1, id })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_decl")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_decl(ctx, spans);
+            self.stack.push(EnumSynValue::Decl(val));
+        }
+
+        fn init_id_i(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxIdI::V1 { id };
+            let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let mut val = self.listener.init_id_i();
+            self.listener.exit_id_i(&mut val, ctx, spans);
+            self.stack.push(EnumSynValue::IdI(val));
+        }
+
+        fn exit_id_i(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let ctx = CtxIdI::V1 { id };
+            let mut spans = self.stack_span.drain(self.stack_span.len() - 3 ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            spans.drain(..2);
+            let Some(EnumSynValue::IdI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_id_i(acc, ctx, spans);
+        }
+
+        fn exit_inst(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                9 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    let id = self.stack_t.pop().unwrap();
+                    (4, CtxInst::V1 { id, expr })
+                }
+                10 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (3, CtxInst::V2 { expr })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_inst")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_inst(ctx, spans);
+            self.stack.push(EnumSynValue::Inst(val));
+        }
+
+        fn exit_expr(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                11 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (2, CtxExpr::V1 { expr })
+                }
+                12 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V2 { expr: [expr_1, expr_2] })
+                }
+                13 => {
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V3 { expr: [expr_1, expr_2] })
+                }
+                14 => {
+                    let id = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V4 { id })
+                }
+                15 => {
+                    let num = self.stack_t.pop().unwrap();
+                    (1, CtxExpr::V5 { num })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_expr")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_expr(ctx, spans);
+            self.stack.push(EnumSynValue::Expr(val));
+        }
+    }
+
+    // [typedef_id_type_parser]
+}

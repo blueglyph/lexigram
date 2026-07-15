@@ -636,8 +636,8 @@ fn prs_calc_lr_table() {
             r#" 0 |  -    -   s1   -   -      -      -   -   -   -  |  2    3    -    - "#,
             r#" 1 |  -    -   -   s4   -      -      -   -   -   -  |  -    -    -    - "#,
             r#" 2 |  -    -   -    -   -      -      -   -   -  acc |  -    -    -    - "#,
-            r#" 3 |  s5   -   -   s6   -     sh7     -   -   -   -  |  -    -    8    - "#,
-            r#" 4 |  -    -   -    -  sh9     -      -   -   -   -  |  -    -    -    - "#,
+            r#" 3 |  s5   -   -   s6   -     $7      -   -   -   -  |  -    -    8    - "#,
+            r#" 4 |  -    -   -    -  $9      -      -   -   -   -  |  -    -    -    - "#,
             r#" 5 |  -    -   -   s10  -      -      -   -   -   -  |  -    -    -   11 "#,
             r#" 6 |  -    -   -    -   -      -     s12  -   -   -  |  -    -    -    - "#,
             r#" 7 | s13   -   -    -   -      -      -   -   -   -  |  -    -    -    - "#,
@@ -657,11 +657,11 @@ fn prs_calc_lr_table() {
             r#"   | Type ";" "fn" Id  ":" "typedef" "=" Num ","  $  | prog head inst ids"#,
             r#"---+-------------------------------------------------+-------------------"#,
             r#" 0 |  -    -   s3   -   -      -      -   -   -   -  |  4    1    -    - "#,
-            r#" 1 |  s2   -   -   s6   -     sh7     -   -   -   -  |  -    -    8    - "#,
+            r#" 1 |  s2   -   -   s6   -     $7      -   -   -   -  |  -    -    8    - "#,
             r#" 2 |  -    -   -   s10  -      -      -   -   -   -  |  -    -    -   11 "#,
             r#" 3 |  -    -   -   s5   -      -      -   -   -   -  |                   "#,
             r#" 4 |  -    -   -    -   -      -      -   -   -  acc |                   "#,
-            r#" 5 |  -    -   -    -  sh9     -      -   -   -   -  |                   "#,
+            r#" 5 |  -    -   -    -  $9      -      -   -   -   -  |                   "#,
             r#" 6 |  -    -   -    -   -      -     s12  -   -   -  |                   "#,
             r#" 7 | s13   -   -    -   -      -      -   -   -   -  |                   "#,
             r#" 8 |  -   s14  -    -   -      -      -   -   -   -  |                   "#,
@@ -701,7 +701,7 @@ fn prs_calc_lr_table() {
         let mut lr = testrules.to_prs_lr().unwrap();
         lr.set_start(start);
         let (mut parsing_table, states) = lr.make_parsing_table_with_states_lalr();
-        parsing_table.apply_terminal_hooks(&lr.terminal_hooks);
+        parsing_table.apply_terminal_hooks(&lr.terminal_hooks, &mut lr.log);
         let mut compressed_table = parsing_table.clone();
         compressed_table.compress_goto();
         let fail = if lr.has_no_errors() {

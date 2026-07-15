@@ -1,0 +1,256 @@
+// [typedef]
+
+    // --------------------------------------------------------------------------------
+    // Template for the user implementation of TypedefListener
+
+    struct Listener {
+        log: BufLog,
+    }
+
+    #[allow(unused)]
+    impl TypedefListener for Listener {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
+            // program -> (<L> decl)* (<L> inst)+
+            let CtxProgram::V1 = ctx;
+            SynProgram()
+        }
+
+        fn exit_decl_i(&mut self, ctx: CtxDeclI, spans: Vec<PosSpan>) {
+            // `<L> decl` iteration in `program -> ( ►► <L> decl ◄◄ )* (<L> inst)+`
+            let CtxDeclI::V1 { decl } = ctx;
+        }
+
+        fn exit_inst_i(&mut self, ctx: CtxInstI, spans: Vec<PosSpan>) {
+            // `<L> inst` iteration in `program -> (<L> decl)* ( ►► <L> inst ◄◄ )+`
+            let CtxInstI::V1 { inst, last_iteration } = ctx;
+        }
+
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
+            match ctx {
+                // decl -> Type (<L> Id / ",")+ ";"
+                CtxDecl::V1 { type1, plus } => {}
+                // decl -> "typedef" Type Id ";"
+                CtxDecl::V2 { type1, id } => {}
+            }
+            SynDecl()
+        }
+
+        fn init_id_i(&mut self) -> SynIdI {
+            SynIdI()
+        }
+
+        fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>) {
+            // `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+            let CtxIdI::V1 { id } = ctx;
+        }
+
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
+            match ctx {
+                // inst -> "let" Id "=" expr ";"
+                CtxInst::V1 { id, expr } => {}
+                // inst -> "print" expr ";"
+                CtxInst::V2 { expr } => {}
+            }
+            SynInst()
+        }
+
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
+            match ctx {
+                // expr -> "-" expr
+                CtxExpr::V1 { expr } => {}
+                // expr -> expr "+" expr
+                CtxExpr::V2 { expr } => {}
+                // expr -> expr <P> "-" expr
+                CtxExpr::V3 { expr } => {}
+                // expr -> Id
+                CtxExpr::V4 { id } => {}
+                // expr -> Num
+                CtxExpr::V5 { num } => {}
+            }
+            SynExpr()
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+
+// [typedef]
+
+// =============================================================================================
+
+// [typedef-id]
+
+    // --------------------------------------------------------------------------------
+    // Template for the user implementation of TypedefListener
+
+    struct Listener {
+        log: BufLog,
+    }
+
+    #[allow(unused)]
+    impl TypedefListener for Listener {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
+            // program -> (<L> stmt)*
+            let CtxProgram::V1 = ctx;
+            SynProgram()
+        }
+
+        fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {
+            // `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
+            let CtxStmtI::V1 { stmt } = ctx;
+        }
+
+        fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt {
+            match ctx {
+                // stmt -> decl
+                CtxStmt::V1 { decl } => {}
+                // stmt -> inst
+                CtxStmt::V2 { inst } => {}
+            }
+            SynStmt()
+        }
+
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
+            match ctx {
+                // decl -> Type (<L> Id / ",")+ ";"
+                CtxDecl::V1 { type1, plus } => {}
+                // decl -> "typedef" Type Id ";"
+                CtxDecl::V2 { type1, id } => {}
+            }
+            SynDecl()
+        }
+
+        fn init_id_i(&mut self) -> SynIdI {
+            SynIdI()
+        }
+
+        fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>) {
+            // `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+            let CtxIdI::V1 { id } = ctx;
+        }
+
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
+            match ctx {
+                // inst -> Id "=" expr ";"
+                CtxInst::V1 { id, expr } => {}
+                // inst -> "print" expr ";"
+                CtxInst::V2 { expr } => {}
+            }
+            SynInst()
+        }
+
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
+            match ctx {
+                // expr -> "-" expr
+                CtxExpr::V1 { expr } => {}
+                // expr -> expr "+" expr
+                CtxExpr::V2 { expr } => {}
+                // expr -> expr <P> "-" expr
+                CtxExpr::V3 { expr } => {}
+                // expr -> Id
+                CtxExpr::V4 { id } => {}
+                // expr -> Num
+                CtxExpr::V5 { num } => {}
+            }
+            SynExpr()
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+
+// [typedef-id]
+
+// =============================================================================================
+
+// [typedef-match]
+
+    // --------------------------------------------------------------------------------
+    // Template for the user implementation of TypedefListener
+
+    struct Listener {
+        log: BufLog,
+    }
+
+    #[allow(unused)]
+    impl TypedefListener for Listener {
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
+            // program -> (<L> stmt)*
+            let CtxProgram::V1 = ctx;
+            SynProgram()
+        }
+
+        fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {
+            // `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
+            let CtxStmtI::V1 { stmt } = ctx;
+        }
+
+        fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt {
+            match ctx {
+                // stmt -> decl
+                CtxStmt::V1 { decl } => {}
+                // stmt -> inst
+                CtxStmt::V2 { inst } => {}
+            }
+            SynStmt()
+        }
+
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
+            match ctx {
+                // decl -> Type (<L> Id / ",")+ ";"
+                CtxDecl::V1 { type1, plus } => {}
+                // decl -> "typedef" Type Id ";"
+                CtxDecl::V2 { type1, id } => {}
+            }
+            SynDecl()
+        }
+
+        fn init_id_i(&mut self) -> SynIdI {
+            SynIdI()
+        }
+
+        fn exit_id_i(&mut self, acc: &mut SynIdI, ctx: CtxIdI, spans: Vec<PosSpan>) {
+            // `<L> Id / ","` iteration in `decl -> Type ( ►► <L> Id / "," ◄◄ )+ ";" | "typedef" Type Id ";"`
+            let CtxIdI::V1 { id } = ctx;
+        }
+
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
+            match ctx {
+                // inst -> Id "=" expr ";"
+                CtxInst::V1 { id, expr } => {}
+                // inst -> "print" expr ";"
+                CtxInst::V2 { expr } => {}
+            }
+            SynInst()
+        }
+
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
+            match ctx {
+                // expr -> "-" expr
+                CtxExpr::V1 { expr } => {}
+                // expr -> expr "+" expr
+                CtxExpr::V2 { expr } => {}
+                // expr -> expr <P> "-" expr
+                CtxExpr::V3 { expr } => {}
+                // expr -> Id
+                CtxExpr::V4 { id } => {}
+                // expr -> Num
+                CtxExpr::V5 { num } => {}
+            }
+            SynExpr()
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+
+// [typedef-match]

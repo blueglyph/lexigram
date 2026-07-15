@@ -86,17 +86,19 @@ pub fn try_gen_source_code(lexicon: String, grammar_opt: Option<String>, options
         let mut builder = match options.parser_type {
             ParserType::LL1 => {
                 let ll1 = ProdRuleSet::<LL1>::try_build_from(general)?;
-                ParserGen::build_from_rules_ll1(ll1)
+                let mut builder = ParserGen::build_from_rules_ll1(ll1);
+                builder.set_terminal_hooks(terminal_hooks);
+                builder
             }
             ParserType::LALR => {
-                let lr = ProdRuleSet::<LR>::try_build_from(general)?;
+                let mut lr = ProdRuleSet::<LR>::try_build_from(general)?;
+                lr.set_terminal_hooks(terminal_hooks);
                 ParserGen::build_lalr_from_rules_lr(lr)
             }
         };
 
         // - generates Lexi's parser source code (parser + listener):
         builder.set_options(options.into());
-        builder.set_terminal_hooks(terminal_hooks);
         let (parser_log, parser_src, types_src, listener_src) = builder.try_gen_source_code()?;
         log.extend(parser_log);
         Some((parser_src, types_src, listener_src))
