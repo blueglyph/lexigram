@@ -9,7 +9,7 @@
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// [typedef_type_lexicon]
+// [typedef_type_grammar]
 
 lexicon Typedef;
 
@@ -30,24 +30,20 @@ SComment        : '/*' .*? '*/'             -> skip;
 SLineComment    : '//' ~[\r\n]*             -> skip;
 SWhiteSpace     : [ \n\r\t]+                -> skip;
 
-// [typedef_type_lexicon]
-// -----------------------------------------------------------------------------
-// [typedef_type_grammar]
-
 grammar Typedef;
 
 program:
     (<L=decl_i> decl)* (<L=inst_i> inst)+;
 decl:
-    Type (<L=id_i> Id / Comma)+ SemiColon
-|   Typedef Type Id SemiColon;
+    Type (<L=id_i> Id / ',')+ ';'
+|   'typedef' Type Id ';';
 inst:
-    Let Id Eq expr SemiColon
-|   Print expr SemiColon;
+    'let' Id '=' expr ';'
+|   'print' expr ';';
 <resolve>
 expr:
-    Sub expr
-|   expr (Add | <P> Sub) expr
+    '-' expr
+|   expr ('+' | <P> '-') expr
 |   Id
 |   Num;
 
@@ -66,7 +62,7 @@ expr:
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// [typedef_id_type_lexicon]
+// [typedef_id_type_grammar]
 
 lexicon Typedef;
 
@@ -86,10 +82,6 @@ SComment        : '/*' .*? '*/'             -> skip;
 SLineComment    : '//' ~[\r\n]*             -> skip;
 SWhiteSpace     : [ \n\r\t]+                -> skip;
 
-// [typedef_id_type_lexicon]
-// -----------------------------------------------------------------------------
-// [typedef_id_type_grammar]
-
 grammar Typedef;
 
 program:
@@ -97,15 +89,15 @@ program:
 stmt:
     decl | inst;
 decl:
-    Type (<L=id_i> Id / Comma)+ SemiColon
-|   Typedef Type Id SemiColon;
+    Type (<L=id_i> Id / ',')+ ';'
+|   'typedef' Type Id ';';
 inst:
-    Id Eq expr SemiColon
-|   Print expr SemiColon;
+    Id '=' expr ';'
+|   'print' expr ';';
 <resolve>
 expr:
-    Sub expr
-|   expr (Add | <P> Sub) expr
+    '-' expr
+|   expr ('+' | <P> '-') expr
 |   Id
 |   Num;
 
@@ -125,7 +117,7 @@ expr:
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// [typedef_match_lexicon]
+// [typedef_match_grammar]
 
 lexicon Typedef;
 
@@ -145,10 +137,6 @@ SComment        : '/*' .*? '*/'             -> skip;
 SLineComment    : '//' ~[\r\n]*             -> skip;
 SWhiteSpace     : [ \n\r\t]+                -> skip;
 
-// [typedef_match_lexicon]
-// -----------------------------------------------------------------------------
-// [typedef_match_grammar]
-
 grammar Typedef;
 
 program:
@@ -156,15 +144,15 @@ program:
 stmt:
     decl | inst;
 decl:
-    Type (<L=id_i> Id / Comma)+ SemiColon
-|   Typedef Type Id SemiColon;
+    Type (<L=id_i> Id / ',')+ ';'
+|   'typedef' Type Id ';';
 inst:
-    Id Eq expr SemiColon
-|   Print expr SemiColon;
+    Id '=' expr ';'
+|   'print' expr ';';
 <resolve>
 expr:
-    Sub expr
-|   expr (Add | <P> Sub) expr
+    '-' expr
+|   expr ('+' | <P> '-') expr
 |   Id
 |   Num;
 

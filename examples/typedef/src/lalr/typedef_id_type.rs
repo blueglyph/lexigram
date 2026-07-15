@@ -13,6 +13,7 @@ use lexigram_core::parser::lr::LRParser;
 use typedef_id_type_lexer::build_lexer;
 use typedef_id_type_parser::*;
 use listener_id_type_types::*;
+use crate::transform_msg;
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
@@ -224,17 +225,7 @@ impl TypedefListener for IdTypeListener<'_> {
     }
 
     fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
-        if let Some(span) = span_opt {
-            match &mut msg {
-                LogMsg::NoLogStore => {}
-                LogMsg::Note(s)
-                | LogMsg::Info(s)
-                | LogMsg::Warning(s)
-                | LogMsg::Error(s) => {
-                    *s = format!("{s}:\n{}", self.annotate_text(&span))
-                }
-            }
-        }
+        transform_msg(self, span_opt, &mut msg);
         self.get_log_mut().add(msg);
     }
 

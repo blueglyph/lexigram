@@ -6,13 +6,14 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, PosSpan, TokenSpliterator};
-use lexigram_core::log::{BufLog, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogMsg, LogStatus, Logger};
 use lexigram_core::parser::ll1::LLParser;
 use lexigram_core::{CollectJoin, TokenId};
 use lexigram_core::text_span::{GetLine, GetTextSpan};
 use typedef_type_lexer::build_lexer;
 use typedef_type_parser::*;
 use listener_type_types::*;
+use crate::transform_msg;
 
 const VERBOSE: bool = false;
 const VERBOSE_WRAPPER: bool = false;
@@ -216,6 +217,11 @@ impl GetLine for TypeListener<'_> {
 impl TypedefListener for TypeListener<'_> {
     fn get_log_mut(&mut self) -> &mut impl Logger {
         &mut self.log
+    }
+
+    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
+        transform_msg(self, span_opt, &mut msg);
+        self.get_log_mut().add(msg);
     }
 
     fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {

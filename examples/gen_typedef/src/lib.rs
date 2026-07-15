@@ -15,8 +15,6 @@ use lexigram_lib::CollectJoin;
 use lexigram_lib::log::LogStatus;
 use lexigram_lib::parsergen::NTValue;
 
-static LEXICON_FILENAME: &str = "src/typedef.lg";
-static LEXICON_TAGS: [&str; 3] = ["typedef_type_lexicon", "typedef_id_type_lexicon", "typedef_match_lexicon"];
 static GRAMMAR_FILENAME: &str = "src/typedef.lg";
 static GRAMMAR_TAGS: [&str; 3] = ["typedef_type_grammar", "typedef_id_type_grammar", "typedef_match_grammar"];
 static SOURCE_LL1_FILENAMES: [&str; 3] = [
@@ -42,13 +40,13 @@ fn gen_source_typedef(action: Action, parser_type: ParserType) {
         ParserType::LL1 => (SOURCE_LL1_FILENAMES, TPL_FILENAMES[0]),
         ParserType::LALR => (SOURCE_LALR_FILENAMES, TPL_FILENAMES[1]),
     };
-    for i in 0..LEXICON_TAGS.len() {
-        let (lexicon_tag, grammar_tag) = (LEXICON_TAGS[i], GRAMMAR_TAGS[i]);
+    for (i, grammar_tag) in GRAMMAR_TAGS.into_iter().enumerate() {
         let (lexer_tag, parser_tag, source_filename) = (LEXER_TAGS[i], PARSER_TAGS[i], source_filenames[i]);
         let options = OptionsBuilder::new()
-            .lexer(genspec!(filename: LEXICON_FILENAME, tag: lexicon_tag), gencode!(filename: source_filename, tag: lexer_tag))
+            .combined_spec(genspec!(filename: GRAMMAR_FILENAME, tag: grammar_tag))
+            .lexer_code(gencode!(filename: source_filename, tag: lexer_tag))
             .indent(LEXER_INDENT)
-            .parser(genspec!(filename: GRAMMAR_FILENAME, tag: grammar_tag), gencode!(filename: source_filename, tag: parser_tag))
+            .parser_code(gencode!(filename: source_filename, tag: parser_tag))
             .indent(PARSER_INDENT)
             .listener_code(gencode!(filename: tpl_filename, tag: TPL_TAGS[i]))
             .indent(PARSER_INDENT)
@@ -69,7 +67,7 @@ fn gen_source_typedef(action: Action, parser_type: ParserType) {
                 }
                 assert!(log.has_no_warnings(), "unexpected warning(s):\n{}", log.get_warnings().join("\n"));
             }
-            Err(build_error) => panic!("[{lexicon_tag}] / [{grammar_tag}]: {build_error}"),
+            Err(build_error) => panic!("[{grammar_tag}]: {build_error}"),
         }
     }
 }
