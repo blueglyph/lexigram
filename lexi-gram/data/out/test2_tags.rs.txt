@@ -541,27 +541,3 @@ impl<T: Test1Listener> Wrapper<T> {
 }
 
 // [test2_parser_tag]
-
-// ---------------------------------------------------------------------------------------------
-
-mod test1_check {
-    use lexigram_lib::lexer::Lexer;
-    use crate::out::test1_lexer::*;
-    use crate::out::test1_parser::*;
-
-    #[test]
-    fn compilation_check() {
-        let lexer: Lexer<'_, &[u8]> = build_lexer();
-        let parser = build_parser();
-    }
-}
-
-mod test2_check {
-    use super::*;
-
-    #[test]
-    fn compilation_check() {
-        let lexer: Lexer<'_, &[u8]> = build_lexer();
-        let parser = build_parser();
-    }
-}

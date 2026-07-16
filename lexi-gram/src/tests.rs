@@ -34,8 +34,8 @@ mod test1 {
     use lexigram_lib::parsergen::NTValue;
     use super::*;
 
-    const TEST1_LEXER_FILENAME: &str = "tests/out/test1_lexer.rs";
-    const TEST1_PARSER_FILENAME: &str = "tests/out/test1_parser.rs";
+    const TEST1_LEXER_FILENAME: &str = "data/out/test1_lexer.rs.txt";
+    const TEST1_PARSER_FILENAME: &str = "data/out/test1_parser.rs.txt";
 
     fn action_file_to_file(action: Action) -> Result<BufLog, GenParserError> {
         let options = OptionsBuilder::new()
@@ -103,7 +103,7 @@ mod test2 {
     use lexigram_lib::parsergen::NTValue;
     use super::*;
 
-    const TEST2_TAGS_FILENAME: &str = "tests/out/test2_tags.rs";
+    const TEST2_TAGS_FILENAME: &str = "data/out/test2_tags.rs.txt";
     const TEST2_LEXER_TAG: &str = "test2_lexer_tag";
     const TEST2_PARSER_TAG: &str = "test2_parser_tag";
 
@@ -199,7 +199,7 @@ mod test3 {
     use lexigram_lib::parsergen::NTValue;
     use super::*;
 
-    const TEST3_TAGS_FILENAME: &str = "tests/out/test3_tags.rs";
+    const TEST3_TAGS_FILENAME: &str = "data/out/test3_tags.rs.txt";
     const TEST3_LEXICON_TAG: &str = "test3_lexicon_tag";
     const TEST3_GRAMMAR_TAG: &str = "test3_grammar_tag";
     const TEST3_LEXER_TAG: &str = "test3_lexer_tag";
@@ -279,10 +279,10 @@ mod test4 {
     use super::*;
 
     // those files and tags needn't exist
-    const TEST4_LEXER_FILENAME: &str = "tests/out/test4_lexer.rs";
-    const TEST4_PARSER_FILENAME: &str = "tests/out/test4_parser.rs";
-    const TEST4_LEXICON_FILENAME: &str = "tests/out/test4_lexicon.l";
-    const TEST4_GRAMMAR_FILENAME: &str = "tests/out/test4_grammar.g";
+    const TEST4_LEXER_FILENAME: &str = "data/out/test4_lexer.rs";
+    const TEST4_PARSER_FILENAME: &str = "data/out/test4_parser.rs";
+    const TEST4_LEXICON_FILENAME: &str = "data/out/test4_lexicon.l";
+    const TEST4_GRAMMAR_FILENAME: &str = "data/out/test4_grammar.g";
     const TEST4_LEXICON_TAG: &str = "test4_lexicon_tag";
     const TEST4_GRAMMAR_TAG: &str = "test4_grammar_tag";
     const TEST4_LEXER_TAG: &str = "test4_lexer_tag";
