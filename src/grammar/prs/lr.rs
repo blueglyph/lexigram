@@ -34,6 +34,10 @@ impl LRItem {
     fn prefix(&self) -> Option<impl Iterator<Item=TokenId>> {
         self.prefix.as_ref().map(|p| p.iter().copied())
     }
+
+    fn is_kernel(&self) -> bool {
+        self.pos > 0
+    }
 }
 
 impl PartialOrd for LRItem {
@@ -558,12 +562,28 @@ impl ProdRuleSet<LR> {
     ///
     /// If an error occurred during the process, it's reported in the log.
     pub fn make_parsing_table_lalr(&mut self, compressed: bool) -> LRParsingTable {
-        let mut table = self.make_parsing_table_with_states_lalr().0;
+        const BEFORE_ANSI: &str = "\u{1b}[0;37m";
+        const AFTER_ANSI : &str = "\u{1b}[0m";
+        let (mut table, states) = self.make_parsing_table_with_states_lalr();
         if compressed {
             table.compress_goto();
         }
         table.apply_terminal_hooks(&self.terminal_hooks, &mut self.log);
         let table_str = table.to_str(self.get_symbol_table()).join("\n");
+        if self.options.log_states {
+            let states_str = states.into_iter().enumerate()
+                .map(|(i, items)| format!(
+                    "\n- state {i}:{}",
+                    items.iter().map(|item| format!(
+                        "\n    {}{}{}",
+                        if self.options.ansi && !item.is_kernel() { BEFORE_ANSI } else { "" },
+                        self.item_to_str(item),
+                        if self.options.ansi && !item.is_kernel() { AFTER_ANSI } else { "" },
+                    )).join("")
+                ))
+                .join("");
+            self.log.add_note(format!("States:{states_str}"));
+        }
         self.log.add_note(format!("Parsing table:\n{table_str}"));
         table
     }

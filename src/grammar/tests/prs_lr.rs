@@ -897,16 +897,16 @@ mod parse {
         ];
         const VERBOSE: bool = false;
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-            if !matches!(grammar_id, 2006|2007) { continue }
+            //if !matches!(grammar_id, 903) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
-            let mut lalr1 = TestRules::new(grammar_id).to_prs_lr().unwrap();
-            lalr1.set_start(start);
-            let symtab = lalr1.symbol_table.clone();
+            let mut prs_lr = TestRules::new(grammar_id).to_prs_lr().unwrap();
+            prs_lr.set_start(start);
+            let symtab = prs_lr.symbol_table.clone();
+            prs_lr.options.log_states = true;
+            let ptables = LRParserTables::build_from(prs_lr);
             if VERBOSE {
-                lalr1.print_alts();
-                println!("parsing table:\n{}", lalr1.make_parsing_table_lalr(false).to_str(lalr1.get_symbol_table()).join("\n"));
+                println!("{}", ptables.get_log());
             }
-            let ptables = LRParserTables::build_from(lalr1);
             let mut parser: LRParser<LALR> = ptables.make_parser();
             for (input, expected_errors) in sequences {
                 let expected_errors = expected_errors.map(|v| v.to_vec());

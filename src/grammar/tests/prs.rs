@@ -30,7 +30,7 @@ impl<T> ProdRuleSet<T> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
-            options: ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
+            options: ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false, log_states: false },
             first: Vec::new(),
             follow: Vec::new(),
             original_start: None,

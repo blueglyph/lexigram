@@ -99,7 +99,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String, St
         vec![2048, 0, 0, 0, 2048, 32, 0, 0, 0, 2048, 0, 0, 2048, 2048, 32, 34, 2048, 32, 1, 1, 1, 1, 4129, 4129, 64, 96, 96, 64, 64, 64, 64, 64, 64, 64],
         vec![None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(9), Some(12), Some(13), Some(16), Some(5), Some(5), Some(14), Some(15), Some(17), Some(22), Some(23), Some(25), Some(26), Some(26)],
         Some(0),
-        ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false },
+        ProdRuleSetOptions { ansi: true, disable_warning_unused_nt_t: false, log_states: false },
         hashmap![],
         vec![SepNt { nt_parent: 4, nt_child: 19, item_len: 1 }, SepNt { nt_parent: 9, nt_child: 20, item_len: 1 }, SepNt { nt_parent: 12, nt_child: 21, item_len: 1 }],
         vec![]

@@ -312,8 +312,8 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
-            ansi: true,
             parser_type: ParserType::LL1,
+            .. Options::default()
         };
         let options1b = OptionsBuilder::new()
             .indent(0)
@@ -363,8 +363,8 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
-            ansi: true,
             parser_type: ParserType::LL1,
+            .. Options::default()
         };
         let options2 = OptionsBuilder::new()
             .lexer(genspec!(string: lexicon), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -398,8 +398,8 @@ mod test4 {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
-            ansi: true,
             parser_type: ParserType::LL1,
+            .. Options::default()
         };
         let options3 = OptionsBuilder::new()
             .lexer(genspec!(filename: TEST4_LEXICON_FILENAME, tag: TEST4_LEXICON_TAG), gencode!(filename: TEST4_LEXER_FILENAME, tag: TEST4_LEXER_TAG))
@@ -448,8 +448,8 @@ mod failing_tests {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
-            ansi: true,
             parser_type: ParserType::LL1,
+            .. Options::default()
         };
         let opt_fake = Options {
             lexer_spec: genspec!(none),
@@ -473,8 +473,8 @@ mod failing_tests {
             types_indent: 0,
             listener_code: CodeLocation::None,
             listener_indent: 0,
-            ansi: true,
             parser_type: ParserType::LL1,
+            .. Options::default()
         };
 
         let tests = vec![

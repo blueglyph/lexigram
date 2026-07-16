@@ -22,6 +22,7 @@ mod tests;
 pub struct GramOptions {
     pub tab_width: CaretCol,
     pub ansi: bool,
+    pub log_states: bool,
 }
 
 pub struct Gram<'l, 'p, 'ls> {
@@ -60,8 +61,9 @@ impl<'l, 'ls: 'l> Gram<'l, '_, 'ls> {
 
     fn apply_options(&mut self) {
         self.gramlexer.set_tab_width(self.options.tab_width);
-        let ansi = self.options.ansi;
+        let (ansi, log_states) = (self.options.ansi, self.options.log_states);
         self.get_listener_mut().set_ansi(ansi);
+        self.get_listener_mut().log_states(log_states);
     }
 
     pub fn set_start_nt(&mut self, name_opt: Option<String>) {
@@ -162,6 +164,7 @@ impl Default for GramOptions {
         GramOptions {
             tab_width: 4,
             ansi: true,
+            log_states: false,
         }
     }
 }

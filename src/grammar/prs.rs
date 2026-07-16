@@ -95,6 +95,7 @@ struct AltInfo {
 pub struct ProdRuleSetOptions {
     pub ansi: bool,
     pub disable_warning_unused_nt_t: bool,
+    pub log_states: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +149,7 @@ impl Default for ProdRuleSetOptions {
         ProdRuleSetOptions {
             ansi: true,
             disable_warning_unused_nt_t: false,
+            log_states: false,
         }
     }
 }

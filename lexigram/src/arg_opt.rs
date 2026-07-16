@@ -160,6 +160,8 @@ General options:
                             - passive: use ANSI colours but don't active ANSI support in
                                 the console. Try this option if "on" creates problems.
 
+  --log-states              Details LR states in the log.
+
   -v|--verify               Verifies that the generated code matches what is already in the
                             lexer and parser locations. The files must already exist and
                             aren't modified.
@@ -291,6 +293,9 @@ pub(crate) fn parse_args(all_args: Vec<String>) -> Result<(Action, ArgOptions), 
                     s => return Err(ExeError::Option(format!("ERROR: unexpected argument '{s}'"))),
                 };
                 builder.ansi(ansi != ExeAnsi::Off);
+            }
+            "--log-states" => {
+                builder.log_states(true);
             }
             "-v" | "--verify" => {
                 action = Action::Verify;

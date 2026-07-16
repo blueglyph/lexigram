@@ -21,6 +21,7 @@ use crate::literals::decode_str;
 pub struct GramListener<'ls> {
     verbose: bool,
     ansi: bool,
+    log_states: bool,
     lines: Vec<&'ls str>,
     name: String,
     log: BufLog,
@@ -60,6 +61,7 @@ impl<'ls> GramListener<'ls> {
         GramListener {
             verbose: false,
             ansi: true,
+            log_states: false,
             lines: grammar.lines().collect(),
             name: String::new(),
             abort: Terminate::None,
@@ -86,6 +88,10 @@ impl<'ls> GramListener<'ls> {
 
     pub fn set_ansi(&mut self, ansi: bool) {
         self.ansi = ansi;
+    }
+    
+    pub fn log_states(&mut self, log_states: bool) {
+        self.log_states = log_states;
     }
 
     pub fn get_name(&self) -> &str {
@@ -213,6 +219,7 @@ impl From<GramListener<'_>> for ProdRuleSet<General> {
             prs.set_options(ProdRuleSetOptions {
                 ansi: gram_listener.ansi,
                 disable_warning_unused_nt_t: gram_listener.disable_warning_unused_nt_t,
+                log_states: gram_listener.log_states, 
             });
             prs.set_start(gram_listener.start_nt.unwrap());
         }

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
-use lexigram_core::log::{LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_core::parser::lr::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
@@ -209,6 +209,7 @@ pub struct LRParserTables<T> {
     alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
     init_hook: bool,
+    log: BufLog,
     _phantom: PhantomData<T>,
 }
 
@@ -220,9 +221,11 @@ impl<T> LRParserTables<T> {
         goto: Vec<LRStateId>,
         alt_nt_len: Vec<(VarId, u16, u16)>,
         symbol_table: FixedSymTable,
-        init_hook: bool
+        init_hook: bool,
+        log: Option<BufLog>
     ) -> Self {
-        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, _phantom: PhantomData }
+        let log = log.unwrap_or_else(|| BufLog::new());
+        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, log, _phantom: PhantomData }
     }
 
     pub fn make_parser(&self) -> LRParser<'_, T> {
@@ -234,6 +237,10 @@ impl<T> LRParserTables<T> {
             &self.alt_nt_len,
             self.symbol_table.clone(),
             self.init_hook)
+    }
+
+    pub fn get_log(&self) -> &BufLog {
+        &self.log
     }
 }
 
@@ -272,7 +279,8 @@ impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
             table.goto,
             alts_to_alt_nt_len(&table.alts, &symtable),
             symtable.to_fixed_sym_table(),
-            table.init_hook
+            table.init_hook,
+            Some(source.log)
         )
     }
 }
