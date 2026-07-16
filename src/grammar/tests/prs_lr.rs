@@ -818,6 +818,21 @@ mod parse {
 
         let tests = vec![
             // test_id, start, id_id, num_id, sequences to test
+            (102, 0, 1, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (103, 0, 1, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (121, 0, 2, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (122, 0, 2, 999, vec![
+                ("A x y z C", None),
+            ]),
+            (601, 0, 3, 2, vec![
+                ("1 + 2 * 3", None),
+            ]),
             (2000, 0, 2, 999, vec![
                 // s -> "a" a "a" | "a" "a" "b" | "b" a "b";
                 // a -> b c;
@@ -828,9 +843,6 @@ mod parse {
                 ("a a b", None),
                 ("b a b", None),
                 ("a b", Some([r#"syntax error: unexpected token 'b' on "b", line 1, col 2"#])),
-            ]),
-            (601, 0, 3, 2, vec![
-                ("1 + 2 * 3", None),
             ]),
             (2006, 0, 4, 1, vec![
                 // - 0: s -> "if" Num "then" s "else" s
@@ -870,18 +882,6 @@ mod parse {
                 //          ^^^^^^^^^^^^
                 //^^^^^^^^^^^^^^^^^^^^^^
                 //                       ^^^^ error
-            ]),
-            (102, 0, 1, 999, vec![
-                ("A x y z C", None),
-            ]),
-            (103, 0, 1, 999, vec![
-                ("A x y z C", None),
-            ]),
-            (121, 0, 2, 999, vec![
-                ("A x y z C", None),
-            ]),
-            (122, 0, 2, 999, vec![
-                ("A x y z C", None),
             ]),
             (2400, 0, 999, 999, vec![
                 ("a c d", None),
