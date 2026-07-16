@@ -833,6 +833,13 @@ mod parse {
             (601, 0, 3, 2, vec![
                 ("1 + 2 * 3", None),
             ]),
+            (903, 0, 1, 0, vec![
+                ("Type a , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;", None),
+                ("Type a , b , c ; a = 1 ; b = a +  ; c = b - 2 ; print c ;", Some(
+                    [r#"unexpected input ";" instead of Num, Id, "-""#])),
+                ("Type a , b , c", Some(
+                    [r#"unexpected end of stream instead of ",", ";""#])),
+            ]),
             (2000, 0, 2, 999, vec![
                 // s -> "a" a "a" | "a" "a" "b" | "b" a "b";
                 // a -> b c;
@@ -842,7 +849,8 @@ mod parse {
                 ("a a a", None),
                 ("a a b", None),
                 ("b a b", None),
-                ("a b", Some([r#"syntax error: unexpected token 'b' on "b", line 1, col 2"#])),
+                ("a b", Some(
+                    [r#"unexpected input "b" instead of "a""#])),
             ]),
             (2006, 0, 4, 1, vec![
                 // - 0: s -> "if" Num "then" s "else" s
@@ -872,12 +880,12 @@ mod parse {
                 //                    ^^
                 //          ^^^^^^^^^^^^
                 //^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 }
-                ("if 1 then if 2 then t2 else e2", Some([r#"syntax error: unexpected token 'else' on "else", line 1, col 8"#])),
+                ("if 1 then if 2 then t2 else e2", Some([r#"unexpected input "else" instead of <EOF>"#])),
                 //                    ^^
                 //          ^^^^^^^^^^^^
                 //^^^^^^^^^^^^^^^^^^^^^^
                 //                       ^^^^ error
-                ("if 1 then if 2 then t2 else e2 else e1", Some([r#"syntax error: unexpected token 'else' on "else", line 1, col 8"#])),
+                ("if 1 then if 2 then t2 else e2 else e1", Some([r#"unexpected input "else" instead of <EOF>"#])),
                 //                    ^^
                 //          ^^^^^^^^^^^^
                 //^^^^^^^^^^^^^^^^^^^^^^
@@ -896,15 +904,19 @@ mod parse {
             */
         ];
         const VERBOSE: bool = false;
+        const VERBOSE_LOG: bool = false;
         for (test_id, (grammar_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-            //if !matches!(grammar_id, 903) { continue }
+            // if !matches!(grammar_id, 903) { continue }
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {grammar_id:?}/{start}", ""); }
             let mut prs_lr = TestRules::new(grammar_id).to_prs_lr().unwrap();
             prs_lr.set_start(start);
             let symtab = prs_lr.symbol_table.clone();
             prs_lr.options.log_states = true;
+            if VERBOSE_LOG {
+                prs_lr.print_alts();
+            }
             let ptables = LRParserTables::build_from(prs_lr);
-            if VERBOSE {
+            if VERBOSE_LOG {
                 println!("{}", ptables.get_log());
             }
             let mut parser: LRParser<LALR> = ptables.make_parser();
@@ -929,7 +941,17 @@ mod parse {
                         println!("Messages:\n{msg}");
                     }
                 }
-                assert_eq!(errors, expected_errors, "test {test_id}/{grammar_id:?}/{start} failed for input {input}");
+                let msg = format!("test {test_id}/{grammar_id:?}/{start} failed for input {input}");
+                assert_eq!(errors.is_some(), expected_errors.is_some(), "{msg}: was{} expecting errors", if expected_errors.is_none() { "n't" } else { "" });
+                if let Some(exp_errors) = expected_errors {
+                    let mut missing = vec![];
+                    for exp_err in exp_errors {
+                        if !errors.as_ref().unwrap().iter().any(|err| err.contains(exp_err)) {
+                            missing.push(exp_err);
+                        }
+                    }
+                    assert!(missing.is_empty(), "{msg}: missing error messages:{}", missing.join("\n"));
+                }
             }
         }
     }

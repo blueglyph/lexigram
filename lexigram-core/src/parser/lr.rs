@@ -25,6 +25,16 @@ impl LRAction {
     pub fn is_hook(&self) -> bool {
         matches!(self, LRAction::ShiftHook(_))
     }
+
+    pub fn is_action(&self) -> bool {
+        match self {
+            LRAction::Error => false,
+            LRAction::Shift(_)
+            | LRAction::ShiftHook(_)
+            | LRAction::Reduce(_)
+            | LRAction::Accept => true,
+        }
+    }
 }
 
 impl Display for LRAction {
@@ -76,7 +86,7 @@ impl<'a, T> LRParser<'a, T> {
         where I: Iterator<Item=ParserToken>,
               L: ListenerWrapper,
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
@@ -180,8 +190,15 @@ impl<'a, T> LRParser<'a, T> {
             let mut msg = if stream_sym == token_error {
                 format!("lexical error: couldn't recognize {stream_str:?}")
             } else {
-                let sym = if stream_sym == token_eof { Symbol::End } else { Symbol::T(stream_sym) };
-                format!("syntax error: unexpected token '{}' on {stream_str:?}", sym.to_str(sym_table))
+                let expected = (0..self.num_t_full)
+                    .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
+                    .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
+                    .join(", ");
+                let sym_str = if stream_sym == token_eof { "end of stream".to_string() } else { format!("input {}", Symbol::T(stream_sym).to_str_quote(sym_table)) };
+                format!(
+                    "syntax error: unexpected {sym_str}{}",
+                    if expected.is_empty() { String::new() } else { format!(" instead of {expected}") },
+                )
             };
             if let Some(Pos(line, col)) = stream_pos {
                 msg.push_str(&format!(", line {line}, col {col}"));
