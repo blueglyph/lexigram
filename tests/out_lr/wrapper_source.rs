@@ -325,7 +325,7 @@ pub(crate) mod rules_13_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 0, 4, false);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(0), Some(4), false);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -620,7 +620,7 @@ pub(crate) mod rules_102_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -920,7 +920,7 @@ pub(crate) mod rules_103_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -1251,7 +1251,7 @@ pub(crate) mod rules_109_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 0, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(0), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -1545,7 +1545,7 @@ pub(crate) mod rules_119_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -1840,7 +1840,7 @@ pub(crate) mod rules_120_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -2802,7 +2802,7 @@ pub(crate) mod rules_200_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans, expected_spans_b) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -3321,7 +3321,7 @@ pub(crate) mod rules_201_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans, expected_spans_b) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -3835,7 +3835,7 @@ pub(crate) mod rules_219_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -4383,7 +4383,7 @@ pub(crate) mod rules_222_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_id, expected_spans, expected_list) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 0, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(0), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {
@@ -5521,7 +5521,7 @@ pub(crate) mod rules_504_1 {
             let mut parser = build_parser();
             for (input, expected_error, expected_list, expected_spans) in sequences {
                 if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, 1, 999, VERBOSE);
+                let stream = make_stream(input, SYMBOLS_T, true, Some(1), None, VERBOSE);
                 let listener = Listener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let is_error = match parser.parse_stream(&mut wrapper, stream) {

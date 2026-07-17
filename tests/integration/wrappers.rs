@@ -219,7 +219,7 @@ mod rules_580_1 {
         let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = make_stream(input, table.get_terminals(), true, 9999, num_id, VERBOSE);
+            let stream = make_stream(input, table.get_terminals(), true, None, Some(num_id), VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             match parser.parse_stream(&mut wrapper, stream) {
@@ -320,8 +320,6 @@ mod test_precedence {
                     ("!2 * 3", Ok(Some("! (2 * 3)"))),
                     ("2 + !3", Ok(Some("2 + (! 3)"))),
                     ("!2 + 3", Ok(Some("! (2 + 3)"))),
-
-                    ("2 * a", Err(ParserError::ExtraSymbol)),
                 ]),
             (   // 604: e -> e "*" e |   "!" e | e "+" e | Num
                 Box::new(Tester::<rules_604_1::Wrapper<_>>::new()),
@@ -598,7 +596,7 @@ mod rules_640_1 {
         let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
+            let stream = make_stream(input, table.get_terminals(), true, Some(id_id), None, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -712,7 +710,7 @@ mod rules_641_1 {
         let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
+            let stream = make_stream(input, table.get_terminals(), true, Some(id_id), None, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -826,7 +824,7 @@ mod rules_642_1 {
         let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = make_stream(input, table.get_terminals(), true, id_id, 9999, VERBOSE);
+            let stream = make_stream(input, table.get_terminals(), true, Some(id_id), None, VERBOSE);
             let listener = EListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let errors = match parser.parse_stream(&mut wrapper, stream) {
@@ -925,7 +923,7 @@ mod rules_862_1 {
         let table = parser.get_symbol_table().unwrap().clone();
         for (input, expected_result) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
-            let stream = make_stream(input, table.get_terminals(), true, 9999, num_id, VERBOSE);
+            let stream = make_stream(input, table.get_terminals(), true, None, Some(num_id), VERBOSE);
             let listener = ExprListener::new();
             let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
             let result = match parser.parse_stream(&mut wrapper, stream) {

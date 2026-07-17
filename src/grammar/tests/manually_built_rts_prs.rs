@@ -589,31 +589,31 @@ fn parser_parse_stream_id() {
     }
 
     let tests = vec![
-        (T::RTS(9), 0, 2, 999, vec![
+        (T::RTS(9), 0, Some(2), None, vec![
             ("var a , b ,", None),
         ]),
-        (T::RTS(23), 0, 999, 999, vec![
+        (T::RTS(23), 0, None, None, vec![
             // A -> a (b)+ c
             ("a b b c", None),
         ]),
-        (T::RTS(27), 0, 999, 999, vec![
+        (T::RTS(27), 0, None, None, vec![
             // A -> a (b)+ c
             ("a b b c", None),
         ]),
-        (T::PRS(20), 0, 5, 999, vec![
+        (T::PRS(20), 0, Some(5), None, vec![
             ("struct test1 { a : int ; b : string ; c : bool ; }", None),
             ("struct test2 { a : int ; b : string ; c : bool }", Some(vec![
                 "syntax error: found input '}' instead of ';', line 1, col 15"
             ])),
         ]),
-        (T::PRS(33), 0, 999, 999, vec![
+        (T::PRS(33), 0, None, None, vec![
             // A -> A a | b c | b d
             ("b c a a", None),
             ("b d a a", None),
             ("b c", None),
             ("b d", None),
         ]),
-        (T::PRS(43), 0, 7, 6, vec![
+        (T::PRS(43), 0, Some(7), Some(6), vec![
             // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
@@ -627,7 +627,7 @@ fn parser_parse_stream_id() {
                 "syntax error: found input ']' instead of '(', 'id', 'int' while parsing '►FACTOR', line 1, col 13"
             ])),
         ]),
-        (T::PRS(51), 0, 8, 7, vec![
+        (T::PRS(51), 0, Some(8), Some(7), vec![
             // E -> 'abs' E | E '^' E | E '*' E | '-' E | E '+' E | F;
             // F -> ( E ) | NUM | ID
             ("1 ^ 2", None),
@@ -637,7 +637,7 @@ fn parser_parse_stream_id() {
             ("3 * - 4", None),
             ("( 1 + 2 ) * ( 3 + - abs i * - 5 + 6 ) ^ 2", None)
         ]),
-        (T::PRS(61), 0, 99, 99, vec![
+        (T::PRS(61), 0, None, None, vec![
             ("- 0 +", None),
             ("- - 1 + +", None),
             ("- 0", None),
@@ -645,7 +645,7 @@ fn parser_parse_stream_id() {
             ("0", None),
             ("1", None),
         ]),
-        (T::PRS(63), 0, 4, 99, vec![
+        (T::PRS(63), 0, Some(4), None, vec![
             ("a * b", None),
             ("a + b", None),
             ("- a", None),
@@ -654,7 +654,7 @@ fn parser_parse_stream_id() {
             ("- a * b", None),
             ("a * - b", None),
         ]),
-        (T::PRS(100), 0, 999, 999, vec![
+        (T::PRS(100), 0, None, None, vec![
             ("c a c a c b b", None),
             ("c a c b a c b", None),
         ]),

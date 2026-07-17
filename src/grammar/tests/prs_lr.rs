@@ -818,29 +818,29 @@ mod parse {
 
         let tests = vec![
             // test_id, start, id_id, num_id, sequences to test
-            (102, 0, 1, 999, vec![
+            (102, 0, Some(1), None, vec![
                 ("A x y z C", None),
             ]),
-            (103, 0, 1, 999, vec![
+            (103, 0, Some(1), None, vec![
                 ("A x y z C", None),
             ]),
-            (121, 0, 2, 999, vec![
+            (121, 0, Some(2), None, vec![
                 ("A x y z C", None),
             ]),
-            (122, 0, 2, 999, vec![
+            (122, 0, Some(2), None, vec![
                 ("A x y z C", None),
             ]),
-            (601, 0, 3, 2, vec![
+            (601, 0, Some(3), Some(2), vec![
                 ("1 + 2 * 3", None),
             ]),
-            (903, 0, 1, 0, vec![
+            (903, 0, Some(1), Some(0), vec![
                 ("Type a , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;", None),
                 ("Type a , b , c ; a = 1 ; b = a +  ; c = b - 2 ; print c ;", Some(
                     [r#"unexpected input ";" instead of Num, Id, "-""#])),
                 ("Type a , b , c", Some(
                     [r#"unexpected end of stream instead of ",", ";""#])),
             ]),
-            (2000, 0, 2, 999, vec![
+            (2000, 0, Some(2), None, vec![
                 // s -> "a" a "a" | "a" "a" "b" | "b" a "b";
                 // a -> b c;
                 // b -> "a";
@@ -852,7 +852,7 @@ mod parse {
                 ("a b", Some(
                     [r#"unexpected input "b" instead of "a""#])),
             ]),
-            (2006, 0, 4, 1, vec![
+            (2006, 0, Some(4), Some(1), vec![
                 // - 0: s -> "if" Num "then" s "else" s
                 // - 1: s -> "if" Num "then" s
                 // - 2: s -> Id
@@ -872,7 +872,7 @@ mod parse {
                 //                                    ^^
                 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ => if 1 then { if 2 then t2 else e2 } else e1
             ]),
-            (2007, 0, 4, 1, vec![
+            (2007, 0, Some(4), Some(1), vec![
                 // - 0: s -> "if" Num "then" s
                 // - 1: s -> "if" Num "then" s "else" s
                 // - 2: s -> Id
@@ -891,7 +891,7 @@ mod parse {
                 //^^^^^^^^^^^^^^^^^^^^^^
                 //                       ^^^^ error
             ]),
-            (2400, 0, 999, 999, vec![
+            (2400, 0, None, None, vec![
                 ("a c d", None),
                 // ("b c d", None),     // <=== should work, but states got merged in LALR
                 // ("a c e", None),     // <=== should work, but states got merged in LALR
