@@ -6,7 +6,7 @@ use crate::{AltId, CollectJoin, TokenId, VarId};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::LogMsg;
-use crate::parser::{Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
+use crate::parser::{terminal_to_str_type, Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
 
 /// State index
 pub type LRStateId = u16;
@@ -62,6 +62,9 @@ pub struct LRParser<'a, T> {
 }
 
 impl<'a, T> LRParser<'a, T> {
+    pub const MAX_NBR_PARSER_ERRORS: u32 = 5;
+    pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
+
     pub fn new(
         num_nt: usize,
         num_t_full: usize,
@@ -86,11 +89,13 @@ impl<'a, T> LRParser<'a, T> {
         where I: Iterator<Item=ParserToken>,
               L: ListenerWrapper,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
         let mut error = None;
+        let mut nbr_parser_errors = 0;
+        let mut nbr_lexer_errors = 0;
         let mut state: LRStateId = 0;
         let mut stack_state = vec![state];
         let mut stack_t = vec![];
@@ -102,7 +107,7 @@ impl<'a, T> LRParser<'a, T> {
         let mut hook = self.init_hook;
         loop {
             if advance_stream {
-                (stream_sym, stream_str) = stream.next().map(|(t, s, span)| {
+                (stream_sym, stream_str) = if let Some((t, s, span)) = stream.next() {
                     stream_pos = Some(span.first_forced());
                     stream_span = span;
                     if !hook {
@@ -113,19 +118,23 @@ impl<'a, T> LRParser<'a, T> {
                         let new_t = wrapper.hook(t, s.as_str(), &stream_span);
                         if VERBOSE { println!("  hook changed {} to {}", Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table))) }
                         (new_t, s)
-                }
-                }).unwrap_or_else(|| {
-                    // checks if there's an error code after the end
+                    }
+                } else {
                     if let Some((_t, s, span)) = stream.next() {
-                        stream_span = span;
-                        error = Some(ParserError::Irrecoverable);
-                        (token_error, s)
+                        // an error code after the end means an unrecognized sequence: we may try to continue
+                        wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s} at {span}")));
+                        nbr_lexer_errors += 1;
+                        if nbr_lexer_errors <= Self::MAX_NBR_LEXER_ERRORS {
+                            continue;
+                        }
+                        error = Some(ParserError::TooManyErrors);
+                        break;
                     } else {
+                        // end of stream
                         (token_eof, String::new())
                     }
-                });
+                };
                 advance_stream = false;
-                if error.is_some() { break }
             }
             if VERBOSE {
                 println!(
@@ -138,7 +147,7 @@ impl<'a, T> LRParser<'a, T> {
             let action = self.action[stream_sym as usize + state as usize * self.num_t_full];
             match action {
                 LRAction::Shift(new_state) | LRAction::ShiftHook(new_state) => {
-                    hook = action.is_hook(); 
+                    hook = action.is_hook();
                     if VERBOSE { println!("- shift({new_state})"); }
                     stack_state.push(new_state);
                     if self.symbol_table.is_token_data(stream_sym) {
@@ -156,7 +165,7 @@ impl<'a, T> LRParser<'a, T> {
                     state = self.goto[nt as usize + pop_state as usize * self.num_nt];
                     stack_state.push(state);
                     if VERBOSE { println!("- reduce({alt}) -> state {pop_state} -> goto {state}"); }
-                    let t_data = stack_t.drain(stack_t.len() - nbr_t as usize ..).to_vec();
+                    let t_data = stack_t.drain(stack_t.len() - nbr_t as usize..).to_vec();
                     wrapper.switch(Call::Exit, nt, alt, Some(t_data));
                 }
                 LRAction::Accept => {
@@ -164,11 +173,32 @@ impl<'a, T> LRParser<'a, T> {
                     wrapper.switch(Call::End(Terminate::None), 0, 0, None);
                     stack_state.pop();
                     stack_state.pop();
-                    break
+                    break;
                 }
-                _ => {
+                LRAction::Error => {
+                    let expected = (0..self.num_t_full)
+                        .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
+                        .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
+                        .join(", ");
+                    let sym_str = if stream_sym == token_eof {
+                        "end of stream".to_string()
+                    } else {
+                        format!("input {}", terminal_to_str_type(stream_sym, sym_table, &stream_str))
+                    };
+                    let msg = format!(
+                        "syntax error: unexpected {sym_str}{}{}",
+                        if expected.is_empty() { String::new() } else { format!(" instead of {expected}") },
+                        if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }
+                    );
+                    wrapper.report(Some(&stream_span), LogMsg::Error(msg));
+                    nbr_parser_errors += 1;
+                    if nbr_parser_errors > Self::MAX_NBR_PARSER_ERRORS {
+                        error = Some(ParserError::TooManyErrors);
+                        break;
+                    }
+                    // todo!("try and recover")
                     error = Some(ParserError::SyntaxError);
-                    break
+                    break;
                 }
             }
             match wrapper.check_abort_request() {
@@ -181,29 +211,41 @@ impl<'a, T> LRParser<'a, T> {
                     if terminate == Terminate::Abort {
                         return Err(ParserError::AbortRequest);
                     } else {
-                        break
+                        break;
                     }
                 }
             }
         }
+        // if error.is_some() {
+        //     let mut msg = if stream_sym == token_error {
+        //         format!("lexical error: couldn't recognize {stream_str:?}")
+        //     } else {
+        //         let expected = (0..self.num_t_full)
+        //             .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
+        //             .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
+        //             .join(", ");
+        //         let sym_str = if stream_sym == token_eof { "end of stream".to_string() } else { format!("input {}", Symbol::T(stream_sym).to_str_quote(sym_table)) };
+        //         format!(
+        //             "syntax error: unexpected {sym_str}{}",
+        //             if expected.is_empty() { String::new() } else { format!(" instead of {expected}") },
+        //         )
+        //     };
+        //     if let Some(Pos(line, col)) = stream_pos {
+        //         msg.push_str(&format!(", line {line}, col {col}"));
+        //     }
+        //     wrapper.report(Some(&stream_span), LogMsg::Error(msg));
+        //     if stream_sym == token_error {
+        //         break
+        //     } else {
+        //         if nbr_parser_errors >= Self::MAX_NBR_PARSER_ERRORS {
+        //             wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_parser_errors}), giving up")));
+        //             error = Some(ParserError::TooManyErrors);
+        //             break
+        //         }
+        //         nbr_parser_errors += 1;
+        //     }
+        // }
         if let Some(err) = error {
-            let mut msg = if stream_sym == token_error {
-                format!("lexical error: couldn't recognize {stream_str:?}")
-            } else {
-                let expected = (0..self.num_t_full)
-                    .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
-                    .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
-                    .join(", ");
-                let sym_str = if stream_sym == token_eof { "end of stream".to_string() } else { format!("input {}", Symbol::T(stream_sym).to_str_quote(sym_table)) };
-                format!(
-                    "syntax error: unexpected {sym_str}{}",
-                    if expected.is_empty() { String::new() } else { format!(" instead of {expected}") },
-                )
-            };
-            if let Some(Pos(line, col)) = stream_pos {
-                msg.push_str(&format!(", line {line}, col {col}"));
-            }
-            wrapper.report(Some(&stream_span), LogMsg::Error(msg));
             wrapper.abort();
             Err(err)
         } else {

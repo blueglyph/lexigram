@@ -79,7 +79,7 @@ fn test_match_lexer() {
         (
             TXT3,
             "", "",
-            vec!["syntax error: found input 'Type' instead of 'Id'"],
+            vec![r#"syntax error: found input "a" (Type) instead of Id"#],
             vec![],
         ),
     ];

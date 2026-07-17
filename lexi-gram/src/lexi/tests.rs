@@ -994,12 +994,12 @@ mod lexicon {
             ),
             (
                 r#"lexicon test12; (A): [a-z]; B: 'b';"#,
-                vec!["syntax error: found input '[' instead of 'StrLit'"],
+                vec![r#"syntax error: found input "[" instead of StrLit"#],
                 vec![],
             ),
             (
                 r#"lexicon test13; (A) -> skip;"#,
-                vec!["syntax error: found input 'skip' instead of 'hook'"],
+                vec![r#"syntax error: found input "skip" instead of "hook""#],
                 vec![],
             ),
             (

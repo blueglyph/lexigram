@@ -79,7 +79,7 @@ fn test_match_lexer() {
         (
             TXT3,
             "", "",
-            vec![r#"syntax error: unexpected token 'Type' on "a""#],
+            vec![r#"syntax error: unexpected input "a" (Type) instead of Id"#],
             vec![],
         ),
     ];

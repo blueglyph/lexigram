@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
 use crate::alt::Alternative;
-use crate::parser::{Call, ListenerWrapper, OpCode, ParserError, ParserToken, Symbol, Terminate};
+use crate::parser::{terminal_to_str_type, Call, ListenerWrapper, OpCode, ParserError, ParserToken, Symbol, Terminate};
 use crate::{AltId, VarId};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::lexer::{Pos, PosSpan};
@@ -23,7 +23,7 @@ pub struct LLParser<'a> {
 
 impl<'a> LLParser<'a> {
     /// Maximum number of error recoveries attempted when meeting a syntax error
-    pub const MAX_NBR_RECOVERS: u32 = 5;
+    pub const MAX_NBR_PARSER_ERRORS: u32 = 5;
     pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
 
     pub fn new(
@@ -122,7 +122,7 @@ impl<'a> LLParser<'a> {
         let error_pop_alt_id = error_skip_alt_id + 1;
         if VERBOSE { println!("skip = {error_skip_alt_id}, pop = {error_pop_alt_id}"); }
         let mut recover_mode = false;
-        let mut nbr_recovers = 0;
+        let mut nbr_parser_errors = 0;
         let mut nbr_lexer_errors = 0;
         let end_var_id = (self.num_t - 1) as VarId;
         let mut stack_sym = stack.pop().unwrap();
@@ -173,12 +173,12 @@ impl<'a> LLParser<'a> {
                     // lexer couldn't recognize the next symbol
                     if VERBOSE { println!("lexer error: {stream_str}"); }
                     wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {stream_str}")));
-                    nbr_lexer_errors += 1;
                     if nbr_lexer_errors >= Self::MAX_NBR_LEXER_ERRORS {
                         wrapper.report(None, LogMsg::Note(format!("too many lexical errors ({nbr_lexer_errors}), giving up")));
                         wrapper.abort();
                         return Err(ParserError::TooManyErrors);
                     }
+                    nbr_lexer_errors += 1;
                     advance_stream = true;
                 }
                 (OpCode::Hook, Symbol::T(t)) => {
@@ -210,20 +210,21 @@ impl<'a> LLParser<'a> {
                     if !recover_mode && alt_id >= error_skip_alt_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
-                            .map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(sym_table) } else { "<EOF>".to_string() }))
+                            .map(|t| format!("{}", if t < end_var_id { Symbol::T(t).to_str_quote(sym_table) } else { "<EOF>".to_string() }))
                             .collect::<Vec<_>>().join(", ");
-                        let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
-                        let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
-                                          stack_sym.to_str(sym_table),
-                                          if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                        let msg = format!(
+                            "syntax error: found {} instead of {expected} while parsing {}{}",
+                            stream_sym.to_str_type(sym_table, &stream_str),
+                            stack_sym.to_str(sym_table),
+                            if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.report(Some(&stream_span), LogMsg::Error(msg));
-                            if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_recovers}), giving up")));
+                            if nbr_parser_errors >= Self::MAX_NBR_PARSER_ERRORS {
+                                wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_parser_errors}), giving up")));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
-                            nbr_recovers += 1;
+                            nbr_parser_errors += 1;
                             recover_mode = true;
                         } else {
                             wrapper.report(Some(&stream_span), LogMsg::Error(msg));
@@ -273,7 +274,7 @@ impl<'a> LLParser<'a> {
                                 if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                 Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.join(" "));
                         }
-                        if nbr_recovers == 0 {
+                        if nbr_parser_errors == 0 {
                             wrapper.switch(call, var, alt_id, Some(t_data));
                         }
                         stack.extend(self.opcodes[alt_id as usize].clone());
@@ -288,7 +289,7 @@ impl<'a> LLParser<'a> {
                             "- EXIT {} syn ({}): [{}]",
                             Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.join(" "));
                     }
-                    if nbr_recovers == 0 {
+                    if nbr_parser_errors == 0 {
                         wrapper.switch(Call::Exit, var, alt_id, Some(t_data));
                     }
                     stack_sym = stack.pop().unwrap();
@@ -296,18 +297,18 @@ impl<'a> LLParser<'a> {
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if !recover_mode && sk != sr {
                         let msg = format!(
-                            "syntax error: found input '{}' instead of '{}'{}",
-                            stream_sym.to_str(sym_table),
-                            Symbol::T(sk).to_str(sym_table),
+                            "syntax error: found input {} instead of {}{}",
+                            terminal_to_str_type(sr, sym_table, &stream_str),
+                            Symbol::T(sk).to_str_quote(sym_table),
                             if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.report(Some(&stream_span), LogMsg::Error(msg));
-                            if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_recovers}), giving up")));
+                            if nbr_parser_errors >= Self::MAX_NBR_PARSER_ERRORS {
+                                wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_parser_errors}), giving up")));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
-                            nbr_recovers += 1;
+                            nbr_parser_errors += 1;
                             recover_mode = true;
                         } else {
                             wrapper.report(Some(&stream_span), LogMsg::Error(msg));
@@ -338,25 +339,27 @@ impl<'a> LLParser<'a> {
                     }
                 }
                 (OpCode::End, Symbol::End) => {
-                    if nbr_recovers == 0 {
+                    if nbr_parser_errors == 0 {
                         wrapper.switch(Call::End(Terminate::None), 0, 0, None);
                     }
                     break;
                 }
                 (OpCode::End, _) => {
-                    wrapper.report(Some(&stream_span), LogMsg::Error(format!("syntax error: found extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table))));
+                    wrapper.report(Some(&stream_span), LogMsg::Error(format!(
+                        "syntax error: found extra symbol {} after end of parsing",
+                        stream_sym.to_str_type(sym_table, &stream_str))));
                     wrapper.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    wrapper.report(None, LogMsg::Error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str_name(sym_table))));
+                    wrapper.report(None, LogMsg::Error(format!("syntax error: found end of stream instead of {}", stack_sym.to_str_name(sym_table))));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
                     let text = format!(
-                        "unexpected syntax error: input '{}' while expecting '{}'{}",
-                        stream_sym.to_str(sym_table), stack_sym.to_str_name(sym_table),
+                        "unexpected syntax error: {} while expecting {}{}",
+                        stream_sym.to_str_type(sym_table, &stream_str), stack_sym.to_str_name(sym_table),
                         if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                     wrapper.report(Some(&stream_span), LogMsg::Error(text));
                     wrapper.abort();
@@ -370,7 +373,7 @@ impl<'a> LLParser<'a> {
                     stack_t.clear();
                     stack.clear();
                     wrapper.abort();
-                    if nbr_recovers == 0 {
+                    if nbr_parser_errors == 0 {
                         wrapper.switch(Call::End(terminate), 0, 0, None);
                     }
                     if terminate == Terminate::Abort {
@@ -383,7 +386,7 @@ impl<'a> LLParser<'a> {
         }
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
         assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).collect::<Vec<_>>().join(", "));
-        if nbr_recovers == 0 {
+        if nbr_parser_errors == 0 && nbr_lexer_errors == 0 {
             assert!(wrapper.is_stack_empty(), "symbol stack isn't empty");
             assert!(wrapper.is_stack_t_empty(), "text stack isn't empty");
             assert!(wrapper.is_stack_span_empty(), "span stack isn't empty");

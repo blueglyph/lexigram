@@ -177,7 +177,7 @@ mod listener {
             ),
             (
                 "grammar T6; EOF: Plus Int;          // EOF as rule name, should be interesting",
-                vec!["found input 'EOF' instead of '<resolve>', 'Id'", "found input 'Id' instead of ':'"], false,
+                vec![r#"found input "EOF" instead of "<resolve>", Id"#, r#"found input "Int" (Id) instead of ":""#], false,
                 vec![]
             ),
             (

@@ -65,6 +65,17 @@ impl Symbol {
         result
     }
 
+    /// Converts the symbol to a string that's explicit for the user, using the symbol table
+    /// if available to display the token name in case of a variable token.
+    pub fn to_str_type<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
+        match self {
+            Symbol::T(t) => format!("input {}", terminal_to_str_type(*t, symbol_table, ext)),
+            Symbol::NT(_) => format!("nonterminal {}", self.to_str(symbol_table)),
+            Symbol::Empty => "empty symbol".to_string(),
+            Symbol::End => "end of stream".to_string(),
+        }
+    }
+
     /// Converts to symbols used in `sym!` and other related macros of the `lexigram` crate.
     pub fn to_macro_item(&self) -> String {
         match self {
@@ -74,6 +85,18 @@ impl Symbol {
             Symbol::End => "end".to_string(),
         }
     }
+}
+
+/// Converts the terminal to string, using the symbol table if available to display the token name
+/// in case of variable token.
+pub fn terminal_to_str_type<T: SymInfoTable>(token: TokenId, symbol_table: Option<&T>, ext: &String) -> String {
+    let mut result = format!("{ext:?}");
+    if let Some(t) = symbol_table {
+        if t.is_token_data(token) {
+            result.push_str(&format!(" ({})", t.get_t_name(token)));
+        }
+    }
+    result
 }
 
 impl Display for Symbol {

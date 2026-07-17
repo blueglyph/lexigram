@@ -603,7 +603,7 @@ fn parser_parse_stream_id() {
         (T::PRS(20), 0, Some(5), None, vec![
             ("struct test1 { a : int ; b : string ; c : bool ; }", None),
             ("struct test2 { a : int ; b : string ; c : bool }", Some(vec![
-                "syntax error: found input '}' instead of ';', line 1, col 15"
+                r#"syntax error: found input "}" instead of ";", line 1, col 15"#
             ])),
         ]),
         (T::PRS(33), 0, None, None, vec![
@@ -620,11 +620,11 @@ fn parser_parse_stream_id() {
             // FACTOR -> id | int | '(' EXPR ')';
             ("[ 1 * 2 ] ;", None),
             ("[ ( 1 * 2 * 3 ] ;", Some(vec![
-                "syntax error: found input '*' instead of ')', line 1, col 6"
+                r#"syntax error: found input "*" instead of ")", line 1, col 6"#
             ])),
             ("[ 1 * 2 ; [ ( 3 * 4 ) * ] ; [ 5 * 6 ] ;", Some(vec![
-                "syntax error: found input ';' instead of ']', line 1, col 5",
-                "syntax error: found input ']' instead of '(', 'id', 'int' while parsing '►FACTOR', line 1, col 13"
+                r#"syntax error: found input ";" instead of "]", line 1, col 5"#,
+                r#"syntax error: found input "]" instead of "(", id, int while parsing ►FACTOR, line 1, col 13"#
             ])),
         ]),
         (T::PRS(51), 0, Some(8), Some(7), vec![
