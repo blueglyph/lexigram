@@ -1805,12 +1805,10 @@ pub(crate) mod rules_603_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -2105,12 +2103,10 @@ pub(crate) mod rules_604_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T
                 }
             }
 
@@ -2126,6 +2122,7 @@ pub(crate) mod rules_604_1 {
         }
     }
 }
+
 pub(crate) mod rules_605_1 {
     use crate::integration::wrappers::precedence_type::SynE;
 
@@ -2404,12 +2401,10 @@ pub(crate) mod rules_605_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -2699,12 +2694,10 @@ pub(crate) mod rules_606_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -2995,12 +2988,10 @@ pub(crate) mod rules_607_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -3294,12 +3285,10 @@ pub(crate) mod rules_608_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -3588,12 +3577,10 @@ pub(crate) mod rules_609_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -3883,12 +3870,10 @@ pub(crate) mod rules_610_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -4181,12 +4166,10 @@ pub(crate) mod rules_611_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -4480,12 +4463,10 @@ pub(crate) mod rules_612_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -4775,12 +4756,10 @@ pub(crate) mod rules_613_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 
@@ -5074,12 +5053,10 @@ pub(crate) mod rules_614_1 {
 
         impl TestApi for Tester<Wrapper<EListener>> {
             fn new() -> Self {
-                let parser = build_parser();
-                let symbols = Self::get_symbols(&parser);
                 Tester {
                     parser: build_parser(),
                     wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
-                    symbols
+                    symbols: &SYMBOLS_T,
                 }
             }
 

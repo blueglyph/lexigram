@@ -243,55 +243,37 @@ mod rules_580_1 {
 }
 
 pub mod precedence_type {
-    use std::collections::HashMap;
     use iter_index::IndexerIterator;
-    use lexigram_lib::TokenId;
-    use lexigram_lib::parser::Symbol;
-    use lexigram_lib::lexer::{CaretCol, Pos, PosSpan};
+    use lexigram_lib::MakeStreamIterator;
     use lexigram_core::log::BufLog;
     use lexigram_core::parser::ll1::LLParser;
     use lexigram_lib::parser::{ListenerWrapper, ParserError, ParserToken};
     use crate::integration::wrappers::level_string::LevelString;
 
-    const TOK_NUM: TokenId = 3;
-    const TOK_ID: TokenId = 4;
-
     /// User-defined type for `e`
     #[derive(Debug, PartialEq)] pub struct SynE(pub LevelString);
 
-    pub fn get_stream(input: &str, symbols: &HashMap<String, TokenId>) -> impl Iterator<Item=ParserToken> {
+    pub fn get_stream(input: &str, symbols: &[(&str, Option<&str>)]) -> impl Iterator<Item=ParserToken> {
         const VERBOSE: bool = false;
-        input.chars().index_start::<CaretCol>(1).filter(|(_, c)| !c.is_ascii_whitespace())
-            .map(|(i, w)| {
-                let pos = Pos(1, i);
-                let pos_span = PosSpan::new(pos, pos);
-                if let Some(s) = symbols.get(&w.to_string()) {
-                    (*s, w.to_string(), pos_span)
-                } else {
-                    if w.is_ascii_digit() {
-                        (TOK_NUM, w.to_string(), pos_span)
-                    } else {
-                        (TOK_ID, w.to_string(), pos_span)
-                    }
-                }
-            })
-            .inspect(|(tok, s, pos_span)| { if VERBOSE { println!("STREAM: pos={pos_span}, tok={tok}, s={s:?}"); } })
+        let mut tok_id = None;
+        let mut tok_num = None;
+        symbols.iter().index()
+            .for_each(|(i, &(a, _))| {
+                if a == "Num" { tok_num = Some(i) };
+                if a == "Id"  { tok_id  = Some(i) };
+            });
+        let syms = symbols.into_iter().map(|&(a, b)| (a, b));
+        MakeStreamIterator::new(input, syms, false, tok_id, tok_num, VERBOSE)
     }
 
     pub struct Tester<W: ListenerWrapper> {
         pub parser: LLParser<'static>,
         pub wrapper: W,
-        pub symbols: HashMap<String, TokenId>
+        pub symbols: &'static [(&'static str, Option<&'static str>)]
     }
 
     pub trait TestApi {
         fn new() -> Self where Self: Sized;
-        fn get_symbols(parser: &LLParser) -> HashMap<String, TokenId> where Self: Sized {
-            let table = parser.get_symbol_table().unwrap();
-            (0..table.get_num_t() as TokenId)
-                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
-                .collect::<HashMap<_, _>>()
-        }
         fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)>;
     }
 }
@@ -313,13 +295,13 @@ mod test_precedence {
                 vec![
                     ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
-                    ("!!2", Ok(Some("! (! 2)"))),
+                    ("! ! 2", Ok(Some("! (! 2)"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 3", Ok(Some("! (2 * 3)"))),
-                    ("2 + !3", Ok(Some("2 + (! 3)"))),
-                    ("!2 + 3", Ok(Some("! (2 + 3)"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 3", Ok(Some("! (2 * 3)"))),
+                    ("2 + ! 3", Ok(Some("2 + (! 3)"))),
+                    ("! 2 + 3", Ok(Some("! (2 + 3)"))),
                 ]),
             (   // 604: e -> e "*" e |   "!" e | e "+" e | Num
                 Box::new(Tester::<rules_604_1::Wrapper<_>>::new()),
@@ -328,10 +310,10 @@ mod test_precedence {
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 3", Ok(Some("! (2 * 3)"))),
-                    ("2 + !3", Ok(Some("2 + (! 3)"))),
-                    ("!2 + 3", Ok(Some("(! 2) + 3"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 3", Ok(Some("! (2 * 3)"))),
+                    ("2 + ! 3", Ok(Some("2 + (! 3)"))),
+                    ("! 2 + 3", Ok(Some("(! 2) + 3"))),
                 ]),
             (   // 605: e ->   "!" e | e "*" e | e "+" e | Num
                 Box::new(Tester::<rules_605_1::Wrapper<_>>::new()),
@@ -340,10 +322,10 @@ mod test_precedence {
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 3", Ok(Some("(! 2) * 3"))),
-                    ("2 + !3", Ok(Some("2 + (! 3)"))),
-                    ("!2 + 3", Ok(Some("(! 2) + 3"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 3", Ok(Some("(! 2) * 3"))),
+                    ("2 + ! 3", Ok(Some("2 + (! 3)"))),
+                    ("! 2 + 3", Ok(Some("(! 2) + 3"))),
                 ]),
             (   // 606: e ->     e "*" e |     e "+" e | <R> e "!" e | Num
                 Box::new(Tester::<rules_606_1::Wrapper<_>>::new()),
@@ -385,10 +367,10 @@ mod test_precedence {
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * 3!", Ok(Some("(2 * 3) !"))),
-                    ("2! * 3", Ok(Some("(2 !) * 3"))),
-                    ("2 + 3!", Ok(Some("(2 + 3) !"))),
-                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                    ("2 * 3 !", Ok(Some("(2 * 3) !"))),
+                    ("2 ! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3 !", Ok(Some("(2 + 3) !"))),
+                    ("2 ! + 3", Ok(Some("(2 !) + 3"))),
                 ]),
             (   // 610: e -> e "*" e | e "!"   | e "+" e | Num
                 Box::new(Tester::<rules_610_1::Wrapper<_>>::new()),
@@ -397,10 +379,10 @@ mod test_precedence {
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * 3!", Ok(Some("(2 * 3) !"))),
-                    ("2! * 3", Ok(Some("(2 !) * 3"))),
-                    ("2 + 3!", Ok(Some("2 + (3 !)"))),
-                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                    ("2 * 3 !", Ok(Some("(2 * 3) !"))),
+                    ("2 ! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3 !", Ok(Some("2 + (3 !)"))),
+                    ("2 ! + 3", Ok(Some("(2 !) + 3"))),
                 ]),
             (   // 611: e -> e "!"   | e "*" e | e "+" e | Num
                 Box::new(Tester::<rules_611_1::Wrapper<_>>::new()),
@@ -409,10 +391,10 @@ mod test_precedence {
                     ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
                     ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
                     ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
-                    ("2 * 3!", Ok(Some("2 * (3 !)"))),
-                    ("2! * 3", Ok(Some("(2 !) * 3"))),
-                    ("2 + 3!", Ok(Some("2 + (3 !)"))),
-                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                    ("2 * 3 !", Ok(Some("2 * (3 !)"))),
+                    ("2 ! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3 !", Ok(Some("2 + (3 !)"))),
+                    ("2 ! + 3", Ok(Some("(2 !) + 3"))),
                 ]),
             (   // 612: e -> e "!" e |     e "*" e |     e "+" e | Num
                 Box::new(Tester::<rules_612_1::Wrapper<_>>::new()),
@@ -451,37 +433,37 @@ mod test_precedence {
                 Box::new(Tester::<rules_630_1::Wrapper<_>>::new()),
                 vec![
                     ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
-                    ("2++", Ok(Some("(2 +) +"))),
-                    ("!!2", Ok(Some("! (! 2)"))),
-                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
-                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
-                    ("!2+", Ok(Some("! (2 +)"))),
+                    ("2 + +", Ok(Some("(2 +) +"))),
+                    ("! ! 2", Ok(Some("! (! 2)"))),
+                    ("2 * 3 +", Ok(Some("(2 * 3) +"))),
+                    ("2 + * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("! 2 +", Ok(Some("! (2 +)"))),
                 ]),
             (   // 631: e -> e "*" e |     e "+" | <R> "!" e | Num
                 Box::new(Tester::<rules_631_1::Wrapper<_>>::new()),
                 vec![
                     ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
-                    ("2++", Ok(Some("(2 +) +"))),
-                    ("!!2", Ok(Some("! (! 2)"))),
-                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
-                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
-                    ("!2+", Ok(Some("! (2 +)"))),
+                    ("2 + +", Ok(Some("(2 +) +"))),
+                    ("! ! 2", Ok(Some("! (! 2)"))),
+                    ("2 * 3 +", Ok(Some("(2 * 3) +"))),
+                    ("2 + * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("! 2 +", Ok(Some("! (2 +)"))),
                 ]),
             (   // 632: e -> e "*" e | <R> e "+" |     "!" e | Num
                 Box::new(Tester::<rules_632_1::Wrapper<_>>::new()),
                 vec![
                     ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
-                    ("2++", Ok(Some("(2 +) +"))),
-                    ("!!2", Ok(Some("! (! 2)"))),
-                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
-                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
-                    ("2 * !3", Ok(Some("2 * (! 3)"))),
-                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
-                    ("!2+", Ok(Some("! (2 +)"))),
+                    ("2 + +", Ok(Some("(2 +) +"))),
+                    ("! ! 2", Ok(Some("! (! 2)"))),
+                    ("2 * 3 +", Ok(Some("(2 * 3) +"))),
+                    ("2 + * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * ! 3", Ok(Some("2 * (! 3)"))),
+                    ("! 2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("! 2 +", Ok(Some("! (2 +)"))),
                 ]),
         ];
         const VERBOSE: bool = false;
