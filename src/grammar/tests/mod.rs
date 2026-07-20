@@ -366,6 +366,7 @@ impl TestRules {
                 r#"         | "typedef" Type Id ";";"#,
                 r#"inst ->    Id "=" expr ";""#,
                 r#"         | "print" expr ";";"#,
+                r#"<resolve>"#,
                 r#"expr ->    "-" expr"#,
                 r#"         | expr ("+" | <P> "-") expr"#,
                 r#"         | Id"#,

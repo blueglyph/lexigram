@@ -652,7 +652,9 @@ impl LRParsingTable {
     /// for an uncompressed table (`num_goto` <= `num_states`).
     ///
     /// State 0 remains the starting state.
-    pub fn compress_goto(&mut self) {
+    ///
+    /// Returns a vector with the changes: state `i` is now state `order[i]`.
+    pub fn compress_goto(&mut self) -> Vec<LRStateId> {
         let (mut first_states, mut last_states): (Vec<LRStateId>, Vec<LRStateId>) = (vec![], vec![]);
         let mut first_goto: Vec<LRStateId> = vec![];
         let (mut first_action, mut last_action): (Vec<LRAction>, Vec<LRAction>) = (vec![], vec![]);
@@ -680,6 +682,8 @@ impl LRParsingTable {
             LRAction::Shift(s) => LRAction::Shift(order[s as usize]),
             _ => a,
         }).collect();
+        order.pop();
+        order
     }
 
     /// Transforms the `action` table and `init_hook` to allow the parser to call a listener

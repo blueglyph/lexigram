@@ -210,6 +210,77 @@ fn prs_calc_lr_table() {
             // conflict in state 7 for "*": r1 (e -> e "+" e) vs s4 (e -> e "*" • e) => resolved as s4
             // conflict in state 7 for "+": r1 (e -> e "+" e) vs s5 (e -> e "+" • e) => resolved as r1
         ]),
+        (903, 0, 0, &[
+            r#"   | Num Id  Type "," ";" "typedef" "=" "print" "-" "+"  $  | program stmt_i stmt decl inst expr decl_1"#,
+            r#"---+--------------------------------------------------------+------------------------------------------"#,
+            r#" 0 |  -  r2   r2   -   -     r2      -    r2     -   -  r2  |    1      2     -    -    -    -     -   "#,
+            r#" 1 |  -   -   -    -   -      -      -     -     -   -  acc |    -      -     -    -    -    -     -   "#,
+            r#" 2 |  -  s3   s4   -   -     s5      -    s6     -   -  r0  |    -      -     7    8    9    -     -   "#,
+            r#" 3 |  -   -   -    -   -      -     s10    -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#" 4 |  -  s11  -    -   -      -      -     -     -   -   -  |    -      -     -    -    -    -     12  "#,
+            r#" 5 |  -   -  s13   -   -      -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#" 6 | s14 s15  -    -   -      -      -     -    s16  -   -  |    -      -     -    -    -    17    -   "#,
+            r#" 7 |  -  r1   r1   -   -     r1      -    r1     -   -  r1  |    -      -     -    -    -    -     -   "#,
+            r#" 8 |  -  r3   r3   -   -     r3      -    r3     -   -  r3  |    -      -     -    -    -    -     -   "#,
+            r#" 9 |  -  r4   r4   -   -     r4      -    r4     -   -  r4  |    -      -     -    -    -    -     -   "#,
+            r#"10 | s14 s15  -    -   -      -      -     -    s16  -   -  |    -      -     -    -    -    18    -   "#,
+            r#"11 |  -   -   -   r15 r15     -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"12 |  -   -   -   s19 s20     -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"13 |  -  s21  -    -   -      -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"14 |  -   -   -    -  r13     -      -     -    r13 r13  -  |    -      -     -    -    -    -     -   "#,
+            r#"15 |  -   -   -    -  r12     -      -     -    r12 r12  -  |    -      -     -    -    -    -     -   "#,
+            r#"16 | s14 s15  -    -   -      -      -     -    s16  -   -  |    -      -     -    -    -    22    -   "#,
+            r#"17 |  -   -   -    -  s23     -      -     -    s24 s25  -  |    -      -     -    -    -    -     -   "#,
+            r#"18 |  -   -   -    -  s26     -      -     -    s24 s25  -  |    -      -     -    -    -    -     -   "#,
+            r#"19 |  -  s27  -    -   -      -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"20 |  -  r5   r5   -   -     r5      -    r5     -   -  r5  |    -      -     -    -    -    -     -   "#,
+            r#"21 |  -   -   -    -  s28     -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"22 |  -   -   -    -  r9      -      -     -    r9  r9   -  |    -      -     -    -    -    -     -   "#,
+            r#"23 |  -  r8   r8   -   -     r8      -    r8     -   -  r8  |    -      -     -    -    -    -     -   "#,
+            r#"24 | s14 s15  -    -   -      -      -     -    s16  -   -  |    -      -     -    -    -    29    -   "#,
+            r#"25 | s14 s15  -    -   -      -      -     -    s16  -   -  |    -      -     -    -    -    30    -   "#,
+            r#"26 |  -  r7   r7   -   -     r7      -    r7     -   -  r7  |    -      -     -    -    -    -     -   "#,
+            r#"27 |  -   -   -   r14 r14     -      -     -     -   -   -  |    -      -     -    -    -    -     -   "#,
+            r#"28 |  -  r6   r6   -   -     r6      -    r6     -   -  r6  |    -      -     -    -    -    -     -   "#,
+            r#"29 |  -   -   -    -  r11     -      -     -    r11 r11  -  |    -      -     -    -    -    -     -   "#,
+            r#"30 |  -   -   -    -  r10     -      -     -    r10 r10  -  |    -      -     -    -    -    -     -   "#,
+            r#"---+--------------------------------------------------------+------------------------------------------"#,
+        ], 8, &[
+            r#"   | Num Id  Type "," ";" "typedef" "=" "print" "-" "+"  $  | program stmt_i stmt decl inst expr decl_1"#,
+            r#"---+--------------------------------------------------------+------------------------------------------"#,
+            r#" 0 |  -  r2   r2   -   -     r2      -    r2     -   -  r2  |    8      1     -    -    -    -     -   "#,
+            r#" 1 |  -  s9   s2   -   -     s10     -    s3     -   -  r0  |    -      -     11   12   13   -     -   "#,
+            r#" 2 |  -  s14  -    -   -      -      -     -     -   -   -  |    -      -     -    -    -    -     15  "#,
+            r#" 3 | s17 s18  -    -   -      -      -     -    s5   -   -  |    -      -     -    -    -    19    -   "#,
+            r#" 4 | s17 s18  -    -   -      -      -     -    s5   -   -  |    -      -     -    -    -    20    -   "#,
+            r#" 5 | s17 s18  -    -   -      -      -     -    s5   -   -  |    -      -     -    -    -    24    -   "#,
+            r#" 6 | s17 s18  -    -   -      -      -     -    s5   -   -  |    -      -     -    -    -    29    -   "#,
+            r#" 7 | s17 s18  -    -   -      -      -     -    s5   -   -  |    -      -     -    -    -    30    -   "#,
+            r#" 8 |  -   -   -    -   -      -      -     -     -   -  acc |                                          "#,
+            r#" 9 |  -   -   -    -   -      -     s4     -     -   -   -  |                                          "#,
+            r#"10 |  -   -  s16   -   -      -      -     -     -   -   -  |                                          "#,
+            r#"11 |  -  r1   r1   -   -     r1      -    r1     -   -  r1  |                                          "#,
+            r#"12 |  -  r3   r3   -   -     r3      -    r3     -   -  r3  |                                          "#,
+            r#"13 |  -  r4   r4   -   -     r4      -    r4     -   -  r4  |                                          "#,
+            r#"14 |  -   -   -   r15 r15     -      -     -     -   -   -  |                                          "#,
+            r#"15 |  -   -   -   s21 s22     -      -     -     -   -   -  |                                          "#,
+            r#"16 |  -  s23  -    -   -      -      -     -     -   -   -  |                                          "#,
+            r#"17 |  -   -   -    -  r13     -      -     -    r13 r13  -  |                                          "#,
+            r#"18 |  -   -   -    -  r12     -      -     -    r12 r12  -  |                                          "#,
+            r#"19 |  -   -   -    -  s25     -      -     -    s6  s7   -  |                                          "#,
+            r#"20 |  -   -   -    -  s26     -      -     -    s6  s7   -  |                                          "#,
+            r#"21 |  -  s27  -    -   -      -      -     -     -   -   -  |                                          "#,
+            r#"22 |  -  r5   r5   -   -     r5      -    r5     -   -  r5  |                                          "#,
+            r#"23 |  -   -   -    -  s28     -      -     -     -   -   -  |                                          "#,
+            r#"24 |  -   -   -    -  r9      -      -     -    r9  r9   -  |                                          "#,
+            r#"25 |  -  r8   r8   -   -     r8      -    r8     -   -  r8  |                                          "#,
+            r#"26 |  -  r7   r7   -   -     r7      -    r7     -   -  r7  |                                          "#,
+            r#"27 |  -   -   -   r14 r14     -      -     -     -   -   -  |                                          "#,
+            r#"28 |  -  r6   r6   -   -     r6      -    r6     -   -  r6  |                                          "#,
+            r#"29 |  -   -   -    -  r11     -      -     -    r11 r11  -  |                                          "#,
+            r#"30 |  -   -   -    -  r10     -      -     -    r10 r10  -  |                                          "#,
+            r#"---+--------------------------------------------------------+------------------------------------------"#,
+        ], &[]),
         (2000, 0, 1, &[
             r#"   | "a" "b"  $  | s  a  b  c  d "#,
             r#"---+-------------+---------------"#,
@@ -698,10 +769,10 @@ fn prs_calc_lr_table() {
         let testrules = TestRules::new(test_id);
         let mut lr = testrules.to_prs_lr().unwrap();
         lr.set_start(start);
-        let (mut parsing_table, states) = lr.make_parsing_table_with_states_lalr();
+        let (mut parsing_table, mut states) = lr.make_parsing_table_with_states_lalr();
         parsing_table.apply_terminal_hooks(&lr.terminal_hooks, &mut lr.log);
         let mut compressed_table = parsing_table.clone();
-        compressed_table.compress_goto();
+        let order = compressed_table.compress_goto(); // old_state_number = order[new_state_number]
         let fail = if lr.has_no_errors() {
             let LRParsingTable { num_t_full, num_states, alts, action, .. } = &parsing_table;
             if VERBOSE {
@@ -731,7 +802,7 @@ fn prs_calc_lr_table() {
                     print_alts(&alts, lr.get_symbol_table());
                     println!("{INDENT1}//");
                 }
-                if VERBOSE || SHOW_STATES {
+                if SHOW_STATES {
                     let str = states.iter().enumerate()
                         .map(|(i, items)|
                             format!("{INDENT1}// state {i}:{}", items.iter().map(|i| format!("\n{INDENT1}// - {}", lr.item_to_str(i))).join("")))
@@ -739,14 +810,26 @@ fn prs_calc_lr_table() {
                     println!("{str}\n{INDENT1}//");
                 }
                 println!("{}", result_lines.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n"));
-                let compressed_str = result_compressed.iter().map(|s| format!("\n{INDENT1}r#\"{s}\"#,")).join("");
-                if has_conflict {
-                    println!(
-                        "{INDENT0}], {result_ngoto}, &[{compressed_str}\n{INDENT0}], &[{}\n{INDENT0}]),",
-                        result_conflict.iter().map(|s| format!("\n{INDENT1}r#\"{s}\"#,")).join(""));
-                } else {
-                    println!("{INDENT0}], {result_ngoto}, &[{compressed_str}\n{INDENT0}], &[]),", );
+                println!("{INDENT0}], {result_ngoto}, &[", );
+                if SHOW_STATES {
+                    println!("order: {}", order.iter().enumerate().map(|(i, o)| format!("{i}: {o}")).join(", "));
+                    let mut cstates = vec![vec![]; states.len()];
+                    for (i, o) in order.into_iter().enumerate() {
+                        cstates[o as usize] = std::mem::take(&mut states[i]);
+                    }
+                    let str = cstates.iter().enumerate()
+                        .map(|(i, items)|
+                            format!("{INDENT1}// state {i}:{}", items.iter().map(|i| format!("\n{INDENT1}// - {}", lr.item_to_str(i))).join("")))
+                        .join("\n");
+                    println!("{str}\n{INDENT1}//");
                 }
+                let conflict_str = format!(
+                    "{}{}",
+                    result_conflict.iter().map(|s| format!("\n{INDENT1}r#\"{s}\"#,")).join(""),
+                    if has_conflict { format!("\n{INDENT0}" ) } else { String::new() }
+                );
+                let compressed_str = result_compressed.iter().map(|s| format!("{INDENT1}r#\"{s}\"#,")).join("\n");
+                println!("{compressed_str}\n{INDENT0}], &[{conflict_str}]),", );
             }
             let conflict_mismatch = expected_conflict.len() != result_conflict.len()
                 || result_conflict.iter().zip(expected_conflict).any(|(&r, &e)| !r.contains(e));
