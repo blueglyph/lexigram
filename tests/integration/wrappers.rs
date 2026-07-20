@@ -262,8 +262,7 @@ pub mod precedence_type {
                 if a == "Num" { tok_num = Some(i) };
                 if a == "Id"  { tok_id  = Some(i) };
             });
-        let syms = symbols.into_iter().map(|&(a, b)| (a, b));
-        MakeStreamIterator::new(input, syms, false, tok_id, tok_num, VERBOSE)
+        MakeStreamIterator::new(input, symbols.iter().map(|&x| x), false, tok_id, tok_num, VERBOSE)
     }
 
     pub struct Tester<W: ListenerWrapper> {
