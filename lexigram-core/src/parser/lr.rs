@@ -115,8 +115,13 @@ impl<'a, T> LRParser<'a, T> {
                         (new_t, s)
                     } else {
                         hook = false;
-                        let new_t = wrapper.hook(t, s.as_str(), &stream_span);
-                        if VERBOSE { println!("  hook changed {} to {}", Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table))) }
+                        let new_t = if nbr_parser_errors == 0 {
+                            let new_t = wrapper.hook(t, s.as_str(), &stream_span);
+                            if VERBOSE { println!("  hook changed {} to {}", Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table))) }
+                            new_t
+                        } else {
+                            t
+                        };
                         (new_t, s)
                     }
                 } else {
@@ -153,7 +158,7 @@ impl<'a, T> LRParser<'a, T> {
                     if self.symbol_table.is_token_data(stream_sym) {
                         stack_t.push(std::mem::take(&mut stream_str));
                     }
-                    wrapper.push_span(stream_span.take());
+                    if nbr_parser_errors == 0 { wrapper.push_span(stream_span.take()); }
                     state = new_state;
                     advance_stream = true;
                 }
@@ -166,11 +171,11 @@ impl<'a, T> LRParser<'a, T> {
                     stack_state.push(state);
                     if VERBOSE { println!("- reduce({alt}) -> state {pop_state} -> goto {state}"); }
                     let t_data = stack_t.drain(stack_t.len() - nbr_t as usize..).to_vec();
-                    wrapper.switch(Call::Exit, nt, alt, Some(t_data));
+                    if nbr_parser_errors == 0 { wrapper.switch(Call::Exit, nt, alt, Some(t_data)); }
                 }
                 LRAction::Accept => {
                     if VERBOSE { println!("- accept"); }
-                    wrapper.switch(Call::End(Terminate::None), 0, 0, None);
+                    if nbr_parser_errors == 0 { wrapper.switch(Call::End(Terminate::None), 0, 0, None); }
                     stack_state.pop();
                     stack_state.pop();
                     break;
@@ -216,35 +221,6 @@ impl<'a, T> LRParser<'a, T> {
                 }
             }
         }
-        // if error.is_some() {
-        //     let mut msg = if stream_sym == token_error {
-        //         format!("lexical error: couldn't recognize {stream_str:?}")
-        //     } else {
-        //         let expected = (0..self.num_t_full)
-        //             .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
-        //             .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
-        //             .join(", ");
-        //         let sym_str = if stream_sym == token_eof { "end of stream".to_string() } else { format!("input {}", Symbol::T(stream_sym).to_str_quote(sym_table)) };
-        //         format!(
-        //             "syntax error: unexpected {sym_str}{}",
-        //             if expected.is_empty() { String::new() } else { format!(" instead of {expected}") },
-        //         )
-        //     };
-        //     if let Some(Pos(line, col)) = stream_pos {
-        //         msg.push_str(&format!(", line {line}, col {col}"));
-        //     }
-        //     wrapper.report(Some(&stream_span), LogMsg::Error(msg));
-        //     if stream_sym == token_error {
-        //         break
-        //     } else {
-        //         if nbr_parser_errors >= Self::MAX_NBR_PARSER_ERRORS {
-        //             wrapper.report(None, LogMsg::Note(format!("too many errors ({nbr_parser_errors}), giving up")));
-        //             error = Some(ParserError::TooManyErrors);
-        //             break
-        //         }
-        //         nbr_parser_errors += 1;
-        //     }
-        // }
         if let Some(err) = error {
             wrapper.abort();
             Err(err)
