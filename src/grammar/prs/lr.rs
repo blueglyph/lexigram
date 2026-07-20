@@ -445,7 +445,7 @@ impl ProdRuleSet<LR> {
         let num_t_full = self.num_t + 1;    // includes the end symbol
         let num_states = states.len();
         let mut action = vec![LRAction::Error; num_t_full * num_states];
-        let mut goto = vec![num_states as LRStateId; num_nt * num_states];    // num_states value = error
+        let mut goto = vec![0; num_nt * num_states];    // there's no GOTO 0, so we use 0 for empty cells
         for (s, map) in gotos.into_iter().enumerate() {
             for (symb, s_dest) in map {
                 match symb {
@@ -655,14 +655,14 @@ impl LRParsingTable {
     ///
     /// Returns a vector with the changes: state `i` is now state `order[i]`.
     pub fn compress_goto(&mut self) -> Vec<LRStateId> {
+        const GOTO_EMPTY: LRStateId = 0;
         let (mut first_states, mut last_states): (Vec<LRStateId>, Vec<LRStateId>) = (vec![], vec![]);
         let mut first_goto: Vec<LRStateId> = vec![];
         let (mut first_action, mut last_action): (Vec<LRAction>, Vec<LRAction>) = (vec![], vec![]);
-        let goto_empty = self.num_states as LRStateId;
         // the starting state automatically remains in row 0, since that state always has at least one goto to the accepting state,
         // so there's no need to process it differently
         for (state, (gotos, actions)) in self.goto.chunks(self.num_nt).zip(self.action.chunks(self.num_t_full)).index::<LRStateId>() {
-            if gotos.iter().any(|goto| *goto != goto_empty) {
+            if gotos.iter().any(|goto| *goto != GOTO_EMPTY) {
                 first_states.push(state);
                 first_goto.extend(gotos);
                 first_action.extend(actions);
@@ -672,7 +672,7 @@ impl LRParsingTable {
             }
         }
         self.num_goto = first_states.len();
-        let mut order = vec![self.num_states as LRStateId; self.num_states + 1];
+        let mut order = vec![self.num_states as LRStateId; self.num_states];
         // updates the state numbers in gotos and shifts:
         for (new, old) in first_states.into_iter().chain(last_states).index() {
             order[old as usize] = new;
@@ -682,7 +682,6 @@ impl LRParsingTable {
             LRAction::Shift(s) => LRAction::Shift(order[s as usize]),
             _ => a,
         }).collect();
-        order.pop();
         order
     }
 
@@ -766,7 +765,7 @@ impl LRParsingTable {
             let goto_s = (0..num_nt).map(|nt| {
                 if s < self.num_goto {
                     let val = goto[s * num_nt + nt];
-                    if num_states > val as usize { format!("{val:^w$}", w = nt_len[nt]) } else { format!("{:^w$}", "-", w = nt_len[nt]) }
+                    if val > 0 { format!("{val:^w$}", w = nt_len[nt]) } else { format!("{:^w$}", "-", w = nt_len[nt]) }
                 } else {
                     format!("{:^w$}", "", w = nt_len[nt])
                 }

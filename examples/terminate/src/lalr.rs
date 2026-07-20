@@ -412,7 +412,7 @@ pub mod terminate_parser {
         LRR(7),LRR(7),LRR(7),LRR(7),LRR(7),LRR(7),LRR(7),LRE,LRE,LRR(7),LRR(8),LRR(8),LRR(8),LRR(8),LRR(8),LRR(8),LRR(8),LRE,LRE,LRR(8),LRR(9),LRR(9),LRR(9),LRR(9),LRR(9),LRR(9),LRR(9),LRE,LRE,LRR(9),LRR(10),LRR(10),LRR(10),LRR(10),LRR(10),
         LRR(10),LRR(10),LRE,LRE,LRR(10)];
     static GOTO: [LRStateId; 8] = [
-        2,1,18,18,18,18,10,11];
+        2,1,0,0,0,0,10,11];
     static ALT_NT_LEN: [(VarId, u16, u16); 12] = [
         (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 2, 2),(2, 2, 2),(2, 1, 0),(3, 2, 2),(3, 2, 2),(3, 2, 2),(3, 2, 2),(4, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 9] = [

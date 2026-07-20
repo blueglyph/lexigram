@@ -21,7 +21,7 @@ pub(crate) mod rules_13_1 {
         LRS(3),LRE,LRS(4),LRS(1),LRE,LRE,LRS(6),LRE,LRE,LRE,LRS(7),LRE,LRS(6),LRE,LRE,LRE,LRS(7),LRE,LRE,LRS(2),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(1),LRE,LRE,LRE,LRE,LRE,
         LRA,LRE,LRE,LRE,LRE,LRE,LRR(3),LRE,LRE,LRE,LRE,LRE,LRR(4),LRE,LRE,LRE,LRE,LRE,LRR(2),LRE,LRE,LRE,LRE,LRE,LRR(0)];
     static GOTO: [LRStateId; 6] = [
-        5,10,10,8,10,9];
+        5,0,0,8,0,9];
     static ALT_NT_LEN: [(VarId, u16, u16); 6] = [
         (0, 3, 1),(0, 1, 0),(0, 2, 0),(1, 1, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
@@ -361,7 +361,7 @@ pub(crate) mod rules_102_1 {
     static ACTION: [LRAction; 24] = [
         LRS(1),LRE,LRE,LRE,LRE,LRR(2),LRR(2),LRE,LRE,LRE,LRE,LRA,LRE,LRS(4),LRS(5),LRE,LRE,LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRR(0)];
     static GOTO: [LRStateId; 4] = [
-        2,6,6,3];
+        2,0,0,3];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 0, 0),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 3] = [
@@ -660,7 +660,7 @@ pub(crate) mod rules_103_1 {
     static ACTION: [LRAction; 28] = [
         LRS(1),LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRR(2),LRR(2),LRE,LRE,LRS(5),LRS(6),LRE,LRE,LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRR(0)];
     static GOTO: [LRStateId; 4] = [
-        2,7,7,4];
+        2,0,0,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 3] = [
@@ -962,7 +962,7 @@ pub(crate) mod rules_109_1 {
         LRA,LRE,LRE,LRS(2),LRE,LRE,LRE,LRE,LRE,LRE,LRS(8),LRS(9),LRE,LRS(12),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),LRE,LRE,LRE,LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRR(3),
         LRR(3),LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRR(2),LRR(2),LRE];
     static GOTO: [LRStateId; 12] = [
-        5,14,14,14,14,7,14,11,14,14,13,14];
+        5,0,0,0,0,7,0,11,0,0,13,0];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 4, 1),(1, 1, 1),(2, 5, 1),(2, 3, 1),(3, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
@@ -1291,7 +1291,7 @@ pub(crate) mod rules_119_1 {
         LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRE,LRR(2),LRR(2),LRE,LRE,LRE,LRS(5),LRS(6),LRE,LRE,LRS(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),
         LRE,LRE,LRR(1),LRR(1),LRE];
     static GOTO: [LRStateId; 4] = [
-        2,8,8,4];
+        2,0,0,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 4] = [
@@ -1593,7 +1593,7 @@ pub(crate) mod rules_120_1 {
         LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRE,LRR(2),LRR(2),LRE,LRE,LRE,LRS(5),LRS(6),LRE,LRE,LRS(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),
         LRE,LRE,LRR(1),LRR(1),LRE];
     static GOTO: [LRStateId; 4] = [
-        2,8,8,4];
+        2,0,0,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 4] = [
@@ -2521,7 +2521,7 @@ pub(crate) mod rules_200_1 {
     static ACTION: [LRAction; 24] = [
         LRS(1),LRE,LRE,LRE,LRE,LRR(2),LRR(2),LRE,LRE,LRE,LRE,LRA,LRE,LRS(4),LRS(5),LRE,LRE,LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRR(0)];
     static GOTO: [LRStateId; 4] = [
-        2,6,6,3];
+        2,0,0,3];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 0, 0),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 3] = [
@@ -3034,7 +3034,7 @@ pub(crate) mod rules_201_1 {
     static ACTION: [LRAction; 28] = [
         LRS(1),LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRR(2),LRR(2),LRE,LRE,LRS(5),LRS(6),LRE,LRE,LRR(1),LRR(1),LRE,LRE,LRE,LRE,LRR(0)];
     static GOTO: [LRStateId; 4] = [
-        2,7,7,4];
+        2,0,0,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 2, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 3] = [
@@ -3555,7 +3555,7 @@ pub(crate) mod rules_219_1 {
         LRS(1),LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRE,LRR(2),LRR(2),LRE,LRE,LRE,LRS(5),LRS(6),LRE,LRE,LRS(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),
         LRE,LRE,LRR(1),LRR(1),LRE];
     static GOTO: [LRStateId; 4] = [
-        2,8,8,4];
+        2,0,0,4];
     static ALT_NT_LEN: [(VarId, u16, u16); 4] = [
         (0, 3, 2),(1, 3, 1),(1, 1, 1),(2, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 4] = [
@@ -4076,7 +4076,7 @@ pub(crate) mod rules_222_1 {
         LRA,LRE,LRE,LRS(2),LRE,LRE,LRE,LRE,LRE,LRE,LRS(8),LRS(9),LRE,LRS(12),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),LRE,LRE,LRE,LRR(3),LRR(3),LRE,LRE,LRE,LRE,LRR(2),
         LRR(2),LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRR(1),LRR(1),LRE];
     static GOTO: [LRStateId; 12] = [
-        5,14,14,14,7,14,14,14,11,14,14,13];
+        5,0,0,0,7,0,0,0,11,0,0,13];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 4, 1),(1, 5, 1),(1, 3, 1),(2, 1, 1),(3, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [

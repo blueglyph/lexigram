@@ -441,8 +441,8 @@ pub mod typedef_id_type_parser {
         LRR(5),LRR(5),LRE,LRR(5),LRR(5),LRR(5),LRE,LRE,LRE,LRE,LRE,LRR(6),LRR(6),LRE,LRR(6),LRR(6),LRR(6),LRE,LRR(13),LRE,LRR(13),LRR(13),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(12),LRE,LRR(12),LRR(12),LRE,LRE,
         LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(9),LRR(9),LRE,LRR(9),LRR(9),LRR(9),LRR(7),LRR(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE];
     static GOTO: [LRStateId; 56] = [
-        8,1,31,31,31,31,31,31,31,11,12,31,13,31,31,31,31,31,31,31,17,31,31,31,31,19,31,31,31,31,31,31,31,31,21,31,31,31,31,31,
-        31,23,31,31,31,31,31,31,27,31,31,31,31,31,31,28];
+        8,1,0,0,0,0,0,0,0,11,12,0,13,0,0,0,0,0,0,0,17,0,0,0,0,19,0,0,0,0,0,0,0,0,21,0,0,0,0,0,
+        0,23,0,0,0,0,0,0,27,0,0,0,0,0,0,28];
     static ALT_NT_LEN: [(VarId, u16, u16); 17] = [
         (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 1, 0),(3, 3, 1),(3, 4, 2),(4, 3, 1),(4, 1, 1),(5, 4, 1),(5, 3, 0),(6, 2, 0),(6, 3, 0),(6, 3, 0),(6, 1, 1),(6, 1, 1),(7, 1, 0)];
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
