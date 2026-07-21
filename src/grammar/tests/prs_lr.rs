@@ -757,10 +757,10 @@ fn prs_calc_lr_table() {
     const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = false;
-    const SHOW_STATES: bool = false;
+    const SHOW_STATES: bool = true;
     let mut errors = 0;
     for &(test_id, start, expected_warnings, expected_lines, expected_ngoto, expected_compressed, expected_conflict) in TESTS {
-        // if !matches!(test_id, 2006..2008) { continue }
+        // if !matches!(test_id, 903) { continue }
         let expected_lines = expected_lines.into_iter().map(|s| s.to_string()).to_vec();
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -885,9 +885,11 @@ mod parse {
 
         impl ListenerWrapper for Stub<'_> {
             fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+                const BEFORE_ANSI: &str = "\u{1b}[36m";
+                const AFTER_ANSI : &str = "\u{1b}[0m";
                 if VERBOSE {
                     println!(
-                        "=> call {call:?}, nt {}, alt {alt_id}, t_data [{}]",
+                        "{BEFORE_ANSI}=> call {call:?}, nt {}, alt {alt_id}, t_data [{}]{AFTER_ANSI}",
                         Symbol::NT(nt).to_str(self.symtab),
                         t_data.map(|v| v.into_iter().map(|s| format!("{s:?}")).join(", ")).unwrap_or_else(|| String::new())
                     );
@@ -919,6 +921,10 @@ mod parse {
             (903, 0, Some(1), Some(0), vec![
                 ("Type a , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;", None),
                 ("Type a , b , c ; a = 1 ; b = a +  ; c = b - 2 ; print c ;", Some(
+                    [r#"unexpected input ";" instead of Num, Id, "-""#])),
+                ("Type a , b , c ; a + 1 ; b = a + 2 ; c = b - 2 ; print c ;", Some(
+                    [r#"unexpected input "+" instead of "=""#])),
+                ("Type a , b , c ; a = ; b = a + 2 ; c = b - 2 ; print c ;", Some(
                     [r#"unexpected input ";" instead of Num, Id, "-""#])),
                 ("Type a , b , c", Some(
                     [r#"unexpected end of stream instead of ",", ";""#])),

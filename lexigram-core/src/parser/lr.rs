@@ -77,6 +77,14 @@ impl<'a, T> LRParser<'a, T> {
         LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, _phantom: PhantomData }
     }
 
+    fn t_to_string(&self, t: TokenId) -> String {
+        if self.num_t_full - 1 > t as usize {
+            Symbol::T(t as TokenId).to_str_quote(Some(&self.symbol_table))
+        } else {
+            "<EOF>".to_string()
+        }
+    }
+
     /// Parses the entire `stream`, calling the (listener) [wrapper](ListenerWrapper) with the
     /// [actions](Call) that correspond to the parser events.
     ///
@@ -104,6 +112,7 @@ impl<'a, T> LRParser<'a, T> {
         let mut stream_span = PosSpan::empty();
         let mut stream_sym = TokenId::default();
         let mut stream_str = String::default();
+        let mut call_wrapper = true;
         let mut hook = self.init_hook;
         loop {
             if advance_stream {
@@ -125,9 +134,9 @@ impl<'a, T> LRParser<'a, T> {
                         (new_t, s)
                     }
                 } else {
-                    if let Some((_t, s, span)) = stream.next() {
+                    if let Some((_t, s, _span)) = stream.next() {
                         // an error code after the end means an unrecognized sequence: we may try to continue
-                        wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s} at {span}")));
+                        wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s}")));
                         nbr_lexer_errors += 1;
                         if nbr_lexer_errors <= Self::MAX_NBR_LEXER_ERRORS {
                             continue;
@@ -158,7 +167,7 @@ impl<'a, T> LRParser<'a, T> {
                     if self.symbol_table.is_token_data(stream_sym) {
                         stack_t.push(std::mem::take(&mut stream_str));
                     }
-                    if nbr_parser_errors == 0 { wrapper.push_span(stream_span.take()); }
+                    if call_wrapper { wrapper.push_span(stream_span.take()); }
                     state = new_state;
                     advance_stream = true;
                 }
@@ -171,11 +180,11 @@ impl<'a, T> LRParser<'a, T> {
                     stack_state.push(state);
                     if VERBOSE { println!("- reduce({alt}) -> state {pop_state} -> goto {state}"); }
                     let t_data = stack_t.drain(stack_t.len() - nbr_t as usize..).to_vec();
-                    if nbr_parser_errors == 0 { wrapper.switch(Call::Exit, nt, alt, Some(t_data)); }
+                    if call_wrapper { wrapper.switch(Call::Exit, nt, alt, Some(t_data)); }
                 }
                 LRAction::Accept => {
                     if VERBOSE { println!("- accept"); }
-                    if nbr_parser_errors == 0 { wrapper.switch(Call::End(Terminate::None), 0, 0, None); }
+                    if call_wrapper { wrapper.switch(Call::End(Terminate::None), 0, 0, None); }
                     stack_state.pop();
                     stack_state.pop();
                     break;
@@ -183,7 +192,7 @@ impl<'a, T> LRParser<'a, T> {
                 LRAction::Error => {
                     let expected = (0..self.num_t_full)
                         .filter(|t| self.action[*t + state as usize * self.num_t_full].is_action())
-                        .map(|t| if t < self.num_t_full - 1 { Symbol::T(t as TokenId).to_str_quote(sym_table) } else { "<EOF>".to_string() })
+                        .map(|t| self.t_to_string(t as TokenId))
                         .join(", ");
                     let sym_str = if stream_sym == token_eof {
                         "end of stream".to_string()
@@ -196,14 +205,29 @@ impl<'a, T> LRParser<'a, T> {
                         if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }
                     );
                     wrapper.report(Some(&stream_span), LogMsg::Error(msg));
+                    call_wrapper = false;
                     nbr_parser_errors += 1;
                     if nbr_parser_errors > Self::MAX_NBR_PARSER_ERRORS {
                         error = Some(ParserError::TooManyErrors);
                         break;
                     }
-                    // todo!("try and recover")
-                    error = Some(ParserError::SyntaxError);
-                    break;
+                    if let Some(new_state) = self.recover(
+                        &mut stream,
+                        &mut stream_sym,
+                        &mut stream_str,
+                        &mut stream_pos,
+                        &mut stream_span,
+                        wrapper,
+                        &mut stack_state
+                    ) {
+                        let pos = if let Some(pos) = stream_pos { format!(" at {pos}") } else { String::new() };
+                        wrapper.report(None, LogMsg::Note(format!("resynchronized from syntax error on {}{pos}", self.t_to_string(stream_sym))));
+                        state = new_state;
+                        stack_state.push(state);
+                    } else {
+                        error = Some(ParserError::SyntaxError);
+                        break;
+                    }
                 }
             }
             match wrapper.check_abort_request() {
@@ -221,16 +245,92 @@ impl<'a, T> LRParser<'a, T> {
                 }
             }
         }
-        if let Some(err) = error {
-            wrapper.abort();
-            Err(err)
-        } else {
+        if nbr_parser_errors == 0 && nbr_lexer_errors == 0 && error.is_none() {
             assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
             assert!(stack_state.is_empty(), "stack_state: {}", stack_state.iter().map(LRStateId::to_string).collect::<Vec<_>>().join(", "));
             assert!(wrapper.is_stack_empty(), "symbol stack isn't empty");
             assert!(wrapper.is_stack_t_empty(), "text stack isn't empty");
             assert!(wrapper.is_stack_span_empty(), "span stack isn't empty");
             Ok(())
+        } else {
+            let err = error.unwrap_or(ParserError::EncounteredErrors);
+            wrapper.abort();
+            Err(err)
         }
+    }
+
+    fn recover<I, L>(
+        &self,
+        stream: &mut I,
+        stream_sym: &mut u16,
+        stream_str: &mut String,
+        stream_pos: &mut Option<Pos>,
+        stream_span: &mut PosSpan,
+        wrapper: &mut L,
+        stack_state: &mut Vec<LRStateId>
+    ) -> Option<LRStateId>
+    where
+        I: Iterator<Item=ParserToken>,
+        L: ListenerWrapper,
+    {
+        const VERBOSE: bool = false;
+        const BEFORE_ANSI: &str = "\u{1b}[31m";
+        const AFTER_ANSI : &str = "\u{1b}[0m";
+        let mut candidates = Vec::<(VarId, LRStateId)>::new();
+        let mut goto_state = 0;
+        // finds a state with a GOTO, but don't pop the start state
+        while candidates.is_empty() && stack_state.len() > 1 && let Some(state) = stack_state.pop() {
+            goto_state = state;
+            let goto_row = state as usize * self.num_nt;
+            // check the available GOTO states:
+            candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
+                .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
+                .collect();
+            if VERBOSE { println!("- {BEFORE_ANSI}goto_state {goto_state}, candidates = {candidates:?}{AFTER_ANSI}"); }
+        }
+        if VERBOSE {
+            println!(
+                "{BEFORE_ANSI}parser error recovery: candidates = {}{AFTER_ANSI}",
+                candidates.iter().map(|(v, s)| format!("{} / state {s}", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", "));
+        }
+        let token_error = self.num_t_full as TokenId;
+        let token_eof = token_error - 1;
+        while !candidates.is_empty() {
+            for &(_var, state) in &candidates {
+                let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
+                if action.is_action() {
+                    if matches!(action, LRAction::Reduce(_)) {
+                        // we put back the goto_state on the stack because it will be required after the reduce
+                        stack_state.push(goto_state);
+                    }
+                    if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
+                    return Some(state)
+                }
+            }
+            (*stream_sym, *stream_str) = loop {
+                if let Some((t, s, span)) = stream.next() {
+                    *stream_pos = Some(span.first_forced());
+                    *stream_span = span;
+                    // we can't say which interception to use, so we call both
+                    let t1 = wrapper.intercept_token(t, &s, &stream_span);
+                    let t2 = wrapper.hook(t1, s.as_str(), &stream_span);
+                    break (t2, s)
+                } else {
+                    *stream_pos = None;
+                    if let Some((_t, s, _span)) = stream.next() {
+                        // an error code after the end means an unrecognized sequence: we may try to continue,
+                        // but we don't count the max lexical errors here for the sake of simplicity
+                        wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s}")));
+                        continue;
+                    } else {
+                        // end of stream
+                        break (token_eof, String::new())
+                    }
+                }
+            };
+            if *stream_sym == token_eof { break }
+            if VERBOSE { println!("{BEFORE_ANSI}- no symbol was compatible, scanning new symbol {}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
+        }
+        None
     }
 }

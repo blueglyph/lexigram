@@ -5536,7 +5536,7 @@ pub(crate) mod rules_504_1 {
                 };
                 let listener = wrapper.give_listener();
                 let result = &listener.list;
-                if VERBOSE { println!("list = {result:?}"); }
+                if VERBOSE { println!("list = {result:?}\nlog:{}", listener.log); }
                 assert_eq!(is_error, expected_error, "parser error with input {input:?}");
                 let expected_list = expected_list.map(|maybe| maybe.into_iter().map(|s| s.to_string()).to_vec());
                 assert_eq!(result, &expected_list, "mismatch result with input {input:?}");
