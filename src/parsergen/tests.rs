@@ -204,8 +204,8 @@ pub(super) mod wrapper_source {
     /// fields of each test in [build_items()]
     pub type BuildItemsTestEntry = (
         u32,                                        // TestRules #
-        bool,                                       // test sources?
-        bool,                                       // test sources include parser?
+        bool,                                       // write/check sources?
+        bool,                                       // sources include parser?
         bool,                                       // use super::super::wrapper_code::...?
         u16,                                        // start NT
         BTreeMap<VarId, String>,                    // NT types
@@ -264,7 +264,7 @@ pub(super) mod wrapper_source {
                 start_nt, nt_type,
                 expected_items, gen_span_params, has_value, expected_alts
             ) = test_entry;
-            // if !matches!(tr_id, 984..1000) { continue }
+            // if !matches!(tr_id, 903) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: TestRule({tr_id}) #{rule_iter}, start {start_nt}:", ""); }
             let wrapper_filename = wrapper_filenames.into_iter()

@@ -9,8 +9,8 @@ use crate::parsergen::tests::wrapper_source::{build_items, BuildItemsTestEntry, 
 
 // List in decreasing order of test parser number of the file were they're generated:
 static WRAPPER_FILENAMES: &[(u32, &str)] = &[
-    (980, "tests/out_lr/wrapper_source1.rs"),   //       n >= 880
-    (  0, "tests/out_lr/wrapper_source.rs"),    // 880 > n >= 0
+    (900, "tests/out_lr/wrapper_source1.rs"),   //       n >= 900
+    (  0, "tests/out_lr/wrapper_source.rs"),    // 900 > n >= 0
 ];
 
 fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
@@ -429,6 +429,44 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         ], true, NTValue::Default, btreemap![0 => vec![0, 1, 2, 3]]),
 
         // =========================================================================== mix
+        // program -> (<L=stmt_i> stmt)*
+        // stmt -> decl | inst
+        // decl -> Type (Id / ",")+ ";" | "typedef" Type Id ";"
+        // inst -> Id "=" expr ";" | "print" expr ";"
+        // expr -> "-" expr | expr "+" expr | expr <P> "-" expr | Id | Num
+        //
+        //   NT    name      val   flags
+        // +----------------------------------------------+
+        // |   0 | program  |    | parent_+_or_*          |
+        // |   1 | . stmt_i |    | child_+_or_*, L-form   |
+        // |   2 | stmt     |    |                        |
+        // |   3 | decl     |    | parent_+_or_*          |
+        // |   6 | . decl_1 | y  | child_+_or_*, sep_list |
+        // |   4 | inst     |    |                        |
+        // |   5 | expr     |    |                        |
+        // +----------------------------------------------+
+        #[cfg(any())] // disabled because the wrapper source code has been modified
+        (903, true, true, false, 0, btreemap![
+        ], vec![
+            (strip![nt 1],                          1, symbols![]),          //  0: program -> stmt_i             | ►stmt_i                 | 1    |
+            (strip![nt 2, loop 1],                  2, symbols![]),          //  1: stmt_i -> stmt_i stmt         | ►stmt ●stmt_i           | 2    |
+            (strip![],                              1, symbols![]),          //  2: stmt_i -> ε                   |                         | 1    |
+            (strip![nt 3],                          1, symbols![]),          //  3: stmt -> decl                  | ►decl                   | 1    |
+            (strip![nt 4],                          1, symbols![]),          //  4: stmt -> inst                  | ►inst                   | 1    |
+            (strip![t 4, nt 6, t 2],                3, symbols![t 2, nt 6]), //  5: decl -> Type decl_1 ";"       | ";" ►decl_1 Type!       | 3    | Type decl_1
+            (strip![t 4, t 1, t 2, t 5],            4, symbols![t 2, t 1]),  //  6: decl -> "typedef" Type Id ";" | ";" Id! Type! "typedef" | 4    | Type Id
+            (strip![t 4, nt 5, t 6, t 1],           4, symbols![t 1]),       //  7: inst -> Id "=" expr ";"       | ";" ►expr "=" Id!       | 4    | Id
+            (strip![t 4, nt 5, t 7],                3, symbols![]),          //  8: inst -> "print" expr ";"      | ";" ►expr "print"       | 3    |
+            (strip![nt 5, t 8],                     2, symbols![]),          //  9: expr -> "-" expr              | ►expr "-"               | 2    |
+            (strip![nt 5, t 9, nt 5],               3, symbols![]),          // 10: expr -> expr "+" expr         | ►expr "+" ►expr         | 3    |
+            (strip![nt 5, t 8, nt 5],               3, symbols![]),          // 11: expr -> expr "-" expr         | ►expr "-" ►expr         | 3    |
+            (strip![t 1],                           1, symbols![t 1]),       // 12: expr -> Id                    | Id!                     | 1    | Id
+            (strip![t 0],                           1, symbols![t 0]),       // 13: expr -> Num                   | Num!                    | 1    | Num
+            (strip![t 1, t 3, loop 6],              3, symbols![nt 6, t 1]), // 14: decl_1 -> decl_1 "," Id       | Id! "," ●decl_1         | 3, 1 | decl_1 Id
+            (strip![t 1],                           2, symbols![nt 6, t 1]), // 15: decl_1 -> Id                  | Id!                     | 2    | decl_1 Id
+            (strip![nt 0],                          1, symbols![]),          // 16: <goal> -> program             | ►program                | 1    |
+        ], true, NTValue::None, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9, 10, 11, 12, 13]]),
+
         // a -> s p
         // s -> vs ns xs
         // p -> vp np xp

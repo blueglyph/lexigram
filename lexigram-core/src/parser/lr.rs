@@ -276,6 +276,7 @@ impl<'a, T> LRParser<'a, T> {
         const VERBOSE: bool = false;
         const BEFORE_ANSI: &str = "\u{1b}[31m";
         const AFTER_ANSI : &str = "\u{1b}[0m";
+        if VERBOSE { println!("{BEFORE_ANSI}parser panic-mode recovery:\n- states {stack_state:?}{AFTER_ANSI}"); }
         let mut candidates = Vec::<(VarId, LRStateId)>::new();
         let mut goto_state = 0;
         // finds a state with a GOTO, but don't pop the start state
@@ -286,12 +287,17 @@ impl<'a, T> LRParser<'a, T> {
             candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
                 .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
                 .collect();
-            if VERBOSE { println!("- {BEFORE_ANSI}goto_state {goto_state}, candidates = {candidates:?}{AFTER_ANSI}"); }
+            if VERBOSE {
+                println!(
+                    "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}{AFTER_ANSI}",
+                    candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", ")
+                );
+            }
         }
         if VERBOSE {
             println!(
-                "{BEFORE_ANSI}parser error recovery: candidates = {}{AFTER_ANSI}",
-                candidates.iter().map(|(v, s)| format!("{} / state {s}", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", "));
+                "{BEFORE_ANSI}- candidates = {}{AFTER_ANSI}",
+                candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", "));
         }
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
@@ -303,7 +309,10 @@ impl<'a, T> LRParser<'a, T> {
                         // we put back the goto_state on the stack because it will be required after the reduce
                         stack_state.push(goto_state);
                     }
-                    if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
+                    if VERBOSE {
+                        println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym));
+                        println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
+                    }
                     return Some(state)
                 }
             }
@@ -331,6 +340,7 @@ impl<'a, T> LRParser<'a, T> {
             if *stream_sym == token_eof { break }
             if VERBOSE { println!("{BEFORE_ANSI}- no symbol was compatible, scanning new symbol {}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
         }
+        if VERBOSE { println!("{BEFORE_ANSI}couldn't recover\n- states {stack_state:?}{AFTER_ANSI}"); }
         None
     }
 }
