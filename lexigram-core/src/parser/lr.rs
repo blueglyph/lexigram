@@ -98,6 +98,7 @@ impl<'a, T> LRParser<'a, T> {
               L: ListenerWrapper,
     {
         const VERBOSE: bool = false;
+        const CALL_WRAPPER_AFTER_ERROR: bool = true;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
@@ -205,7 +206,7 @@ impl<'a, T> LRParser<'a, T> {
                         if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }
                     );
                     wrapper.report(Some(&stream_span), LogMsg::Error(msg));
-                    call_wrapper = false;
+                    call_wrapper = CALL_WRAPPER_AFTER_ERROR;
                     nbr_parser_errors += 1;
                     if nbr_parser_errors > Self::MAX_NBR_PARSER_ERRORS {
                         error = Some(ParserError::TooManyErrors);
@@ -305,10 +306,8 @@ impl<'a, T> LRParser<'a, T> {
             for &(_var, state) in &candidates {
                 let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
                 if action.is_action() {
-                    if matches!(action, LRAction::Reduce(_)) {
-                        // we put back the goto_state on the stack because it will be required after the reduce
-                        stack_state.push(goto_state);
-                    }
+                    // we put back the goto_state on the stack because it will be required after the action
+                    stack_state.push(goto_state);
                     if VERBOSE {
                         println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym));
                         println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
