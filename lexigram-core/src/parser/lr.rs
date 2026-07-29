@@ -98,6 +98,8 @@ impl<'a, T> LRParser<'a, T> {
               L: ListenerWrapper,
     {
         const VERBOSE: bool = false;
+        const BEFORE: &str = "\u{1b}[33m";
+        const AFTER : &str = "\u{1b}[0m";
         const CALL_WRAPPER_AFTER_ERROR: bool = true;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
@@ -127,7 +129,11 @@ impl<'a, T> LRParser<'a, T> {
                         hook = false;
                         let new_t = if nbr_parser_errors == 0 {
                             let new_t = wrapper.hook(t, s.as_str(), &stream_span);
-                            if VERBOSE { println!("  hook changed {} to {}", Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table))) }
+                            if VERBOSE {
+                                println!(
+                                    "{BEFORE}hook changed {} to {}{AFTER}",
+                                    Symbol::T(t).to_str(Some(&self.symbol_table)), Symbol::T(new_t).to_str(Some(&self.symbol_table)))
+                            }
                             new_t
                         } else {
                             t
@@ -153,7 +159,7 @@ impl<'a, T> LRParser<'a, T> {
             }
             if VERBOSE {
                 println!(
-                    "states [{}] -> {state}, stack_t [{}], input: token {} = {stream_str:?}",
+                    "{BEFORE}states [{}] {state}, stack_t [{}], input: {} ({stream_str:?}){AFTER}",
                     stack_state.iter().map(|s| s.to_string()).join(" "),
                     stack_t.iter().map(|s| format!("{s:?}")).join(", "),
                     Symbol::T(stream_sym).to_str(sym_table)
@@ -163,7 +169,7 @@ impl<'a, T> LRParser<'a, T> {
             match action {
                 LRAction::Shift(new_state) | LRAction::ShiftHook(new_state) => {
                     hook = action.is_hook();
-                    if VERBOSE { println!("- shift({new_state})"); }
+                    if VERBOSE { println!("{BEFORE}- shift({new_state}){AFTER}"); }
                     stack_state.push(new_state);
                     if self.symbol_table.is_token_data(stream_sym) {
                         stack_t.push(std::mem::take(&mut stream_str));
@@ -179,12 +185,12 @@ impl<'a, T> LRParser<'a, T> {
                     let pop_state = *stack_state.last().unwrap();
                     state = self.goto[nt as usize + pop_state as usize * self.num_nt];
                     stack_state.push(state);
-                    if VERBOSE { println!("- reduce({alt}) -> state {pop_state} -> goto {state}"); }
+                    if VERBOSE { println!("{BEFORE}- reduce({alt}) -> state {pop_state} -> goto {state}{AFTER}"); }
                     let t_data = stack_t.drain(stack_t.len() - nbr_t as usize..).to_vec();
                     if call_wrapper { wrapper.switch(Call::Exit, nt, alt, Some(t_data)); }
                 }
                 LRAction::Accept => {
-                    if VERBOSE { println!("- accept"); }
+                    if VERBOSE { println!("{BEFORE}- accept{AFTER}"); }
                     if call_wrapper { wrapper.switch(Call::End(Terminate::None), 0, 0, None); }
                     stack_state.pop();
                     stack_state.pop();
@@ -234,7 +240,7 @@ impl<'a, T> LRParser<'a, T> {
             match wrapper.check_abort_request() {
                 Terminate::None => {}
                 terminate @ (Terminate::Abort | Terminate::Conclude) => {
-                    if VERBOSE { println!("detected {terminate:?}"); }
+                    if VERBOSE { println!("{BEFORE}detected {terminate:?}{AFTER}"); }
                     stack_state.clear();
                     wrapper.abort();
                     wrapper.switch(Call::End(terminate), 0, 0, None);
