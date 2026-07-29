@@ -217,8 +217,9 @@ pub(crate) mod rules_903_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("> stack_t:    [{}]", self.stack_t.join(", "));
+                println!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));
             }
         }
 
@@ -511,12 +512,24 @@ pub(crate) mod rules_903_1 {
                     CtxExpr::V5 { num } => {}
                 }
             }
+
+            fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+                const BEFORE_ANSI: &str = "\u{1b}[31m";
+                const AFTER_ANSI : &str = "\u{1b}[0m";
+                if let LogMsg::Error(e) = &msg {
+                    println!("{BEFORE_ANSI}{e}{AFTER_ANSI}");
+                    if let Some(span) = span_opt {
+                        println!("{BEFORE_ANSI}>>{AFTER_ANSI} {}", self.annotate(span));
+                    }
+                }
+                self.get_log_mut().add(msg);
+            }
         }
 
         /// Tests good and bad texts. Can be used to check error-recovery algorithms in the LR parser.
         #[test]
         fn test() {
-            const VERBOSE: bool = false;
+            const VERBOSE: bool = true;
 
             // program -> (<L=stmt_i> stmt)*
             // stmt -> decl | inst
@@ -529,16 +542,20 @@ pub(crate) mod rules_903_1 {
                     None,
                 ),
                 (
-                    "Type , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
-                    Some([r#"unexpected input "," instead of Id"#]),
-                ),
-                (
                     "Type a , b , c ; a + 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input "+" instead of "=""#]),
                 ),
                 (
+                    "Type a , b , ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
+                    Some([r#"unexpected input ";" instead of Id"#]),
+                ),
+                (
                     "Type a , b , c ; a = 1 ; b = a + ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Num, Id, "-""#]),
+                ),
+                (
+                    "Type , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
+                    Some([r#"unexpected input "," instead of Id"#]),
                 ),
                 (
                     "Type a , b , c ; a = ; b = a + 2 ; c = b - 2 ; print c ;",
@@ -548,10 +565,10 @@ pub(crate) mod rules_903_1 {
             ];
             let mut parser = build_parser();
             for (test_id, (input, expected_errors)) in sequences.into_iter().enumerate() {
-                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                if VERBOSE { println!("\n{:=<80}\nnew input '{input}'", ""); }
                 let stream = make_stream(input, SYMBOLS_T, true, Some(1), Some(0), false);
                 let listener = Listener::new(input, VERBOSE);
-                let mut wrapper = Wrapper::new(listener, false);
+                let mut wrapper = Wrapper::new(listener, VERBOSE);
                 let result = parser.parse_stream(&mut wrapper, stream);
                 let listener = wrapper.give_listener();
                 let errors = match result {
