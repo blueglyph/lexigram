@@ -2991,8 +2991,11 @@ impl ParserGen {
         src.push("        }".to_string());
         src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
         src.push("        if self.verbose {".to_string());
-        src.push(r#"            println!("> stack_t:   {}", self.stack_t.join(", "));"#.to_string());
-        src.push(r#"            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));"#.to_string());
+        src.push(r#"            println!("> stack_t:    [{}]", self.stack_t.join(", "));"#.to_string());
+        src.push(r#"            println!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));"#.to_string());
+        if self.options.gen_span_params {
+            src.push(r#"            println!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));"#.to_string());
+        }
         // src.push(r#"            println!("> spans:     {}", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));"#.to_string());
         src.push("        }".to_string());
         src.push("    }".to_string());
