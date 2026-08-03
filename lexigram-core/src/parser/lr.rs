@@ -97,10 +97,10 @@ impl<'a, T> LRParser<'a, T> {
         where I: Iterator<Item=ParserToken>,
               L: ListenerWrapper,
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const BEFORE: &str = "\u{1b}[33m";
         const AFTER : &str = "\u{1b}[0m";
-        const CALL_WRAPPER_AFTER_ERROR: bool = true;
+        // const CALL_WRAPPER_AFTER_ERROR: bool = true;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
@@ -212,23 +212,27 @@ impl<'a, T> LRParser<'a, T> {
                         if let Some(Pos(line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }
                     );
                     wrapper.report(Some(&stream_span), LogMsg::Error(msg));
-                    call_wrapper = CALL_WRAPPER_AFTER_ERROR;
                     nbr_parser_errors += 1;
                     if nbr_parser_errors > Self::MAX_NBR_PARSER_ERRORS {
                         error = Some(ParserError::TooManyErrors);
                         break;
                     }
-                    if let Some(new_state) = self.recover(
+                    if let Some((new_state, keep_calling_wrapper)) = self.recover(
                         &mut stream,
                         &mut stream_sym,
                         &mut stream_str,
                         &mut stream_pos,
                         &mut stream_span,
                         wrapper,
-                        &mut stack_state
+                        &mut stack_state,
+                        &mut stack_t
                     ) {
+                        call_wrapper = keep_calling_wrapper;
                         let pos = if let Some(pos) = stream_pos { format!(" at {pos}") } else { String::new() };
                         wrapper.report(None, LogMsg::Note(format!("resynchronized from syntax error on {}{pos}", self.t_to_string(stream_sym))));
+                        if !call_wrapper {
+                            wrapper.report(None, LogMsg::Note(format!("the rest of the stream will be parsed, but the listener interface can't be used any more")));
+                        }
                         state = new_state;
                         stack_state.push(state);
                     } else {
@@ -274,13 +278,14 @@ impl<'a, T> LRParser<'a, T> {
         stream_pos: &mut Option<Pos>,
         stream_span: &mut PosSpan,
         wrapper: &mut L,
-        stack_state: &mut Vec<LRStateId>
-    ) -> Option<LRStateId>
+        stack_state: &mut Vec<LRStateId>,
+        stack_t: &mut Vec<String>
+    ) -> Option<(LRStateId, bool)>
     where
         I: Iterator<Item=ParserToken>,
         L: ListenerWrapper,
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const BEFORE_ANSI: &str = "\u{1b}[31m";
         const AFTER_ANSI : &str = "\u{1b}[0m";
         if VERBOSE { println!("{BEFORE_ANSI}parser panic-mode recovery:\n- states {stack_state:?}{AFTER_ANSI}"); }
@@ -294,6 +299,18 @@ impl<'a, T> LRParser<'a, T> {
             candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
                 .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
                 .collect();
+            if candidates.is_empty() {
+                let (sym, has_value) = wrapper.get_state_symbol_value(state);
+                match sym {
+                    Symbol::T(_) => {
+                        if has_value { stack_t.pop(); }
+                    }
+                    Symbol::NT(_) => {
+                        if has_value { wrapper.pop_syn_value(); }
+                    }
+                    _ => panic!()
+                }
+            }
             if VERBOSE {
                 println!(
                     "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}{AFTER_ANSI}",
@@ -308,8 +325,9 @@ impl<'a, T> LRParser<'a, T> {
         }
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
+        let mut err_span = PosSpan::empty();
         while !candidates.is_empty() {
-            for &(_var, state) in &candidates {
+            for &(var, state) in &candidates {
                 let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
                 if action.is_action() {
                     // we put back the goto_state on the stack because it will be required after the action
@@ -318,12 +336,16 @@ impl<'a, T> LRParser<'a, T> {
                         println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym));
                         println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
                     }
-                    return Some(state)
+                    let keep_calling_wrapper = wrapper.push_nt_recovery_value(var);
+                    wrapper.push_span(err_span);
+                    if VERBOSE { println!("{BEFORE_ANSI}{}{AFTER_ANSI}", wrapper.get_status().join("\n")); }
+                    return Some((state, keep_calling_wrapper))
                 }
             }
             (*stream_sym, *stream_str) = loop {
                 if let Some((t, s, span)) = stream.next() {
                     *stream_pos = Some(span.first_forced());
+                    err_span += &span;
                     *stream_span = span;
                     // we can't say which interception to use, so we call both
                     let t1 = wrapper.intercept_token(t, &s, &stream_span);

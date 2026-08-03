@@ -9,29 +9,29 @@
 // ================================================================================
 
 pub(crate) mod rules_903_1 {
-    // /// User-defined type for `program`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynProgram();
-    //
-    // /// User-defined type for `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynStmtI();
-    //
-    // /// User-defined type for `stmt`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynStmt();
-    //
-    // /// User-defined type for `decl`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynDecl();
-    //
-    // /// User-defined type for `inst`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynInst();
-    //
-    // /// User-defined type for `expr`
-    // #[derive(Debug, PartialEq)]
-    // pub struct SynExpr();
+    /// User-defined type for `program`
+    #[derive(Debug, PartialEq)]
+    pub struct SynProgram();
+
+    /// User-defined type for `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
+    #[derive(Debug, PartialEq)]
+    pub struct SynStmtI();
+
+    /// User-defined type for `stmt`
+    #[derive(Debug, PartialEq)]
+    pub struct SynStmt();
+
+    /// User-defined type for `decl`
+    #[derive(Debug, PartialEq)]
+    pub struct SynDecl();
+
+    /// User-defined type for `inst`
+    #[derive(Debug, PartialEq)]
+    pub struct SynInst();
+
+    /// User-defined type for `expr`
+    #[derive(Debug, PartialEq)]
+    pub struct SynExpr();
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
@@ -74,19 +74,19 @@ pub(crate) mod rules_903_1 {
     #[derive(Debug)]
     pub enum CtxProgram {
         /// `program -> (<L> stmt)*`
-        V1,
+        V1 { star: SynStmtI },
     }
     #[derive(Debug)]
     pub enum CtxStmtI {
         /// `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
-        V1,
+        V1 { stmt: SynStmt },
     }
     #[derive(Debug)]
     pub enum CtxStmt {
         /// `stmt -> decl`
-        V1,
+        V1 { decl: SynDecl },
         /// `stmt -> inst`
-        V2,
+        V2 { inst: SynInst },
     }
     #[derive(Debug)]
     pub enum CtxDecl {
@@ -98,18 +98,18 @@ pub(crate) mod rules_903_1 {
     #[derive(Debug)]
     pub enum CtxInst {
         /// `inst -> Id "=" expr ";"`
-        V1 { id: String },
+        V1 { id: String, expr: SynExpr },
         /// `inst -> "print" expr ";"`
-        V2,
+        V2 { expr: SynExpr },
     }
     #[derive(Debug)]
     pub enum CtxExpr {
         /// `expr -> "-" expr`
-        V1,
+        V1 { expr: SynExpr },
         /// `expr -> expr "+" expr`
-        V2,
+        V2 { expr: [SynExpr; 2] },
         /// `expr -> expr <P> "-" expr`
-        V3,
+        V3 { expr: [SynExpr; 2] },
         /// `expr -> Id`
         V4 { id: String },
         /// `expr -> Num`
@@ -119,17 +119,31 @@ pub(crate) mod rules_903_1 {
     /// Computed `(Id / ",")+` array in `decl -> Type  ►► (Id / ",")+ ◄◄  ";" | "typedef" Type Id ";"`
     #[derive(Debug, PartialEq)]
     pub struct SynDecl1(pub Vec<String>);
-    /// Top non-terminal Program (has no value)
-    #[derive(Debug, PartialEq)]
-    pub struct SynProgram();
 
     #[derive(Debug)]
-    enum EnumSynValue { Decl1(SynDecl1) }
+    enum EnumSynValue { Program(SynProgram), StmtI(SynStmtI), Stmt(SynStmt), Decl(SynDecl), Inst(SynInst), Expr(SynExpr), Decl1(SynDecl1) }
 
     impl EnumSynValue {
+        fn get_program(self) -> SynProgram {
+            if let EnumSynValue::Program(val) = self { val } else { panic!() }
+        }
+        fn get_stmt_i(self) -> SynStmtI {
+            if let EnumSynValue::StmtI(val) = self { val } else { panic!() }
+        }
+        fn get_stmt(self) -> SynStmt {
+            if let EnumSynValue::Stmt(val) = self { val } else { panic!() }
+        }
+        fn get_decl(self) -> SynDecl {
+            if let EnumSynValue::Decl(val) = self { val } else { panic!() }
+        }
+        fn get_inst(self) -> SynInst {
+            if let EnumSynValue::Inst(val) = self { val } else { panic!() }
+        }
+        fn get_expr(self) -> SynExpr {
+            if let EnumSynValue::Expr(val) = self { val } else { panic!() }
+        }
         fn get_decl1(self) -> SynDecl1 {
-            let EnumSynValue::Decl1(val) = self;
-            val
+            if let EnumSynValue::Decl1(val) = self { val } else { panic!() }
         }
     }
 
@@ -142,27 +156,20 @@ pub(crate) mod rules_903_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
-
+        fn push_span(&mut self, _span: &PosSpan) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
-        fn exit(&mut self, span: PosSpan) {}
+        fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
-        #[allow(unused_variables)]
-        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) {}
-        fn init_stmt_i(&mut self) {}
-        #[allow(unused_variables)]
-        fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {}
-        #[allow(unused_variables)]
-        fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) {}
-        #[allow(unused_variables)]
-        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) {}
-        #[allow(unused_variables)]
-        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) {}
-        #[allow(unused_variables)]
-        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) {}
-        fn push_span(&mut self, _span: &PosSpan) {}
+        fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram;
+        fn init_stmt_i(&mut self) -> SynStmtI;
+        fn exit_stmt_i(&mut self, acc: &mut SynStmtI, ctx: CtxStmtI, spans: Vec<PosSpan>);
+        fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt;
+        fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl;
+        fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst;
+        fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr;
     }
 
     pub struct Wrapper<T> {
@@ -207,8 +214,9 @@ pub(crate) mod rules_903_1 {
                 Call::End(terminate) => {
                     match terminate {
                         Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_program();
                             let span = self.stack_span.pop().unwrap();
-                            self.listener.exit(span);
+                            self.listener.exit(val, span);
                         }
                         Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
                     }
@@ -217,9 +225,7 @@ pub(crate) mod rules_903_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:    [{}]", self.stack_t.join(", "));
-                println!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
-                println!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -261,6 +267,79 @@ pub(crate) mod rules_903_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> bool {
+            const CONTINUE_AFTER_ERROR: bool = true;
+            if CONTINUE_AFTER_ERROR {
+                let val_maybe = match nt {
+                    0 => Some(EnumSynValue::Program(SynProgram())),
+                    1 => Some(EnumSynValue::StmtI(SynStmtI())),
+                    2 => Some(EnumSynValue::Stmt(SynStmt())),
+                    3 => Some(EnumSynValue::Decl(SynDecl())),
+                    4 => Some(EnumSynValue::Inst(SynInst())),
+                    5 => Some(EnumSynValue::Expr(SynExpr())),
+                    6 => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
+                    _ => None,
+                };
+                if let Some(val) = val_maybe {
+                    self.stack.push(val);
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+
+        fn get_state_symbol_value(&mut self, state: LRStateId) -> (lexigram_core::parser::Symbol, bool) {
+            use lexigram_core::parser::Symbol;
+            match state {
+                1 => (Symbol::NT(1), true),     // program -> stmt_i •
+                2 => (Symbol::T(2), true),      // decl -> Type • decl_1 ";"
+                3 => (Symbol::T(7), false),     // inst -> "print" • expr ";"
+                4 => (Symbol::T(6), false),     // inst -> Id "=" • expr ";"
+                5 => (Symbol::T(8), false),     // expr -> "-" • expr
+                6 => (Symbol::T(8), false),     // expr -> expr "-" • expr
+                7 => (Symbol::T(9), false),     // expr -> expr "+" • expr
+                8 => (Symbol::NT(0), true),     // <goal> -> program •
+                9 => (Symbol::T(1), true),      // inst -> Id • "=" expr ";"
+                10 => (Symbol::T(5), false),    // decl -> "typedef" • Type Id ";"
+                11 => (Symbol::NT(2), true),    // stmt_i -> stmt_i stmt •
+                12 => (Symbol::NT(3), true),    // stmt -> decl •
+                13 => (Symbol::NT(4), true),    // stmt -> inst •
+                14 => (Symbol::T(1), true),     // decl_1 -> Id •
+                15 => (Symbol::NT(6), true),    // decl -> Type decl_1 • ";"
+                16 => (Symbol::T(2), true),     // decl -> "typedef" Type • Id ";"
+                17 => (Symbol::T(0), true),     // expr -> Num •
+                18 => (Symbol::T(1), true),     // expr -> Id •
+                19 => (Symbol::NT(5), true),    // inst -> "print" expr • ";"
+                20 => (Symbol::NT(5), true),    // inst -> Id "=" expr • ";"
+                21 => (Symbol::T(3), false),    // decl_1 -> decl_1 "," • Id
+                22 => (Symbol::T(4), false),    // decl -> Type decl_1 ";" •
+                23 => (Symbol::T(1), true),     // decl -> "typedef" Type Id • ";"
+                24 => (Symbol::NT(5), true),    // expr -> "-" expr •
+                25 => (Symbol::T(4), false),    // inst -> "print" expr ";" •
+                26 => (Symbol::T(4), false),    // inst -> Id "=" expr ";" •
+                27 => (Symbol::T(1), true),     // decl_1 -> decl_1 "," Id •
+                28 => (Symbol::T(4), false),    // decl -> "typedef" Type Id ";" •
+                29 => (Symbol::NT(5), true),    // expr -> expr • "+" expr
+                30 => (Symbol::NT(5), true),    // expr -> expr "+" expr •
+                _ => panic!("unknonw state {state}")
+            }
+        }
+
+        fn pop_syn_value(&mut self) {
+            self.stack.pop();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
@@ -285,37 +364,45 @@ pub(crate) mod rules_903_1 {
         }
 
         fn exit_program(&mut self) {
-            let ctx = CtxProgram::V1;
+            let star = self.stack.pop().unwrap().get_stmt_i();
+            let ctx = CtxProgram::V1 { star };
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_program(ctx, spans);
+            let val = self.listener.exit_program(ctx, spans);
+            self.stack.push(EnumSynValue::Program(val));
         }
 
         fn init_stmt_i(&mut self) {
-            self.listener.init_stmt_i();
+            let val = self.listener.init_stmt_i();
+            self.stack.push(EnumSynValue::StmtI(val));
             self.stack_span.push(PosSpan::empty());
         }
 
         fn exit_stmt_i(&mut self) {
-            let ctx = CtxStmtI::V1;
+            let stmt = self.stack.pop().unwrap().get_stmt();
+            let ctx = CtxStmtI::V1 { stmt };
             let spans = self.stack_span.drain(self.stack_span.len() - 2 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_stmt_i(ctx, spans);
+            let Some(EnumSynValue::StmtI(acc)) = self.stack.last_mut() else { panic!() };
+            self.listener.exit_stmt_i(acc, ctx, spans);
         }
 
         fn exit_stmt(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 3 => {
-                    (1, CtxStmt::V1)
+                    let decl = self.stack.pop().unwrap().get_decl();
+                    (1, CtxStmt::V1 { decl })
                 }
                 4 => {
-                    (1, CtxStmt::V2)
+                    let inst = self.stack.pop().unwrap().get_inst();
+                    (1, CtxStmt::V2 { inst })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_stmt")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_stmt(ctx, spans);
+            let val = self.listener.exit_stmt(ctx, spans);
+            self.stack.push(EnumSynValue::Stmt(val));
         }
 
         fn exit_decl(&mut self, alt_id: AltId) {
@@ -334,7 +421,8 @@ pub(crate) mod rules_903_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_decl(ctx, spans);
+            let val = self.listener.exit_decl(ctx, spans);
+            self.stack.push(EnumSynValue::Decl(val));
         }
 
         fn init_decl1(&mut self) {
@@ -357,29 +445,37 @@ pub(crate) mod rules_903_1 {
         fn exit_inst(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 7 => {
+                    let expr = self.stack.pop().unwrap().get_expr();
                     let id = self.stack_t.pop().unwrap();
-                    (4, CtxInst::V1 { id })
+                    (4, CtxInst::V1 { id, expr })
                 }
                 8 => {
-                    (3, CtxInst::V2)
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (3, CtxInst::V2 { expr })
                 }
                 _ => panic!("unexpected alt id {alt_id} in method exit_inst")
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_inst(ctx, spans);
+            let val = self.listener.exit_inst(ctx, spans);
+            self.stack.push(EnumSynValue::Inst(val));
         }
 
         fn exit_expr(&mut self, alt_id: AltId) {
             let (n, ctx) = match alt_id {
                 9 => {
-                    (2, CtxExpr::V1)
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    (2, CtxExpr::V1 { expr })
                 }
                 10 => {
-                    (3, CtxExpr::V2)
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V2 { expr: [expr_1, expr_2] })
                 }
                 11 => {
-                    (3, CtxExpr::V3)
+                    let expr_2 = self.stack.pop().unwrap().get_expr();
+                    let expr_1 = self.stack.pop().unwrap().get_expr();
+                    (3, CtxExpr::V3 { expr: [expr_1, expr_2] })
                 }
                 12 => {
                     let id = self.stack_t.pop().unwrap();
@@ -393,7 +489,8 @@ pub(crate) mod rules_903_1 {
             };
             let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
-            self.listener.exit_expr(ctx, spans);
+            let val = self.listener.exit_expr(ctx, spans);
+            self.stack.push(EnumSynValue::Expr(val));
         }
     }
 
@@ -451,33 +548,36 @@ pub(crate) mod rules_903_1 {
             fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
             }
-        
-            fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) {
+
+            fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
                 if self.verbose { println!("exit_program:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 // program -> (<L> stmt)*
-                let CtxProgram::V1 = ctx;
+                let CtxProgram::V1 { .. }  = ctx;
+                SynProgram()
             }
         
-            fn init_stmt_i(&mut self) {
+            fn init_stmt_i(&mut self) -> SynStmtI {
+                SynStmtI()
             }
         
-            fn exit_stmt_i(&mut self, ctx: CtxStmtI, spans: Vec<PosSpan>) {
+            fn exit_stmt_i(&mut self, acc: &mut SynStmtI, ctx: CtxStmtI, spans: Vec<PosSpan>) {
                 if self.verbose { println!("exit_stmt_i:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 // `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
-                let CtxStmtI::V1 = ctx;
+                let CtxStmtI::V1 { stmt } = ctx;
             }
         
-            fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) {
+            fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt {
                 if self.verbose { println!("exit_stmt:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 match ctx {
                     // stmt -> decl
-                    CtxStmt::V1 => {}
+                    CtxStmt::V1 { decl } => {}
                     // stmt -> inst
-                    CtxStmt::V2 => {}
+                    CtxStmt::V2 { inst } => {}
                 }
+                SynStmt()
             }
         
-            fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) {
+            fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
                 if self.verbose { println!("exit_decl:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 match ctx {
                     // decl -> Type (Id / ",")+ ";"
@@ -485,32 +585,35 @@ pub(crate) mod rules_903_1 {
                     // decl -> "typedef" Type Id ";"
                     CtxDecl::V2 { type1, id } => {}
                 }
+                SynDecl()
             }
         
-            fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) {
+            fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
                 if self.verbose { println!("exit_inst:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 match ctx {
                     // inst -> Id "=" expr ";"
-                    CtxInst::V1 { id } => {}
+                    CtxInst::V1 { id, expr } => {}
                     // inst -> "print" expr ";"
-                    CtxInst::V2 => {}
+                    CtxInst::V2 { expr } => {}
                 }
+                SynInst()
             }
         
-            fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) {
+            fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
                 if self.verbose { println!("exit_expr:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 match ctx {
                     // expr -> "-" expr
-                    CtxExpr::V1 => {}
+                    CtxExpr::V1 { expr } => {}
                     // expr -> expr "+" expr
-                    CtxExpr::V2 => {}
+                    CtxExpr::V2 { expr } => {}
                     // expr -> expr <P> "-" expr
-                    CtxExpr::V3 => {}
+                    CtxExpr::V3 { expr } => {}
                     // expr -> Id
                     CtxExpr::V4 { id } => {}
                     // expr -> Num
                     CtxExpr::V5 { num } => {}
                 }
+                SynExpr()
             }
 
             fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
@@ -542,16 +645,20 @@ pub(crate) mod rules_903_1 {
                     None,
                 ),
                 (
+                    "Type a , b , c ; a = 1 ; b = a + ; c = b - 2 ; print c ;",
+                    Some([r#"unexpected input ";" instead of Num, Id, "-""#]),
+                ),
+                (
+                    "Type a , b , c ; ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
+                    Some([r#"unexpected input ";" instead of Id"#]),
+                ),
+                (
                     "Type a , b , c ; a + 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input "+" instead of "=""#]),
                 ),
                 (
                     "Type a , b , ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Id"#]),
-                ),
-                (
-                    "Type a , b , c ; a = 1 ; b = a + ; c = b - 2 ; print c ;",
-                    Some([r#"unexpected input ";" instead of Num, Id, "-""#]),
                 ),
                 (
                     "Type , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",

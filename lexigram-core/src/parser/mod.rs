@@ -338,6 +338,21 @@ pub trait ListenerWrapper {
     fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         token
     }
+
+    fn get_status(&self) -> Vec<String> { Vec::new() }
+
+    /// Requests the wrapper to push a dummy value to resynchronize its stack in case of error recovery.
+    ///
+    /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
+    /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
+    #[allow(unused_variables)]
+    fn push_nt_recovery_value(&mut self, nt: VarId) -> bool { false }
+
+    /// Returns the symbol on the left of the dot and whether it has a value
+    #[allow(unused_variables)]
+    fn get_state_symbol_value(&mut self, state: crate::parser::lr::LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
+
+    fn pop_syn_value(&mut self) {}
 }
 
 // ---------------------------------------------------------------------------------------------

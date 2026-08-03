@@ -445,27 +445,27 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         // |   4 | inst     |    |                        |
         // |   5 | expr     |    |                        |
         // +----------------------------------------------+
-        #[cfg(any())] // disabled because the wrapper source code has been modified
+        // #[cfg(any())] // disabled because the wrapper source code has been modified
         (903, true, true, false, 0, btreemap![
         ], vec![
-            (strip![nt 1],                          1, symbols![]),          //  0: program -> stmt_i             | ►stmt_i                 | 1    |
-            (strip![nt 2, loop 1],                  2, symbols![]),          //  1: stmt_i -> stmt_i stmt         | ►stmt ●stmt_i           | 2    |
-            (strip![],                              1, symbols![]),          //  2: stmt_i -> ε                   |                         | 1    |
-            (strip![nt 3],                          1, symbols![]),          //  3: stmt -> decl                  | ►decl                   | 1    |
-            (strip![nt 4],                          1, symbols![]),          //  4: stmt -> inst                  | ►inst                   | 1    |
-            (strip![t 4, nt 6, t 2],                3, symbols![t 2, nt 6]), //  5: decl -> Type decl_1 ";"       | ";" ►decl_1 Type!       | 3    | Type decl_1
-            (strip![t 4, t 1, t 2, t 5],            4, symbols![t 2, t 1]),  //  6: decl -> "typedef" Type Id ";" | ";" Id! Type! "typedef" | 4    | Type Id
-            (strip![t 4, nt 5, t 6, t 1],           4, symbols![t 1]),       //  7: inst -> Id "=" expr ";"       | ";" ►expr "=" Id!       | 4    | Id
-            (strip![t 4, nt 5, t 7],                3, symbols![]),          //  8: inst -> "print" expr ";"      | ";" ►expr "print"       | 3    |
-            (strip![nt 5, t 8],                     2, symbols![]),          //  9: expr -> "-" expr              | ►expr "-"               | 2    |
-            (strip![nt 5, t 9, nt 5],               3, symbols![]),          // 10: expr -> expr "+" expr         | ►expr "+" ►expr         | 3    |
-            (strip![nt 5, t 8, nt 5],               3, symbols![]),          // 11: expr -> expr "-" expr         | ►expr "-" ►expr         | 3    |
-            (strip![t 1],                           1, symbols![t 1]),       // 12: expr -> Id                    | Id!                     | 1    | Id
-            (strip![t 0],                           1, symbols![t 0]),       // 13: expr -> Num                   | Num!                    | 1    | Num
-            (strip![t 1, t 3, loop 6],              3, symbols![nt 6, t 1]), // 14: decl_1 -> decl_1 "," Id       | Id! "," ●decl_1         | 3, 1 | decl_1 Id
-            (strip![t 1],                           2, symbols![nt 6, t 1]), // 15: decl_1 -> Id                  | Id!                     | 2    | decl_1 Id
-            (strip![nt 0],                          1, symbols![]),          // 16: <goal> -> program             | ►program                | 1    |
-        ], true, NTValue::None, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9, 10, 11, 12, 13]]),
+            (strip![nt 1],                          1, symbols![nt 1]),       //  0: program -> stmt_i             | ►stmt_i                 | 1    | stmt_i
+            (strip![nt 2, loop 1],                  2, symbols![nt 1, nt 2]), //  1: stmt_i -> stmt_i stmt         | ►stmt ●stmt_i           | 2    | stmt_i stmt
+            (strip![],                              1, symbols![nt 1]),       //  2: stmt_i -> ε                   |                         | 1    | stmt_i
+            (strip![nt 3],                          1, symbols![nt 3]),       //  3: stmt -> decl                  | ►decl                   | 1    | decl
+            (strip![nt 4],                          1, symbols![nt 4]),       //  4: stmt -> inst                  | ►inst                   | 1    | inst
+            (strip![t 4, nt 6, t 2],                3, symbols![t 2, nt 6]),  //  5: decl -> Type decl_1 ";"       | ";" ►decl_1 Type!       | 3    | Type decl_1
+            (strip![t 4, t 1, t 2, t 5],            4, symbols![t 2, t 1]),   //  6: decl -> "typedef" Type Id ";" | ";" Id! Type! "typedef" | 4    | Type Id
+            (strip![t 4, nt 5, t 6, t 1],           4, symbols![t 1, nt 5]),  //  7: inst -> Id "=" expr ";"       | ";" ►expr "=" Id!       | 4    | Id expr
+            (strip![t 4, nt 5, t 7],                3, symbols![nt 5]),       //  8: inst -> "print" expr ";"      | ";" ►expr "print"       | 3    | expr
+            (strip![nt 5, t 8],                     2, symbols![nt 5]),       //  9: expr -> "-" expr              | ►expr "-"               | 2    | expr
+            (strip![nt 5, t 9, nt 5],               3, symbols![nt 5, nt 5]), // 10: expr -> expr "+" expr         | ►expr "+" ►expr         | 3    | expr expr
+            (strip![nt 5, t 8, nt 5],               3, symbols![nt 5, nt 5]), // 11: expr -> expr "-" expr         | ►expr "-" ►expr         | 3    | expr expr
+            (strip![t 1],                           1, symbols![t 1]),        // 12: expr -> Id                    | Id!                     | 1    | Id
+            (strip![t 0],                           1, symbols![t 0]),        // 13: expr -> Num                   | Num!                    | 1    | Num
+            (strip![t 1, t 3, loop 6],              3, symbols![nt 6, t 1]),  // 14: decl_1 -> decl_1 "," Id       | Id! "," ●decl_1         | 3, 1 | decl_1 Id
+            (strip![t 1],                           2, symbols![nt 6, t 1]),  // 15: decl_1 -> Id                  | Id!                     | 2    | decl_1 Id
+            (strip![nt 0],                          1, symbols![]),           // 16: <goal> -> program             | ►program                | 1    |
+        ], true, NTValue::Default, btreemap![0 => vec![0], 2 => vec![3, 4], 3 => vec![5, 6], 4 => vec![7, 8], 5 => vec![9, 10, 11, 12, 13]]),
 
         // a -> s p
         // s -> vs ns xs
