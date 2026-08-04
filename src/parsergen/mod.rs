@@ -26,7 +26,7 @@ pub mod ll1;
 pub(crate) mod tests;
 
 pub use ll1::LLParserTables;
-
+use crate::adaptors::FlagLastIterator;
 // ---------------------------------------------------------------------------------------------
 
 pub(crate) fn symbol_to_code(s: &Symbol) -> String {
@@ -205,6 +205,7 @@ pub struct ParserGen {
     action: Vec<LRAction>,
     #[allow(unused)]
     goto: Vec<LRStateId>,
+    state_symbol: Vec<Symbol>,
     init_hook: bool,
 
     symbol_table: SymbolTable,
@@ -1980,6 +1981,19 @@ impl ParserGen {
         }
 
         let mut src = vec![];
+
+        // NT values for error recovery
+        if self.options.parser_type.is_lr() {
+            const NT_VALUE_CHUNK: usize = 20;
+            assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
+            src.push(format!("static NT_VALUE: [bool; {}] = [", self.nt_values.len()));
+            src.extend(
+                self.nt_values.chunks(NT_VALUE_CHUNK)
+                    .flag_first_last()
+                    .map(|(_, is_last, values)|
+                        format!("    {}{}", values.iter().map(|&v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+            src.push(String::new());
+        }
 
         // writes contexts
         let mut nt_contexts = self.source_wrapper_ctx::<VERBOSE>(&mut src);

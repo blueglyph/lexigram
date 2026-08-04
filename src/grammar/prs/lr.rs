@@ -543,6 +543,12 @@ impl ProdRuleSet<LR> {
         let alts = self.prules.iter().index()
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone())))
             .to_vec();
+        let state_symbol = states.iter()
+            .map(|st| {
+                let item = &st[0];
+                self.prules[item.nt as usize][item.alt_idx as usize][item.pos as usize - 1]
+            })
+            .to_vec();
         let table = LRParsingTable {
             num_nt,
             num_t_full,
@@ -551,6 +557,7 @@ impl ProdRuleSet<LR> {
             alts,
             action,
             goto,
+            state_symbol,
             flags: self.flags.clone(),
             parent: self.parent.clone(),
             init_hook: false,
@@ -635,6 +642,7 @@ pub struct LRParsingTable {
     pub alts: Vec<(VarId, Alternative)>,
     pub action: Vec<LRAction>,              // num_states * num_t_full items
     pub goto: Vec<LRStateId>,               // num_goto * num_nt items
+    pub state_symbol: Vec<Symbol>,          // state -> symbol before the dot
     pub flags: Vec<u32>,                    // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>,         // NT -> parent NT
     pub init_hook: bool,                    // initial terminal must be intercepted
@@ -673,10 +681,16 @@ impl LRParsingTable {
         }
         self.num_goto = first_states.len();
         let mut order = vec![self.num_states as LRStateId; self.num_states];
+        let mut state_symbol = vec![Symbol::Empty; self.num_states];
         // updates the state numbers in gotos and shifts:
         for (new, old) in first_states.into_iter().chain(last_states).index() {
             order[old as usize] = new;
+            // state_symbol[new as usize] = self.state_symbol[old as usize];
         }
+        for (i, s) in self.state_symbol.iter().enumerate() {
+            state_symbol[order[i] as usize] = *s;
+        }
+        self.state_symbol = state_symbol;
         self.goto = first_goto.into_iter().map(|g| order[g as usize]).collect();
         self.action = first_action.into_iter().chain(last_action).map(|a| match a {
             LRAction::Shift(s) => LRAction::Shift(order[s as usize]),

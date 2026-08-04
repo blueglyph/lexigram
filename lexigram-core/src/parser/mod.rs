@@ -350,7 +350,7 @@ pub trait ListenerWrapper {
 
     /// Returns the symbol on the left of the dot and whether it has a value
     #[allow(unused_variables)]
-    fn get_state_symbol_value(&mut self, state: crate::parser::lr::LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
+    fn get_state_symbol_and_value(&mut self, state: crate::parser::lr::LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
 
     fn pop_syn_value(&mut self) {}
 }

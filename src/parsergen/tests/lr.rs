@@ -437,13 +437,13 @@ fn get_lr_tests() -> Vec<BuildItemsTestEntry> {
         //
         //   NT    name      val   flags
         // +----------------------------------------------+
-        // |   0 | program  |    | parent_+_or_*          |
-        // |   1 | . stmt_i |    | child_+_or_*, L-form   |
-        // |   2 | stmt     |    |                        |
-        // |   3 | decl     |    | parent_+_or_*          |
+        // |   0 | program  | y  | parent_+_or_*          |
+        // |   1 | . stmt_i | y  | child_+_or_*, L-form   |
+        // |   2 | stmt     | y  |                        |
+        // |   3 | decl     | y  | parent_+_or_*          |
         // |   6 | . decl_1 | y  | child_+_or_*, sep_list |
-        // |   4 | inst     |    |                        |
-        // |   5 | expr     |    |                        |
+        // |   4 | inst     | y  |                        |
+        // |   5 | expr     | y  |                        |
         // +----------------------------------------------+
         // #[cfg(any())] // disabled because the wrapper source code has been modified
         (903, true, true, false, 0, btreemap![

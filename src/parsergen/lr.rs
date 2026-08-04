@@ -51,6 +51,7 @@ impl ParserGen {
             num_states: parsing_table.num_states,
             action: parsing_table.action,
             goto: parsing_table.goto,
+            state_symbol: parsing_table.state_symbol,
             init_hook: parsing_table.init_hook,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
@@ -80,13 +81,14 @@ impl ParserGen {
     }
 
     pub(super) fn source_build_parser_lalr(&mut self) -> Vec<String> {
-        static BASE_PARSER_LIBS: [&str; 6] = [
+        static BASE_PARSER_LIBS: [&str; 7] = [
             "::VarId",
             "::LALR",
             "::fixed_sym_table::FixedSymTable",
             "::parser::lr::LRParser",
             "::parser::lr::LRStateId",
             "::parser::lr::LRAction",
+            "::parser::Symbol",
         ];
         static BASE_PARSER_LRACTION_LIBS : [&str; 5] = [
             "::parser::lr::LRAction::Error as LRE",
@@ -155,6 +157,14 @@ impl ParserGen {
                 .flag_first_last()
                 .map(|(_, is_last, terminals)|
                     format!("    {}{}", terminals.iter().map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        const STATE_SYMBOL_CHUNK: usize = 25;
+        assert!(!self.state_symbol.is_empty(), "state_symbol is empty");
+        src.push(format!("static STATE_SYMBOL: [Symbol; {}] = [", self.state_symbol.len()));
+        src.extend(
+            self.state_symbol.chunks(STATE_SYMBOL_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, symbols)|
+                    format!("    {}{}", symbols.iter().map(|s| format!("Symbol::{s:?}")).join(","), if is_last { "];" } else { "," })));
         const T_CHUNK: usize = 10;
         assert!(self.symbol_table.get_num_t() > 0, "terminal table is empty");
         src.push(format!("static SYMBOLS_T: [(&str, Option<&str>); {num_t_table}] = ["));

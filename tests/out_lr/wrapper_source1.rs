@@ -35,7 +35,7 @@ pub(crate) mod rules_903_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 7;
     static NUM_T_FULL: usize = 11;
@@ -55,10 +55,15 @@ pub(crate) mod rules_903_1 {
         24,0,0,0,0,0,0,29,0,0,0,0,0,0,30,0];
     static ALT_NT_LEN: [(VarId, u16, u16); 17] = [
         (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 1, 0),(3, 3, 1),(3, 4, 2),(4, 4, 1),(4, 3, 0),(5, 2, 0),(5, 3, 0),(5, 3, 0),(5, 1, 1),(5, 1, 1),(6, 3, 1),(6, 1, 1),(7, 1, 0)];
+    static STATE_SYMBOL: [Symbol; 31] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(2),Symbol::T(7),Symbol::T(6),Symbol::T(8),Symbol::T(8),Symbol::T(9),Symbol::NT(0),Symbol::T(1),Symbol::T(5),Symbol::NT(2),Symbol::NT(3),Symbol::NT(4),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::NT(5),Symbol::NT(5),Symbol::T(3),Symbol::T(4),Symbol::T(1),Symbol::NT(5),
+        Symbol::T(4),Symbol::T(4),Symbol::T(1),Symbol::T(4),Symbol::NT(5),Symbol::NT(5)];
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
         ("Num", None),("Id", None),("Type", None),("Comma", Some(",")),("SemiColon", Some(";")),("Typedef", Some("typedef")),("Eq", Some("=")),("Print", Some("print")),("Sub", Some("-")),("Add", Some("+"))];
     static SYMBOLS_NT: [&str; 8] = [
         "program","stmt_i","stmt","decl","inst","expr","decl_1","<goal>"];
+    static NT_VALUE: [bool; 8] = [
+        true,true,true,true,true,true,true,true];
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
@@ -300,41 +305,15 @@ pub(crate) mod rules_903_1 {
             }
         }
 
-        fn get_state_symbol_value(&mut self, state: LRStateId) -> (lexigram_core::parser::Symbol, bool) {
-            use lexigram_core::parser::Symbol;
-            match state {
-                1 => (Symbol::NT(1), true),     // program -> stmt_i •
-                2 => (Symbol::T(2), true),      // decl -> Type • decl_1 ";"
-                3 => (Symbol::T(7), false),     // inst -> "print" • expr ";"
-                4 => (Symbol::T(6), false),     // inst -> Id "=" • expr ";"
-                5 => (Symbol::T(8), false),     // expr -> "-" • expr
-                6 => (Symbol::T(8), false),     // expr -> expr "-" • expr
-                7 => (Symbol::T(9), false),     // expr -> expr "+" • expr
-                8 => (Symbol::NT(0), true),     // <goal> -> program •
-                9 => (Symbol::T(1), true),      // inst -> Id • "=" expr ";"
-                10 => (Symbol::T(5), false),    // decl -> "typedef" • Type Id ";"
-                11 => (Symbol::NT(2), true),    // stmt_i -> stmt_i stmt •
-                12 => (Symbol::NT(3), true),    // stmt -> decl •
-                13 => (Symbol::NT(4), true),    // stmt -> inst •
-                14 => (Symbol::T(1), true),     // decl_1 -> Id •
-                15 => (Symbol::NT(6), true),    // decl -> Type decl_1 • ";"
-                16 => (Symbol::T(2), true),     // decl -> "typedef" Type • Id ";"
-                17 => (Symbol::T(0), true),     // expr -> Num •
-                18 => (Symbol::T(1), true),     // expr -> Id •
-                19 => (Symbol::NT(5), true),    // inst -> "print" expr • ";"
-                20 => (Symbol::NT(5), true),    // inst -> Id "=" expr • ";"
-                21 => (Symbol::T(3), false),    // decl_1 -> decl_1 "," • Id
-                22 => (Symbol::T(4), false),    // decl -> Type decl_1 ";" •
-                23 => (Symbol::T(1), true),     // decl -> "typedef" Type Id • ";"
-                24 => (Symbol::NT(5), true),    // expr -> "-" expr •
-                25 => (Symbol::T(4), false),    // inst -> "print" expr ";" •
-                26 => (Symbol::T(4), false),    // inst -> Id "=" expr ";" •
-                27 => (Symbol::T(1), true),     // decl_1 -> decl_1 "," Id •
-                28 => (Symbol::T(4), false),    // decl -> "typedef" Type Id ";" •
-                29 => (Symbol::NT(5), true),    // expr -> expr • "+" expr
-                30 => (Symbol::NT(5), true),    // expr -> expr "+" expr •
-                _ => panic!("unknonw state {state}")
-            }
+        fn get_state_symbol_and_value(&mut self, state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
         }
 
         fn pop_syn_value(&mut self) {
