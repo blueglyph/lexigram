@@ -217,7 +217,7 @@ impl<'a, T> LRParser<'a, T> {
                         error = Some(ParserError::TooManyErrors);
                         break;
                     }
-                    if let Some((new_state, keep_calling_wrapper)) = self.recover(
+                    if let Some(new_state) = self.recover(
                         &mut stream,
                         &mut stream_sym,
                         &mut stream_str,
@@ -225,9 +225,9 @@ impl<'a, T> LRParser<'a, T> {
                         &mut stream_span,
                         wrapper,
                         &mut stack_state,
-                        &mut stack_t
+                        &mut stack_t,
+                        &mut call_wrapper
                     ) {
-                        call_wrapper = keep_calling_wrapper;
                         let pos = if let Some(pos) = stream_pos { format!(" at {pos}") } else { String::new() };
                         wrapper.report(None, LogMsg::Note(format!("resynchronized from syntax error on {}{pos}", self.t_to_string(stream_sym))));
                         if !call_wrapper {
@@ -235,7 +235,9 @@ impl<'a, T> LRParser<'a, T> {
                         }
                         state = new_state;
                         stack_state.push(state);
-                        wrapper.syntax_error_recovered();
+                        if call_wrapper {
+                            wrapper.syntax_error_recovered();
+                        }
                     } else {
                         error = Some(ParserError::SyntaxError);
                         break;
@@ -280,8 +282,9 @@ impl<'a, T> LRParser<'a, T> {
         stream_span: &mut PosSpan,
         wrapper: &mut L,
         stack_state: &mut Vec<LRStateId>,
-        stack_t: &mut Vec<String>
-    ) -> Option<(LRStateId, bool)>
+        stack_t: &mut Vec<String>,
+        call_wrapper: &mut bool
+    ) -> Option<LRStateId>
     where
         I: Iterator<Item=ParserToken>,
         L: ListenerWrapper,
@@ -313,7 +316,7 @@ impl<'a, T> LRParser<'a, T> {
                         if has_value { stack_t.pop(); }
                     }
                     Symbol::NT(_) => {
-                        if has_value { wrapper.pop_nt_value(); }
+                        if has_value && *call_wrapper { wrapper.pop_nt_value(); }
                     }
                     _ => panic!()
                 }
@@ -337,10 +340,12 @@ impl<'a, T> LRParser<'a, T> {
                         println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym));
                         println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
                     }
-                    let keep_calling_wrapper = wrapper.push_nt_recovery_value(var);
-                    wrapper.push_span(err_span);
-                    if VERBOSE { println!("{BEFORE_ANSI}{}{AFTER_ANSI}", wrapper.get_status().join("\n")); }
-                    return Some((state, keep_calling_wrapper))
+                    if *call_wrapper {
+                        *call_wrapper = wrapper.push_nt_recovery_value(var);
+                        wrapper.push_span(err_span);
+                    }
+                    if VERBOSE && *call_wrapper { println!("{BEFORE_ANSI}{}{AFTER_ANSI}", wrapper.get_status().join("\n")); }
+                    return Some(state)
                 }
             }
             (*stream_sym, *stream_str) = loop {
