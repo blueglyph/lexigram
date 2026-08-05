@@ -2913,7 +2913,9 @@ impl ParserGen {
             src.push("    fn push_span(&mut self, span: &PosSpan) {}".to_string());
         }
         src.push("    #[allow(unused_variables)]".to_string());
-        src.push("    fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> { None }".to_string());
+        src.push("    fn drop_nt_value(&mut self, value: &EnumSynValue) {}".to_string());
+        src.push("    #[allow(unused_variables)]".to_string());
+        src.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> { None }".to_string());
         src.push("    fn syntax_error_recovered(&mut self) {}".to_string());
         let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.options.gen_span_params { ", span: &PosSpan" } else { "" };

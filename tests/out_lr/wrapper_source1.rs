@@ -229,6 +229,7 @@ pub(crate) mod rules_903_1 {
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
         fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> { None }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -374,6 +375,10 @@ pub(crate) mod rules_903_1 {
                 Symbol::End => panic!(),
             };
             (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
         }
     }
 
