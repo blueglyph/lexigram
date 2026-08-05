@@ -235,6 +235,7 @@ impl<'a, T> LRParser<'a, T> {
                         }
                         state = new_state;
                         stack_state.push(state);
+                        wrapper.syntax_error_recovered();
                     } else {
                         error = Some(ParserError::SyntaxError);
                         break;
@@ -299,6 +300,12 @@ impl<'a, T> LRParser<'a, T> {
             candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
                 .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
                 .collect();
+            if VERBOSE {
+                println!(
+                    "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}{AFTER_ANSI}",
+                    candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", ")
+                );
+            }
             if candidates.is_empty() {
                 let (sym, has_value) = L::get_state_symbol_and_value(state);
                 match sym {
@@ -306,16 +313,10 @@ impl<'a, T> LRParser<'a, T> {
                         if has_value { stack_t.pop(); }
                     }
                     Symbol::NT(_) => {
-                        if has_value { wrapper.pop_syn_value(); }
+                        if has_value { wrapper.pop_nt_value(); }
                     }
                     _ => panic!()
                 }
-            }
-            if VERBOSE {
-                println!(
-                    "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}{AFTER_ANSI}",
-                    candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", ")
-                );
             }
         }
         if VERBOSE {

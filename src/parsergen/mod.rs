@@ -2909,8 +2909,12 @@ impl ParserGen {
         src.push("        self.get_log_mut().add(msg);".to_string());
         src.push("    }".to_string());
         if self.options.gen_span_params {
-            src.push("    fn push_span(&mut self, _span: &PosSpan) {}".to_string());
+            src.push("    #[allow(unused_variables)]".to_string());
+            src.push("    fn push_span(&mut self, span: &PosSpan) {}".to_string());
         }
+        src.push("    #[allow(unused_variables)]".to_string());
+        src.push("    fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> { None }".to_string());
+        src.push("    fn syntax_error_recovered(&mut self) {}".to_string());
         let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.options.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {

@@ -223,11 +223,14 @@ pub(crate) mod rules_903_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
-        fn push_span(&mut self, _span: &PosSpan) {}
+        #[allow(unused_variables)]
+        fn push_span(&mut self, span: &PosSpan) {}
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> { None }
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
-        #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> { None }
         #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         #[allow(unused_variables)]
@@ -248,6 +251,7 @@ pub(crate) mod rules_903_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -316,11 +320,6 @@ pub(crate) mod rules_903_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.listener.push_span(&span);
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -345,16 +344,22 @@ pub(crate) mod rules_903_1 {
             ]
         }
 
+        fn push_span(&mut self, span: PosSpan) {
+            self.listener.push_span(&span);
+            self.stack_span.push(span);
+        }
+
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
         fn push_nt_recovery_value(&mut self, nt: VarId) -> bool {
-            const CONTINUE_AFTER_ERROR: bool = true;
-            if CONTINUE_AFTER_ERROR {
-                let val_maybe = self.listener.get_recovery_value(nt);
-                if let Some(val) = val_maybe {
-                    self.stack.push(val);
-                    true
-                } else {
-                    false
-                }
+            let val_maybe = self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take());
+            if let Some(val) = val_maybe {
+                self.stack.push(val);
+                true
             } else {
                 false
             }
@@ -370,15 +375,11 @@ pub(crate) mod rules_903_1 {
             };
             (sym, has_value)
         }
-
-        fn pop_syn_value(&mut self) {
-            self.stack.pop();
-        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -573,27 +574,29 @@ pub(crate) mod rules_903_1 {
 
         #[allow(unused)]
         impl<'a> TestListener for Listener<'a> {
+            fn get_log_mut(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
             fn push_span(&mut self, span: &PosSpan) {
                 const BEFORE: &str = "\u{1b}[35m";
                 const AFTER: &str = "\u{1b}[0m";
                 if self.verbose { println!("{BEFORE}push_span: {span:?}{AFTER} -> {}", self.annotate(span)) }
             }
 
-            fn get_log_mut(&mut self) -> &mut impl Logger {
-                &mut self.log
-            }
-
-            fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> {
-                if self.verbose { println!("get_recovery_value() for {:?}", NTerm::from(nt)); }
-                match NTerm::from(nt) {
-                    NTerm::Program => Some(EnumSynValue::Program(SynProgram())),
-                    NTerm::StmtI   => Some(EnumSynValue::StmtI(SynStmtI())),
-                    NTerm::Stmt    => Some(EnumSynValue::Stmt(SynStmt())),
-                    NTerm::Decl    => Some(EnumSynValue::Decl(SynDecl())),
-                    NTerm::Inst    => Some(EnumSynValue::Inst(SynInst())),
-                    NTerm::Expr    => Some(EnumSynValue::Expr(SynExpr())),
-                    NTerm::Decl1   => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
-                }
+            fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> {
+                if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
+                last_dropped.or_else(||
+                    match NTerm::from(nt) {
+                        NTerm::Program => Some(EnumSynValue::Program(SynProgram())),
+                        NTerm::StmtI   => Some(EnumSynValue::StmtI(SynStmtI())),
+                        NTerm::Stmt    => Some(EnumSynValue::Stmt(SynStmt())),
+                        NTerm::Decl    => Some(EnumSynValue::Decl(SynDecl())),
+                        NTerm::Inst    => Some(EnumSynValue::Inst(SynInst())),
+                        NTerm::Expr    => Some(EnumSynValue::Expr(SynExpr())),
+                        NTerm::Decl1   => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
+                    }
+                )
             }
 
             fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {

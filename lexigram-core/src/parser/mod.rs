@@ -316,10 +316,6 @@ pub trait ListenerWrapper {
         self.get_log_mut().add(msg);
     }
 
-    /// Pushes a location span onto the (optional) span stack
-    #[allow(unused_variables)]
-    fn push_span(&mut self, span: PosSpan) {}
-
     /// Checks that the stack is empty (the parser only checks that the stack is empty after successfully parsing a text)
     fn is_stack_empty(&self) -> bool { true }
 
@@ -343,18 +339,37 @@ pub trait ListenerWrapper {
 
     fn get_status(&self) -> Vec<String> { Vec::new() }
 
-    /// Requests the wrapper to push a dummy value to resynchronize its stack in case of error recovery.
+    // Error recovery
+
+    /// Pushes a location span onto the (optional) span stack.
+    #[allow(unused_variables)]
+    fn push_span(&mut self, span: PosSpan) {}
+
+    /// Requests the wrapper to pop a nonterminal value. Some intermediate nonterminal values may have to be
+    /// dropped when the parser is trying to recover from a syntax error.
+    ///
+    /// The wrapper may want to store the latest dropped value, in case [`push_nt_recovery_value`] is
+    /// called immediately after to request a recovery value. In most cases, the latest dropped value is
+    /// a good candidate, especially if it's a loop nonterminal.
+    fn pop_nt_value(&mut self) {}
+
+    /// Requests the wrapper to push a nonterminal value to resynchronize its stack in case of error recovery.
+    ///
+    /// The wrapper should ideally requires a value to the user through the listener interface, knowing this value
+    /// is used to recover from a syntax error.
     ///
     /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
     /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
     #[allow(unused_variables)]
     fn push_nt_recovery_value(&mut self, nt: VarId) -> bool { false }
 
-    /// Returns the symbol on the left of the dot and whether it has a value
+    /// Returns the symbol on the left of the dot and whether it has a value.
     #[allow(unused_variables)]
     fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
 
-    fn pop_syn_value(&mut self) {}
+    /// Notifies the wrapper that the parser has recovered from the syntax error. It can be used to forward
+    /// the notification to the listener.
+    fn syntax_error_recovered(&mut self) {}
 }
 
 // ---------------------------------------------------------------------------------------------
