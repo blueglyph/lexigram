@@ -188,7 +188,7 @@ pub(crate) mod rules_903_1 {
     pub struct SynDecl1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum EnumSynValue { Program(SynProgram), StmtI(SynStmtI), Stmt(SynStmt), Decl(SynDecl), Inst(SynInst), Expr(SynExpr), Decl1(SynDecl1) }
+    pub enum EnumSynValue { Program(SynProgram), StmtI(SynStmtI), Stmt(SynStmt), Decl(SynDecl), Inst(SynInst), Expr(SynExpr), Decl1(SynDecl1) }
 
     impl EnumSynValue {
         fn get_program(self) -> SynProgram {
@@ -226,6 +226,8 @@ pub(crate) mod rules_903_1 {
         fn push_span(&mut self, _span: &PosSpan) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> { None }
         #[allow(unused_variables)]
         fn exit(&mut self, program: SynProgram, span: PosSpan) {}
         #[allow(unused_variables)]
@@ -346,16 +348,7 @@ pub(crate) mod rules_903_1 {
         fn push_nt_recovery_value(&mut self, nt: VarId) -> bool {
             const CONTINUE_AFTER_ERROR: bool = true;
             if CONTINUE_AFTER_ERROR {
-                let val_maybe = match nt {
-                    0 => Some(EnumSynValue::Program(SynProgram())),
-                    1 => Some(EnumSynValue::StmtI(SynStmtI())),
-                    2 => Some(EnumSynValue::Stmt(SynStmt())),
-                    3 => Some(EnumSynValue::Decl(SynDecl())),
-                    4 => Some(EnumSynValue::Inst(SynInst())),
-                    5 => Some(EnumSynValue::Expr(SynExpr())),
-                    6 => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
-                    _ => None,
-                };
+                let val_maybe = self.listener.get_recovery_value(nt);
                 if let Some(val) = val_maybe {
                     self.stack.push(val);
                     true
@@ -367,7 +360,7 @@ pub(crate) mod rules_903_1 {
             }
         }
 
-        fn get_state_symbol_and_value(&mut self, state: LRStateId) -> (Symbol, bool) {
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
             let sym = STATE_SYMBOL[state as usize];
             let has_value = match sym {
                 Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
@@ -588,6 +581,19 @@ pub(crate) mod rules_903_1 {
 
             fn get_log_mut(&mut self) -> &mut impl Logger {
                 &mut self.log
+            }
+
+            fn get_recovery_value(&mut self, nt: VarId) -> Option<EnumSynValue> {
+                if self.verbose { println!("get_recovery_value() for {:?}", NTerm::from(nt)); }
+                match NTerm::from(nt) {
+                    NTerm::Program => Some(EnumSynValue::Program(SynProgram())),
+                    NTerm::StmtI   => Some(EnumSynValue::StmtI(SynStmtI())),
+                    NTerm::Stmt    => Some(EnumSynValue::Stmt(SynStmt())),
+                    NTerm::Decl    => Some(EnumSynValue::Decl(SynDecl())),
+                    NTerm::Inst    => Some(EnumSynValue::Inst(SynInst())),
+                    NTerm::Expr    => Some(EnumSynValue::Expr(SynExpr())),
+                    NTerm::Decl1   => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
+                }
             }
 
             fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {

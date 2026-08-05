@@ -300,7 +300,7 @@ impl<'a, T> LRParser<'a, T> {
                 .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
                 .collect();
             if candidates.is_empty() {
-                let (sym, has_value) = wrapper.get_state_symbol_and_value(state);
+                let (sym, has_value) = L::get_state_symbol_and_value(state);
                 match sym {
                     Symbol::T(_) => {
                         if has_value { stack_t.pop(); }

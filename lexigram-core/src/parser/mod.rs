@@ -5,6 +5,8 @@ use crate::fixed_sym_table::SymInfoTable;
 use crate::{AltId, TokenId, VarId};
 use crate::lexer::PosSpan;
 use crate::log::{LogMsg, Logger};
+use crate::parser::lr::LRStateId;
+
 pub(crate) mod tests;
 pub mod lr;
 pub mod ll1;
@@ -350,7 +352,7 @@ pub trait ListenerWrapper {
 
     /// Returns the symbol on the left of the dot and whether it has a value
     #[allow(unused_variables)]
-    fn get_state_symbol_and_value(&mut self, state: crate::parser::lr::LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
+    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
 
     fn pop_syn_value(&mut self) {}
 }

@@ -240,10 +240,10 @@ pub(super) mod wrapper_source {
         } = spec;
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_LOG: bool = false;     // always prints the log
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
         const PRINT_TEMPLATE: bool = false;
         const SHOW_ANSWER: bool = false;
 
@@ -307,6 +307,7 @@ pub(super) mod wrapper_source {
             builder.set_gen_span_params(gen_span_params);
             builder.set_include_alts(true);
             builder.use_full_lib(true);
+            builder.set_gen_token_enums(true);
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.get_inner_str().contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
             builder.set_nt_value(has_value.clone());
