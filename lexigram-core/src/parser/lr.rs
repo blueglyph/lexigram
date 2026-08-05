@@ -217,6 +217,7 @@ impl<'a, T> LRParser<'a, T> {
                         error = Some(ParserError::TooManyErrors);
                         break;
                     }
+                    let prev_call_wrapper = call_wrapper;
                     if let Some(new_state) = self.recover(
                         &mut stream,
                         &mut stream_sym,
@@ -230,8 +231,8 @@ impl<'a, T> LRParser<'a, T> {
                     ) {
                         let pos = if let Some(pos) = stream_pos { format!(" at {pos}") } else { String::new() };
                         wrapper.report(None, LogMsg::Note(format!("resynchronized from syntax error on {}{pos}", self.t_to_string(stream_sym))));
-                        if !call_wrapper {
-                            wrapper.report(None, LogMsg::Note(format!("the rest of the stream will be parsed, but the listener interface can't be used any more")));
+                        if prev_call_wrapper && !call_wrapper {
+                            wrapper.report(None, LogMsg::Note("the rest of the stream will be parsed, but the listener interface can't be used any more".to_string()));
                         }
                         state = new_state;
                         stack_state.push(state);
