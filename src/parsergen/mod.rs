@@ -1661,7 +1661,6 @@ impl ParserGen {
     fn source_token_enums(&self) -> Vec<String> {
         let mut src = vec![];
         if self.options.gen_token_enums {
-            src.add_space();
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum Term {".to_string());
@@ -1673,12 +1672,24 @@ impl ParserGen {
                     format!("{s} = {t},", )])
                 .to_vec();
             src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
+            src.push("}".to_string());
+            src.add_space();
+            src.push("// Unfortunately, Rust has no way to safely convert to enum constants...".to_string());
+            src.push("impl From<TokenId> for Term {".to_string());
+            src.push("    fn from(value: TokenId) -> Self {".to_string());
+            src.push("        match value {".to_string());
+            src.extend(self.symbol_table.get_terminals()
+                .map(|(s, _)| format!("            _ if value == Term::{s} as TokenId => Term::{s},"))
+            );
+            src.push(r#"            _ => panic!("cannot convert terminal index #{value} to Term"),"#.to_string());
+            src.push("        }".to_string());
+            src.push("    }".to_string());
+            src.push("}".to_string());
+            src.add_space();
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum NTerm {".to_string());
-            let num_nt = if self.options.parser_type.is_lr() { self.num_nt - 1 } else { self.num_nt };
-            let cols = self.symbol_table.get_nonterminals().into_iter().take(num_nt).index()
+            let cols = self.symbol_table.get_nonterminals().into_iter().take(self.num_nt).index()
                 .map(|(t, s)| vec![
                     format!(
                         "    #[doc = \"`{s}`{}\"]",
@@ -1690,10 +1701,22 @@ impl ParserGen {
                     format!("{} = {t},", s.to_camelcase())])
                 .to_vec();
             src.extend(columns_to_str(cols, Some(vec![16, 0])));
-            src.push("}\n".to_string());
+            src.push("}".to_string());
+            src.add_space();
+            src.push("impl From<TokenId> for NTerm {".to_string());
+            src.push("    fn from(value: VarId) -> Self {".to_string());
+            src.push("        match value {".to_string());
+            src.extend(self.symbol_table.get_nonterminals().into_iter().take(self.num_nt)
+                .map(|s| format!("            _ if value == NTerm::{str} as VarId => NTerm::{str},", str = s.to_camelcase()))
+            );
+            src.push(r#"            _ => panic!("cannot convert nonterminal index #{value} to NTerm"),"#.to_string());
+            src.push("        }".to_string());
+            src.push("    }".to_string());
+            src.push("}".to_string());
+            src.add_space();
             src.push("pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {".to_string());
             src.push("    SYMBOLS_T[t as usize]".to_string());
-            src.push("}\n".to_string());
+            src.push("}".to_string());
         }
         src
     }

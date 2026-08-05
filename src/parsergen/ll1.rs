@@ -12,6 +12,7 @@ use crate::build::{BuildError, BuildErrorSource, BuildFrom, TryBuildFrom};
 use crate::grammar::ll1::LL1ParsingTable;
 use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::parsergen::{symbol_to_code, ParserGen, ParserGenOptions, ParserType};
+use crate::SourceSpacer;
 
 impl ParserGen {
     /// Creates a [ParserGen] from a set of LL(1) production rules.
@@ -132,7 +133,9 @@ impl ParserGen {
                 self.init_opcodes.iter().map(|op| format!("OpCode::{op:?}")).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
         ]);
+        src.add_space();
         src.extend(self.source_token_enums());
+        src.add_space();
         src.extend(vec![
             "pub fn build_parser() -> LLParser<'static> {{".to_string(),
             "    let symbol_table = FixedSymTable::new(".to_string(),

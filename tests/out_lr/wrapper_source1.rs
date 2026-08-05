@@ -62,8 +62,67 @@ pub(crate) mod rules_903_1 {
         ("Num", None),("Id", None),("Type", None),("Comma", Some(",")),("SemiColon", Some(";")),("Typedef", Some("typedef")),("Eq", Some("=")),("Print", Some("print")),("Sub", Some("-")),("Add", Some("+"))];
     static SYMBOLS_NT: [&str; 8] = [
         "program","stmt_i","stmt","decl","inst","expr","decl_1","<goal>"];
-    static NT_VALUE: [bool; 8] = [
-        true,true,true,true,true,true,true,true];
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "(variable)"] Num = 0,
+        #[doc = "(variable)"] Id = 1,
+        #[doc = "(variable)"] Type = 2,
+        #[doc = "','"]        Comma = 3,
+        #[doc = "';'"]        SemiColon = 4,
+        #[doc = "'typedef'"]  Typedef = 5,
+        #[doc = "'='"]        Eq = 6,
+        #[doc = "'print'"]    Print = 7,
+        #[doc = "'-'"]        Sub = 8,
+        #[doc = "'+'"]        Add = 9,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ if value == Term::Type as TokenId => Term::Type,
+                _ if value == Term::Comma as TokenId => Term::Comma,
+                _ if value == Term::SemiColon as TokenId => Term::SemiColon,
+                _ if value == Term::Typedef as TokenId => Term::Typedef,
+                _ if value == Term::Eq as TokenId => Term::Eq,
+                _ if value == Term::Print as TokenId => Term::Print,
+                _ if value == Term::Sub as TokenId => Term::Sub,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`program`"]                   Program = 0,
+        #[doc = "`stmt_i`, parent: `program`"] StmtI = 1,
+        #[doc = "`stmt`"]                      Stmt = 2,
+        #[doc = "`decl`"]                      Decl = 3,
+        #[doc = "`inst`"]                      Inst = 4,
+        #[doc = "`expr`"]                      Expr = 5,
+        #[doc = "`decl_1`, parent: `decl`"]    Decl1 = 6,
+    }
+
+    impl From<TokenId> for NTerm {
+        fn from(value: VarId) -> Self {
+            match value {
+                _ if value == NTerm::Program as VarId => NTerm::Program,
+                _ if value == NTerm::StmtI as VarId => NTerm::StmtI,
+                _ if value == NTerm::Stmt as VarId => NTerm::Stmt,
+                _ if value == NTerm::Decl as VarId => NTerm::Decl,
+                _ if value == NTerm::Inst as VarId => NTerm::Inst,
+                _ if value == NTerm::Expr as VarId => NTerm::Expr,
+                _ if value == NTerm::Decl1 as VarId => NTerm::Decl1,
+                _ => panic!("cannot convert nonterminal index #{value} to NTerm"),
+            }
+        }
+    }
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
@@ -75,6 +134,9 @@ pub(crate) mod rules_903_1 {
             false
         )
     }
+
+    static NT_VALUE: [bool; 8] = [
+        true,true,true,true,true,true,true,true];
 
     #[derive(Debug)]
     pub enum CtxProgram {

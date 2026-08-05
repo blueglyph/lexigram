@@ -10,7 +10,7 @@ use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRuleSet, SepInfo};
-use crate::{SymbolTable, LALR, LR};
+use crate::{SymbolTable, LALR, LR, SourceSpacer};
 use crate::parsergen::{ParserGen, ParserGenOptions, ParserType};
 use crate::adaptors::FlagLastIterator;
 
@@ -183,9 +183,10 @@ impl ParserGen {
                 .flag_first_last()
                 .map(|(_, is_last, _)|
                     format!("    {}{}", (0..NT_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+        src.add_space();
         src.extend(self.source_token_enums());
+        src.add_space();
         src.extend([
-            String::new(),
             "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
             "    LRParser::new(".to_string(),
             "        NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,".to_string(),
