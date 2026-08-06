@@ -212,6 +212,17 @@ pub(crate) mod rules_903_1 {
         fn get_decl1(self) -> SynDecl1 {
             if let EnumSynValue::Decl1(val) = self { val } else { panic!() }
         }
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Program(_) => 0,
+                EnumSynValue::StmtI(_) => 1,
+                EnumSynValue::Stmt(_) => 2,
+                EnumSynValue::Decl(_) => 3,
+                EnumSynValue::Inst(_) => 4,
+                EnumSynValue::Expr(_) => 5,
+                EnumSynValue::Decl1(_) => 6,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -591,7 +602,9 @@ pub(crate) mod rules_903_1 {
 
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> {
                 if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
-                last_dropped.or_else(||
+                last_dropped
+                    .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                    .or_else(||
                     match NTerm::from(nt) {
                         NTerm::Program => Some(EnumSynValue::Program(SynProgram())),
                         NTerm::StmtI   => Some(EnumSynValue::StmtI(SynStmtI())),

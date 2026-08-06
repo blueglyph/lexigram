@@ -2331,10 +2331,10 @@ impl ParserGen {
         src.push("#[derive(Debug)]".to_string());
         src.push(format!("enum EnumSynValue {{ {} }}",
                          syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
+        src.add_space();
+        src.push("impl EnumSynValue {".to_string());
         if !syns.is_empty() {
             // EnumSynValue getters
-            src.add_space();
-            src.push("impl EnumSynValue {".to_string());
             for v in &syns {
                 let (nu, _, npl) = &self.nt_name[*v as usize];
                 let nt_type = self.get_nt_type(*v);
@@ -2347,8 +2347,17 @@ impl ParserGen {
                 }
                 src.push("    }".to_string());
             }
-            src.push("}".to_string());
+            src.push("    fn nt(&self) -> VarId {".to_string());
+            src.push("        match &self {".to_string());
+            src.extend(syns.iter().map(|v| {
+                format!("            EnumSynValue::{}(_) => {v},", &self.nt_name[*v as usize].0)
+            }));
+            src.push("        }".to_string());
+            src.push("    }".to_string());
+        } else {
+            src.push(r#"    fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}"#.to_string());
         }
+        src.push("}".to_string());
         (src_types, syns)
     }
 
