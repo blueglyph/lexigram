@@ -240,6 +240,7 @@ impl<'a, T> LRParser<'a, T> {
                             wrapper.syntax_error_recovered();
                         }
                     } else {
+                        if VERBOSE { println!("couldn't recover\n- states {stack_state:?}"); }
                         error = Some(ParserError::SyntaxError);
                         break;
                     }
@@ -293,24 +294,25 @@ impl<'a, T> LRParser<'a, T> {
         const VERBOSE: bool = true;
         const BEFORE_ANSI: &str = "\u{1b}[31m";
         const AFTER_ANSI : &str = "\u{1b}[0m";
-        if VERBOSE { println!("{BEFORE_ANSI}parser panic-mode recovery:\n- states {stack_state:?}{AFTER_ANSI}"); }
-        let mut candidates = Vec::<(VarId, LRStateId)>::new();
-        let mut goto_state = 0;
+        if VERBOSE { println!("{BEFORE_ANSI}parser panic-mode recovery:{AFTER_ANSI}"); }
+        let mut err_span = PosSpan::empty();
         // finds a state with a GOTO, but don't pop the start state
-        while candidates.is_empty() && stack_state.len() > 1 && let Some(state) = stack_state.pop() {
-            goto_state = state;
+        while let Some(state) = stack_state.pop() {
+            if VERBOSE { println!("{BEFORE_ANSI}- states {stack_state:?}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+            let goto_state = state;
             let goto_row = state as usize * self.num_nt;
             // check the available GOTO states:
-            candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
+            let candidates = self.goto.iter().skip(goto_row).take(self.num_nt).enumerate()
                 .map(|(v, s)| (v as VarId, *s)).filter(|(_, s)| *s > 0)
-                .collect();
+                .to_vec();
             if VERBOSE {
                 println!(
-                    "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}{AFTER_ANSI}",
+                    "{BEFORE_ANSI}- goto_state {goto_state}, candidates = {}, err_span {err_span}{AFTER_ANSI}",
                     candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", ")
                 );
             }
             if candidates.is_empty() {
+                err_span += &wrapper.pop_span();
                 let (sym, has_value) = L::get_state_symbol_and_value(state);
                 match sym {
                     Symbol::T(_) => {
@@ -322,59 +324,66 @@ impl<'a, T> LRParser<'a, T> {
                     _ => panic!()
                 }
             }
-        }
-        if VERBOSE {
-            println!(
-                "{BEFORE_ANSI}- candidates = {}{AFTER_ANSI}",
-                candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", "));
-        }
-        let token_error = self.num_t_full as TokenId;
-        let token_eof = token_error - 1;
-        let mut err_span = PosSpan::empty();
-        while !candidates.is_empty() {
-            for &(var, state) in &candidates {
-                let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
-                if action.is_action() {
-                    // we put back the goto_state on the stack because it will be required after the action
-                    stack_state.push(goto_state);
-                    if VERBOSE {
-                        println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym));
-                        println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
+            if VERBOSE {
+                println!(
+                    "{BEFORE_ANSI}- candidates = {}, err_span {err_span}{AFTER_ANSI}",
+                    candidates.iter().map(|(v, st)| format!("({}, {st})", Symbol::NT(*v).to_str(Some(&self.symbol_table)))).join(", "));
+            }
+            let token_error = self.num_t_full as TokenId;
+            let token_eof = token_error - 1;
+            let mut skip = candidates.is_empty();
+            while !skip {
+                if VERBOSE { println!("{BEFORE_ANSI}  - states {stack_state:?}, err_span {err_span}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+                for &(var, state) in &candidates {
+                    let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
+                    if action.is_action() {
+                        if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
+                        // if the wrapper is called, it can skip the recovery of the current nonterminal and
+                        // recover at a higher level
+                        skip = *call_wrapper && !wrapper.push_nt_recovery_value(var);
+                        if !skip {
+                            // we put back the goto_state on the stack because it will be required after the action
+                            stack_state.push(goto_state);
+                            if *call_wrapper {
+                                wrapper.push_span(err_span);
+                                if VERBOSE {
+                                    println!("{BEFORE_ANSI}{}{AFTER_ANSI}", wrapper.get_status().join("\n"));
+                                    println!("{BEFORE_ANSI}- states {stack_state:?}{AFTER_ANSI}");
+                                }
+                            }
+                            return Some(state);
+                        }
+                        if VERBOSE { println!("{BEFORE_ANSI}skipping this recovery point{AFTER_ANSI}"); }
                     }
-                    if *call_wrapper {
-                        *call_wrapper = wrapper.push_nt_recovery_value(var);
-                        wrapper.push_span(err_span);
-                    }
-                    if VERBOSE && *call_wrapper { println!("{BEFORE_ANSI}{}{AFTER_ANSI}", wrapper.get_status().join("\n")); }
-                    return Some(state)
+                }
+                if !skip {
+                    (*stream_sym, *stream_str) = loop {
+                        if let Some((t, s, span)) = stream.next() {
+                            *stream_pos = Some(span.first_forced());
+                            err_span += &span;
+                            *stream_span = span;
+                            // we can't say which interception to use, so we call both
+                            let t1 = wrapper.intercept_token(t, &s, &stream_span);
+                            let t2 = wrapper.hook(t1, s.as_str(), &stream_span);
+                            break (t2, s);
+                        } else {
+                            *stream_pos = None;
+                            if let Some((_t, s, _span)) = stream.next() {
+                                // an error code after the end means an unrecognized sequence: we may try to continue,
+                                // but we don't count the max lexical errors here for the sake of simplicity
+                                wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s}")));
+                                continue;
+                            } else {
+                                // end of stream
+                                break (token_eof, String::new());
+                            }
+                        }
+                    };
+                    if *stream_sym == token_eof { return None; }
+                    if VERBOSE { println!("{BEFORE_ANSI}- no symbol was compatible, scanning new symbol {}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
                 }
             }
-            (*stream_sym, *stream_str) = loop {
-                if let Some((t, s, span)) = stream.next() {
-                    *stream_pos = Some(span.first_forced());
-                    err_span += &span;
-                    *stream_span = span;
-                    // we can't say which interception to use, so we call both
-                    let t1 = wrapper.intercept_token(t, &s, &stream_span);
-                    let t2 = wrapper.hook(t1, s.as_str(), &stream_span);
-                    break (t2, s)
-                } else {
-                    *stream_pos = None;
-                    if let Some((_t, s, _span)) = stream.next() {
-                        // an error code after the end means an unrecognized sequence: we may try to continue,
-                        // but we don't count the max lexical errors here for the sake of simplicity
-                        wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s}")));
-                        continue;
-                    } else {
-                        // end of stream
-                        break (token_eof, String::new())
-                    }
-                }
-            };
-            if *stream_sym == token_eof { break }
-            if VERBOSE { println!("{BEFORE_ANSI}- no symbol was compatible, scanning new symbol {}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
         }
-        if VERBOSE { println!("{BEFORE_ANSI}couldn't recover\n- states {stack_state:?}{AFTER_ANSI}"); }
         None
     }
 }

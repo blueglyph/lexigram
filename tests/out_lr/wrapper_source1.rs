@@ -361,6 +361,11 @@ pub(crate) mod rules_903_1 {
             self.stack_span.push(span);
         }
 
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+
+
         fn pop_nt_value(&mut self) {
             self.last_dropped_nt_value = self.stack.pop();
             if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
@@ -602,19 +607,20 @@ pub(crate) mod rules_903_1 {
 
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> {
                 if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
+                let nterm = NTerm::from(nt);
+                // if matches!(nterm, NTerm::Expr) { return None }
                 last_dropped
                     .and_then(|value| if value.nt() == nt { Some(value) } else { None })
-                    .or_else(||
-                    match NTerm::from(nt) {
-                        NTerm::Program => Some(EnumSynValue::Program(SynProgram())),
-                        NTerm::StmtI   => Some(EnumSynValue::StmtI(SynStmtI())),
-                        NTerm::Stmt    => Some(EnumSynValue::Stmt(SynStmt())),
-                        NTerm::Decl    => Some(EnumSynValue::Decl(SynDecl())),
-                        NTerm::Inst    => Some(EnumSynValue::Inst(SynInst())),
-                        NTerm::Expr    => Some(EnumSynValue::Expr(SynExpr())),
-                        NTerm::Decl1   => Some(EnumSynValue::Decl1(SynDecl1(vec![]))),
-                    }
-                )
+                    .or_else(|| Some(match nterm {
+                        NTerm::Program => EnumSynValue::Program(SynProgram()),
+                        NTerm::StmtI   => EnumSynValue::StmtI(SynStmtI()),
+                        NTerm::Stmt    => EnumSynValue::Stmt(SynStmt()),
+                        NTerm::Decl    => EnumSynValue::Decl(SynDecl()),
+                        NTerm::Inst    => EnumSynValue::Inst(SynInst()),
+                        NTerm::Expr    => EnumSynValue::Expr(SynExpr()),
+                        NTerm::Decl1   => EnumSynValue::Decl1(SynDecl1(vec![])),
+                        _ => panic!()
+                    }))
             }
 
             fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {

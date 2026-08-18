@@ -345,6 +345,8 @@ pub trait ListenerWrapper {
     #[allow(unused_variables)]
     fn push_span(&mut self, span: PosSpan) {}
 
+    fn pop_span(&mut self) -> PosSpan { PosSpan::empty() }
+    
     /// Requests the wrapper to pop a nonterminal value. Some intermediate nonterminal values may have to be
     /// dropped when the parser is trying to recover from a syntax error.
     ///
