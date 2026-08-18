@@ -458,3 +458,27 @@ mod lexicon {
         check_next_eos(&mut lexer, "end of stream, line 1, col 7 (stream pos = 6)");
     }
 }
+
+mod span {
+    use crate::lexer::{Pos, PosSpan};
+
+    #[test]
+    fn test_add_assign() {
+        let a = PosSpan::empty();
+        let b = PosSpan::new(Pos(1, 2), Pos(1, 6));
+        let c = PosSpan::new(Pos(1, 7), Pos(1, 7));
+        let total = PosSpan::new(Pos(1, 2), Pos(1, 7));
+
+        let mut span = b.clone();
+        span += &a;
+        assert_eq!(span, b);
+        span += &c;
+        assert_eq!(span, total);
+
+        let mut span = a.clone();
+        span += &c;
+        assert_eq!(span, c);
+        span += &b;
+        assert_eq!(span, total);
+    }
+}

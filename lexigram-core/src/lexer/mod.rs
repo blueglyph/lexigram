@@ -181,7 +181,7 @@ pub type CaretCol = u64;
 pub type CaretLine = u64;
 
 /// `Pos(line, col)`
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub struct Pos(pub CaretLine, pub CaretCol);
 
 impl Pos {
@@ -274,7 +274,7 @@ impl AddAssign<&PosSpan> for PosSpan {
     fn add_assign(&mut self, rhs: &Self) {
         match (self.is_empty(), rhs.is_empty()) {
             (true, false) => (self.first, self.last) = (rhs.first, rhs.last),
-            (false, false) => self.last = rhs.last,
+            (false, false) => (self.first, self.last) = (Pos::min(self.first, rhs.first), Pos::max(self.last, rhs.last)),
             _ => {}
         }
     }
