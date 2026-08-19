@@ -608,7 +608,7 @@ pub(crate) mod rules_903_1 {
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> {
                 if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
                 let nterm = NTerm::from(nt);
-                // if matches!(nterm, NTerm::Expr) { return None }
+                if matches!(nterm, NTerm::Expr) { return None }
                 last_dropped
                     .and_then(|value| if value.nt() == nt { Some(value) } else { None })
                     .or_else(|| Some(match nterm {

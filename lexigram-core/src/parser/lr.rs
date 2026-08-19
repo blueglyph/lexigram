@@ -298,7 +298,7 @@ impl<'a, T> LRParser<'a, T> {
         let mut err_span = PosSpan::empty();
         // finds a state with a GOTO, but don't pop the start state
         while let Some(state) = stack_state.pop() {
-            if VERBOSE { println!("{BEFORE_ANSI}- states {stack_state:?}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+            if VERBOSE { println!("{BEFORE_ANSI}- states {stack_state:?} {state}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
             let goto_state = state;
             let goto_row = state as usize * self.num_nt;
             // check the available GOTO states:
@@ -333,7 +333,7 @@ impl<'a, T> LRParser<'a, T> {
             let token_eof = token_error - 1;
             let mut skip = candidates.is_empty();
             while !skip {
-                if VERBOSE { println!("{BEFORE_ANSI}  - states {stack_state:?}, err_span {err_span}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+                if VERBOSE { println!("{BEFORE_ANSI}  - states {stack_state:?} {state}, err_span {err_span}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
                 for &(var, state) in &candidates {
                     let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
                     if action.is_action() {
@@ -352,6 +352,9 @@ impl<'a, T> LRParser<'a, T> {
                                 }
                             }
                             return Some(state);
+                        } else {
+                            // removes the span corresponding to the skipped state and accumulates it
+                            err_span += &wrapper.pop_span();
                         }
                         if VERBOSE { println!("{BEFORE_ANSI}skipping this recovery point{AFTER_ANSI}"); }
                     }
@@ -360,7 +363,8 @@ impl<'a, T> LRParser<'a, T> {
                     (*stream_sym, *stream_str) = loop {
                         if let Some((t, s, span)) = stream.next() {
                             *stream_pos = Some(span.first_forced());
-                            err_span += &span;
+                            // accumulates the position of the dropped token
+                            err_span += &stream_span;
                             *stream_span = span;
                             // we can't say which interception to use, so we call both
                             let t1 = wrapper.intercept_token(t, &s, &stream_span);
