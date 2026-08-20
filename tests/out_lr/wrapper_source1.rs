@@ -599,6 +599,18 @@ pub(crate) mod rules_903_1 {
                 &mut self.log
             }
 
+            fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+                const BEFORE_ANSI: &str = "\u{1b}[31m";
+                const AFTER_ANSI : &str = "\u{1b}[0m";
+                if let LogMsg::Error(e) = &msg {
+                    println!("{BEFORE_ANSI}{e}{AFTER_ANSI}");
+                    if let Some(span) = span_opt {
+                        println!("{BEFORE_ANSI}>>{AFTER_ANSI} {}", self.annotate(span));
+                    }
+                }
+                self.get_log_mut().add(msg);
+            }
+
             fn push_span(&mut self, span: &PosSpan) {
                 const BEFORE: &str = "\u{1b}[35m";
                 const AFTER: &str = "\u{1b}[0m";
@@ -688,18 +700,6 @@ pub(crate) mod rules_903_1 {
                     CtxExpr::V5 { num } => {}
                 }
                 SynExpr()
-            }
-
-            fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
-                const BEFORE_ANSI: &str = "\u{1b}[31m";
-                const AFTER_ANSI : &str = "\u{1b}[0m";
-                if let LogMsg::Error(e) = &msg {
-                    println!("{BEFORE_ANSI}{e}{AFTER_ANSI}");
-                    if let Some(span) = span_opt {
-                        println!("{BEFORE_ANSI}>>{AFTER_ANSI} {}", self.annotate(span));
-                    }
-                }
-                self.get_log_mut().add(msg);
             }
         }
 
