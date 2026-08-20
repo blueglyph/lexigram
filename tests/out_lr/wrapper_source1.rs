@@ -35,6 +35,7 @@ pub(crate) mod rules_903_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
+    use lexigram_core::parser::RecoveryNt;
     use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 7;
@@ -225,6 +226,20 @@ pub(crate) mod rules_903_1 {
         }
     }
 
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
+    }
+
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
@@ -239,7 +254,7 @@ pub(crate) mod rules_903_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> { None }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -372,13 +387,14 @@ pub(crate) mod rules_903_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> bool {
-            let val_maybe = self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take());
-            if let Some(val) = val_maybe {
-                self.stack.push(val);
-                true
-            } else {
-                false
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
             }
         }
 
@@ -617,22 +633,25 @@ pub(crate) mod rules_903_1 {
                 if self.verbose { println!("{BEFORE}push_span: {span:?}{AFTER} -> {}", self.annotate(span)) }
             }
 
-            fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> {
+            fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
                 if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
                 let nterm = NTerm::from(nt);
-                if matches!(nterm, NTerm::Expr) { return None }
+                if matches!(nterm, NTerm::Expr) { return RecoveryNtValue::Skip }
                 last_dropped
                     .and_then(|value| if value.nt() == nt { Some(value) } else { None })
-                    .or_else(|| Some(match nterm {
-                        NTerm::Program => EnumSynValue::Program(SynProgram()),
-                        NTerm::StmtI   => EnumSynValue::StmtI(SynStmtI()),
-                        NTerm::Stmt    => EnumSynValue::Stmt(SynStmt()),
-                        NTerm::Decl    => EnumSynValue::Decl(SynDecl()),
-                        NTerm::Inst    => EnumSynValue::Inst(SynInst()),
-                        NTerm::Expr    => EnumSynValue::Expr(SynExpr()),
-                        NTerm::Decl1   => EnumSynValue::Decl1(SynDecl1(vec![])),
-                        _ => panic!()
-                    }))
+                    .or_else(||
+                        Some(match nterm {
+                            NTerm::Program => EnumSynValue::Program(SynProgram()),
+                            NTerm::StmtI => EnumSynValue::StmtI(SynStmtI()),
+                            NTerm::Stmt => EnumSynValue::Stmt(SynStmt()),
+                            NTerm::Decl => EnumSynValue::Decl(SynDecl()),
+                            NTerm::Inst => EnumSynValue::Inst(SynInst()),
+                            NTerm::Expr => EnumSynValue::Expr(SynExpr()),
+                            NTerm::Decl1 => EnumSynValue::Decl1(SynDecl1(vec![])),
+                            _ => panic!()
+                        }))
+                    .map(|value| RecoveryNtValue::Value(value))
+                    .unwrap_or_else(|| RecoveryNtValue::Abort)
             }
 
             fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {

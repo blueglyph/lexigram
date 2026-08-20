@@ -6,7 +6,7 @@ use crate::{AltId, CollectJoin, TokenId, VarId};
 use crate::fixed_sym_table::{FixedSymTable, SymInfoTable};
 use crate::lexer::{Pos, PosSpan};
 use crate::log::LogMsg;
-use crate::parser::{terminal_to_str_type, Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate};
+use crate::parser::{terminal_to_str_type, Call, ListenerWrapper, ParserError, ParserToken, Symbol, Terminate, RecoveryNt};
 
 /// State index
 pub type LRStateId = u16;
@@ -340,7 +340,9 @@ impl<'a, T> LRParser<'a, T> {
                         if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
                         // if the wrapper is called, it can skip the recovery of the current nonterminal and
                         // recover at a higher level
-                        skip = *call_wrapper && !wrapper.push_nt_recovery_value(var);
+                        let recovery_result = wrapper.push_nt_recovery_value(var);
+                        *call_wrapper &= recovery_result != RecoveryNt::Abort;
+                        skip = *call_wrapper && recovery_result == RecoveryNt::Skip;
                         if !skip {
                             // we put back the goto_state on the stack because it will be required after the action
                             stack_state.push(goto_state);

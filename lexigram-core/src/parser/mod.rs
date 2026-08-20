@@ -288,6 +288,21 @@ pub enum Call {
     End(Terminate)
 }
 
+/// Result returned by [ListenerWrapper::push_nt_recovery_value].
+///
+/// * [Abort](RecoveryNt::Abort): stops using the wrapper/listener
+/// * [Skip](RecoveryNt::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+/// * [Done](RecoveryNt::Done): recovery nonterminal has been pushed, parsing resumes normally
+#[derive(PartialEq, Debug)]
+pub enum RecoveryNt {
+    /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+    Abort,
+    /// Skips the recovery at this level. Tries to recover from another nonterminal.
+    Skip,
+    /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+    Done,
+}
+
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
     #[allow(unused_variables)]
@@ -363,7 +378,7 @@ pub trait ListenerWrapper {
     /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
     /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
     #[allow(unused_variables)]
-    fn push_nt_recovery_value(&mut self, nt: VarId) -> bool { false }
+    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt { RecoveryNt::Abort }
 
     /// Returns the symbol on the left of the dot and whether it has a value.
     #[allow(unused_variables)]
