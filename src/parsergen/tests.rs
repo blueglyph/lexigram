@@ -329,7 +329,7 @@ pub(super) mod wrapper_source {
             }
             builder.set_gen_parser(test_source_parser);
             let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
-            let (result_src, type_tpl_src, ..) = builder.gen_source_code();
+            let (result_src, type_tpl_src, listener_tpl_src) = builder.gen_source_code();
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.num_nt).into_iter().filter_map(|v|
@@ -406,6 +406,7 @@ pub(super) mod wrapper_source {
             }
             if PRINT_TEMPLATE && !builder_has_errors {
                 println!("{type_tpl_src}");
+                println!("{listener_tpl_src}");
             }
             if PRINT_SOURCE && !builder_has_errors {
                 println!("pub(crate) mod rules_{rule_name} {{");

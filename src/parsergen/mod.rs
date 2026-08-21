@@ -1667,7 +1667,7 @@ impl ParserGen {
 
     fn source_token_enums(&self) -> Vec<String> {
         let mut src = vec![];
-        if self.options.gen_token_enums {
+        if self.options.gen_token_enums || self.options.has_error_recovery() {
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum Term {".to_string());
@@ -2034,7 +2034,7 @@ impl ParserGen {
         // prepares the data for the following sections
         let mut exit_fixer = NameFixer::new();
         let mut span_init = HashSet::<VarId>::new();
-        let src_skel = vec![
+        let mut src_skel = vec![
             format!("// {:-<80}", ""),
             format!("// Template for the user implementation of {}Listener", self.name),
             String::new(),
@@ -2049,6 +2049,23 @@ impl ParserGen {
             "    }".to_string(),
             String::new(),
         ];
+        if self.options.has_error_recovery() {
+            src_skel.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {".to_string());
+            src_skel.push("        let nterm = NTerm::from(nt);".to_string());
+            src_skel.push("        last_dropped".to_string());
+            src_skel.push("            .and_then(|value| if value.nt() == nt { Some(value) } else { None })".to_string());
+            src_skel.push("            .or_else(||".to_string());
+            src_skel.push("                Some(match nterm {".to_string());
+            src_skel.extend(syns.iter()
+                .map(|&v| format!("                    NTerm::{0} => EnumSynValue::{0}({1}()),", self.nt_name[v as usize].0, self.get_nt_type(v)))
+            );
+            src_skel.push("                    _ => panic!()".to_string());
+            src_skel.push("                }))".to_string());
+            src_skel.push("            .map(|value| RecoveryNtValue::Value(value))".to_string());
+            src_skel.push("            .unwrap_or_else(|| RecoveryNtValue::Abort)".to_string());
+            src_skel.push("    }".to_string());
+            src_skel.push(String::new());
+        }
         let mut sources = WrapperSources {
             src,
             src_listener_decl: vec![],
