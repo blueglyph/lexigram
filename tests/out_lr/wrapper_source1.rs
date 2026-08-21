@@ -125,6 +125,10 @@ pub(crate) mod rules_903_1 {
         }
     }
 
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
+
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
@@ -250,8 +254,6 @@ pub(crate) mod rules_903_1 {
             self.get_log_mut().add(msg);
         }
         #[allow(unused_variables)]
-        fn push_span(&mut self, span: &PosSpan) {}
-        #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
         fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
@@ -372,14 +374,12 @@ pub(crate) mod rules_903_1 {
         }
 
         fn push_span(&mut self, span: PosSpan) {
-            self.listener.push_span(&span);
             self.stack_span.push(span);
         }
 
         fn pop_span(&mut self) -> PosSpan {
             self.stack_span.pop().unwrap()
         }
-
 
         fn pop_nt_value(&mut self) {
             self.last_dropped_nt_value = self.stack.pop();
@@ -627,11 +627,12 @@ pub(crate) mod rules_903_1 {
                 self.get_log_mut().add(msg);
             }
 
-            fn push_span(&mut self, span: &PosSpan) {
-                const BEFORE: &str = "\u{1b}[35m";
-                const AFTER: &str = "\u{1b}[0m";
-                if self.verbose { println!("{BEFORE}push_span: {span:?}{AFTER} -> {}", self.annotate(span)) }
-            }
+            // requires a call from the wrapper::push_span()
+            // fn push_span(&mut self, span: &PosSpan) {
+            //     const BEFORE: &str = "\u{1b}[35m";
+            //     const AFTER: &str = "\u{1b}[0m";
+            //     if self.verbose { println!("{BEFORE}push_span: {span:?}{AFTER} -> {}", self.annotate(span)) }
+            // }
 
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
                 if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }

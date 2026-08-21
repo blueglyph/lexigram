@@ -187,6 +187,13 @@ pub struct ParserGenOptions {
     pub parser_type: ParserType,
 }
 
+impl ParserGenOptions {
+    fn has_error_recovery(&self) -> bool {
+        // for now, error recovery enabled for LR parsers
+        self.parser_type.is_lr()
+    }
+}
+
 #[derive(Debug)]
 pub struct ParserGen {
     // common parsing table fields:
@@ -2329,8 +2336,10 @@ impl ParserGen {
         src.add_space();
         // EnumSynValue type
         src.push("#[derive(Debug)]".to_string());
-        src.push(format!("enum EnumSynValue {{ {} }}",
-                         syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
+        src.push(format!(
+            "{}enum EnumSynValue {{ {} }}",
+            if self.options.has_error_recovery() { "pub " } else { "" },
+            syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
         src.add_space();
         src.push("impl EnumSynValue {".to_string());
         if !syns.is_empty() {
@@ -2906,8 +2915,28 @@ impl ParserGen {
     fn source_wrapper_finalize(&mut self, span_init: HashSet<VarId>, sources: WrapperSources) -> (Vec<String>, Vec<String>, Vec<String>) {
         let WrapperSources { mut src, src_listener_decl, mut src_skel, mut src_types, src_init, src_exit, src_wrapper_impl } = sources;
 
+        if self.options.has_error_recovery() {
+            self.options.used_libs.add(format!("lexigram_core::parser::RecoveryNt"));
+        }
+
         // Writes the listener trait declaration
         src.add_space();
+        if self.options.has_error_recovery() {
+            src.push("/// Result returned by [TestListener::get_recovery_value].".to_string());
+            src.push("///".to_string());
+            src.push("/// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener".to_string());
+            src.push("/// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal".to_string());
+            src.push("/// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally".to_string());
+            src.push("pub enum RecoveryNtValue {".to_string());
+            src.push("    /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.".to_string());
+            src.push("    Abort,".to_string());
+            src.push("    /// Skips the recovery at this level. Tries to recover from another nonterminal.".to_string());
+            src.push("    Skip,".to_string());
+            src.push("    /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.".to_string());
+            src.push("    Value(EnumSynValue),".to_string());
+            src.push("}".to_string());
+            src.push(String::new());
+        }
         src.push(format!("pub trait {}Listener {{", self.name));
         src.push("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from".to_string());
         src.push("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.".to_string());
@@ -2917,15 +2946,18 @@ impl ParserGen {
         src.push("    fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {".to_string());
         src.push("        self.get_log_mut().add(msg);".to_string());
         src.push("    }".to_string());
-        if self.options.gen_span_params {
+        // if self.options.gen_span_params {
+        //     // for debug purpose
+        //     src.push("    #[allow(unused_variables)]".to_string());
+        //     src.push("    fn push_span(&mut self, span: &PosSpan) {}".to_string());
+        // }
+        if self.options.has_error_recovery() {
             src.push("    #[allow(unused_variables)]".to_string());
-            src.push("    fn push_span(&mut self, span: &PosSpan) {}".to_string());
+            src.push("    fn drop_nt_value(&mut self, value: &EnumSynValue) {}".to_string());
+            src.push("    #[allow(unused_variables)]".to_string());
+            src.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }".to_string());
+            src.push("    fn syntax_error_recovered(&mut self) {}".to_string());
         }
-        src.push("    #[allow(unused_variables)]".to_string());
-        src.push("    fn drop_nt_value(&mut self, value: &EnumSynValue) {}".to_string());
-        src.push("    #[allow(unused_variables)]".to_string());
-        src.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> Option<EnumSynValue> { None }".to_string());
-        src.push("    fn syntax_error_recovered(&mut self) {}".to_string());
         let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
         let extra_ref_span = if self.options.gen_span_params { ", span: &PosSpan" } else { "" };
         if !self.terminal_hooks.is_empty() {
@@ -2955,7 +2987,7 @@ impl ParserGen {
         src.push("}".to_string());
 
         // Writes the switch() function
-        src.add_space();
+        src.push(String::new());
         src.push("pub struct Wrapper<T> {".to_string());
         src.push("    verbose: bool,".to_string());
         src.push("    listener: T,".to_string());
@@ -2964,6 +2996,9 @@ impl ParserGen {
         src.push("    stack_t: Vec<String>,".to_string());
         if self.options.gen_span_params {
             src.push("    stack_span: Vec<PosSpan>,".to_string());
+        }
+        if self.options.has_error_recovery() {
+            src.push("    last_dropped_nt_value: Option<EnumSynValue>,".to_string());
         }
         src.push("}".to_string());
         src.push(String::new());
@@ -3046,12 +3081,7 @@ impl ParserGen {
         src.push("        }".to_string());
         src.push("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());".to_string());
         src.push("        if self.verbose {".to_string());
-        src.push(r#"            println!("> stack_t:    [{}]", self.stack_t.join(", "));"#.to_string());
-        src.push(r#"            println!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));"#.to_string());
-        if self.options.gen_span_params {
-            src.push(r#"            println!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));"#.to_string());
-        }
-        // src.push(r#"            println!("> spans:     {}", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", "));"#.to_string());
+        src.push(r#"            println!("{}", self.get_status().join("\n"));"#.to_string());
         src.push("        }".to_string());
         src.push("    }".to_string());
         src.push(String::new());
@@ -3074,13 +3104,6 @@ impl ParserGen {
         src.push("    fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {".to_string());
         src.push("        self.listener.handle_msg(span_opt, msg);".to_string());
         src.push("    }".to_string());
-        if self.options.gen_span_params {
-            src.push(String::new());
-            src.push("    fn push_span(&mut self, span: PosSpan) {".to_string());
-            src.push("        self.listener.push_span(&span);".to_string());
-            src.push("        self.stack_span.push(span);".to_string());
-            src.push("    }".to_string());
-        }
         src.push(String::new());
         src.push("    fn is_stack_empty(&self) -> bool {".to_string());
         src.push("        self.stack.is_empty()".to_string());
@@ -3107,14 +3130,70 @@ impl ParserGen {
         src.push(format!("    fn intercept_token(&mut self, token: TokenId, text: &str, {unused_span}span: &PosSpan) -> TokenId {{"));
         src.push(format!("        self.listener.intercept_token(token, text{extra_span_arg})"));
         src.push("    }".to_string());
+        src.push(String::new());
+        src.push(r#"    fn get_status(&self) -> Vec<String> {"#.to_string());
+        src.push(r#"        vec!["#.to_string());
+        src.push(r#"            format!("> stack_t:    [{}]", self.stack_t.join(", ")),"#.to_string());
+        src.push(r#"            format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),"#.to_string());
+        if self.options.gen_span_params {
+            src.push(r#"            format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),"#.to_string());
+        }
+        src.push(r#"        ]"#.to_string());
+        src.push(r#"    }"#.to_string());
+        if self.options.gen_span_params {
+            src.push(String::new());
+            src.push("    fn push_span(&mut self, span: PosSpan) {".to_string());
+            // src.push("        self.listener.push_span(&span);".to_string()); // for debug purpose
+            src.push("        self.stack_span.push(span);".to_string());
+            src.push("    }".to_string());
+            src.push(String::new());
+            src.push("    fn pop_span(&mut self) -> PosSpan {".to_string());
+            src.push("        self.stack_span.pop().unwrap()".to_string());
+            src.push("    }".to_string());
+        }
+        if self.options.has_error_recovery() {
+            src.push(String::new());
+            src.push(r"    fn pop_nt_value(&mut self) {".to_string());
+            src.push(r"        self.last_dropped_nt_value = self.stack.pop();".to_string());
+            src.push(r#"        if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }"#.to_string());
+            src.push(r"        self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());".to_string());
+            src.push(r"    }".to_string());
+            src.push(String::new());
+            src.push(r"    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {".to_string());
+            src.push(r"        match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {".to_string());
+            src.push(r"            RecoveryNtValue::Abort => RecoveryNt::Abort,".to_string());
+            src.push(r"            RecoveryNtValue::Skip => RecoveryNt::Skip,".to_string());
+            src.push(r"            RecoveryNtValue::Value(val) => {".to_string());
+            src.push(r"                self.stack.push(val);".to_string());
+            src.push(r"                RecoveryNt::Done".to_string());
+            src.push(r"            }".to_string());
+            src.push(r"        }".to_string());
+            src.push(r"    }".to_string());
+            src.push(String::new());
+            src.push(r"    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {".to_string());
+            src.push(r"        let sym = STATE_SYMBOL[state as usize];".to_string());
+            src.push(r"        let has_value = match sym {".to_string());
+            src.push(r"            Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),".to_string());
+            src.push(r"            Symbol::NT(nt) => NT_VALUE[nt as usize],".to_string());
+            src.push(r"            Symbol::Empty => false,".to_string());
+            src.push(r"            Symbol::End => panic!(),".to_string());
+            src.push(r"        };".to_string());
+            src.push(r"        (sym, has_value)".to_string());
+            src.push(r"    }".to_string());
+            src.push(String::new());
+            src.push(r"    fn syntax_error_recovered(&mut self) {".to_string());
+            src.push(r"        self.listener.syntax_error_recovered();".to_string());
+            src.push(r"    }".to_string());
+        }
         src.push("}".to_string());
 
         src.add_space();
         src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
         src.push("    pub fn new(listener: T, verbose: bool) -> Self {".to_string());
         src.push(format!(
-            "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){} }}",
-            if self.options.gen_span_params { ", stack_span: Vec::new()" } else { "" }
+            "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){}{} }}",
+            if self.options.gen_span_params { ", stack_span: Vec::new()" } else { "" },
+            if self.options.has_error_recovery() { ", last_dropped_nt_value: None" } else { "" }
         ));
         src.push("    }".to_string());
         src.push(String::new());
