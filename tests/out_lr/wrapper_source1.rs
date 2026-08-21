@@ -11,27 +11,27 @@
 pub(crate) mod rules_903_1 {
     /// User-defined type for `program`
     #[derive(Debug, PartialEq)]
-    pub struct SynProgram();
+    pub struct SynProgram(u32);
 
     /// User-defined type for `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
     #[derive(Debug, PartialEq)]
-    pub struct SynStmtI();
+    pub struct SynStmtI(u32);
 
     /// User-defined type for `stmt`
     #[derive(Debug, PartialEq)]
-    pub struct SynStmt();
+    pub struct SynStmt(u32);
 
     /// User-defined type for `decl`
     #[derive(Debug, PartialEq)]
-    pub struct SynDecl();
+    pub struct SynDecl(u32);
 
     /// User-defined type for `inst`
     #[derive(Debug, PartialEq)]
-    pub struct SynInst();
+    pub struct SynInst(u32);
 
     /// User-defined type for `expr`
     #[derive(Debug, PartialEq)]
-    pub struct SynExpr();
+    pub struct SynExpr(u32);
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
@@ -110,17 +110,18 @@ pub(crate) mod rules_903_1 {
         #[doc = "`decl_1`, parent: `decl`"]    Decl1 = 6,
     }
 
-    impl From<TokenId> for NTerm {
-        fn from(value: VarId) -> Self {
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
             match value {
-                _ if value == NTerm::Program as VarId => NTerm::Program,
-                _ if value == NTerm::StmtI as VarId => NTerm::StmtI,
-                _ if value == NTerm::Stmt as VarId => NTerm::Stmt,
-                _ if value == NTerm::Decl as VarId => NTerm::Decl,
-                _ if value == NTerm::Inst as VarId => NTerm::Inst,
-                _ if value == NTerm::Expr as VarId => NTerm::Expr,
-                _ if value == NTerm::Decl1 as VarId => NTerm::Decl1,
-                _ => panic!("cannot convert nonterminal index #{value} to NTerm"),
+                _ if value == NTerm::Program as VarId => Ok(NTerm::Program),
+                _ if value == NTerm::StmtI as VarId => Ok(NTerm::StmtI),
+                _ if value == NTerm::Stmt as VarId => Ok(NTerm::Stmt),
+                _ if value == NTerm::Decl as VarId => Ok(NTerm::Decl),
+                _ if value == NTerm::Inst as VarId => Ok(NTerm::Inst),
+                _ if value == NTerm::Expr as VarId => Ok(NTerm::Expr),
+                _ if value == NTerm::Decl1 as VarId => Ok(NTerm::Decl1),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
             }
         }
     }
@@ -582,6 +583,8 @@ pub(crate) mod rules_903_1 {
             log: BufLog,
             words: Vec<&'a str>,
             verbose: bool,
+            nt_recover: Vec<bool>,
+            nt_uid: Vec<u32>,
         }
 
         impl<'a> Listener<'a> {
@@ -590,6 +593,8 @@ pub(crate) mod rules_903_1 {
                     log: BufLog::new(),
                     words: input.split_ascii_whitespace().to_vec(),
                     verbose,
+                    nt_recover: vec![true; NUM_NT],
+                    nt_uid: vec![0; NUM_NT],
                 }
             }
 
@@ -606,6 +611,12 @@ pub(crate) mod rules_903_1 {
                     if last + 1 >= self.words.len() { "" } else { " " },
                     &self.words[last + 1..].join(" ")
                 )
+            }
+
+            fn get_nt_uid(&mut self, nt: VarId) -> u32 {
+                let uid = self.nt_uid[nt as usize];
+                self.nt_uid[nt as usize] += 1;
+                uid
             }
         }
 
@@ -635,19 +646,19 @@ pub(crate) mod rules_903_1 {
             // }
 
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
-                if self.verbose { println!("get_recovery_value({:?}, last_dropped: {last_dropped:?})", NTerm::from(nt)); }
-                let nterm = NTerm::from(nt);
-                if matches!(nterm, NTerm::Expr) { return RecoveryNtValue::Skip }
+                let nterm = NTerm::try_from(nt).unwrap();
+                if self.verbose { println!("get_recovery_value({nterm:?}, last_dropped: {last_dropped:?})"); }
+                if !self.nt_recover[nt as usize] { return RecoveryNtValue::Skip }
                 last_dropped
                     .and_then(|value| if value.nt() == nt { Some(value) } else { None })
                     .or_else(||
                         Some(match nterm {
-                            NTerm::Program => EnumSynValue::Program(SynProgram()),
-                            NTerm::StmtI => EnumSynValue::StmtI(SynStmtI()),
-                            NTerm::Stmt => EnumSynValue::Stmt(SynStmt()),
-                            NTerm::Decl => EnumSynValue::Decl(SynDecl()),
-                            NTerm::Inst => EnumSynValue::Inst(SynInst()),
-                            NTerm::Expr => EnumSynValue::Expr(SynExpr()),
+                            NTerm::Program => EnumSynValue::Program(SynProgram(self.get_nt_uid(nt))),
+                            NTerm::StmtI => EnumSynValue::StmtI(SynStmtI(self.get_nt_uid(nt))),
+                            NTerm::Stmt => EnumSynValue::Stmt(SynStmt(self.get_nt_uid(nt))),
+                            NTerm::Decl => EnumSynValue::Decl(SynDecl(self.get_nt_uid(nt))),
+                            NTerm::Inst => EnumSynValue::Inst(SynInst(self.get_nt_uid(nt))),
+                            NTerm::Expr => EnumSynValue::Expr(SynExpr(self.get_nt_uid(nt))),
                             NTerm::Decl1 => EnumSynValue::Decl1(SynDecl1(vec![])),
                             _ => panic!()
                         }))
@@ -659,11 +670,11 @@ pub(crate) mod rules_903_1 {
                 if self.verbose { println!("exit_program:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 // program -> (<L> stmt)*
                 let CtxProgram::V1 { .. }  = ctx;
-                SynProgram()
+                SynProgram(self.get_nt_uid(NTerm::Program as VarId))
             }
         
             fn init_stmt_i(&mut self) -> SynStmtI {
-                SynStmtI()
+                SynStmtI(self.get_nt_uid(NTerm::StmtI as VarId))
             }
         
             fn exit_stmt_i(&mut self, acc: &mut SynStmtI, ctx: CtxStmtI, spans: Vec<PosSpan>) {
@@ -680,7 +691,7 @@ pub(crate) mod rules_903_1 {
                     // stmt -> inst
                     CtxStmt::V2 { inst } => {}
                 }
-                SynStmt()
+                SynStmt(self.get_nt_uid(NTerm::Stmt as VarId))
             }
         
             fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
@@ -691,7 +702,7 @@ pub(crate) mod rules_903_1 {
                     // decl -> "typedef" Type Id ";"
                     CtxDecl::V2 { type1, id } => {}
                 }
-                SynDecl()
+                SynDecl(self.get_nt_uid(NTerm::Decl as VarId))
             }
         
             fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
@@ -702,7 +713,7 @@ pub(crate) mod rules_903_1 {
                     // inst -> "print" expr ";"
                     CtxInst::V2 { expr } => {}
                 }
-                SynInst()
+                SynInst(self.get_nt_uid(NTerm::Inst as VarId))
             }
         
             fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
@@ -719,7 +730,7 @@ pub(crate) mod rules_903_1 {
                     // expr -> Num
                     CtxExpr::V5 { num } => {}
                 }
-                SynExpr()
+                SynExpr(self.get_nt_uid(NTerm::Expr as VarId))
             }
         }
 

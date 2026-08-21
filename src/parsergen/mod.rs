@@ -1710,13 +1710,14 @@ impl ParserGen {
             src.extend(columns_to_str(cols, Some(vec![16, 0])));
             src.push("}".to_string());
             src.add_space();
-            src.push("impl From<TokenId> for NTerm {".to_string());
-            src.push("    fn from(value: VarId) -> Self {".to_string());
+            src.push("impl TryFrom<TokenId> for NTerm {".to_string());
+            src.push("    type Error = String;".to_string());
+            src.push("    fn try_from(value: VarId) -> Result<Self, Self::Error> {".to_string());
             src.push("        match value {".to_string());
             src.extend(self.symbol_table.get_nonterminals().into_iter().take(self.num_nt)
-                .map(|s| format!("            _ if value == NTerm::{str} as VarId => NTerm::{str},", str = s.to_camelcase()))
+                .map(|s| format!("            _ if value == NTerm::{str} as VarId => Ok(NTerm::{str}),", str = s.to_camelcase()))
             );
-            src.push(r#"            _ => panic!("cannot convert nonterminal index #{value} to NTerm"),"#.to_string());
+            src.push(r#"            _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),"#.to_string());
             src.push("        }".to_string());
             src.push("    }".to_string());
             src.push("}".to_string());
