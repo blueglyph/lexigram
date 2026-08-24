@@ -35,7 +35,7 @@ pub(crate) mod rules_903_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
-    use lexigram_core::parser::RecoveryNt;
+    use lexigram_core::parser::{lr::WrapperLRErrorRecovery, RecoveryNt};
     use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
 
     static NUM_NT: usize = 7;
@@ -381,7 +381,9 @@ pub(crate) mod rules_903_1 {
         fn pop_span(&mut self) -> PosSpan {
             self.stack_span.pop().unwrap()
         }
-
+    }
+    
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
         fn pop_nt_value(&mut self) {
             self.last_dropped_nt_value = self.stack.pop();
             if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
