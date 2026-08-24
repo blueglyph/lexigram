@@ -104,7 +104,9 @@ impl Default for NameFixer {
     }
 }
 
-/// Transforms names into CamelCase or underscore_parts (lower or upper case)
+/// Transforms names into CamelCase or underscore_parts (lower or upper case).
+///
+/// Doesn't handle non-ASCII uppercase/lowercase (é, è, à, ...).
 pub trait NameTransformer {
     /// Transforms the string or string slice into a string with the camelcase equivalent.
     /// ```
@@ -139,16 +141,24 @@ pub trait NameTransformer {
 impl NameTransformer for str {
     fn to_camelcase(&self) -> String {
         let mut upper = true;
+        let mut dont_force_lower = false;
+        let there_are_lower = self.chars().any(|c| c.is_ascii_lowercase());
         let result: String = self.chars().filter_map(|c| {
-            if c == '_' {
+            let new = if c == '_' {
                 upper = true;
                 None
             } else if upper {
                 upper = false;
                 Some(c.to_ascii_uppercase())
             } else {
-                Some(c.to_ascii_lowercase())
-            }
+                if !dont_force_lower {
+                    Some(c.to_ascii_lowercase())
+                } else {
+                    Some(c)
+                }
+            };
+            dont_force_lower = there_are_lower || c.is_ascii_lowercase();
+            new
         }).collect();
         assert!(!result.is_empty());
         result
@@ -218,12 +228,15 @@ mod tests {
     fn test_to_camel_case() {
         let tests = vec![
             ("A", "A"),
-            ("AA", "Aa"),
-            ("AB1", "Ab1"),
-            ("A_1", "A1"),
-            ("NUM_VAL", "NumVal"),
             ("a", "A"),
-            ("ab_cd_ef", "AbCdEf"),
+            ("A_1", "A1"),
+            ("CAMEL", "Camel"),
+            ("CASE1", "Case1"),
+            ("NUM_VAL", "NumVal"),
+            ("the_camel_case", "TheCamelCase"),
+            ("The_Camel_Case", "TheCamelCase"),
+            ("theCamelCase", "TheCamelCase"),
+            ("LPar", "LPar"),
         ];
         for (str, expected) in tests {
             let result = str.to_string().to_camelcase();

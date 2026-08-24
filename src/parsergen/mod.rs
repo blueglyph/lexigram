@@ -1671,15 +1671,21 @@ impl ParserGen {
     fn source_token_enums(&self) -> Vec<String> {
         let mut src = vec![];
         if self.options.gen_token_enums || self.options.has_lr_error_recovery() {
+            let mut enum_fixer = NameFixer::new();
+            let mut term_names = vec![];
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum Term {".to_string());
             let cols = self.symbol_table.get_terminals().enumerate()
-                .map(|(t, (s, s_opt))| vec![
-                    // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
-                    // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
-                    format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
-                    format!("{s} = {t},", )])
+                .map(|(t, (s, s_opt))| {
+                    let su = enum_fixer.get_unique_name(s.to_camelcase());
+                    term_names.push(su);
+                    vec![
+                        // format!("    #[doc=\"{:?}\"]", if let Some(so) = s_opt { format!("{so:?}") } else { String::new() }),
+                        // if let Some(so) = s_opt { format!("    #[doc = \"'{so}'\"]") } else { String::new() },
+                        format!("    #[doc = \"{}\"]", if let Some(so) = s_opt { format!("'{so}'") } else { "(variable)".to_string() }),
+                        format!("{} = {t},", term_names.last().unwrap())]
+                })
                 .to_vec();
             src.extend(columns_to_str(cols, Some(vec![16, 0])));
             src.push("}".to_string());
@@ -1688,8 +1694,8 @@ impl ParserGen {
             src.push("impl From<TokenId> for Term {".to_string());
             src.push("    fn from(value: TokenId) -> Self {".to_string());
             src.push("        match value {".to_string());
-            src.extend(self.symbol_table.get_terminals()
-                .map(|(s, _)| format!("            _ if value == Term::{s} as TokenId => Term::{s},"))
+            src.extend(term_names.iter()
+                .map(|s| format!("            _ if value == Term::{s} as TokenId => Term::{s},"))
             );
             src.push(r#"            _ => panic!("cannot convert terminal index #{value} to Term"),"#.to_string());
             src.push("        }".to_string());
