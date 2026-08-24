@@ -5,7 +5,6 @@ use crate::fixed_sym_table::SymInfoTable;
 use crate::{AltId, TokenId, VarId};
 use crate::lexer::PosSpan;
 use crate::log::{LogMsg, Logger};
-use crate::parser::lr::LRStateId;
 
 pub(crate) mod tests;
 pub mod lr;
@@ -362,31 +361,6 @@ pub trait ListenerWrapper {
 
     fn pop_span(&mut self) -> PosSpan { PosSpan::empty() }
     
-    /// Requests the wrapper to pop a nonterminal value. Some intermediate nonterminal values may have to be
-    /// dropped when the parser is trying to recover from a syntax error.
-    ///
-    /// The wrapper may want to store the latest dropped value, in case [`push_nt_recovery_value`] is
-    /// called immediately after to request a recovery value. In most cases, the latest dropped value is
-    /// a good candidate, especially if it's a loop nonterminal.
-    fn pop_nt_value(&mut self) {}
-
-    /// Requests the wrapper to push a nonterminal value to resynchronize its stack in case of error recovery.
-    ///
-    /// The wrapper should ideally requires a value to the user through the listener interface, knowing this value
-    /// is used to recover from a syntax error.
-    ///
-    /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
-    /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
-    #[allow(unused_variables)]
-    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt { RecoveryNt::Abort }
-
-    /// Returns the symbol on the left of the dot and whether it has a value.
-    #[allow(unused_variables)]
-    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
-
-    /// Notifies the wrapper that the parser has recovered from the syntax error. It can be used to forward
-    /// the notification to the listener.
-    fn syntax_error_recovered(&mut self) {}
 }
 
 // ---------------------------------------------------------------------------------------------

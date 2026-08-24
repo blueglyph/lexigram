@@ -10,9 +10,11 @@ pub(crate) mod listener1 {
 
     use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
+        ("Not", Some("!")),("Sub", Some("-")),("Num", None)];
+
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Not", Some("!")), ("Sub", Some("-")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1"];
     static ALT_VAR: [VarId; 4] = [0, 0, 1, 1];
     static ALTERNATIVES: [&[Symbol]; 4] = [&[Symbol::T(1), Symbol::NT(0)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(1)], &[Symbol::Empty]];
@@ -20,6 +22,7 @@ pub(crate) mod listener1 {
     static OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::NT(0), OpCode::T(1)], &[OpCode::NT(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(0)], &[OpCode::Exit(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -49,9 +52,11 @@ pub(crate) mod listener2 {
 
     use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("Sub", Some("-")),("Mul", Some("*")),("Div", Some("/")),("Add", Some("+")),("Id", None)];
+
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
@@ -59,6 +64,7 @@ pub(crate) mod listener2 {
     static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -88,9 +94,11 @@ pub(crate) mod listener3 {
 
     use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("Sub", Some("-")),("Mul", Some("*")),("Div", Some("/")),("Add", Some("+")),("Id", None)];
+
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(0), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
@@ -98,6 +106,7 @@ pub(crate) mod listener3 {
     static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(0), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -127,9 +136,11 @@ pub(crate) mod listener4 {
 
     use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("Sub", Some("-")),("Mul", Some("*")),("Div", Some("/")),("Add", Some("+")),("Id", None)];
+
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
@@ -137,6 +148,7 @@ pub(crate) mod listener4 {
     static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -166,9 +178,11 @@ pub(crate) mod listener5 {
 
     use lexigram_lib::{AltId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, parser::{OpCode, Symbol, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 2] = [
+        ("Num", None),("Exp", Some("^"))];
+
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 2;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Num", None), ("Exp", Some("^"))];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["expr", "expr_1"];
     static ALT_VAR: [VarId; 3] = [0, 1, 1];
     static ALTERNATIVES: [&[Symbol]; 3] = [&[Symbol::T(0), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(0)], &[Symbol::Empty]];
@@ -176,6 +190,7 @@ pub(crate) mod listener5 {
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(0), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -209,15 +224,18 @@ pub(crate) mod listener6 {
 
     use lexigram_lib::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("A", None),("Id", None),("Comma", Some(",")),("C", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 2;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("A", None), ("Id", None), ("Comma", Some(",")), ("C", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["a", "a_1"];
     static ALT_VAR: [VarId; 3] = [0, 1, 1];
     static PARSING_TABLE: [AltId; 10] = [0, 3, 3, 3, 4, 3, 3, 1, 2, 3];
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(3), OpCode::NT(1), OpCode::T(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1), OpCode::T(2)], &[OpCode::Exit(2)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -253,7 +271,10 @@ pub(crate) mod listener7 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener7]
 
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
+        ("A", None),("C", None),("Id", None)];
 
     static NUM_NT: usize = 3;
     static NUM_T_FULL: usize = 4;
@@ -263,10 +284,52 @@ pub(crate) mod listener7 {
         3,0,0,0,5,2,0,7,0];
     static ALT_NT_LEN: [(VarId, u16, u16); 5] = [
         (0, 3, 2),(1, 1, 1),(2, 2, 0),(2, 1, 0),(3, 1, 0)];
-    static SYMBOLS_T: [(&str, Option<&str>); 3] = [
-        ("A", None),("C", None),("Id", None)];
     static SYMBOLS_NT: [&str; 4] = [
         "a","b","a_1","<goal>"];
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "(variable)"] A = 0,
+        #[doc = "(variable)"] C = 1,
+        #[doc = "(variable)"] Id = 2,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::A as TokenId => Term::A,
+                _ if value == Term::C as TokenId => Term::C,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`a`"]                A = 0,
+        #[doc = "`b`"]                B = 1,
+        #[doc = "`a_1`, parent: `a`"] A1 = 2,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::A as VarId => Ok(NTerm::A),
+                _ if value == NTerm::B as VarId => Ok(NTerm::B),
+                _ if value == NTerm::A1 as VarId => Ok(NTerm::A1),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
@@ -278,6 +341,11 @@ pub(crate) mod listener7 {
             false
         )
     }
+
+    static NT_VALUE: [bool; 4] = [
+        true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 8] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(2),Symbol::NT(0),Symbol::T(2),Symbol::NT(1),Symbol::T(1),Symbol::NT(1)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -295,7 +363,7 @@ pub(crate) mod listener7 {
     pub struct SynA1(pub Vec<SynB>);
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
+    pub enum EnumSynValue { A(SynA), B(SynB), A1(SynA1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -307,6 +375,28 @@ pub(crate) mod listener7 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::B(_) => 1,
+                EnumSynValue::A1(_) => 2,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -318,6 +408,11 @@ pub(crate) mod listener7 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -334,6 +429,7 @@ pub(crate) mod listener7 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -367,8 +463,7 @@ pub(crate) mod listener7 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -400,11 +495,52 @@ pub(crate) mod listener7 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {

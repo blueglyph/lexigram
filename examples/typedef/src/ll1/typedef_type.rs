@@ -421,15 +421,19 @@ pub mod typedef_type_parser {
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_type_types::*;
 
+    static SYMBOLS_T: [(&str, Option<&str>); 11] = [
+        ("Comma", Some(",")),("SemiColon", Some(";")),("Eq", Some("=")),("Sub", Some("-")),("Add", Some("+")),("Typedef", Some("typedef")),("Let", Some("let")),("Print", Some("print")),("Num", None),("Id", None),
+        ("Type", None)];
+
     const PARSER_NUM_T: usize = 11;
     const PARSER_NUM_NT: usize = 10;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Comma", Some(",")), ("SemiColon", Some(";")), ("Eq", Some("=")), ("Sub", Some("-")), ("Add", Some("+")), ("Typedef", Some("typedef")), ("Let", Some("let")), ("Print", Some("print")), ("Num", None), ("Id", None), ("Type", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "decl_i", "inst_i", "decl", "id_i", "inst", "expr", "expr_1", "expr_2", "inst_i_1"];
     static ALT_VAR: [VarId; 19] = [0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7, 7, 8, 8, 8, 9, 9];
     static PARSING_TABLE: [AltId; 120] = [19, 19, 19, 19, 19, 0, 0, 0, 19, 19, 0, 20, 19, 19, 19, 19, 19, 1, 2, 2, 19, 19, 1, 19, 19, 19, 19, 19, 19, 19, 3, 3, 19, 19, 19, 20, 19, 19, 19, 19, 19, 5, 20, 20, 19, 19, 4, 19, 6, 7, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 8, 9, 19, 19, 19, 20, 19, 20, 19, 10, 19, 19, 19, 19, 10, 10, 19, 19, 19, 13, 19, 12, 11, 19, 19, 19, 19, 19, 19, 19, 19, 20, 19, 14, 20, 19, 19, 19, 16, 15, 19, 19, 19, 19, 19, 19, 19, 19, 17, 17, 19, 19, 19, 18];
     static OPCODES: [&[OpCode]; 19] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Loop(1), OpCode::Hook, OpCode::Exit(1), OpCode::NT(3)], &[OpCode::Exit(2)], &[OpCode::NT(9), OpCode::NT(5)], &[OpCode::Exit(4), OpCode::T(1), OpCode::NT(4), OpCode::T(9), OpCode::T(10)], &[OpCode::Exit(5), OpCode::T(1), OpCode::T(9), OpCode::T(10), OpCode::Hook, OpCode::T(5)], &[OpCode::Loop(4), OpCode::Exit(6), OpCode::T(9), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(1), OpCode::NT(6), OpCode::T(2), OpCode::T(9), OpCode::T(6)], &[OpCode::Exit(9), OpCode::T(1), OpCode::NT(6), OpCode::T(7)], &[OpCode::NT(7), OpCode::Exit(10), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(11), OpCode::NT(8), OpCode::T(4)], &[OpCode::Loop(7), OpCode::Exit(12), OpCode::NT(8), OpCode::T(3)], &[OpCode::Exit(13)], &[OpCode::Exit(14), OpCode::NT(8), OpCode::T(3)], &[OpCode::Exit(15), OpCode::T(9)], &[OpCode::Exit(16), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(17)], &[OpCode::Exit(18)]];
     static INIT_OPCODES: [OpCode; 3] = [OpCode::End, OpCode::NT(0), OpCode::Hook];
     static START_SYMBOL: VarId = 0;
+
 
     #[derive(Clone, Copy, PartialEq, Debug)]
     #[repr(u16)]
@@ -447,6 +451,26 @@ pub mod typedef_type_parser {
         #[doc = "(variable)"] Type = 10,
     }
 
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Comma as TokenId => Term::Comma,
+                _ if value == Term::SemiColon as TokenId => Term::SemiColon,
+                _ if value == Term::Eq as TokenId => Term::Eq,
+                _ if value == Term::Sub as TokenId => Term::Sub,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Typedef as TokenId => Term::Typedef,
+                _ if value == Term::Let as TokenId => Term::Let,
+                _ if value == Term::Print as TokenId => Term::Print,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ if value == Term::Type as TokenId => Term::Type,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
     #[derive(Clone, Copy, PartialEq, Debug)]
     #[repr(u16)]
     pub enum NTerm {
@@ -460,6 +484,25 @@ pub mod typedef_type_parser {
         #[doc = "`expr_1`, parent: `expr`"]     Expr1 = 7,
         #[doc = "`expr_2`, parent: `expr`"]     Expr2 = 8,
         #[doc = "`inst_i_1`, parent: `inst_i`"] InstI1 = 9,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::Program as VarId => Ok(NTerm::Program),
+                _ if value == NTerm::DeclI as VarId => Ok(NTerm::DeclI),
+                _ if value == NTerm::InstI as VarId => Ok(NTerm::InstI),
+                _ if value == NTerm::Decl as VarId => Ok(NTerm::Decl),
+                _ if value == NTerm::IdI as VarId => Ok(NTerm::IdI),
+                _ if value == NTerm::Inst as VarId => Ok(NTerm::Inst),
+                _ if value == NTerm::Expr as VarId => Ok(NTerm::Expr),
+                _ if value == NTerm::Expr1 as VarId => Ok(NTerm::Expr1),
+                _ if value == NTerm::Expr2 as VarId => Ok(NTerm::Expr2),
+                _ if value == NTerm::InstI1 as VarId => Ok(NTerm::InstI1),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
     }
 
     pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
@@ -549,6 +592,16 @@ pub mod typedef_type_parser {
         }
         fn get_expr(self) -> SynExpr {
             if let EnumSynValue::Expr(val) = self { val } else { panic!() }
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Program(_) => 0,
+                EnumSynValue::Decl(_) => 3,
+                EnumSynValue::IdI(_) => 4,
+                EnumSynValue::Inst(_) => 5,
+                EnumSynValue::Expr(_) => 6,
+            }
         }
     }
 
@@ -664,8 +717,7 @@ pub mod typedef_type_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -687,10 +739,6 @@ pub mod typedef_type_parser {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -709,6 +757,22 @@ pub mod typedef_type_parser {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 

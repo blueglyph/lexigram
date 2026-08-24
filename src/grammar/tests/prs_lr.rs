@@ -870,7 +870,7 @@ mod parse {
     use lexigram_core::log::{BufLog, LogStatus, Logger};
     use lexigram_core::parser::{Call, ListenerWrapper, Symbol};
     use lexigram_core::{AltId, CollectJoin, VarId};
-    use lexigram_core::parser::lr::LRParser;
+    use lexigram_core::parser::lr::{LRParser, WrapperLRErrorRecovery};
     use crate::grammar::tests::TestRules;
     use crate::{make_stream, SymbolTable, LALR};
     use crate::build::BuildFrom;
@@ -900,6 +900,8 @@ mod parse {
                 &mut self.log
             }
         }
+
+        impl WrapperLRErrorRecovery for Stub<'_> {}
 
         let tests = vec![
             // test_id, start, id_id, num_id, sequences to test

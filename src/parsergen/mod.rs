@@ -188,7 +188,7 @@ pub struct ParserGenOptions {
 }
 
 impl ParserGenOptions {
-    fn has_error_recovery(&self) -> bool {
+    fn has_lr_error_recovery(&self) -> bool {
         // for now, error recovery enabled for LR parsers
         self.parser_type.is_lr()
     }
@@ -1628,11 +1628,14 @@ impl ParserGen {
         if !self.options.headers.is_empty() {
             parts.push(self.options.headers.clone());
         }
-        let mut tmp_parts = if self.gen_parser {
-            vec![self.source_build_parser()]
+        let mut tmp_parts = if self.gen_parser || self.options.has_lr_error_recovery() {
+            vec![self.source_common_parser_wrapper()]
         } else {
             vec![]
         };
+        if self.gen_parser {
+            tmp_parts.push(self.source_build_parser());
+        }
         let (src_types, src_listener) = if self.options.gen_wrapper {
             self.calc_item_ops();
             let (src_wrapper, src_types, src_listener) = self.source_wrapper();
@@ -1667,7 +1670,7 @@ impl ParserGen {
 
     fn source_token_enums(&self) -> Vec<String> {
         let mut src = vec![];
-        if self.options.gen_token_enums || self.options.has_error_recovery() {
+        if self.options.gen_token_enums || self.options.has_lr_error_recovery() {
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum Term {".to_string());
@@ -1726,6 +1729,21 @@ impl ParserGen {
             src.push("    SYMBOLS_T[t as usize]".to_string());
             src.push("}".to_string());
         }
+        src
+    }
+
+    fn source_common_parser_wrapper(&mut self) -> Vec<String> {
+        let mut src = vec![];
+        let num_t_table = self.symbol_table.get_num_t(); // includes <$> and <empty>
+        assert!(num_t_table > 0, "terminal table is empty");
+        const T_CHUNK: usize = 10;
+        src.push(format!("static SYMBOLS_T: [(&str, Option<&str>); {num_t_table}] = ["));
+        let mut it = self.symbol_table.get_terminals();
+        src.extend(
+            (0..(self.symbol_table.get_num_t() + T_CHUNK - 1) / T_CHUNK)
+                .flag_first_last()
+                .map(|(_, is_last, _)|
+                    format!("    {}{}", (0..T_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
         src
     }
 
@@ -1999,9 +2017,18 @@ impl ParserGen {
             "::AltId", "::log::Logger", "::TokenId", "::lexer::PosSpan",
             "::parser::Terminate", "::log::LogMsg"
         ];
+        static LR_ERROR_RECOVERY_LIB: &[&str] = &[
+            "::parser::RecoveryNt",
+            "::parser::lr::WrapperLRErrorRecovery",
+            "::parser::lr::LRStateId",
+            "::parser::Symbol",
+        ];
 
         self.log.add_note("generating wrapper source...");
         self.options.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        if self.options.has_lr_error_recovery() {
+            self.options.used_libs.extend(LR_ERROR_RECOVERY_LIB.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+        }
 
         self.calc_type_info();
 
@@ -2023,6 +2050,14 @@ impl ParserGen {
                     .flag_first_last()
                     .map(|(_, is_last, values)|
                         format!("    {}{}", values.iter().map(|&v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+            const STATE_SYMBOL_CHUNK: usize = 25;
+            assert!(!self.state_symbol.is_empty(), "state_symbol is empty");
+            src.push(format!("static STATE_SYMBOL: [Symbol; {}] = [", self.state_symbol.len()));
+            src.extend(
+                self.state_symbol.chunks(STATE_SYMBOL_CHUNK)
+                    .flag_first_last()
+                    .map(|(_, is_last, symbols)|
+                        format!("    {}{}", symbols.iter().map(|s| format!("Symbol::{s:?}")).join(","), if is_last { "];" } else { "," })));
             src.push(String::new());
         }
 
@@ -2050,7 +2085,7 @@ impl ParserGen {
             "    }".to_string(),
             String::new(),
         ];
-        if self.options.has_error_recovery() {
+        if self.options.has_lr_error_recovery() {
             src_skel.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {".to_string());
             src_skel.push("        let nterm = NTerm::from(nt);".to_string());
             src_skel.push("        last_dropped".to_string());
@@ -2356,7 +2391,7 @@ impl ParserGen {
         src.push("#[derive(Debug)]".to_string());
         src.push(format!(
             "{}enum EnumSynValue {{ {} }}",
-            if self.options.has_error_recovery() { "pub " } else { "" },
+            if self.options.has_lr_error_recovery() { "pub " } else { "" },
             syns.iter().map(|v| format!("{}({})", self.nt_name[*v as usize].0, self.get_nt_type(*v))).join(", ")));
         src.add_space();
         src.push("impl EnumSynValue {".to_string());
@@ -2374,6 +2409,7 @@ impl ParserGen {
                 }
                 src.push("    }".to_string());
             }
+            src.push("    #[allow(unused)]".to_string());
             src.push("    fn nt(&self) -> VarId {".to_string());
             src.push("        match &self {".to_string());
             src.extend(syns.iter().map(|v| {
@@ -2382,6 +2418,7 @@ impl ParserGen {
             src.push("        }".to_string());
             src.push("    }".to_string());
         } else {
+            src.push("    #[allow(unused)]".to_string());
             src.push(r#"    fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}"#.to_string());
         }
         src.push("}".to_string());
@@ -2933,13 +2970,9 @@ impl ParserGen {
     fn source_wrapper_finalize(&mut self, span_init: HashSet<VarId>, sources: WrapperSources) -> (Vec<String>, Vec<String>, Vec<String>) {
         let WrapperSources { mut src, src_listener_decl, mut src_skel, mut src_types, src_init, src_exit, src_wrapper_impl } = sources;
 
-        if self.options.has_error_recovery() {
-            self.options.used_libs.add(format!("lexigram_core::parser::RecoveryNt"));
-        }
-
         // Writes the listener trait declaration
         src.add_space();
-        if self.options.has_error_recovery() {
+        if self.options.has_lr_error_recovery() {
             src.push("/// Result returned by [TestListener::get_recovery_value].".to_string());
             src.push("///".to_string());
             src.push("/// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener".to_string());
@@ -2969,7 +3002,7 @@ impl ParserGen {
         //     src.push("    #[allow(unused_variables)]".to_string());
         //     src.push("    fn push_span(&mut self, span: &PosSpan) {}".to_string());
         // }
-        if self.options.has_error_recovery() {
+        if self.options.has_lr_error_recovery() {
             src.push("    #[allow(unused_variables)]".to_string());
             src.push("    fn drop_nt_value(&mut self, value: &EnumSynValue) {}".to_string());
             src.push("    #[allow(unused_variables)]".to_string());
@@ -3015,7 +3048,7 @@ impl ParserGen {
         if self.options.gen_span_params {
             src.push("    stack_span: Vec<PosSpan>,".to_string());
         }
-        if self.options.has_error_recovery() {
+        if self.options.has_lr_error_recovery() {
             src.push("    last_dropped_nt_value: Option<EnumSynValue>,".to_string());
         }
         src.push("}".to_string());
@@ -3169,8 +3202,10 @@ impl ParserGen {
             src.push("        self.stack_span.pop().unwrap()".to_string());
             src.push("    }".to_string());
         }
-        if self.options.has_error_recovery() {
+        src.push("}".to_string());
+        if self.options.has_lr_error_recovery() {
             src.push(String::new());
+            src.push(format!("impl<T: {}Listener> WrapperLRErrorRecovery for Wrapper<T> {{", self.name));
             src.push(r"    fn pop_nt_value(&mut self) {".to_string());
             src.push(r"        self.last_dropped_nt_value = self.stack.pop();".to_string());
             src.push(r#"        if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }"#.to_string());
@@ -3202,16 +3237,15 @@ impl ParserGen {
             src.push(r"    fn syntax_error_recovered(&mut self) {".to_string());
             src.push(r"        self.listener.syntax_error_recovered();".to_string());
             src.push(r"    }".to_string());
+            src.push("}".to_string());
         }
-        src.push("}".to_string());
-
         src.add_space();
         src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
         src.push("    pub fn new(listener: T, verbose: bool) -> Self {".to_string());
         src.push(format!(
             "        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(){}{} }}",
             if self.options.gen_span_params { ", stack_span: Vec::new()" } else { "" },
-            if self.options.has_error_recovery() { ", last_dropped_nt_value: None" } else { "" }
+            if self.options.has_lr_error_recovery() { ", last_dropped_nt_value: None" } else { "" }
         ));
         src.push("    }".to_string());
         src.push(String::new());

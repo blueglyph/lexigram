@@ -31,6 +31,12 @@ pub(crate) mod rules_301_1 {
             let EnumSynValue::Expr(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Expr(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -97,8 +103,7 @@ pub(crate) mod rules_301_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -120,10 +125,6 @@ pub(crate) mod rules_301_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -138,6 +139,22 @@ pub(crate) mod rules_301_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -211,6 +228,11 @@ pub(crate) mod rules_301_2 {
     #[derive(Debug)]
     enum EnumSynValue {  }
 
+    impl EnumSynValue {
+        #[allow(unused)]
+        fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}
+    }
+
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
@@ -275,8 +297,7 @@ pub(crate) mod rules_301_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -298,10 +319,6 @@ pub(crate) mod rules_301_2 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -316,6 +333,22 @@ pub(crate) mod rules_301_2 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -387,6 +420,12 @@ pub(crate) mod rules_401_1 {
             let EnumSynValue::Expr(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Expr(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -456,8 +495,7 @@ pub(crate) mod rules_401_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -479,10 +517,6 @@ pub(crate) mod rules_401_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -497,6 +531,22 @@ pub(crate) mod rules_401_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -573,6 +623,11 @@ pub(crate) mod rules_401_2 {
     #[derive(Debug)]
     enum EnumSynValue {  }
 
+    impl EnumSynValue {
+        #[allow(unused)]
+        fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}
+    }
+
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
@@ -640,8 +695,7 @@ pub(crate) mod rules_401_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -663,10 +717,6 @@ pub(crate) mod rules_401_2 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -681,6 +731,22 @@ pub(crate) mod rules_401_2 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -758,6 +824,13 @@ pub(crate) mod rules_502_1 {
         fn get_f(self) -> SynF {
             if let EnumSynValue::F(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+                EnumSynValue::F(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -832,8 +905,7 @@ pub(crate) mod rules_502_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -855,10 +927,6 @@ pub(crate) mod rules_502_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -873,6 +941,22 @@ pub(crate) mod rules_502_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -969,6 +1053,12 @@ pub(crate) mod rules_502_2 {
             let EnumSynValue::F(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::F(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1043,8 +1133,7 @@ pub(crate) mod rules_502_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1066,10 +1155,6 @@ pub(crate) mod rules_502_2 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1084,6 +1169,22 @@ pub(crate) mod rules_502_2 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1166,6 +1267,12 @@ pub(crate) mod rules_580_1 {
             let EnumSynValue::E(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1237,8 +1344,7 @@ pub(crate) mod rules_580_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1260,10 +1366,6 @@ pub(crate) mod rules_580_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1278,6 +1380,22 @@ pub(crate) mod rules_580_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1365,6 +1483,12 @@ pub(crate) mod rules_600_1 {
             let EnumSynValue::E(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1434,8 +1558,7 @@ pub(crate) mod rules_600_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1457,10 +1580,6 @@ pub(crate) mod rules_600_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1475,6 +1594,22 @@ pub(crate) mod rules_600_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1535,9 +1670,11 @@ pub(crate) mod rules_603_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
@@ -1545,6 +1682,57 @@ pub(crate) mod rules_603_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -1582,6 +1770,12 @@ pub(crate) mod rules_603_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -1657,8 +1851,7 @@ pub(crate) mod rules_603_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1680,10 +1873,6 @@ pub(crate) mod rules_603_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1698,6 +1887,22 @@ pub(crate) mod rules_603_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1833,9 +2038,11 @@ pub(crate) mod rules_604_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(2)], &[Symbol::T(3)]];
@@ -1843,6 +2050,57 @@ pub(crate) mod rules_604_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -1880,6 +2138,12 @@ pub(crate) mod rules_604_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -1955,8 +2219,7 @@ pub(crate) mod rules_604_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1978,10 +2241,6 @@ pub(crate) mod rules_604_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1996,6 +2255,22 @@ pub(crate) mod rules_604_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2131,9 +2406,11 @@ pub(crate) mod rules_605_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(4)], &[Symbol::T(3)]];
@@ -2141,6 +2418,57 @@ pub(crate) mod rules_605_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -2178,6 +2506,12 @@ pub(crate) mod rules_605_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -2253,8 +2587,7 @@ pub(crate) mod rules_605_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2276,10 +2609,6 @@ pub(crate) mod rules_605_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2294,6 +2623,22 @@ pub(crate) mod rules_605_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2428,9 +2773,11 @@ pub(crate) mod rules_606_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -2438,6 +2785,57 @@ pub(crate) mod rules_606_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -2475,6 +2873,12 @@ pub(crate) mod rules_606_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -2550,8 +2954,7 @@ pub(crate) mod rules_606_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2573,10 +2976,6 @@ pub(crate) mod rules_606_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2591,6 +2990,22 @@ pub(crate) mod rules_606_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2721,9 +3136,11 @@ pub(crate) mod rules_607_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -2731,6 +3148,57 @@ pub(crate) mod rules_607_1 {
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -2768,6 +3236,12 @@ pub(crate) mod rules_607_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -2844,8 +3318,7 @@ pub(crate) mod rules_607_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2867,10 +3340,6 @@ pub(crate) mod rules_607_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2885,6 +3354,22 @@ pub(crate) mod rules_607_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3015,9 +3500,11 @@ pub(crate) mod rules_608_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
     static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -3025,6 +3512,61 @@ pub(crate) mod rules_608_1 {
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+        #[doc = "`e_5`, parent: `e_4`"] E5 = 5,
+        #[doc = "`e_6`, parent: `e`"]   E6 = 6,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ if value == NTerm::E5 as VarId => Ok(NTerm::E5),
+                _ if value == NTerm::E6 as VarId => Ok(NTerm::E6),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -3062,6 +3604,12 @@ pub(crate) mod rules_608_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -3141,8 +3689,7 @@ pub(crate) mod rules_608_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3164,10 +3711,6 @@ pub(crate) mod rules_608_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3182,6 +3725,22 @@ pub(crate) mod rules_608_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3312,9 +3871,11 @@ pub(crate) mod rules_609_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -3322,6 +3883,57 @@ pub(crate) mod rules_609_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -3359,6 +3971,12 @@ pub(crate) mod rules_609_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -3434,8 +4052,7 @@ pub(crate) mod rules_609_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3457,10 +4074,6 @@ pub(crate) mod rules_609_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3475,6 +4088,22 @@ pub(crate) mod rules_609_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3604,9 +4233,11 @@ pub(crate) mod rules_610_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -3614,6 +4245,57 @@ pub(crate) mod rules_610_1 {
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -3651,6 +4333,12 @@ pub(crate) mod rules_610_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -3727,8 +4415,7 @@ pub(crate) mod rules_610_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3750,10 +4437,6 @@ pub(crate) mod rules_610_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3768,6 +4451,22 @@ pub(crate) mod rules_610_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3897,9 +4596,11 @@ pub(crate) mod rules_611_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
     static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -3907,6 +4608,61 @@ pub(crate) mod rules_611_1 {
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+        #[doc = "`e_5`, parent: `e_4`"] E5 = 5,
+        #[doc = "`e_6`, parent: `e`"]   E6 = 6,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ if value == NTerm::E5 as VarId => Ok(NTerm::E5),
+                _ if value == NTerm::E6 as VarId => Ok(NTerm::E6),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -3944,6 +4700,12 @@ pub(crate) mod rules_611_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -4023,8 +4785,7 @@ pub(crate) mod rules_611_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4046,10 +4807,6 @@ pub(crate) mod rules_611_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4064,6 +4821,22 @@ pub(crate) mod rules_611_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -4193,9 +4966,11 @@ pub(crate) mod rules_612_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 7;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
     static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
     static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -4203,6 +4978,61 @@ pub(crate) mod rules_612_1 {
     static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+        #[doc = "`e_5`, parent: `e_4`"] E5 = 5,
+        #[doc = "`e_6`, parent: `e`"]   E6 = 6,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ if value == NTerm::E5 as VarId => Ok(NTerm::E5),
+                _ if value == NTerm::E6 as VarId => Ok(NTerm::E6),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -4240,6 +5070,12 @@ pub(crate) mod rules_612_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -4319,8 +5155,7 @@ pub(crate) mod rules_612_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4342,10 +5177,6 @@ pub(crate) mod rules_612_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4360,6 +5191,22 @@ pub(crate) mod rules_612_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -4490,9 +5337,11 @@ pub(crate) mod rules_613_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -4500,6 +5349,57 @@ pub(crate) mod rules_613_1 {
     static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -4537,6 +5437,12 @@ pub(crate) mod rules_613_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -4612,8 +5518,7 @@ pub(crate) mod rules_613_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4635,10 +5540,6 @@ pub(crate) mod rules_613_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4653,6 +5554,22 @@ pub(crate) mod rules_613_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -4786,9 +5703,11 @@ pub(crate) mod rules_614_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
     static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
@@ -4796,6 +5715,57 @@ pub(crate) mod rules_614_1 {
     static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                  E = 0,
+        #[doc = "`e_1`, parent: `e`"]   E1 = 1,
+        #[doc = "`e_2`, parent: `e`"]   E2 = 2,
+        #[doc = "`e_3`, parent: `e_2`"] E3 = 3,
+        #[doc = "`e_4`, parent: `e`"]   E4 = 4,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ if value == NTerm::E3 as VarId => Ok(NTerm::E3),
+                _ if value == NTerm::E4 as VarId => Ok(NTerm::E4),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -4833,6 +5803,12 @@ pub(crate) mod rules_614_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -4909,8 +5885,7 @@ pub(crate) mod rules_614_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4932,10 +5907,6 @@ pub(crate) mod rules_614_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4950,6 +5921,22 @@ pub(crate) mod rules_614_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 

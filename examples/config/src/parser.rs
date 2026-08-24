@@ -907,15 +907,20 @@ mod config_parser {
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
 
+    static SYMBOLS_T: [(&str, Option<&str>); 29] = [
+        ("Colon", Some(":")),("Comma", Some(",")),("Equal", Some("=")),("Lbracket", Some("{")),("LSbracket", Some("[")),("Rbracket", Some("}")),("RSbracket", Some("]")),("Semicolon", Some(";")),("Combined", Some("combined")),("Def", Some("def")),
+        ("Default", Some("default")),("Headers", Some("headers")),("Indent", Some("indent")),("Input", Some("input")),("Lexer", Some("lexer")),("Libs", Some("libs")),("None", Some("none")),("NTValue", Some("nt-value")),("Options", Some("options")),("Output", Some("output")),
+        ("Parents", Some("parents")),("Parser", Some("parser")),("Set", Some("set")),("Spans", Some("spans")),("Stdout", Some("stdout")),("BoolLiteral", None),("Id", None),("NumLiteral", None),("StrLiteral", None)];
+
     const PARSER_NUM_T: usize = 29;
     const PARSER_NUM_NT: usize = 19;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Comma", Some(",")), ("Equal", Some("=")), ("Lbracket", Some("{")), ("LSbracket", Some("[")), ("Rbracket", Some("}")), ("RSbracket", Some("]")), ("Semicolon", Some(";")), ("Combined", Some("combined")), ("Def", Some("def")), ("Default", Some("default")), ("Headers", Some("headers")), ("Indent", Some("indent")), ("Input", Some("input")), ("Lexer", Some("lexer")), ("Libs", Some("libs")), ("None", Some("none")), ("NTValue", Some("nt-value")), ("Options", Some("options")), ("Output", Some("output")), ("Parents", Some("parents")), ("Parser", Some("parser")), ("Set", Some("set")), ("Spans", Some("spans")), ("Stdout", Some("stdout")), ("BoolLiteral", None), ("Id", None), ("NumLiteral", None), ("StrLiteral", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["config", "definitions", "i_def", "lexer", "parser", "options", "io_options", "i_io_opt", "io_option", "tag_opt", "global_options", "i_global_opt", "global_option", "value", "nt_value", "io_option_1", "global_option_1", "global_option_2", "nt_value_1"];
     static ALT_VAR: [VarId; 44] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
     static PARSING_TABLE: [AltId; 570] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 44, 44, 44, 44, 0, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 44, 44, 44, 44, 1, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 44, 44, 44, 44, 3, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 4, 44, 44, 44, 45, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 5, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 7, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 45, 44, 44, 9, 44, 44, 9, 9, 9, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 10, 44, 44, 44, 11, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 12, 44, 44, 16, 15, 13, 44, 44, 44, 44, 44, 14, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 18, 44, 44, 17, 18, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 19, 19, 44, 44, 19, 44, 19, 44, 44, 44, 44, 44, 19, 44, 44, 44, 44, 44, 44, 44, 20, 44, 44, 44, 21, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 44, 22, 23, 44, 44, 24, 44, 25, 44, 44, 44, 44, 44, 26, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 31, 27, 30, 28, 29, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 32, 44, 44, 44, 44, 44, 33, 44, 44, 44, 34, 44, 35, 44, 44, 44, 44, 44, 44, 44, 44, 36, 44, 44, 44, 37, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 38, 44, 44, 44, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 44, 44, 44, 41, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 42, 44, 44, 44, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44];
     static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(13), OpCode::T(2), OpCode::T(26), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(15), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(13), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(11), OpCode::NT(12)], &[OpCode::Loop(11), OpCode::Exit(20), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(16), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(24), OpCode::T(5), OpCode::NT(17), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(25), OpCode::NT(14), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(26), OpCode::NT(13), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(27), OpCode::T(25)], &[OpCode::Exit(28), OpCode::T(27)], &[OpCode::Exit(29), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(26)], &[OpCode::Exit(31), OpCode::T(24)], &[OpCode::Exit(32), OpCode::T(10)], &[OpCode::Exit(33), OpCode::T(16)], &[OpCode::Exit(34), OpCode::T(20)], &[OpCode::Exit(35), OpCode::T(5), OpCode::NT(18), OpCode::NT(13), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(37)], &[OpCode::Loop(16), OpCode::Exit(38), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(39)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(41)], &[OpCode::Loop(18), OpCode::Exit(42), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(43)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -1105,6 +1110,24 @@ mod config_parser {
         fn get_nt_value1(self) -> SynNtValue1 {
             if let EnumSynValue::NtValue1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::IoOptions(_) => 6,
+                EnumSynValue::IIoOpt(_) => 7,
+                EnumSynValue::IoOption(_) => 8,
+                EnumSynValue::TagOpt(_) => 9,
+                EnumSynValue::GlobalOptions(_) => 10,
+                EnumSynValue::IGlobalOpt(_) => 11,
+                EnumSynValue::GlobalOption(_) => 12,
+                EnumSynValue::Value(_) => 13,
+                EnumSynValue::NtValue(_) => 14,
+                EnumSynValue::IoOption1(_) => 15,
+                EnumSynValue::GlobalOption1(_) => 16,
+                EnumSynValue::GlobalOption2(_) => 17,
+                EnumSynValue::NtValue1(_) => 18,
+            }
+        }
     }
 
     pub trait ConfigListener {
@@ -1273,8 +1296,7 @@ mod config_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1296,10 +1318,6 @@ mod config_parser {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1314,6 +1332,22 @@ mod config_parser {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 

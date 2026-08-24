@@ -157,23 +157,6 @@ impl ParserGen {
                 .flag_first_last()
                 .map(|(_, is_last, terminals)|
                     format!("    {}{}", terminals.iter().map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
-        const STATE_SYMBOL_CHUNK: usize = 25;
-        assert!(!self.state_symbol.is_empty(), "state_symbol is empty");
-        src.push(format!("static STATE_SYMBOL: [Symbol; {}] = [", self.state_symbol.len()));
-        src.extend(
-            self.state_symbol.chunks(STATE_SYMBOL_CHUNK)
-                .flag_first_last()
-                .map(|(_, is_last, symbols)|
-                    format!("    {}{}", symbols.iter().map(|s| format!("Symbol::{s:?}")).join(","), if is_last { "];" } else { "," })));
-        const T_CHUNK: usize = 10;
-        assert!(self.symbol_table.get_num_t() > 0, "terminal table is empty");
-        src.push(format!("static SYMBOLS_T: [(&str, Option<&str>); {num_t_table}] = ["));
-        let mut it = self.symbol_table.get_terminals();
-        src.extend(
-            (0..(self.symbol_table.get_num_t() + T_CHUNK - 1) / T_CHUNK)
-                .flag_first_last()
-                .map(|(_, is_last, _)|
-                    format!("    {}{}", (0..T_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
         const NT_CHUNK: usize = 20;
         assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
         src.push(format!("static SYMBOLS_NT: [&str; {num_nt_table}] = ["));

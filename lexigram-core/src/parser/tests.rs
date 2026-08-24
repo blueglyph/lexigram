@@ -136,15 +136,18 @@ mod parser {
 
     use crate::{AltId, VarId, fixed_sym_table::FixedSymTable, parser::{OpCode, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 8] = [
+        ("Equal", Some("=")),("LSbracket", Some("{")),("RSbracket", Some("}")),("Semi", Some(";")),("Print", Some("print")),("Call", Some("call")),("Id", None),("Num", None)];
+
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 3;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Equal", Some("=")), ("LSbracket", Some("{")), ("RSbracket", Some("}")), ("Semi", Some(";")), ("Print", Some("print")), ("Call", Some("call")), ("Id", None), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["script", "instruction", "script_1"];
     static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
     static PARSING_TABLE: [AltId; 27] = [6, 0, 6, 6, 6, 6, 6, 6, 7, 6, 6, 7, 6, 2, 3, 1, 6, 6, 6, 6, 5, 6, 4, 4, 4, 6, 6];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(1), OpCode::T(3), OpCode::T(7), OpCode::T(0), OpCode::T(6)], &[OpCode::Exit(2), OpCode::T(3), OpCode::T(6), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(3), OpCode::T(6), OpCode::T(5)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1)], &[OpCode::Exit(5)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(

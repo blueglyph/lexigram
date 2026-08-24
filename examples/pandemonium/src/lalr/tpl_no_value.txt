@@ -11,6 +11,24 @@ impl PandemoniumListener for Listener {
         &mut self.log
     }
 
+    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+        let nterm = NTerm::from(nt);
+        last_dropped
+            .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+            .or_else(||
+                Some(match nterm {
+                    NTerm::Star1 => EnumSynValue::Star1(SynStar1()),
+                    NTerm::Plus1 => EnumSynValue::Plus1(SynPlus1()),
+                    NTerm::StarA1 => EnumSynValue::StarA1(SynStarA1()),
+                    NTerm::PlusA1 => EnumSynValue::PlusA1(SynPlusA1()),
+                    NTerm::SepList1 => EnumSynValue::SepList1(SynSepList1()),
+                    NTerm::SepListOpt1 => EnumSynValue::SepListOpt1(SynSepListOpt1()),
+                    _ => panic!()
+                }))
+            .map(|value| RecoveryNtValue::Value(value))
+            .unwrap_or_else(|| RecoveryNtValue::Abort)
+    }
+
     fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) {
         // text -> (<L> example)* ";" (<L> nv_example)*
         let CtxText::V1 = ctx;

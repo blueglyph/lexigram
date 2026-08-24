@@ -11,6 +11,75 @@ impl PandemoniumListener for Listener {
         &mut self.log
     }
 
+    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+        let nterm = NTerm::from(nt);
+        last_dropped
+            .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+            .or_else(||
+                Some(match nterm {
+                    NTerm::Text => EnumSynValue::Text(SynText()),
+                    NTerm::I => EnumSynValue::I(SynI()),
+                    NTerm::NvI => EnumSynValue::NvI(SynNvI()),
+                    NTerm::Example => EnumSynValue::Example(SynExample()),
+                    NTerm::Star => EnumSynValue::Star(SynStar()),
+                    NTerm::Plus => EnumSynValue::Plus(SynPlus()),
+                    NTerm::LStar => EnumSynValue::LStar(SynLStar()),
+                    NTerm::LStarI => EnumSynValue::LStarI(SynLStarI()),
+                    NTerm::LPlus => EnumSynValue::LPlus(SynLPlus()),
+                    NTerm::LPlusI => EnumSynValue::LPlusI(SynLPlusI()),
+                    NTerm::Rrec => EnumSynValue::Rrec(SynRrec()),
+                    NTerm::Lrec => EnumSynValue::Lrec(SynLrec()),
+                    NTerm::Amb => EnumSynValue::Amb(SynAmb()),
+                    NTerm::StarA => EnumSynValue::StarA(SynStarA()),
+                    NTerm::PlusA => EnumSynValue::PlusA(SynPlusA()),
+                    NTerm::LStarA => EnumSynValue::LStarA(SynLStarA()),
+                    NTerm::LStarAI => EnumSynValue::LStarAI(SynLStarAI()),
+                    NTerm::LPlusA => EnumSynValue::LPlusA(SynLPlusA()),
+                    NTerm::LPlusAI => EnumSynValue::LPlusAI(SynLPlusAI()),
+                    NTerm::SepList => EnumSynValue::SepList(SynSepList()),
+                    NTerm::SepListOpt => EnumSynValue::SepListOpt(SynSepListOpt()),
+                    NTerm::LSepList => EnumSynValue::LSepList(SynLSepList()),
+                    NTerm::LSepListI => EnumSynValue::LSepListI(SynLSepListI()),
+                    NTerm::LSepListOpt => EnumSynValue::LSepListOpt(SynLSepListOpt()),
+                    NTerm::LSepListOptI => EnumSynValue::LSepListOptI(SynLSepListOptI()),
+                    NTerm::RrecI => EnumSynValue::RrecI(SynRrecI()),
+                    NTerm::LrecI => EnumSynValue::LrecI(SynLrecI()),
+                    NTerm::AmbI => EnumSynValue::AmbI(SynAmbI()),
+                    NTerm::NvExample => EnumSynValue::NvExample(SynNvExample()),
+                    NTerm::NvStar => EnumSynValue::NvStar(SynNvStar()),
+                    NTerm::NvPlus => EnumSynValue::NvPlus(SynNvPlus()),
+                    NTerm::NvLStar => EnumSynValue::NvLStar(SynNvLStar()),
+                    NTerm::NvLStarI => EnumSynValue::NvLStarI(SynNvLStarI()),
+                    NTerm::NvLPlus => EnumSynValue::NvLPlus(SynNvLPlus()),
+                    NTerm::NvLPlusI => EnumSynValue::NvLPlusI(SynNvLPlusI()),
+                    NTerm::NvRrec => EnumSynValue::NvRrec(SynNvRrec()),
+                    NTerm::NvLrec => EnumSynValue::NvLrec(SynNvLrec()),
+                    NTerm::NvStarA => EnumSynValue::NvStarA(SynNvStarA()),
+                    NTerm::NvPlusA => EnumSynValue::NvPlusA(SynNvPlusA()),
+                    NTerm::NvLStarA => EnumSynValue::NvLStarA(SynNvLStarA()),
+                    NTerm::NvLStarAI => EnumSynValue::NvLStarAI(SynNvLStarAI()),
+                    NTerm::NvLPlusA => EnumSynValue::NvLPlusA(SynNvLPlusA()),
+                    NTerm::NvLPlusAI => EnumSynValue::NvLPlusAI(SynNvLPlusAI()),
+                    NTerm::NvSepList => EnumSynValue::NvSepList(SynNvSepList()),
+                    NTerm::NvSepListOpt => EnumSynValue::NvSepListOpt(SynNvSepListOpt()),
+                    NTerm::NvLSepList => EnumSynValue::NvLSepList(SynNvLSepList()),
+                    NTerm::NvLSepListI => EnumSynValue::NvLSepListI(SynNvLSepListI()),
+                    NTerm::NvLSepListOpt => EnumSynValue::NvLSepListOpt(SynNvLSepListOpt()),
+                    NTerm::NvLSepListOptI => EnumSynValue::NvLSepListOptI(SynNvLSepListOptI()),
+                    NTerm::NvRrecI => EnumSynValue::NvRrecI(SynNvRrecI()),
+                    NTerm::NvLrecI => EnumSynValue::NvLrecI(SynNvLrecI()),
+                    NTerm::Star1 => EnumSynValue::Star1(SynStar1()),
+                    NTerm::Plus1 => EnumSynValue::Plus1(SynPlus1()),
+                    NTerm::StarA1 => EnumSynValue::StarA1(SynStarA1()),
+                    NTerm::PlusA1 => EnumSynValue::PlusA1(SynPlusA1()),
+                    NTerm::SepList1 => EnumSynValue::SepList1(SynSepList1()),
+                    NTerm::SepListOpt1 => EnumSynValue::SepListOpt1(SynSepListOpt1()),
+                    _ => panic!()
+                }))
+            .map(|value| RecoveryNtValue::Value(value))
+            .unwrap_or_else(|| RecoveryNtValue::Abort)
+    }
+
     fn exit_text(&mut self, ctx: CtxText, spans: Vec<PosSpan>) -> SynText {
         // text -> (<L> example)* ";" (<L> nv_example)*
         let CtxText::V1 { star, star1 } = ctx;

@@ -35,8 +35,10 @@ pub(crate) mod rules_903_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
-    use lexigram_core::parser::{lr::WrapperLRErrorRecovery, RecoveryNt};
-    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_lib::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("Num", None),("Id", None),("Type", None),("Comma", Some(",")),("SemiColon", Some(";")),("Typedef", Some("typedef")),("Eq", Some("=")),("Print", Some("print")),("Sub", Some("-")),("Add", Some("+"))];
 
     static NUM_NT: usize = 7;
     static NUM_T_FULL: usize = 11;
@@ -56,11 +58,6 @@ pub(crate) mod rules_903_1 {
         24,0,0,0,0,0,0,29,0,0,0,0,0,0,30,0];
     static ALT_NT_LEN: [(VarId, u16, u16); 17] = [
         (0, 1, 0),(1, 2, 0),(1, 0, 0),(2, 1, 0),(2, 1, 0),(3, 3, 1),(3, 4, 2),(4, 4, 1),(4, 3, 0),(5, 2, 0),(5, 3, 0),(5, 3, 0),(5, 1, 1),(5, 1, 1),(6, 3, 1),(6, 1, 1),(7, 1, 0)];
-    static STATE_SYMBOL: [Symbol; 31] = [
-        Symbol::Empty,Symbol::NT(1),Symbol::T(2),Symbol::T(7),Symbol::T(6),Symbol::T(8),Symbol::T(8),Symbol::T(9),Symbol::NT(0),Symbol::T(1),Symbol::T(5),Symbol::NT(2),Symbol::NT(3),Symbol::NT(4),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::NT(5),Symbol::NT(5),Symbol::T(3),Symbol::T(4),Symbol::T(1),Symbol::NT(5),
-        Symbol::T(4),Symbol::T(4),Symbol::T(1),Symbol::T(4),Symbol::NT(5),Symbol::NT(5)];
-    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
-        ("Num", None),("Id", None),("Type", None),("Comma", Some(",")),("SemiColon", Some(";")),("Typedef", Some("typedef")),("Eq", Some("=")),("Print", Some("print")),("Sub", Some("-")),("Add", Some("+"))];
     static SYMBOLS_NT: [&str; 8] = [
         "program","stmt_i","stmt","decl","inst","expr","decl_1","<goal>"];
 
@@ -143,6 +140,9 @@ pub(crate) mod rules_903_1 {
 
     static NT_VALUE: [bool; 8] = [
         true,true,true,true,true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 31] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(2),Symbol::T(7),Symbol::T(6),Symbol::T(8),Symbol::T(8),Symbol::T(9),Symbol::NT(0),Symbol::T(1),Symbol::T(5),Symbol::NT(2),Symbol::NT(3),Symbol::NT(4),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::NT(5),Symbol::NT(5),Symbol::T(3),Symbol::T(4),Symbol::T(1),Symbol::NT(5),
+        Symbol::T(4),Symbol::T(4),Symbol::T(1),Symbol::T(4),Symbol::NT(5),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxProgram {
@@ -218,6 +218,7 @@ pub(crate) mod rules_903_1 {
         fn get_decl1(self) -> SynDecl1 {
             if let EnumSynValue::Decl1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
         fn nt(&self) -> VarId {
             match &self {
                 EnumSynValue::Program(_) => 0,
@@ -382,7 +383,7 @@ pub(crate) mod rules_903_1 {
             self.stack_span.pop().unwrap()
         }
     }
-    
+
     impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
         fn pop_nt_value(&mut self) {
             self.last_dropped_nt_value = self.stack.pop();
@@ -850,7 +851,16 @@ pub(crate) mod rules_980_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 980 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
+
+    static NT_VALUE: [bool; 17] = [
+        true,true,true,true,true,true,true,true,true,false,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 32] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(2),Symbol::NT(4),Symbol::T(2),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(12),Symbol::NT(15),Symbol::NT(0),Symbol::NT(10),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(13),Symbol::NT(11),Symbol::NT(5),Symbol::T(1),Symbol::T(3),Symbol::NT(14),
+        Symbol::NT(8),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -911,7 +921,7 @@ pub(crate) mod rules_980_1 {
     pub struct SynVp1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -947,6 +957,36 @@ pub(crate) mod rules_980_1 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ns(_) => 4,
+                EnumSynValue::Xs(_) => 5,
+                EnumSynValue::Vp(_) => 6,
+                EnumSynValue::Np(_) => 7,
+                EnumSynValue::Xp(_) => 8,
+                EnumSynValue::Vs1(_) => 10,
+                EnumSynValue::Vp1(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -958,6 +998,11 @@ pub(crate) mod rules_980_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -984,6 +1029,7 @@ pub(crate) mod rules_980_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -1036,8 +1082,7 @@ pub(crate) mod rules_980_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1059,10 +1104,6 @@ pub(crate) mod rules_980_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1078,11 +1119,61 @@ pub(crate) mod rules_980_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1302,7 +1393,16 @@ pub(crate) mod rules_980_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 980 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
+
+    static NT_VALUE: [bool; 17] = [
+        true,true,true,true,true,true,true,true,true,false,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 32] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(2),Symbol::NT(4),Symbol::T(2),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(12),Symbol::NT(15),Symbol::NT(0),Symbol::NT(10),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(13),Symbol::NT(11),Symbol::NT(5),Symbol::T(1),Symbol::T(3),Symbol::NT(14),
+        Symbol::NT(8),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1363,7 +1463,7 @@ pub(crate) mod rules_980_2 {
     pub struct SynVp1(pub Vec<String>);
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -1399,6 +1499,36 @@ pub(crate) mod rules_980_2 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ns(_) => 4,
+                EnumSynValue::Xs(_) => 5,
+                EnumSynValue::Vp(_) => 6,
+                EnumSynValue::Np(_) => 7,
+                EnumSynValue::Xp(_) => 8,
+                EnumSynValue::Vs1(_) => 10,
+                EnumSynValue::Vp1(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -1410,6 +1540,11 @@ pub(crate) mod rules_980_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1435,6 +1570,7 @@ pub(crate) mod rules_980_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -1486,8 +1622,7 @@ pub(crate) mod rules_980_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1519,11 +1654,52 @@ pub(crate) mod rules_980_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1679,7 +1855,17 @@ pub(crate) mod rules_981_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 981 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 18] = [
+        true,true,true,true,true,true,true,true,true,false,false,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 51] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(4),Symbol::NT(4),Symbol::T(4),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(13),Symbol::NT(10),Symbol::NT(16),Symbol::NT(10),Symbol::NT(10),Symbol::NT(0),Symbol::NT(11),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(14),
+        Symbol::NT(12),Symbol::NT(5),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(15),Symbol::NT(8),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9),
+        Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1759,7 +1945,7 @@ pub(crate) mod rules_981_1 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -1795,6 +1981,36 @@ pub(crate) mod rules_981_1 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ns(_) => 4,
+                EnumSynValue::Xs(_) => 5,
+                EnumSynValue::Vp(_) => 6,
+                EnumSynValue::Np(_) => 7,
+                EnumSynValue::Xp(_) => 8,
+                EnumSynValue::Vs1(_) => 11,
+                EnumSynValue::Vp1(_) => 14,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -1806,6 +2022,11 @@ pub(crate) mod rules_981_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -1834,6 +2055,7 @@ pub(crate) mod rules_981_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -1896,8 +2118,7 @@ pub(crate) mod rules_981_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1919,10 +2140,6 @@ pub(crate) mod rules_981_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1938,11 +2155,61 @@ pub(crate) mod rules_981_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2242,7 +2509,17 @@ pub(crate) mod rules_981_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 981 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 18] = [
+        true,true,true,true,true,true,true,true,true,false,false,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 51] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(4),Symbol::NT(4),Symbol::T(4),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(13),Symbol::NT(10),Symbol::NT(16),Symbol::NT(10),Symbol::NT(10),Symbol::NT(0),Symbol::NT(11),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(14),
+        Symbol::NT(12),Symbol::NT(5),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(15),Symbol::NT(8),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9),
+        Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2322,7 +2599,7 @@ pub(crate) mod rules_981_2 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Np(SynNp), Xp(SynXp), Vs1(SynVs1), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -2358,6 +2635,36 @@ pub(crate) mod rules_981_2 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ns(_) => 4,
+                EnumSynValue::Xs(_) => 5,
+                EnumSynValue::Vp(_) => 6,
+                EnumSynValue::Np(_) => 7,
+                EnumSynValue::Xp(_) => 8,
+                EnumSynValue::Vs1(_) => 11,
+                EnumSynValue::Vp1(_) => 14,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -2369,6 +2676,11 @@ pub(crate) mod rules_981_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2396,6 +2708,7 @@ pub(crate) mod rules_981_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -2457,8 +2770,7 @@ pub(crate) mod rules_981_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2490,11 +2802,52 @@ pub(crate) mod rules_981_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2683,7 +3036,16 @@ pub(crate) mod rules_982_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 982 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
+
+    static NT_VALUE: [bool; 17] = [
+        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 32] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(2),Symbol::NT(5),Symbol::T(2),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(10),Symbol::NT(6),Symbol::NT(7),Symbol::T(1),Symbol::T(3),Symbol::NT(12),
+        Symbol::NT(13),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2767,7 +3129,7 @@ pub(crate) mod rules_982_1 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -2803,6 +3165,36 @@ pub(crate) mod rules_982_1 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ivs(_) => 4,
+                EnumSynValue::Ns(_) => 5,
+                EnumSynValue::Xs(_) => 7,
+                EnumSynValue::Vp(_) => 9,
+                EnumSynValue::Ivp(_) => 10,
+                EnumSynValue::Np(_) => 11,
+                EnumSynValue::Xp(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -2814,6 +3206,11 @@ pub(crate) mod rules_982_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2856,6 +3253,7 @@ pub(crate) mod rules_982_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -2908,8 +3306,7 @@ pub(crate) mod rules_982_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2931,10 +3328,6 @@ pub(crate) mod rules_982_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2950,11 +3343,61 @@ pub(crate) mod rules_982_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3190,7 +3633,16 @@ pub(crate) mod rules_982_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 982 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 5] = [
+        ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
+
+    static NT_VALUE: [bool; 17] = [
+        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 32] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(2),Symbol::NT(5),Symbol::T(2),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(10),Symbol::NT(6),Symbol::NT(7),Symbol::T(1),Symbol::T(3),Symbol::NT(12),
+        Symbol::NT(13),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3274,7 +3726,7 @@ pub(crate) mod rules_982_2 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -3310,6 +3762,36 @@ pub(crate) mod rules_982_2 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ivs(_) => 4,
+                EnumSynValue::Ns(_) => 5,
+                EnumSynValue::Xs(_) => 7,
+                EnumSynValue::Vp(_) => 9,
+                EnumSynValue::Ivp(_) => 10,
+                EnumSynValue::Np(_) => 11,
+                EnumSynValue::Xp(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -3321,6 +3803,11 @@ pub(crate) mod rules_982_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3362,6 +3849,7 @@ pub(crate) mod rules_982_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -3413,8 +3901,7 @@ pub(crate) mod rules_982_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3446,11 +3933,52 @@ pub(crate) mod rules_982_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3630,7 +4158,17 @@ pub(crate) mod rules_983_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 983 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 18] = [
+        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false,false];
+    static STATE_SYMBOL: [Symbol; 51] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(4),Symbol::NT(5),Symbol::T(4),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(16),Symbol::NT(16),Symbol::NT(16),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(10),
+        Symbol::NT(6),Symbol::NT(7),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(12),Symbol::NT(13),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15),
+        Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3731,7 +4269,7 @@ pub(crate) mod rules_983_1 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -3767,6 +4305,36 @@ pub(crate) mod rules_983_1 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ivs(_) => 4,
+                EnumSynValue::Ns(_) => 5,
+                EnumSynValue::Xs(_) => 7,
+                EnumSynValue::Vp(_) => 9,
+                EnumSynValue::Ivp(_) => 10,
+                EnumSynValue::Np(_) => 11,
+                EnumSynValue::Xp(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -3778,6 +4346,11 @@ pub(crate) mod rules_983_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -3822,6 +4395,7 @@ pub(crate) mod rules_983_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -3884,8 +4458,7 @@ pub(crate) mod rules_983_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3907,10 +4480,6 @@ pub(crate) mod rules_983_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3926,11 +4495,61 @@ pub(crate) mod rules_983_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4240,7 +4859,17 @@ pub(crate) mod rules_983_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 983 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 10] = [
+        ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 18] = [
+        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false,false];
+    static STATE_SYMBOL: [Symbol; 51] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(4),Symbol::NT(5),Symbol::T(4),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(16),Symbol::NT(16),Symbol::NT(16),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(10),
+        Symbol::NT(6),Symbol::NT(7),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(12),Symbol::NT(13),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15),
+        Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4341,7 +4970,7 @@ pub(crate) mod rules_983_2 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), S(SynS), P(SynP), Vs(SynVs), Ivs(SynIvs), Ns(SynNs), Xs(SynXs), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -4377,6 +5006,36 @@ pub(crate) mod rules_983_2 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::S(_) => 1,
+                EnumSynValue::P(_) => 2,
+                EnumSynValue::Vs(_) => 3,
+                EnumSynValue::Ivs(_) => 4,
+                EnumSynValue::Ns(_) => 5,
+                EnumSynValue::Xs(_) => 7,
+                EnumSynValue::Vp(_) => 9,
+                EnumSynValue::Ivp(_) => 10,
+                EnumSynValue::Np(_) => 11,
+                EnumSynValue::Xp(_) => 13,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -4388,6 +5047,11 @@ pub(crate) mod rules_983_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4431,6 +5095,7 @@ pub(crate) mod rules_983_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -4492,8 +5157,7 @@ pub(crate) mod rules_983_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4525,11 +5189,52 @@ pub(crate) mod rules_983_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4745,7 +5450,16 @@ pub(crate) mod rules_984_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 984 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 9] = [
+        ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 10] = [
+        true,true,true,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 28] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(2),Symbol::T(0),Symbol::NT(4),Symbol::T(3),Symbol::NT(4),Symbol::NT(0),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(7),Symbol::NT(3),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(8),Symbol::T(2),Symbol::T(5),Symbol::T(8),
+        Symbol::NT(5),Symbol::T(6),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4786,7 +5500,7 @@ pub(crate) mod rules_984_1 {
     pub struct SynVp1Item { pub b: String, pub c: String }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Np(SynNp), Xp(SynXp), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), Vp(SynVp), Np(SynNp), Xp(SynXp), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -4804,6 +5518,30 @@ pub(crate) mod rules_984_1 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::Vp(_) => 1,
+                EnumSynValue::Np(_) => 2,
+                EnumSynValue::Xp(_) => 3,
+                EnumSynValue::Vp1(_) => 6,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -4815,6 +5553,11 @@ pub(crate) mod rules_984_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -4838,6 +5581,7 @@ pub(crate) mod rules_984_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -4880,8 +5624,7 @@ pub(crate) mod rules_984_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4903,10 +5646,6 @@ pub(crate) mod rules_984_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4922,11 +5661,61 @@ pub(crate) mod rules_984_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5060,7 +5849,16 @@ pub(crate) mod rules_984_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 984 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 9] = [
+        ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 10] = [
+        true,true,true,true,false,false,true,false,false,false];
+    static STATE_SYMBOL: [Symbol; 28] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(2),Symbol::T(0),Symbol::NT(4),Symbol::T(3),Symbol::NT(4),Symbol::NT(0),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(7),Symbol::NT(3),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(8),Symbol::T(2),Symbol::T(5),Symbol::T(8),
+        Symbol::NT(5),Symbol::T(6),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -5101,7 +5899,7 @@ pub(crate) mod rules_984_2 {
     pub struct SynVp1Item { pub b: String, pub c: String }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Np(SynNp), Xp(SynXp), Vp1(SynVp1) }
+    pub enum EnumSynValue { A(SynA), Vp(SynVp), Np(SynNp), Xp(SynXp), Vp1(SynVp1) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -5119,6 +5917,30 @@ pub(crate) mod rules_984_2 {
         fn get_vp1(self) -> SynVp1 {
             if let EnumSynValue::Vp1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::Vp(_) => 1,
+                EnumSynValue::Np(_) => 2,
+                EnumSynValue::Xp(_) => 3,
+                EnumSynValue::Vp1(_) => 6,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -5130,6 +5952,11 @@ pub(crate) mod rules_984_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5152,6 +5979,7 @@ pub(crate) mod rules_984_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -5193,8 +6021,7 @@ pub(crate) mod rules_984_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -5226,11 +6053,52 @@ pub(crate) mod rules_984_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5331,7 +6199,16 @@ pub(crate) mod rules_985_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 985 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 9] = [
+        ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 10] = [
+        true,true,true,true,false,true,false,false,false,false];
+    static STATE_SYMBOL: [Symbol; 28] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(3),Symbol::T(0),Symbol::NT(7),Symbol::T(3),Symbol::NT(7),Symbol::NT(0),Symbol::T(1),Symbol::NT(2),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(4),Symbol::NT(5),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(6),Symbol::T(2),Symbol::T(5),Symbol::T(8),
+        Symbol::NT(8),Symbol::T(6),Symbol::NT(8)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -5380,7 +6257,7 @@ pub(crate) mod rules_985_1 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -5398,6 +6275,30 @@ pub(crate) mod rules_985_1 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::Vp(_) => 1,
+                EnumSynValue::Ivp(_) => 2,
+                EnumSynValue::Np(_) => 3,
+                EnumSynValue::Xp(_) => 5,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -5409,6 +6310,11 @@ pub(crate) mod rules_985_1 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5440,6 +6346,7 @@ pub(crate) mod rules_985_1 {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -5482,8 +6389,7 @@ pub(crate) mod rules_985_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -5505,10 +6411,6 @@ pub(crate) mod rules_985_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -5524,11 +6426,61 @@ pub(crate) mod rules_985_1 {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5678,7 +6630,16 @@ pub(crate) mod rules_985_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 985 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 9] = [
+        ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
+
+    static NT_VALUE: [bool; 10] = [
+        true,true,true,true,false,true,false,false,false,false];
+    static STATE_SYMBOL: [Symbol; 28] = [
+        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(3),Symbol::T(0),Symbol::NT(7),Symbol::T(3),Symbol::NT(7),Symbol::NT(0),Symbol::T(1),Symbol::NT(2),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(4),Symbol::NT(5),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(6),Symbol::T(2),Symbol::T(5),Symbol::T(8),
+        Symbol::NT(8),Symbol::T(6),Symbol::NT(8)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -5727,7 +6688,7 @@ pub(crate) mod rules_985_2 {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
+    pub enum EnumSynValue { A(SynA), Vp(SynVp), Ivp(SynIvp), Np(SynNp), Xp(SynXp) }
 
     impl EnumSynValue {
         fn get_a(self) -> SynA {
@@ -5745,6 +6706,30 @@ pub(crate) mod rules_985_2 {
         fn get_xp(self) -> SynXp {
             if let EnumSynValue::Xp(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::Vp(_) => 1,
+                EnumSynValue::Ivp(_) => 2,
+                EnumSynValue::Np(_) => 3,
+                EnumSynValue::Xp(_) => 5,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TestListener {
@@ -5756,6 +6741,11 @@ pub(crate) mod rules_985_2 {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str) -> TokenId { token }
         #[allow(unused_variables)]
@@ -5786,6 +6776,7 @@ pub(crate) mod rules_985_2 {
         stack: Vec<EnumSynValue>,
         max_stack: usize,
         stack_t: Vec<String>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
@@ -5827,8 +6818,7 @@ pub(crate) mod rules_985_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -5860,11 +6850,52 @@ pub(crate) mod rules_985_2 {
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {

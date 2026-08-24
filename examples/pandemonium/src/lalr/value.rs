@@ -1068,8 +1068,14 @@ pub mod pandemonium_parser {
 
     // [pandemonium_parser]
 
-    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId}}};
+    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId, WrapperLRErrorRecovery}}};
     use super::listener_types::*;
+
+    static SYMBOLS_T: [(&str, Option<&str>); 31] = [
+        ("Add", Some("+")),("Div", Some("/")),("Equal", Some("=")),("Exp", Some("^")),("Lpar", Some("(")),("Lsbracket", Some("[")),("Mul", Some("*")),("Rpar", Some(")")),("Rsbracket", Some("]")),("Sub", Some("-")),
+        ("Colon", Some(":")),("Comma", Some(",")),("Semi", Some(";")),("Then", Some("then")),("Star", Some("star")),("Plus", Some("plus")),("L_Star", Some("l-star")),("L_Plus", Some("l-plus")),("Rrec", Some("rrec")),("Lrec", Some("lrec")),
+        ("Amb", Some("amb")),("Star_A", Some("star-a")),("Plus_A", Some("plus-a")),("L_Star_A", Some("l-star-a")),("L_Plus_A", Some("l-plus-a")),("SepList", Some("sep-list")),("SepList_Opt", Some("sep-list-opt")),("L_SepList", Some("l-sep-list")),("L_SepList_Opt", Some("l-sep-list-opt")),("Id", None),
+        ("Num", None)];
 
     static NUM_NT: usize = 63;
     static NUM_T_FULL: usize = 32;
@@ -1518,16 +1524,231 @@ pub mod pandemonium_parser {
         (28, 2, 0),(28, 2, 0),(28, 2, 0),(28, 2, 0),(29, 5, 1),(30, 5, 1),(31, 5, 1),(32, 3, 0),(32, 0, 0),(33, 5, 1),(34, 3, 0),(34, 2, 0),(35, 4, 1),(36, 4, 1),(37, 6, 1),(38, 6, 1),(39, 6, 1),(40, 2, 0),(40, 3, 0),(40, 0, 0),(41, 6, 1),(42, 2, 0),(42, 1, 0),(42, 3, 0),(42, 2, 0),
         (43, 4, 1),(44, 4, 1),(44, 3, 1),(45, 4, 1),(46, 4, 0),(46, 1, 0),(47, 4, 1),(47, 3, 1),(48, 4, 0),(48, 1, 0),(49, 3, 0),(49, 1, 0),(50, 3, 0),(50, 1, 0),(51, 3, 1),(51, 0, 0),(52, 3, 1),(52, 2, 1),(53, 2, 1),(53, 4, 2),(53, 0, 0),(54, 2, 1),(54, 1, 1),(54, 4, 2),(54, 3, 2),
         (55, 6, 2),(55, 3, 2),(56, 6, 2),(56, 3, 2),(57, 3, 0),(57, 0, 0),(58, 3, 0),(58, 2, 0),(59, 2, 0),(59, 3, 0),(59, 0, 0),(60, 2, 0),(60, 1, 0),(60, 3, 0),(60, 2, 0),(61, 4, 0),(61, 1, 0),(62, 4, 0),(62, 1, 0),(63, 1, 0)];
-    static SYMBOLS_T: [(&str, Option<&str>); 31] = [
-        ("Add", Some("+")),("Div", Some("/")),("Equal", Some("=")),("Exp", Some("^")),("Lpar", Some("(")),("Lsbracket", Some("[")),("Mul", Some("*")),("Rpar", Some(")")),("Rsbracket", Some("]")),("Sub", Some("-")),
-        ("Colon", Some(":")),("Comma", Some(",")),("Semi", Some(";")),("Then", Some("then")),("Star", Some("star")),("Plus", Some("plus")),("L_Star", Some("l-star")),("L_Plus", Some("l-plus")),("Rrec", Some("rrec")),("Lrec", Some("lrec")),
-        ("Amb", Some("amb")),("Star_A", Some("star-a")),("Plus_A", Some("plus-a")),("L_Star_A", Some("l-star-a")),("L_Plus_A", Some("l-plus-a")),("SepList", Some("sep-list")),("SepList_Opt", Some("sep-list-opt")),("L_SepList", Some("l-sep-list")),("L_SepList_Opt", Some("l-sep-list-opt")),("Id", None),
-        ("Num", None)];
     static SYMBOLS_NT: [&str; 64] = [
         "text","i","nv_i","example","star","plus","l_star","l_star_i","l_plus","l_plus_i","rrec","lrec","amb","star_a","plus_a","l_star_a","l_star_a_i","l_plus_a","l_plus_a_i","sep_list",
         "sep_list_opt","l_sep_list","l_sep_list_i","l_sep_list_opt","l_sep_list_opt_i","rrec_i","lrec_i","amb_i","nv_example","nv_star","nv_plus","nv_l_star","nv_l_star_i","nv_l_plus","nv_l_plus_i","nv_rrec","nv_lrec","nv_star_a","nv_plus_a","nv_l_star_a",
         "nv_l_star_a_i","nv_l_plus_a","nv_l_plus_a_i","nv_sep_list","nv_sep_list_opt","nv_l_sep_list","nv_l_sep_list_i","nv_l_sep_list_opt","nv_l_sep_list_opt_i","nv_rrec_i","nv_lrec_i","star_1","plus_1","star_a_1","plus_a_1","sep_list_1","sep_list_opt_1","nv_star_1","nv_plus_1","nv_star_a_1",
         "nv_plus_a_1","nv_sep_list_1","nv_sep_list_opt_1","<goal>"];
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'+'"]              Add = 0,
+        #[doc = "'/'"]              Div = 1,
+        #[doc = "'='"]              Equal = 2,
+        #[doc = "'^'"]              Exp = 3,
+        #[doc = "'('"]              Lpar = 4,
+        #[doc = "'['"]              Lsbracket = 5,
+        #[doc = "'*'"]              Mul = 6,
+        #[doc = "')'"]              Rpar = 7,
+        #[doc = "']'"]              Rsbracket = 8,
+        #[doc = "'-'"]              Sub = 9,
+        #[doc = "':'"]              Colon = 10,
+        #[doc = "','"]              Comma = 11,
+        #[doc = "';'"]              Semi = 12,
+        #[doc = "'then'"]           Then = 13,
+        #[doc = "'star'"]           Star = 14,
+        #[doc = "'plus'"]           Plus = 15,
+        #[doc = "'l-star'"]         L_Star = 16,
+        #[doc = "'l-plus'"]         L_Plus = 17,
+        #[doc = "'rrec'"]           Rrec = 18,
+        #[doc = "'lrec'"]           Lrec = 19,
+        #[doc = "'amb'"]            Amb = 20,
+        #[doc = "'star-a'"]         Star_A = 21,
+        #[doc = "'plus-a'"]         Plus_A = 22,
+        #[doc = "'l-star-a'"]       L_Star_A = 23,
+        #[doc = "'l-plus-a'"]       L_Plus_A = 24,
+        #[doc = "'sep-list'"]       SepList = 25,
+        #[doc = "'sep-list-opt'"]   SepList_Opt = 26,
+        #[doc = "'l-sep-list'"]     L_SepList = 27,
+        #[doc = "'l-sep-list-opt'"] L_SepList_Opt = 28,
+        #[doc = "(variable)"]       Id = 29,
+        #[doc = "(variable)"]       Num = 30,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Div as TokenId => Term::Div,
+                _ if value == Term::Equal as TokenId => Term::Equal,
+                _ if value == Term::Exp as TokenId => Term::Exp,
+                _ if value == Term::Lpar as TokenId => Term::Lpar,
+                _ if value == Term::Lsbracket as TokenId => Term::Lsbracket,
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Rpar as TokenId => Term::Rpar,
+                _ if value == Term::Rsbracket as TokenId => Term::Rsbracket,
+                _ if value == Term::Sub as TokenId => Term::Sub,
+                _ if value == Term::Colon as TokenId => Term::Colon,
+                _ if value == Term::Comma as TokenId => Term::Comma,
+                _ if value == Term::Semi as TokenId => Term::Semi,
+                _ if value == Term::Then as TokenId => Term::Then,
+                _ if value == Term::Star as TokenId => Term::Star,
+                _ if value == Term::Plus as TokenId => Term::Plus,
+                _ if value == Term::L_Star as TokenId => Term::L_Star,
+                _ if value == Term::L_Plus as TokenId => Term::L_Plus,
+                _ if value == Term::Rrec as TokenId => Term::Rrec,
+                _ if value == Term::Lrec as TokenId => Term::Lrec,
+                _ if value == Term::Amb as TokenId => Term::Amb,
+                _ if value == Term::Star_A as TokenId => Term::Star_A,
+                _ if value == Term::Plus_A as TokenId => Term::Plus_A,
+                _ if value == Term::L_Star_A as TokenId => Term::L_Star_A,
+                _ if value == Term::L_Plus_A as TokenId => Term::L_Plus_A,
+                _ if value == Term::SepList as TokenId => Term::SepList,
+                _ if value == Term::SepList_Opt as TokenId => Term::SepList_Opt,
+                _ if value == Term::L_SepList as TokenId => Term::L_SepList,
+                _ if value == Term::L_SepList_Opt as TokenId => Term::L_SepList_Opt,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`text`"]                                             Text = 0,
+        #[doc = "`i`, parent: `text`"]                                I = 1,
+        #[doc = "`nv_i`, parent: `text`"]                             NvI = 2,
+        #[doc = "`example`"]                                          Example = 3,
+        #[doc = "`star`"]                                             Star = 4,
+        #[doc = "`plus`"]                                             Plus = 5,
+        #[doc = "`l_star`"]                                           LStar = 6,
+        #[doc = "`l_star_i`, parent: `l_star`"]                       LStarI = 7,
+        #[doc = "`l_plus`"]                                           LPlus = 8,
+        #[doc = "`l_plus_i`, parent: `l_plus`"]                       LPlusI = 9,
+        #[doc = "`rrec`"]                                             Rrec = 10,
+        #[doc = "`lrec`"]                                             Lrec = 11,
+        #[doc = "`amb`"]                                              Amb = 12,
+        #[doc = "`star_a`"]                                           StarA = 13,
+        #[doc = "`plus_a`"]                                           PlusA = 14,
+        #[doc = "`l_star_a`"]                                         LStarA = 15,
+        #[doc = "`l_star_a_i`, parent: `l_star_a`"]                   LStarAI = 16,
+        #[doc = "`l_plus_a`"]                                         LPlusA = 17,
+        #[doc = "`l_plus_a_i`, parent: `l_plus_a`"]                   LPlusAI = 18,
+        #[doc = "`sep_list`"]                                         SepList = 19,
+        #[doc = "`sep_list_opt`"]                                     SepListOpt = 20,
+        #[doc = "`l_sep_list`"]                                       LSepList = 21,
+        #[doc = "`l_sep_list_i`, parent: `l_sep_list`"]               LSepListI = 22,
+        #[doc = "`l_sep_list_opt`"]                                   LSepListOpt = 23,
+        #[doc = "`l_sep_list_opt_i`, parent: `l_sep_list_opt`"]       LSepListOptI = 24,
+        #[doc = "`rrec_i`"]                                           RrecI = 25,
+        #[doc = "`lrec_i`"]                                           LrecI = 26,
+        #[doc = "`amb_i`"]                                            AmbI = 27,
+        #[doc = "`nv_example`"]                                       NvExample = 28,
+        #[doc = "`nv_star`"]                                          NvStar = 29,
+        #[doc = "`nv_plus`"]                                          NvPlus = 30,
+        #[doc = "`nv_l_star`"]                                        NvLStar = 31,
+        #[doc = "`nv_l_star_i`, parent: `nv_l_star`"]                 NvLStarI = 32,
+        #[doc = "`nv_l_plus`"]                                        NvLPlus = 33,
+        #[doc = "`nv_l_plus_i`, parent: `nv_l_plus`"]                 NvLPlusI = 34,
+        #[doc = "`nv_rrec`"]                                          NvRrec = 35,
+        #[doc = "`nv_lrec`"]                                          NvLrec = 36,
+        #[doc = "`nv_star_a`"]                                        NvStarA = 37,
+        #[doc = "`nv_plus_a`"]                                        NvPlusA = 38,
+        #[doc = "`nv_l_star_a`"]                                      NvLStarA = 39,
+        #[doc = "`nv_l_star_a_i`, parent: `nv_l_star_a`"]             NvLStarAI = 40,
+        #[doc = "`nv_l_plus_a`"]                                      NvLPlusA = 41,
+        #[doc = "`nv_l_plus_a_i`, parent: `nv_l_plus_a`"]             NvLPlusAI = 42,
+        #[doc = "`nv_sep_list`"]                                      NvSepList = 43,
+        #[doc = "`nv_sep_list_opt`"]                                  NvSepListOpt = 44,
+        #[doc = "`nv_l_sep_list`"]                                    NvLSepList = 45,
+        #[doc = "`nv_l_sep_list_i`, parent: `nv_l_sep_list`"]         NvLSepListI = 46,
+        #[doc = "`nv_l_sep_list_opt`"]                                NvLSepListOpt = 47,
+        #[doc = "`nv_l_sep_list_opt_i`, parent: `nv_l_sep_list_opt`"] NvLSepListOptI = 48,
+        #[doc = "`nv_rrec_i`"]                                        NvRrecI = 49,
+        #[doc = "`nv_lrec_i`"]                                        NvLrecI = 50,
+        #[doc = "`star_1`, parent: `star`"]                           Star1 = 51,
+        #[doc = "`plus_1`, parent: `plus`"]                           Plus1 = 52,
+        #[doc = "`star_a_1`, parent: `star_a`"]                       StarA1 = 53,
+        #[doc = "`plus_a_1`, parent: `plus_a`"]                       PlusA1 = 54,
+        #[doc = "`sep_list_1`, parent: `sep_list`"]                   SepList1 = 55,
+        #[doc = "`sep_list_opt_1`, parent: `sep_list_opt`"]           SepListOpt1 = 56,
+        #[doc = "`nv_star_1`, parent: `nv_star`"]                     NvStar1 = 57,
+        #[doc = "`nv_plus_1`, parent: `nv_plus`"]                     NvPlus1 = 58,
+        #[doc = "`nv_star_a_1`, parent: `nv_star_a`"]                 NvStarA1 = 59,
+        #[doc = "`nv_plus_a_1`, parent: `nv_plus_a`"]                 NvPlusA1 = 60,
+        #[doc = "`nv_sep_list_1`, parent: `nv_sep_list`"]             NvSepList1 = 61,
+        #[doc = "`nv_sep_list_opt_1`, parent: `nv_sep_list_opt`"]     NvSepListOpt1 = 62,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::Text as VarId => Ok(NTerm::Text),
+                _ if value == NTerm::I as VarId => Ok(NTerm::I),
+                _ if value == NTerm::NvI as VarId => Ok(NTerm::NvI),
+                _ if value == NTerm::Example as VarId => Ok(NTerm::Example),
+                _ if value == NTerm::Star as VarId => Ok(NTerm::Star),
+                _ if value == NTerm::Plus as VarId => Ok(NTerm::Plus),
+                _ if value == NTerm::LStar as VarId => Ok(NTerm::LStar),
+                _ if value == NTerm::LStarI as VarId => Ok(NTerm::LStarI),
+                _ if value == NTerm::LPlus as VarId => Ok(NTerm::LPlus),
+                _ if value == NTerm::LPlusI as VarId => Ok(NTerm::LPlusI),
+                _ if value == NTerm::Rrec as VarId => Ok(NTerm::Rrec),
+                _ if value == NTerm::Lrec as VarId => Ok(NTerm::Lrec),
+                _ if value == NTerm::Amb as VarId => Ok(NTerm::Amb),
+                _ if value == NTerm::StarA as VarId => Ok(NTerm::StarA),
+                _ if value == NTerm::PlusA as VarId => Ok(NTerm::PlusA),
+                _ if value == NTerm::LStarA as VarId => Ok(NTerm::LStarA),
+                _ if value == NTerm::LStarAI as VarId => Ok(NTerm::LStarAI),
+                _ if value == NTerm::LPlusA as VarId => Ok(NTerm::LPlusA),
+                _ if value == NTerm::LPlusAI as VarId => Ok(NTerm::LPlusAI),
+                _ if value == NTerm::SepList as VarId => Ok(NTerm::SepList),
+                _ if value == NTerm::SepListOpt as VarId => Ok(NTerm::SepListOpt),
+                _ if value == NTerm::LSepList as VarId => Ok(NTerm::LSepList),
+                _ if value == NTerm::LSepListI as VarId => Ok(NTerm::LSepListI),
+                _ if value == NTerm::LSepListOpt as VarId => Ok(NTerm::LSepListOpt),
+                _ if value == NTerm::LSepListOptI as VarId => Ok(NTerm::LSepListOptI),
+                _ if value == NTerm::RrecI as VarId => Ok(NTerm::RrecI),
+                _ if value == NTerm::LrecI as VarId => Ok(NTerm::LrecI),
+                _ if value == NTerm::AmbI as VarId => Ok(NTerm::AmbI),
+                _ if value == NTerm::NvExample as VarId => Ok(NTerm::NvExample),
+                _ if value == NTerm::NvStar as VarId => Ok(NTerm::NvStar),
+                _ if value == NTerm::NvPlus as VarId => Ok(NTerm::NvPlus),
+                _ if value == NTerm::NvLStar as VarId => Ok(NTerm::NvLStar),
+                _ if value == NTerm::NvLStarI as VarId => Ok(NTerm::NvLStarI),
+                _ if value == NTerm::NvLPlus as VarId => Ok(NTerm::NvLPlus),
+                _ if value == NTerm::NvLPlusI as VarId => Ok(NTerm::NvLPlusI),
+                _ if value == NTerm::NvRrec as VarId => Ok(NTerm::NvRrec),
+                _ if value == NTerm::NvLrec as VarId => Ok(NTerm::NvLrec),
+                _ if value == NTerm::NvStarA as VarId => Ok(NTerm::NvStarA),
+                _ if value == NTerm::NvPlusA as VarId => Ok(NTerm::NvPlusA),
+                _ if value == NTerm::NvLStarA as VarId => Ok(NTerm::NvLStarA),
+                _ if value == NTerm::NvLStarAI as VarId => Ok(NTerm::NvLStarAI),
+                _ if value == NTerm::NvLPlusA as VarId => Ok(NTerm::NvLPlusA),
+                _ if value == NTerm::NvLPlusAI as VarId => Ok(NTerm::NvLPlusAI),
+                _ if value == NTerm::NvSepList as VarId => Ok(NTerm::NvSepList),
+                _ if value == NTerm::NvSepListOpt as VarId => Ok(NTerm::NvSepListOpt),
+                _ if value == NTerm::NvLSepList as VarId => Ok(NTerm::NvLSepList),
+                _ if value == NTerm::NvLSepListI as VarId => Ok(NTerm::NvLSepListI),
+                _ if value == NTerm::NvLSepListOpt as VarId => Ok(NTerm::NvLSepListOpt),
+                _ if value == NTerm::NvLSepListOptI as VarId => Ok(NTerm::NvLSepListOptI),
+                _ if value == NTerm::NvRrecI as VarId => Ok(NTerm::NvRrecI),
+                _ if value == NTerm::NvLrecI as VarId => Ok(NTerm::NvLrecI),
+                _ if value == NTerm::Star1 as VarId => Ok(NTerm::Star1),
+                _ if value == NTerm::Plus1 as VarId => Ok(NTerm::Plus1),
+                _ if value == NTerm::StarA1 as VarId => Ok(NTerm::StarA1),
+                _ if value == NTerm::PlusA1 as VarId => Ok(NTerm::PlusA1),
+                _ if value == NTerm::SepList1 as VarId => Ok(NTerm::SepList1),
+                _ if value == NTerm::SepListOpt1 as VarId => Ok(NTerm::SepListOpt1),
+                _ if value == NTerm::NvStar1 as VarId => Ok(NTerm::NvStar1),
+                _ if value == NTerm::NvPlus1 as VarId => Ok(NTerm::NvPlus1),
+                _ if value == NTerm::NvStarA1 as VarId => Ok(NTerm::NvStarA1),
+                _ if value == NTerm::NvPlusA1 as VarId => Ok(NTerm::NvPlusA1),
+                _ if value == NTerm::NvSepList1 as VarId => Ok(NTerm::NvSepList1),
+                _ if value == NTerm::NvSepListOpt1 as VarId => Ok(NTerm::NvSepListOpt1),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
@@ -1539,6 +1760,28 @@ pub mod pandemonium_parser {
             false
         )
     }
+
+    static NT_VALUE: [bool; 64] = [
+        true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
+        true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
+        true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,
+        false,false,false,true];
+    static STATE_SYMBOL: [Symbol; 354] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(12),Symbol::T(14),Symbol::T(15),Symbol::T(16),Symbol::T(17),Symbol::T(18),Symbol::T(19),Symbol::T(20),Symbol::T(21),Symbol::T(22),Symbol::T(23),Symbol::T(24),Symbol::T(25),Symbol::T(26),Symbol::T(27),Symbol::T(28),Symbol::NT(2),Symbol::T(14),Symbol::T(15),Symbol::T(16),Symbol::T(17),Symbol::T(18),Symbol::T(19),
+        Symbol::T(21),Symbol::T(22),Symbol::T(23),Symbol::T(24),Symbol::T(25),Symbol::T(26),Symbol::T(27),Symbol::T(28),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(29),Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::T(4),Symbol::T(9),Symbol::T(5),Symbol::T(5),Symbol::T(5),Symbol::T(5),
+        Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::T(3),Symbol::T(6),Symbol::T(9),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(5),Symbol::T(5),Symbol::T(5),Symbol::T(5),Symbol::T(30),Symbol::T(6),Symbol::NT(0),Symbol::NT(3),Symbol::T(29),Symbol::NT(4),
+        Symbol::T(29),Symbol::NT(5),Symbol::T(29),Symbol::NT(6),Symbol::T(29),Symbol::NT(8),Symbol::T(29),Symbol::NT(10),Symbol::T(29),Symbol::NT(11),Symbol::T(29),Symbol::NT(12),Symbol::T(29),Symbol::NT(13),Symbol::T(29),Symbol::NT(14),Symbol::T(29),Symbol::NT(15),Symbol::T(29),Symbol::NT(17),Symbol::T(29),Symbol::NT(19),Symbol::T(29),Symbol::NT(20),Symbol::T(29),
+        Symbol::NT(21),Symbol::T(29),Symbol::NT(23),Symbol::NT(28),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(29),Symbol::NT(29),Symbol::T(29),Symbol::NT(30),Symbol::T(29),Symbol::NT(31),Symbol::T(29),Symbol::NT(33),Symbol::T(29),Symbol::NT(35),Symbol::T(29),Symbol::NT(36),
+        Symbol::T(29),Symbol::NT(37),Symbol::T(29),Symbol::NT(38),Symbol::T(29),Symbol::NT(39),Symbol::T(29),Symbol::NT(41),Symbol::T(29),Symbol::NT(43),Symbol::T(29),Symbol::NT(44),Symbol::T(29),Symbol::NT(45),Symbol::T(29),Symbol::NT(47),Symbol::T(30),Symbol::NT(26),Symbol::T(29),Symbol::T(30),Symbol::NT(27),Symbol::T(29),Symbol::NT(55),Symbol::T(12),Symbol::T(29),
+        Symbol::NT(56),Symbol::T(29),Symbol::NT(22),Symbol::T(12),Symbol::T(29),Symbol::NT(24),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::T(2),Symbol::NT(51),Symbol::T(11),Symbol::NT(52),Symbol::NT(7),Symbol::T(11),Symbol::NT(9),Symbol::T(11),Symbol::T(12),Symbol::NT(25),Symbol::T(11),
+        Symbol::T(12),Symbol::NT(27),Symbol::NT(27),Symbol::T(12),Symbol::NT(53),Symbol::T(29),Symbol::T(30),Symbol::NT(54),Symbol::NT(16),Symbol::T(29),Symbol::T(30),Symbol::NT(18),Symbol::T(10),Symbol::T(11),Symbol::T(12),Symbol::T(10),Symbol::T(11),Symbol::T(12),Symbol::T(10),Symbol::T(11),Symbol::T(12),Symbol::T(10),Symbol::T(11),Symbol::T(12),Symbol::T(0),
+        Symbol::NT(50),Symbol::T(6),Symbol::NT(61),Symbol::T(6),Symbol::T(12),Symbol::NT(62),Symbol::T(6),Symbol::NT(46),Symbol::T(6),Symbol::T(12),Symbol::NT(48),Symbol::T(11),Symbol::T(12),Symbol::T(30),Symbol::T(11),Symbol::T(12),Symbol::T(11),Symbol::T(12),Symbol::T(30),Symbol::T(11),Symbol::T(12),Symbol::T(30),Symbol::T(7),Symbol::NT(27),Symbol::NT(27),
+        Symbol::NT(27),Symbol::NT(27),Symbol::NT(27),Symbol::T(8),Symbol::T(29),Symbol::T(30),Symbol::T(10),Symbol::T(8),Symbol::T(29),Symbol::T(30),Symbol::T(8),Symbol::T(29),Symbol::T(30),Symbol::T(10),Symbol::T(8),Symbol::T(29),Symbol::T(30),Symbol::T(30),Symbol::T(13),Symbol::T(30),Symbol::T(13),Symbol::T(30),Symbol::T(13),Symbol::T(30),Symbol::T(13),
+        Symbol::NT(57),Symbol::T(11),Symbol::NT(58),Symbol::NT(32),Symbol::T(11),Symbol::NT(34),Symbol::T(11),Symbol::T(12),Symbol::NT(49),Symbol::T(11),Symbol::T(12),Symbol::NT(59),Symbol::T(0),Symbol::T(6),Symbol::NT(60),Symbol::NT(40),Symbol::T(0),Symbol::T(6),Symbol::NT(42),Symbol::T(11),Symbol::T(12),Symbol::T(11),Symbol::T(12),Symbol::T(11),Symbol::T(12),
+        Symbol::T(11),Symbol::T(12),Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::NT(25),Symbol::T(12),Symbol::T(10),Symbol::T(29),Symbol::T(12),Symbol::T(10),Symbol::T(12),Symbol::T(10),Symbol::T(29),Symbol::T(12),Symbol::T(10),Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(11),Symbol::T(12),Symbol::T(6),Symbol::T(11),
+        Symbol::T(12),Symbol::T(11),Symbol::T(12),Symbol::T(6),Symbol::T(11),Symbol::T(12),Symbol::T(6),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(13),Symbol::T(13),Symbol::T(13),Symbol::T(13),
+        Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(10),Symbol::T(10),Symbol::T(10),Symbol::T(10),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::NT(49),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::T(6),
+        Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::T(30)];
 
     #[derive(Debug)]
     pub enum CtxText {
@@ -1930,7 +2173,7 @@ pub mod pandemonium_parser {
     pub struct SynSepListOpt1Item { pub id: String, pub num: String }
 
     #[derive(Debug)]
-    enum EnumSynValue { Text(SynText), I(SynI), NvI(SynNvI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), LSepList(SynLSepList), LSepListI(SynLSepListI), LSepListOpt(SynLSepListOpt), LSepListOptI(SynLSepListOptI), RrecI(SynRrecI), LrecI(SynLrecI), AmbI(SynAmbI), NvExample(SynNvExample), NvStar(SynNvStar), NvPlus(SynNvPlus), NvLStar(SynNvLStar), NvLStarI(SynNvLStarI), NvLPlus(SynNvLPlus), NvLPlusI(SynNvLPlusI), NvRrec(SynNvRrec), NvLrec(SynNvLrec), NvStarA(SynNvStarA), NvPlusA(SynNvPlusA), NvLStarA(SynNvLStarA), NvLStarAI(SynNvLStarAI), NvLPlusA(SynNvLPlusA), NvLPlusAI(SynNvLPlusAI), NvSepList(SynNvSepList), NvSepListOpt(SynNvSepListOpt), NvLSepList(SynNvLSepList), NvLSepListI(SynNvLSepListI), NvLSepListOpt(SynNvLSepListOpt), NvLSepListOptI(SynNvLSepListOptI), NvRrecI(SynNvRrecI), NvLrecI(SynNvLrecI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1) }
+    pub enum EnumSynValue { Text(SynText), I(SynI), NvI(SynNvI), Example(SynExample), Star(SynStar), Plus(SynPlus), LStar(SynLStar), LStarI(SynLStarI), LPlus(SynLPlus), LPlusI(SynLPlusI), Rrec(SynRrec), Lrec(SynLrec), Amb(SynAmb), StarA(SynStarA), PlusA(SynPlusA), LStarA(SynLStarA), LStarAI(SynLStarAI), LPlusA(SynLPlusA), LPlusAI(SynLPlusAI), SepList(SynSepList), SepListOpt(SynSepListOpt), LSepList(SynLSepList), LSepListI(SynLSepListI), LSepListOpt(SynLSepListOpt), LSepListOptI(SynLSepListOptI), RrecI(SynRrecI), LrecI(SynLrecI), AmbI(SynAmbI), NvExample(SynNvExample), NvStar(SynNvStar), NvPlus(SynNvPlus), NvLStar(SynNvLStar), NvLStarI(SynNvLStarI), NvLPlus(SynNvLPlus), NvLPlusI(SynNvLPlusI), NvRrec(SynNvRrec), NvLrec(SynNvLrec), NvStarA(SynNvStarA), NvPlusA(SynNvPlusA), NvLStarA(SynNvLStarA), NvLStarAI(SynNvLStarAI), NvLPlusA(SynNvLPlusA), NvLPlusAI(SynNvLPlusAI), NvSepList(SynNvSepList), NvSepListOpt(SynNvSepListOpt), NvLSepList(SynNvLSepList), NvLSepListI(SynNvLSepListI), NvLSepListOpt(SynNvLSepListOpt), NvLSepListOptI(SynNvLSepListOptI), NvRrecI(SynNvRrecI), NvLrecI(SynNvLrecI), Star1(SynStar1), Plus1(SynPlus1), StarA1(SynStarA1), PlusA1(SynPlusA1), SepList1(SynSepList1), SepListOpt1(SynSepListOpt1) }
 
     impl EnumSynValue {
         fn get_text(self) -> SynText {
@@ -2104,6 +2347,82 @@ pub mod pandemonium_parser {
         fn get_sep_list_opt1(self) -> SynSepListOpt1 {
             if let EnumSynValue::SepListOpt1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Text(_) => 0,
+                EnumSynValue::I(_) => 1,
+                EnumSynValue::NvI(_) => 2,
+                EnumSynValue::Example(_) => 3,
+                EnumSynValue::Star(_) => 4,
+                EnumSynValue::Plus(_) => 5,
+                EnumSynValue::LStar(_) => 6,
+                EnumSynValue::LStarI(_) => 7,
+                EnumSynValue::LPlus(_) => 8,
+                EnumSynValue::LPlusI(_) => 9,
+                EnumSynValue::Rrec(_) => 10,
+                EnumSynValue::Lrec(_) => 11,
+                EnumSynValue::Amb(_) => 12,
+                EnumSynValue::StarA(_) => 13,
+                EnumSynValue::PlusA(_) => 14,
+                EnumSynValue::LStarA(_) => 15,
+                EnumSynValue::LStarAI(_) => 16,
+                EnumSynValue::LPlusA(_) => 17,
+                EnumSynValue::LPlusAI(_) => 18,
+                EnumSynValue::SepList(_) => 19,
+                EnumSynValue::SepListOpt(_) => 20,
+                EnumSynValue::LSepList(_) => 21,
+                EnumSynValue::LSepListI(_) => 22,
+                EnumSynValue::LSepListOpt(_) => 23,
+                EnumSynValue::LSepListOptI(_) => 24,
+                EnumSynValue::RrecI(_) => 25,
+                EnumSynValue::LrecI(_) => 26,
+                EnumSynValue::AmbI(_) => 27,
+                EnumSynValue::NvExample(_) => 28,
+                EnumSynValue::NvStar(_) => 29,
+                EnumSynValue::NvPlus(_) => 30,
+                EnumSynValue::NvLStar(_) => 31,
+                EnumSynValue::NvLStarI(_) => 32,
+                EnumSynValue::NvLPlus(_) => 33,
+                EnumSynValue::NvLPlusI(_) => 34,
+                EnumSynValue::NvRrec(_) => 35,
+                EnumSynValue::NvLrec(_) => 36,
+                EnumSynValue::NvStarA(_) => 37,
+                EnumSynValue::NvPlusA(_) => 38,
+                EnumSynValue::NvLStarA(_) => 39,
+                EnumSynValue::NvLStarAI(_) => 40,
+                EnumSynValue::NvLPlusA(_) => 41,
+                EnumSynValue::NvLPlusAI(_) => 42,
+                EnumSynValue::NvSepList(_) => 43,
+                EnumSynValue::NvSepListOpt(_) => 44,
+                EnumSynValue::NvLSepList(_) => 45,
+                EnumSynValue::NvLSepListI(_) => 46,
+                EnumSynValue::NvLSepListOpt(_) => 47,
+                EnumSynValue::NvLSepListOptI(_) => 48,
+                EnumSynValue::NvRrecI(_) => 49,
+                EnumSynValue::NvLrecI(_) => 50,
+                EnumSynValue::Star1(_) => 51,
+                EnumSynValue::Plus1(_) => 52,
+                EnumSynValue::StarA1(_) => 53,
+                EnumSynValue::PlusA1(_) => 54,
+                EnumSynValue::SepList1(_) => 55,
+                EnumSynValue::SepListOpt1(_) => 56,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait PandemoniumListener {
@@ -2115,6 +2434,11 @@ pub mod pandemonium_parser {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -2195,6 +2519,7 @@ pub mod pandemonium_parser {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: PandemoniumListener> ListenerWrapper for Wrapper<T> {
@@ -2369,8 +2694,7 @@ pub mod pandemonium_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2392,10 +2716,6 @@ pub mod pandemonium_parser {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2411,11 +2731,61 @@ pub mod pandemonium_parser {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: PandemoniumListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: PandemoniumListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {

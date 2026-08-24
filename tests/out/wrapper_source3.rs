@@ -16,9 +16,11 @@ pub(crate) mod rules_630_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
     static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
@@ -26,6 +28,53 @@ pub(crate) mod rules_630_1 {
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                E = 0,
+        #[doc = "`e_1`, parent: `e`"] E1 = 1,
+        #[doc = "`e_2`, parent: `e`"] E2 = 2,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -63,6 +112,12 @@ pub(crate) mod rules_630_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -135,8 +190,7 @@ pub(crate) mod rules_630_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -158,10 +212,6 @@ pub(crate) mod rules_630_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -176,6 +226,22 @@ pub(crate) mod rules_630_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -312,9 +378,11 @@ pub(crate) mod rules_631_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
     static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
@@ -322,6 +390,53 @@ pub(crate) mod rules_631_1 {
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                E = 0,
+        #[doc = "`e_1`, parent: `e`"] E1 = 1,
+        #[doc = "`e_2`, parent: `e`"] E2 = 2,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -359,6 +474,12 @@ pub(crate) mod rules_631_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -431,8 +552,7 @@ pub(crate) mod rules_631_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -454,10 +574,6 @@ pub(crate) mod rules_631_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -472,6 +588,22 @@ pub(crate) mod rules_631_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -608,9 +740,11 @@ pub(crate) mod rules_632_1 {
 
     use lexigram_lib::{AltId, TokenId, VarId, alt::Alternative, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Symbol, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
     static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
     static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
@@ -618,6 +752,53 @@ pub(crate) mod rules_632_1 {
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "'*'"]        Mul = 0,
+        #[doc = "'+'"]        Add = 1,
+        #[doc = "'!'"]        Op = 2,
+        #[doc = "(variable)"] Num = 3,
+    }
+
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Mul as TokenId => Term::Mul,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Op as TokenId => Term::Op,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`e`"]                E = 0,
+        #[doc = "`e_1`, parent: `e`"] E1 = 1,
+        #[doc = "`e_2`, parent: `e`"] E2 = 2,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::E as VarId => Ok(NTerm::E),
+                _ if value == NTerm::E1 as VarId => Ok(NTerm::E1),
+                _ if value == NTerm::E2 as VarId => Ok(NTerm::E2),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -655,6 +836,12 @@ pub(crate) mod rules_632_1 {
         fn get_e(self) -> SynE {
             let EnumSynValue::E(val) = self;
             val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
         }
     }
 
@@ -727,8 +914,7 @@ pub(crate) mod rules_632_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -750,10 +936,6 @@ pub(crate) mod rules_632_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -768,6 +950,22 @@ pub(crate) mod rules_632_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -936,6 +1134,12 @@ pub(crate) mod rules_640_1 {
             let EnumSynValue::E(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1013,8 +1217,7 @@ pub(crate) mod rules_640_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1036,10 +1239,6 @@ pub(crate) mod rules_640_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1054,6 +1253,22 @@ pub(crate) mod rules_640_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1172,6 +1387,12 @@ pub(crate) mod rules_641_1 {
             let EnumSynValue::E(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1249,8 +1470,7 @@ pub(crate) mod rules_641_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1272,10 +1492,6 @@ pub(crate) mod rules_641_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1290,6 +1506,22 @@ pub(crate) mod rules_641_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1408,6 +1640,12 @@ pub(crate) mod rules_642_1 {
             let EnumSynValue::E(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1485,8 +1723,7 @@ pub(crate) mod rules_642_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1508,10 +1745,6 @@ pub(crate) mod rules_642_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1526,6 +1759,22 @@ pub(crate) mod rules_642_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1628,6 +1877,12 @@ pub(crate) mod rules_650_1 {
             let EnumSynValue::A(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1697,8 +1952,7 @@ pub(crate) mod rules_650_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1720,10 +1974,6 @@ pub(crate) mod rules_650_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1738,6 +1988,22 @@ pub(crate) mod rules_650_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -1819,6 +2085,12 @@ pub(crate) mod rules_705_1 {
             let EnumSynValue::A(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -1891,8 +2163,7 @@ pub(crate) mod rules_705_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -1914,10 +2185,6 @@ pub(crate) mod rules_705_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -1932,6 +2199,22 @@ pub(crate) mod rules_705_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2027,6 +2310,13 @@ pub(crate) mod rules_810_1 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::A1(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -2099,8 +2389,7 @@ pub(crate) mod rules_810_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2122,10 +2411,6 @@ pub(crate) mod rules_810_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2140,6 +2425,22 @@ pub(crate) mod rules_810_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2235,6 +2536,13 @@ pub(crate) mod rules_811_1 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::A1(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -2309,8 +2617,7 @@ pub(crate) mod rules_811_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2332,10 +2639,6 @@ pub(crate) mod rules_811_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2350,6 +2653,22 @@ pub(crate) mod rules_811_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2445,6 +2764,13 @@ pub(crate) mod rules_820_1 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::A1(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -2521,8 +2847,7 @@ pub(crate) mod rules_820_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2544,10 +2869,6 @@ pub(crate) mod rules_820_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2562,6 +2883,22 @@ pub(crate) mod rules_820_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2662,6 +2999,13 @@ pub(crate) mod rules_821_1 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::A1(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -2739,8 +3083,7 @@ pub(crate) mod rules_821_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2762,10 +3105,6 @@ pub(crate) mod rules_821_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -2780,6 +3119,22 @@ pub(crate) mod rules_821_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -2885,6 +3240,13 @@ pub(crate) mod rules_835_1 {
         fn get_a1(self) -> SynA1 {
             if let EnumSynValue::A1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+                EnumSynValue::A1(_) => 1,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -2963,8 +3325,7 @@ pub(crate) mod rules_835_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -2986,10 +3347,6 @@ pub(crate) mod rules_835_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3004,6 +3361,22 @@ pub(crate) mod rules_835_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3111,6 +3484,12 @@ pub(crate) mod rules_862_1 {
             let EnumSynValue::Expr(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Expr(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -3182,8 +3561,7 @@ pub(crate) mod rules_862_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3205,10 +3583,6 @@ pub(crate) mod rules_862_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3223,6 +3597,22 @@ pub(crate) mod rules_862_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3302,6 +3692,12 @@ pub(crate) mod rules_870_1 {
             let EnumSynValue::A(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -3374,8 +3770,7 @@ pub(crate) mod rules_870_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3397,10 +3792,6 @@ pub(crate) mod rules_870_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3415,6 +3806,22 @@ pub(crate) mod rules_870_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3506,6 +3913,12 @@ pub(crate) mod rules_871_1 {
             let EnumSynValue::A(val) = self;
             val
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::A(_) => 0,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -3578,8 +3991,7 @@ pub(crate) mod rules_871_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -3601,10 +4013,6 @@ pub(crate) mod rules_871_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -3619,6 +4027,22 @@ pub(crate) mod rules_871_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -3907,6 +4331,32 @@ pub(crate) mod rules_901_1 {
         fn get_char_set1(self) -> SynCharSet1 {
             if let EnumSynValue::CharSet1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::File(_) => 0,
+                EnumSynValue::FileItem(_) => 1,
+                EnumSynValue::Header(_) => 2,
+                EnumSynValue::Declaration(_) => 3,
+                EnumSynValue::Option(_) => 4,
+                EnumSynValue::Rule(_) => 5,
+                EnumSynValue::Actions(_) => 6,
+                EnumSynValue::Action(_) => 7,
+                EnumSynValue::Match(_) => 8,
+                EnumSynValue::AltItems(_) => 9,
+                EnumSynValue::AltItem(_) => 10,
+                EnumSynValue::RepeatItem(_) => 11,
+                EnumSynValue::Item(_) => 12,
+                EnumSynValue::CharSet(_) => 13,
+                EnumSynValue::CharSetOne(_) => 14,
+                EnumSynValue::File1(_) => 15,
+                EnumSynValue::Option1(_) => 16,
+                EnumSynValue::Actions1(_) => 17,
+                EnumSynValue::AltItems1(_) => 18,
+                EnumSynValue::AltItem1(_) => 19,
+                EnumSynValue::CharSet1(_) => 20,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -4090,8 +4540,7 @@ pub(crate) mod rules_901_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4113,10 +4562,6 @@ pub(crate) mod rules_901_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4131,6 +4576,22 @@ pub(crate) mod rules_901_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -4620,6 +5081,18 @@ pub(crate) mod rules_902_1 {
         fn get_expr(self) -> SynExpr {
             if let EnumSynValue::Expr(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Program(_) => 0,
+                EnumSynValue::DeclI(_) => 1,
+                EnumSynValue::InstI(_) => 2,
+                EnumSynValue::Decl(_) => 3,
+                EnumSynValue::IdI(_) => 4,
+                EnumSynValue::Inst(_) => 5,
+                EnumSynValue::Expr(_) => 6,
+            }
+        }
     }
 
     pub trait TestListener {
@@ -4730,8 +5203,7 @@ pub(crate) mod rules_902_1 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -4753,10 +5225,6 @@ pub(crate) mod rules_902_1 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -4771,6 +5239,22 @@ pub(crate) mod rules_902_1 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 
@@ -5015,6 +5499,11 @@ pub(crate) mod rules_902_2 {
     #[derive(Debug)]
     enum EnumSynValue {  }
 
+    impl EnumSynValue {
+        #[allow(unused)]
+        fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}
+    }
+
     pub trait TestListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
@@ -5129,8 +5618,7 @@ pub(crate) mod rules_902_2 {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -5152,10 +5640,6 @@ pub(crate) mod rules_902_2 {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -5170,6 +5654,22 @@ pub(crate) mod rules_902_2 {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 

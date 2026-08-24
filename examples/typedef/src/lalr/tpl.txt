@@ -13,6 +13,23 @@
             &mut self.log
         }
 
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+            let nterm = NTerm::from(nt);
+            last_dropped
+                .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                .or_else(||
+                    Some(match nterm {
+                        NTerm::Program => EnumSynValue::Program(SynProgram()),
+                        NTerm::Decl => EnumSynValue::Decl(SynDecl()),
+                        NTerm::IdI => EnumSynValue::IdI(SynIdI()),
+                        NTerm::Inst => EnumSynValue::Inst(SynInst()),
+                        NTerm::Expr => EnumSynValue::Expr(SynExpr()),
+                        _ => panic!()
+                    }))
+                .map(|value| RecoveryNtValue::Value(value))
+                .unwrap_or_else(|| RecoveryNtValue::Abort)
+        }
+
         fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
             // program -> (<L> decl)* (<L> inst)+
             let CtxProgram::V1 = ctx;
@@ -94,6 +111,24 @@
     impl TypedefListener for Listener {
         fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
+        }
+
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+            let nterm = NTerm::from(nt);
+            last_dropped
+                .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                .or_else(||
+                    Some(match nterm {
+                        NTerm::Program => EnumSynValue::Program(SynProgram()),
+                        NTerm::Stmt => EnumSynValue::Stmt(SynStmt()),
+                        NTerm::Decl => EnumSynValue::Decl(SynDecl()),
+                        NTerm::IdI => EnumSynValue::IdI(SynIdI()),
+                        NTerm::Inst => EnumSynValue::Inst(SynInst()),
+                        NTerm::Expr => EnumSynValue::Expr(SynExpr()),
+                        _ => panic!()
+                    }))
+                .map(|value| RecoveryNtValue::Value(value))
+                .unwrap_or_else(|| RecoveryNtValue::Abort)
         }
 
         fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
@@ -182,6 +217,24 @@
     impl TypedefListener for Listener {
         fn get_log_mut(&mut self) -> &mut impl Logger {
             &mut self.log
+        }
+
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+            let nterm = NTerm::from(nt);
+            last_dropped
+                .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                .or_else(||
+                    Some(match nterm {
+                        NTerm::Program => EnumSynValue::Program(SynProgram()),
+                        NTerm::Stmt => EnumSynValue::Stmt(SynStmt()),
+                        NTerm::Decl => EnumSynValue::Decl(SynDecl()),
+                        NTerm::IdI => EnumSynValue::IdI(SynIdI()),
+                        NTerm::Inst => EnumSynValue::Inst(SynInst()),
+                        NTerm::Expr => EnumSynValue::Expr(SynExpr()),
+                        _ => panic!()
+                    }))
+                .map(|value| RecoveryNtValue::Value(value))
+                .unwrap_or_else(|| RecoveryNtValue::Abort)
         }
 
         fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {

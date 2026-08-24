@@ -418,8 +418,12 @@ pub mod typedef_type_parser {
 
     // [typedef_type_parser]
 
-    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS, ShiftHook as LRSH}, LRParser, LRStateId}}};
+    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS, ShiftHook as LRSH}, LRParser, LRStateId, WrapperLRErrorRecovery}}};
     use super::listener_type_types::*;
+
+    static SYMBOLS_T: [(&str, Option<&str>); 11] = [
+        ("Comma", Some(",")),("SemiColon", Some(";")),("Eq", Some("=")),("Sub", Some("-")),("Add", Some("+")),("Typedef", Some("typedef")),("Let", Some("let")),("Print", Some("print")),("Num", None),("Id", None),
+        ("Type", None)];
 
     static NUM_NT: usize = 7;
     static NUM_T_FULL: usize = 12;
@@ -441,11 +445,9 @@ pub mod typedef_type_parser {
         0,23,0,0,0,0,0,0,28,0,0,0,0,0,0,29,0,0,0,0,0,0,30];
     static ALT_NT_LEN: [(VarId, u16, u16); 17] = [
         (0, 2, 0),(1, 2, 0),(1, 0, 0),(2, 2, 0),(2, 1, 0),(3, 3, 1),(3, 4, 2),(4, 3, 1),(4, 1, 1),(5, 5, 1),(5, 3, 0),(6, 2, 0),(6, 3, 0),(6, 3, 0),(6, 1, 1),(6, 1, 1),(7, 1, 0)];
-    static SYMBOLS_T: [(&str, Option<&str>); 11] = [
-        ("Comma", Some(",")),("SemiColon", Some(";")),("Eq", Some("=")),("Sub", Some("-")),("Add", Some("+")),("Typedef", Some("typedef")),("Let", Some("let")),("Print", Some("print")),("Num", None),("Id", None),
-        ("Type", None)];
     static SYMBOLS_NT: [&str; 8] = [
         "program","decl_i","inst_i","decl","id_i","inst","expr","<goal>"];
+
     #[derive(Clone, Copy, PartialEq, Debug)]
     #[repr(u16)]
     pub enum Term {
@@ -462,6 +464,26 @@ pub mod typedef_type_parser {
         #[doc = "(variable)"] Type = 10,
     }
 
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Comma as TokenId => Term::Comma,
+                _ if value == Term::SemiColon as TokenId => Term::SemiColon,
+                _ if value == Term::Eq as TokenId => Term::Eq,
+                _ if value == Term::Sub as TokenId => Term::Sub,
+                _ if value == Term::Add as TokenId => Term::Add,
+                _ if value == Term::Typedef as TokenId => Term::Typedef,
+                _ if value == Term::Let as TokenId => Term::Let,
+                _ if value == Term::Print as TokenId => Term::Print,
+                _ if value == Term::Num as TokenId => Term::Num,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ if value == Term::Type as TokenId => Term::Type,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
     #[derive(Clone, Copy, PartialEq, Debug)]
     #[repr(u16)]
     pub enum NTerm {
@@ -471,12 +493,28 @@ pub mod typedef_type_parser {
         #[doc = "`decl`"]                      Decl = 3,
         #[doc = "`id_i`, parent: `decl`"]      IdI = 4,
         #[doc = "`inst`"]                      Inst = 5,
+        #[doc = "`expr`"]                      Expr = 6,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::Program as VarId => Ok(NTerm::Program),
+                _ if value == NTerm::DeclI as VarId => Ok(NTerm::DeclI),
+                _ if value == NTerm::InstI as VarId => Ok(NTerm::InstI),
+                _ if value == NTerm::Decl as VarId => Ok(NTerm::Decl),
+                _ if value == NTerm::IdI as VarId => Ok(NTerm::IdI),
+                _ if value == NTerm::Inst as VarId => Ok(NTerm::Inst),
+                _ if value == NTerm::Expr as VarId => Ok(NTerm::Expr),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
     }
 
     pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
         SYMBOLS_T[t as usize]
     }
-
 
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
@@ -488,6 +526,12 @@ pub mod typedef_type_parser {
             true
         )
     }
+
+    static NT_VALUE: [bool; 8] = [
+        true,false,false,true,true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 33] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(7),Symbol::T(10),Symbol::NT(2),Symbol::T(3),Symbol::T(2),Symbol::T(3),Symbol::T(4),Symbol::NT(0),Symbol::T(5),Symbol::T(6),Symbol::NT(3),Symbol::NT(5),Symbol::T(10),Symbol::T(9),Symbol::T(8),Symbol::T(9),Symbol::NT(6),Symbol::T(9),Symbol::NT(4),Symbol::NT(5),Symbol::T(9),Symbol::NT(6),Symbol::T(1),
+        Symbol::T(0),Symbol::T(1),Symbol::T(1),Symbol::NT(6),Symbol::NT(6),Symbol::NT(6),Symbol::T(9),Symbol::T(1)];
 
     #[derive(Debug)]
     pub enum CtxProgram {
@@ -538,7 +582,7 @@ pub mod typedef_type_parser {
     }
 
     #[derive(Debug)]
-    enum EnumSynValue { Program(SynProgram), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
+    pub enum EnumSynValue { Program(SynProgram), Decl(SynDecl), IdI(SynIdI), Inst(SynInst), Expr(SynExpr) }
 
     impl EnumSynValue {
         fn get_program(self) -> SynProgram {
@@ -556,6 +600,30 @@ pub mod typedef_type_parser {
         fn get_expr(self) -> SynExpr {
             if let EnumSynValue::Expr(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Program(_) => 0,
+                EnumSynValue::Decl(_) => 3,
+                EnumSynValue::IdI(_) => 4,
+                EnumSynValue::Inst(_) => 5,
+                EnumSynValue::Expr(_) => 6,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
     }
 
     pub trait TypedefListener {
@@ -567,6 +635,11 @@ pub mod typedef_type_parser {
         fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
             self.get_log_mut().add(msg);
         }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
@@ -596,6 +669,7 @@ pub mod typedef_type_parser {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: TypedefListener> ListenerWrapper for Wrapper<T> {
@@ -642,8 +716,7 @@ pub mod typedef_type_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -665,10 +738,6 @@ pub mod typedef_type_parser {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -688,11 +757,61 @@ pub mod typedef_type_parser {
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
         }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TypedefListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
+            let sym = STATE_SYMBOL[state as usize];
+            let has_value = match sym {
+                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
+                Symbol::NT(nt) => NT_VALUE[nt as usize],
+                Symbol::Empty => false,
+                Symbol::End => panic!(),
+            };
+            (sym, has_value)
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
     }
 
     impl<T: TypedefListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {

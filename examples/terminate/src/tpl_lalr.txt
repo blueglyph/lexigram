@@ -11,6 +11,22 @@
             &mut self.log
         }
 
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+            let nterm = NTerm::from(nt);
+            last_dropped
+                .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                .or_else(||
+                    Some(match nterm {
+                        NTerm::Log => EnumSynValue::Log(SynLog()),
+                        NTerm::LogI => EnumSynValue::LogI(SynLogI()),
+                        NTerm::Line => EnumSynValue::Line(SynLine()),
+                        NTerm::Message => EnumSynValue::Message(SynMessage()),
+                        _ => panic!()
+                    }))
+                .map(|value| RecoveryNtValue::Value(value))
+                .unwrap_or_else(|| RecoveryNtValue::Abort)
+        }
+
         fn exit_log(&mut self, ctx: CtxLog, spans: Vec<PosSpan>) -> SynLog {
             // log -> (<L> line)*
             let CtxLog::V1 { star } = ctx;

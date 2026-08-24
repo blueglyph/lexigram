@@ -102,9 +102,6 @@ impl ParserGen {
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
             format!("const PARSER_NUM_NT: usize = {num_nt};"),
-            format!("static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
-                     self.symbol_table.get_terminals().map(|(s, os)|
-                         format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some({s:?})")).unwrap_or("None".to_string()))).join(", ")),
             format!("static SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
                      self.symbol_table.get_nonterminals().map(|s| format!("{s:?}")).join(", ")),
             format!("static ALT_VAR: [VarId; {}] = [{}];",

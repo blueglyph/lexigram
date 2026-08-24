@@ -8,15 +8,21 @@
 use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 use lexiparser_types::*;
 
+static SYMBOLS_T: [(&str, Option<&str>); 34] = [
+    ("Arrow", Some("->")),("Colon", Some(":")),("Comma", Some(",")),("Dot", Some(".")),("Ellipsis", Some("..")),("Lbracket", Some("{")),("Lparen", Some("(")),("Negate", Some("~")),("Minus", Some("-")),("Plus", Some("+")),
+    ("Or", Some("|")),("Question", Some("?")),("Rbracket", Some("}")),("Rparen", Some(")")),("Semicolon", Some(";")),("Star", Some("*")),("Channels", Some("channels")),("Fragment", Some("fragment")),("Lexicon", Some("lexicon")),("Mode", Some("mode")),
+    ("Pop", Some("pop")),("Push", Some("push")),("More", Some("more")),("Skip", Some("skip")),("Type", Some("type")),("Channel", Some("channel")),("Hook", Some("hook")),("Id", None),("CharLit", None),("StrLit", None),
+    ("FixedSet", None),("LSbracket", Some("[")),("RSbracket", Some("]")),("SetChar", None)];
+
 const PARSER_NUM_T: usize = 34;
 const PARSER_NUM_NT: usize = 34;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("Hook", Some("hook")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "opt_str_lit", "rule_fragment_name", "rule_terminal_name", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_items_1", "alt_item_1", "char_set_1", "rule_1", "rule_2", "repeat_item_1", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "rule_3", "repeat_item_2", "repeat_item_3"];
 static ALT_VAR: [VarId; 71] = [0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 5, 6, 6, 7, 8, 9, 10, 10, 10, 10, 10, 10, 10, 10, 11, 12, 13, 14, 15, 15, 15, 15, 15, 15, 16, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 23, 24, 24, 25, 25, 26, 26, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30, 31, 31, 32, 32, 33, 33];
 static PARSING_TABLE: [AltId; 1190] = [71, 71, 71, 71, 71, 71, 1, 71, 71, 71, 71, 71, 71, 71, 71, 71, 1, 1, 0, 1, 71, 71, 71, 71, 71, 71, 71, 1, 71, 71, 71, 71, 71, 71, 1, 71, 71, 71, 71, 71, 71, 4, 71, 71, 71, 71, 71, 71, 71, 71, 71, 2, 4, 71, 3, 71, 71, 71, 71, 71, 71, 71, 4, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 72, 5, 72, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 72, 71, 6, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 7, 72, 71, 72, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 8, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 9, 71, 72, 71, 71, 71, 71, 71, 71, 71, 10, 71, 71, 71, 71, 71, 71, 72, 12, 11, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 12, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 13, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 14, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 15, 15, 15, 15, 15, 15, 15, 15, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 16, 18, 17, 20, 19, 21, 22, 23, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 24, 71, 71, 24, 24, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 24, 24, 24, 24, 24, 71, 71, 71, 72, 71, 71, 25, 71, 71, 25, 25, 71, 71, 71, 71, 71, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 25, 25, 25, 25, 25, 71, 71, 71, 72, 71, 71, 26, 71, 71, 26, 26, 71, 71, 72, 71, 71, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 26, 26, 26, 26, 26, 71, 71, 71, 72, 71, 71, 27, 71, 71, 27, 27, 71, 71, 72, 71, 71, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 27, 27, 27, 27, 27, 71, 71, 71, 72, 71, 71, 33, 71, 71, 28, 29, 71, 72, 72, 72, 71, 72, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 30, 31, 32, 33, 33, 71, 71, 71, 72, 71, 71, 35, 71, 71, 72, 72, 71, 72, 72, 72, 71, 72, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 72, 72, 36, 34, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 37, 71, 72, 38, 71, 71, 71, 71, 71, 71, 71, 39, 71, 71, 71, 71, 71, 71, 71, 71, 71, 39, 39, 71, 39, 71, 71, 71, 71, 71, 71, 71, 39, 71, 71, 71, 71, 71, 71, 40, 71, 71, 41, 71, 71, 71, 71, 71, 71, 71, 71, 71, 42, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 43, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 44, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 46, 71, 71, 71, 71, 71, 71, 71, 71, 71, 45, 71, 71, 46, 46, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 47, 71, 71, 47, 47, 71, 71, 72, 71, 71, 72, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 47, 47, 47, 47, 47, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 48, 71, 72, 48, 71, 49, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 50, 71, 72, 72, 71, 72, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 71, 51, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 71, 71, 72, 72, 71, 72, 71, 71, 71, 71, 71, 71, 71, 52, 71, 71, 71, 71, 71, 71, 72, 56, 71, 71, 56, 71, 71, 56, 56, 71, 53, 56, 54, 71, 56, 56, 55, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 56, 56, 56, 56, 56, 71, 71, 71, 58, 71, 71, 58, 57, 71, 58, 58, 71, 58, 58, 58, 71, 58, 58, 58, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 58, 58, 58, 58, 58, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 59, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 60, 71, 60, 60, 71, 62, 71, 71, 61, 71, 71, 61, 61, 71, 71, 62, 71, 71, 62, 62, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 61, 61, 61, 61, 61, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 63, 71, 64, 63, 71, 65, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 71, 66, 71, 72, 72, 71, 72, 71, 71, 71, 71, 71, 71, 71, 72, 71, 71, 71, 71, 71, 71, 72, 68, 71, 71, 68, 71, 71, 68, 68, 71, 71, 68, 67, 71, 68, 68, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 68, 68, 68, 68, 68, 71, 71, 71, 70, 71, 71, 70, 71, 71, 70, 70, 71, 71, 70, 69, 71, 70, 70, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 71, 70, 70, 70, 70, 70, 71, 71, 71];
 static OPCODES: [&[OpCode]; 71] = [&[OpCode::Exit(0), OpCode::NT(18), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(18)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(14), OpCode::T(27), OpCode::T(18)], &[OpCode::Exit(6), OpCode::T(14), OpCode::T(27), OpCode::T(19)], &[OpCode::Exit(7), OpCode::T(12), OpCode::NT(19), OpCode::T(27), OpCode::T(5), OpCode::T(16)], &[OpCode::NT(24), OpCode::NT(6), OpCode::T(13), OpCode::NT(8), OpCode::T(6)], &[OpCode::Exit(9), OpCode::T(14), OpCode::NT(11), OpCode::T(1), OpCode::NT(7)], &[OpCode::NT(25), OpCode::NT(8)], &[OpCode::Exit(11), OpCode::T(29), OpCode::T(1)], &[OpCode::Exit(12)], &[OpCode::Exit(13), OpCode::T(27), OpCode::T(17)], &[OpCode::Exit(14), OpCode::T(27)], &[OpCode::Exit(15), OpCode::NT(20), OpCode::NT(10)], &[OpCode::Exit(16), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(19)], &[OpCode::Exit(17), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(21)], &[OpCode::Exit(18), OpCode::T(20)], &[OpCode::Exit(19), OpCode::T(23)], &[OpCode::Exit(20), OpCode::T(22)], &[OpCode::Exit(21), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(24)], &[OpCode::Exit(22), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(25)], &[OpCode::Exit(23), OpCode::T(26)], &[OpCode::Exit(24), OpCode::NT(12)], &[OpCode::Exit(25), OpCode::NT(21), OpCode::NT(13)], &[OpCode::Exit(26), OpCode::NT(22)], &[OpCode::NT(26), OpCode::NT(15)], &[OpCode::Exit(28), OpCode::T(13), OpCode::NT(12), OpCode::T(6)], &[OpCode::Exit(29), OpCode::NT(15), OpCode::T(7)], &[OpCode::Exit(30), OpCode::T(27)], &[OpCode::NT(27), OpCode::T(28)], &[OpCode::Exit(32), OpCode::T(29)], &[OpCode::Exit(33), OpCode::NT(16)], &[OpCode::Exit(34), OpCode::T(32), OpCode::NT(23), OpCode::T(31)], &[OpCode::Exit(35), OpCode::T(3)], &[OpCode::Exit(36), OpCode::T(30)], &[OpCode::Exit(37), OpCode::T(30)], &[OpCode::NT(28), OpCode::T(33)], &[OpCode::Loop(18), OpCode::Exit(39), OpCode::NT(1)], &[OpCode::Exit(40)], &[OpCode::Loop(19), OpCode::Exit(41), OpCode::T(27), OpCode::T(2)], &[OpCode::Exit(42)], &[OpCode::Loop(20), OpCode::Exit(43), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(44)], &[OpCode::Loop(21), OpCode::Exit(45), OpCode::NT(13), OpCode::T(10)], &[OpCode::Exit(46)], &[OpCode::NT(29), OpCode::NT(14)], &[OpCode::NT(30), OpCode::NT(17)], &[OpCode::Exit(49), OpCode::T(14), OpCode::T(26), OpCode::T(0)], &[OpCode::Exit(50), OpCode::T(14)], &[OpCode::NT(31), OpCode::NT(11), OpCode::T(1)], &[OpCode::Exit(52), OpCode::T(14), OpCode::T(27)], &[OpCode::NT(32), OpCode::T(9)], &[OpCode::Exit(54), OpCode::T(11)], &[OpCode::NT(33), OpCode::T(15)], &[OpCode::Exit(56)], &[OpCode::Exit(57), OpCode::T(28), OpCode::T(4)], &[OpCode::Exit(58)], &[OpCode::Exit(59), OpCode::T(33), OpCode::T(8)], &[OpCode::Exit(60)], &[OpCode::Loop(22), OpCode::Exit(61)], &[OpCode::Exit(62)], &[OpCode::Loop(23), OpCode::Exit(63)], &[OpCode::Exit(64)], &[OpCode::Exit(65), OpCode::T(14), OpCode::NT(9), OpCode::T(0)], &[OpCode::Exit(66), OpCode::T(14)], &[OpCode::Exit(67), OpCode::T(11)], &[OpCode::Exit(68)], &[OpCode::Exit(69), OpCode::T(11)], &[OpCode::Exit(70)]];
 static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
 static START_SYMBOL: VarId = 0;
+
 
 pub fn build_parser() -> LLParser<'static> {{
     let symbol_table = FixedSymTable::new(
@@ -283,6 +289,35 @@ impl EnumSynValue {
     fn get_char_set1(self) -> SynCharSet1 {
         if let EnumSynValue::CharSet1(val) = self { val } else { panic!() }
     }
+    #[allow(unused)]
+    fn nt(&self) -> VarId {
+        match &self {
+            EnumSynValue::File(_) => 0,
+            EnumSynValue::FileItem(_) => 1,
+            EnumSynValue::Header(_) => 2,
+            EnumSynValue::Declaration(_) => 3,
+            EnumSynValue::Option(_) => 4,
+            EnumSynValue::Rule(_) => 5,
+            EnumSynValue::OptStrLit(_) => 6,
+            EnumSynValue::RuleFragmentName(_) => 7,
+            EnumSynValue::RuleTerminalName(_) => 8,
+            EnumSynValue::Actions(_) => 9,
+            EnumSynValue::Action(_) => 10,
+            EnumSynValue::Match(_) => 11,
+            EnumSynValue::AltItems(_) => 12,
+            EnumSynValue::AltItem(_) => 13,
+            EnumSynValue::RepeatItem(_) => 14,
+            EnumSynValue::Item(_) => 15,
+            EnumSynValue::CharSet(_) => 16,
+            EnumSynValue::CharSetOne(_) => 17,
+            EnumSynValue::File1(_) => 18,
+            EnumSynValue::Option1(_) => 19,
+            EnumSynValue::Actions1(_) => 20,
+            EnumSynValue::AltItems1(_) => 21,
+            EnumSynValue::AltItem1(_) => 22,
+            EnumSynValue::CharSet1(_) => 23,
+        }
+    }
 }
 
 pub trait LexiParserListener {
@@ -486,8 +521,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
         }
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
         if self.verbose {
-            println!("> stack_t:   {}", self.stack_t.join(", "));
-            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            println!("{}", self.get_status().join("\n"));
         }
     }
 
@@ -509,10 +543,6 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
         self.listener.handle_msg(span_opt, msg);
     }
 
-    fn push_span(&mut self, span: PosSpan) {
-        self.stack_span.push(span);
-    }
-
     fn is_stack_empty(&self) -> bool {
         self.stack.is_empty()
     }
@@ -527,6 +557,22 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
 
     fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         self.listener.intercept_token(token, text, span)
+    }
+
+    fn get_status(&self) -> Vec<String> {
+        vec![
+            format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+            format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+        ]
+    }
+
+    fn push_span(&mut self, span: PosSpan) {
+        self.stack_span.push(span);
+    }
+
+    fn pop_span(&mut self) -> PosSpan {
+        self.stack_span.pop().unwrap()
     }
 }
 

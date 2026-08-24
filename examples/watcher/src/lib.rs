@@ -562,15 +562,19 @@ pub mod watcher_parser {
 
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
+    static SYMBOLS_T: [(&str, Option<&str>); 11] = [
+        ("Category", Some("category")),("RightRecursive", Some("right-recursive")),("Star", Some("star")),("End", Some("end")),("Shutdown", Some("shutdown")),("Note", None),("Info", None),("Warning", None),("Error", None),("Header", None),
+        ("Message", None)];
+
     const PARSER_NUM_T: usize = 11;
     const PARSER_NUM_NT: usize = 11;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Category", Some("category")), ("RightRecursive", Some("right-recursive")), ("Star", Some("star")), ("End", Some("end")), ("Shutdown", Some("shutdown")), ("Note", None), ("Info", None), ("Warning", None), ("Error", None), ("Header", None), ("Message", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["log", "shutdown", "open_category", "end_category", "category", "right_recursive", "star", "star_i", "line", "message", "log_1"];
     static ALT_VAR: [VarId; 21] = [0, 1, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 10, 10, 10];
     static PARSING_TABLE: [AltId; 132] = [0, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 21, 21, 22, 1, 22, 22, 22, 22, 22, 21, 22, 2, 22, 22, 21, 21, 21, 21, 21, 21, 21, 21, 21, 22, 21, 21, 3, 22, 21, 21, 21, 21, 21, 21, 22, 22, 4, 5, 21, 22, 21, 21, 21, 21, 21, 21, 22, 22, 21, 21, 7, 6, 6, 6, 6, 6, 6, 21, 22, 22, 21, 21, 8, 8, 8, 8, 8, 8, 8, 21, 22, 21, 21, 21, 10, 9, 9, 9, 9, 9, 9, 21, 21, 21, 21, 21, 22, 12, 11, 11, 11, 11, 11, 21, 21, 21, 21, 21, 22, 22, 13, 14, 15, 16, 17, 21, 21, 19, 21, 21, 21, 18, 21, 21, 21, 21, 21, 21, 20];
     static OPCODES: [&[OpCode]; 21] = [&[OpCode::NT(10), OpCode::Exit(0), OpCode::NT(4), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(0)], &[OpCode::Exit(3), OpCode::T(3)], &[OpCode::Exit(4), OpCode::NT(5), OpCode::T(1)], &[OpCode::Exit(5), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(5), OpCode::Exit(6), OpCode::NT(8)], &[OpCode::Exit(7), OpCode::NT(3)], &[OpCode::Exit(8), OpCode::NT(3), OpCode::NT(7)], &[OpCode::Loop(7), OpCode::Exit(9), OpCode::NT(8)], &[OpCode::Exit(10)], &[OpCode::Exit(11), OpCode::NT(9)], &[OpCode::Exit(12), OpCode::NT(1)], &[OpCode::Exit(13), OpCode::T(10), OpCode::T(5)], &[OpCode::Exit(14), OpCode::T(10), OpCode::T(6)], &[OpCode::Exit(15), OpCode::T(10), OpCode::T(7)], &[OpCode::Exit(16), OpCode::T(10), OpCode::T(8)], &[OpCode::Exit(17), OpCode::T(10), OpCode::T(9)], &[OpCode::Loop(10), OpCode::Exit(18), OpCode::NT(1)], &[OpCode::Loop(10), OpCode::Exit(19), OpCode::NT(4), OpCode::NT(2)], &[OpCode::Exit(20)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -664,6 +668,11 @@ pub mod watcher_parser {
 
     #[derive(Debug)]
     enum EnumSynValue {  }
+
+    impl EnumSynValue {
+        #[allow(unused)]
+        fn nt(&self) -> VarId {{ panic!("EnumSynValue holds no value") }}
+    }
 
     pub trait WatcherListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
@@ -792,8 +801,7 @@ pub mod watcher_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -815,10 +823,6 @@ pub mod watcher_parser {
             self.listener.handle_msg(span_opt, msg);
         }
 
-        fn push_span(&mut self, span: PosSpan) {
-            self.stack_span.push(span);
-        }
-
         fn is_stack_empty(&self) -> bool {
             self.stack.is_empty()
         }
@@ -833,6 +837,22 @@ pub mod watcher_parser {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
         }
     }
 

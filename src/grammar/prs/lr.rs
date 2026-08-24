@@ -546,7 +546,11 @@ impl ProdRuleSet<LR> {
         let state_symbol = states.iter()
             .map(|st| {
                 let item = &st[0];
-                self.prules[item.nt as usize][item.alt_idx as usize][item.pos as usize - 1]
+                if item.pos > 0 {
+                    self.prules[item.nt as usize][item.alt_idx as usize][item.pos as usize - 1]
+                } else {
+                    Symbol::Empty
+                }
             })
             .to_vec();
         let table = LRParsingTable {

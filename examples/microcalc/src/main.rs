@@ -358,15 +358,20 @@ pub mod microcalc_parser {
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
 
+    static SYMBOLS_T: [(&str, Option<&str>); 28] = [
+        ("Eq", Some("==")),("Ne", Some("!=")),("Lt", Some("<")),("Gt", Some(">")),("Le", Some("<=")),("Ge", Some(">=")),("Not", Some("!")),("Add", Some("+")),("Comma", Some(",")),("Div", Some("/")),
+        ("Equal", Some("=")),("Exp", Some("^")),("Mul", Some("*")),("Lbracket", Some("{")),("Lpar", Some("(")),("Rbracket", Some("}")),("Rpar", Some(")")),("Semi", Some(";")),("Sub", Some("-")),("Def", Some("def")),
+        ("Else", Some("else")),("If", Some("if")),("Let", Some("let")),("Print", Some("print")),("Return", Some("return")),("While", Some("while")),("Id", None),("Num", None)];
+
     const PARSER_NUM_T: usize = 28;
     const PARSER_NUM_NT: usize = 23;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Eq", Some("==")), ("Ne", Some("!=")), ("Lt", Some("<")), ("Gt", Some(">")), ("Le", Some("<=")), ("Ge", Some(">=")), ("Not", Some("!")), ("Add", Some("+")), ("Comma", Some(",")), ("Div", Some("/")), ("Equal", Some("=")), ("Exp", Some("^")), ("Mul", Some("*")), ("Lbracket", Some("{")), ("Lpar", Some("(")), ("Rbracket", Some("}")), ("Rpar", Some(")")), ("Semi", Some(";")), ("Sub", Some("-")), ("Def", Some("def")), ("Else", Some("else")), ("If", Some("if")), ("Let", Some("let")), ("Print", Some("print")), ("Return", Some("return")), ("While", Some("while")), ("Id", None), ("Num", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["program", "function", "fun_params", "block", "instruction", "expr", "fun_args", "program_1", "fun_params_1", "block_1", "fun_args_1", "expr_1", "expr_2", "expr_3", "expr_4", "expr_5", "expr_6", "expr_7", "expr_8", "instruction_1", "instruction_2", "program_2", "expr_9"];
     static ALT_VAR: [VarId; 62] = [0, 1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 9, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 13, 13, 13, 13, 13, 13, 14, 15, 15, 15, 15, 16, 17, 17, 18, 18, 18, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22];
     static PARSING_TABLE: [AltId; 667] = [62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 0, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 1, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 3, 62, 62, 62, 62, 62, 62, 62, 62, 62, 2, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 4, 62, 63, 62, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 11, 62, 63, 62, 62, 62, 63, 63, 5, 6, 7, 8, 9, 10, 62, 63, 62, 62, 62, 62, 62, 62, 12, 62, 63, 62, 62, 62, 62, 63, 12, 62, 63, 63, 12, 62, 62, 63, 63, 63, 63, 63, 12, 12, 62, 62, 62, 62, 62, 62, 62, 13, 62, 62, 62, 62, 62, 62, 62, 13, 62, 14, 62, 13, 62, 62, 62, 62, 62, 62, 62, 13, 13, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 15, 62, 62, 62, 62, 62, 62, 62, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 16, 62, 62, 62, 62, 62, 62, 62, 17, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 18, 62, 19, 62, 62, 62, 62, 62, 18, 18, 18, 18, 18, 18, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 20, 62, 62, 62, 62, 62, 62, 62, 21, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 27, 28, 29, 30, 31, 32, 62, 25, 33, 24, 62, 22, 23, 33, 62, 62, 33, 33, 26, 62, 62, 33, 33, 33, 33, 33, 33, 62, 62, 63, 63, 63, 63, 63, 63, 34, 63, 63, 63, 62, 63, 63, 63, 34, 62, 63, 63, 34, 62, 62, 63, 63, 63, 63, 63, 34, 34, 62, 40, 40, 40, 40, 40, 40, 62, 38, 40, 37, 62, 35, 36, 40, 62, 62, 40, 40, 39, 62, 62, 40, 40, 40, 40, 40, 40, 62, 62, 63, 63, 63, 63, 63, 63, 41, 63, 63, 63, 62, 63, 63, 63, 41, 62, 63, 63, 41, 62, 62, 63, 63, 63, 63, 63, 41, 41, 62, 45, 45, 45, 45, 45, 45, 62, 45, 45, 44, 62, 42, 43, 45, 62, 62, 45, 45, 45, 62, 62, 45, 45, 45, 45, 45, 45, 62, 62, 63, 63, 63, 63, 63, 63, 46, 63, 63, 63, 62, 63, 63, 63, 46, 62, 63, 63, 46, 62, 62, 63, 63, 63, 63, 63, 46, 46, 62, 48, 48, 48, 48, 48, 48, 62, 48, 48, 48, 62, 47, 48, 48, 62, 62, 48, 48, 48, 62, 62, 48, 48, 48, 48, 48, 48, 62, 62, 63, 63, 63, 63, 63, 63, 49, 63, 63, 63, 62, 63, 63, 63, 50, 62, 63, 63, 51, 62, 62, 63, 63, 63, 63, 63, 52, 53, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 55, 62, 55, 62, 62, 62, 55, 54, 55, 55, 55, 55, 55, 55, 62, 55, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 56, 62, 62, 63, 57, 63, 62, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 62, 63, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 58, 62, 62, 62, 62, 62, 62, 62, 62, 59, 61, 61, 61, 61, 61, 61, 62, 61, 61, 61, 62, 61, 61, 61, 60, 62, 61, 61, 61, 62, 62, 61, 61, 61, 61, 61, 61, 62, 62];
     static OPCODES: [&[OpCode]; 62] = [&[OpCode::Exit(0), OpCode::NT(7)], &[OpCode::Exit(1), OpCode::NT(4), OpCode::T(16), OpCode::NT(2), OpCode::T(14), OpCode::T(26), OpCode::T(19)], &[OpCode::Exit(2), OpCode::NT(8), OpCode::T(26)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(15), OpCode::NT(9), OpCode::T(13)], &[OpCode::NT(19), OpCode::NT(4), OpCode::NT(5), OpCode::T(21)], &[OpCode::Exit(6), OpCode::T(17), OpCode::NT(5), OpCode::T(10), OpCode::T(26), OpCode::T(22)], &[OpCode::Exit(7), OpCode::T(17), OpCode::NT(5), OpCode::T(23)], &[OpCode::Exit(8), OpCode::T(17), OpCode::NT(5), OpCode::T(24)], &[OpCode::Exit(9), OpCode::NT(3), OpCode::NT(5), OpCode::T(25)], &[OpCode::NT(20), OpCode::T(26)], &[OpCode::Exit(11), OpCode::NT(3)], &[OpCode::NT(11), OpCode::Exit(12), OpCode::NT(18)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::NT(5)], &[OpCode::Exit(14)], &[OpCode::NT(21), OpCode::NT(1)], &[OpCode::Loop(8), OpCode::Exit(16), OpCode::T(26), OpCode::T(8)], &[OpCode::Exit(17)], &[OpCode::Loop(9), OpCode::Exit(18), OpCode::NT(4)], &[OpCode::Exit(19)], &[OpCode::Loop(10), OpCode::Exit(20), OpCode::NT(5), OpCode::T(8)], &[OpCode::Exit(21)], &[OpCode::Loop(11), OpCode::Exit(22), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(11), OpCode::Exit(23), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(11), OpCode::Exit(24), OpCode::NT(16), OpCode::T(9)], &[OpCode::Loop(11), OpCode::Exit(25), OpCode::NT(14), OpCode::T(7)], &[OpCode::Loop(11), OpCode::Exit(26), OpCode::NT(14), OpCode::T(18)], &[OpCode::Loop(11), OpCode::Exit(27), OpCode::NT(12), OpCode::T(0)], &[OpCode::Loop(11), OpCode::Exit(28), OpCode::NT(12), OpCode::T(1)], &[OpCode::Loop(11), OpCode::Exit(29), OpCode::NT(12), OpCode::T(2)], &[OpCode::Loop(11), OpCode::Exit(30), OpCode::NT(12), OpCode::T(3)], &[OpCode::Loop(11), OpCode::Exit(31), OpCode::NT(12), OpCode::T(4)], &[OpCode::Loop(11), OpCode::Exit(32), OpCode::NT(12), OpCode::T(5)], &[OpCode::Exit(33)], &[OpCode::NT(13), OpCode::Exit(34), OpCode::NT(18)], &[OpCode::Loop(13), OpCode::Exit(35), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(13), OpCode::Exit(36), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(13), OpCode::Exit(37), OpCode::NT(16), OpCode::T(9)], &[OpCode::Loop(13), OpCode::Exit(38), OpCode::NT(14), OpCode::T(7)], &[OpCode::Loop(13), OpCode::Exit(39), OpCode::NT(14), OpCode::T(18)], &[OpCode::Exit(40)], &[OpCode::NT(15), OpCode::Exit(41), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(42), OpCode::NT(16), OpCode::T(11)], &[OpCode::Loop(15), OpCode::Exit(43), OpCode::NT(16), OpCode::T(12)], &[OpCode::Loop(15), OpCode::Exit(44), OpCode::NT(16), OpCode::T(9)], &[OpCode::Exit(45)], &[OpCode::NT(17), OpCode::Exit(46), OpCode::NT(18)], &[OpCode::Loop(17), OpCode::Exit(47), OpCode::NT(16), OpCode::T(11)], &[OpCode::Exit(48)], &[OpCode::Exit(49), OpCode::NT(12), OpCode::T(6)], &[OpCode::Exit(50), OpCode::T(16), OpCode::NT(5), OpCode::T(14)], &[OpCode::Exit(51), OpCode::NT(18), OpCode::T(18)], &[OpCode::NT(22), OpCode::T(26)], &[OpCode::Exit(53), OpCode::T(27)], &[OpCode::Exit(54), OpCode::NT(4), OpCode::T(20)], &[OpCode::Exit(55)], &[OpCode::Exit(56), OpCode::T(17), OpCode::NT(5), OpCode::T(10)], &[OpCode::Exit(57), OpCode::T(17), OpCode::T(16), OpCode::NT(6), OpCode::T(14)], &[OpCode::Loop(7), OpCode::Exit(58)], &[OpCode::Exit(59)], &[OpCode::Exit(60), OpCode::T(16), OpCode::NT(6), OpCode::T(14)], &[OpCode::Exit(61)]];
     static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
     static START_SYMBOL: VarId = 0;
+
 
     pub fn build_parser() -> LLParser<'static> {{
         let symbol_table = FixedSymTable::new(
@@ -523,6 +528,22 @@ pub mod microcalc_parser {
         fn get_fun_args1(self) -> SynFunArgs1 {
             if let EnumSynValue::FunArgs1(val) = self { val } else { panic!() }
         }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::Program(_) => 0,
+                EnumSynValue::Function(_) => 1,
+                EnumSynValue::FunParams(_) => 2,
+                EnumSynValue::Block(_) => 3,
+                EnumSynValue::Instruction(_) => 4,
+                EnumSynValue::Expr(_) => 5,
+                EnumSynValue::FunArgs(_) => 6,
+                EnumSynValue::Program1(_) => 7,
+                EnumSynValue::FunParams1(_) => 8,
+                EnumSynValue::Block1(_) => 9,
+                EnumSynValue::FunArgs1(_) => 10,
+            }
+        }
     }
 
     pub trait MicroCalcListener {
@@ -673,8 +694,7 @@ pub mod microcalc_parser {
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+                println!("{}", self.get_status().join("\n"));
             }
         }
 
@@ -705,6 +725,13 @@ pub mod microcalc_parser {
 
         fn intercept_token(&mut self, token: TokenId, text: &str, _span: &PosSpan) -> TokenId {
             self.listener.intercept_token(token, text)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            ]
         }
     }
 

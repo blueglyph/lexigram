@@ -49,6 +49,34 @@ impl Display for LRAction {
     }
 }
 
+pub trait WrapperLRErrorRecovery {
+    /// Requests the wrapper to pop a nonterminal value. Some intermediate nonterminal values may have to be
+    /// dropped when the parser is trying to recover from a syntax error.
+    ///
+    /// The wrapper may want to store the latest dropped value, in case [`push_nt_recovery_value`] is
+    /// called immediately after to request a recovery value. In most cases, the latest dropped value is
+    /// a good candidate, especially if it's a loop nonterminal.
+    fn pop_nt_value(&mut self) {}
+
+    /// Requests the wrapper to push a nonterminal value to resynchronize its stack in case of error recovery.
+    ///
+    /// The wrapper should ideally requires a value to the user through the listener interface, knowing this value
+    /// is used to recover from a syntax error.
+    ///
+    /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
+    /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
+    #[allow(unused_variables)]
+    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt { RecoveryNt::Abort }
+
+    /// Returns the symbol on the left of the dot and whether it has a value.
+    #[allow(unused_variables)]
+    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
+
+    /// Notifies the wrapper that the parser has recovered from the syntax error. It can be used to forward
+    /// the notification to the listener.
+    fn syntax_error_recovered(&mut self) {}
+}
+
 /// Parser object. The [new(...)](LRParser::new) method creates a new instance.
 pub struct LRParser<'a, T> {
     num_nt: usize,                          // doesn't include the goal NT
@@ -95,12 +123,11 @@ impl<'a, T> LRParser<'a, T> {
     /// reports to the user listener's log (done in the generated code).
     pub fn parse_stream<I, L>(&mut self, wrapper: &mut L, mut stream: I) -> Result<(), ParserError>
         where I: Iterator<Item=ParserToken>,
-              L: ListenerWrapper,
+              L: ListenerWrapper + WrapperLRErrorRecovery,
     {
         const VERBOSE: bool = true;
         const BEFORE: &str = "\u{1b}[33m";
         const AFTER : &str = "\u{1b}[0m";
-        // const CALL_WRAPPER_AFTER_ERROR: bool = true;
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let token_error = self.num_t_full as TokenId;
         let token_eof = token_error - 1;
@@ -289,16 +316,16 @@ impl<'a, T> LRParser<'a, T> {
     ) -> Option<LRStateId>
     where
         I: Iterator<Item=ParserToken>,
-        L: ListenerWrapper,
+        L: ListenerWrapper + WrapperLRErrorRecovery,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const BEFORE_ANSI: &str = "\u{1b}[31m";
         const AFTER_ANSI : &str = "\u{1b}[0m";
         if VERBOSE { println!("{BEFORE_ANSI}parser panic-mode recovery:{AFTER_ANSI}"); }
         let mut err_span = PosSpan::empty();
         // finds a state with a GOTO, but don't pop the start state
         while let Some(state) = stack_state.pop() {
-            if VERBOSE { println!("{BEFORE_ANSI}- states {stack_state:?} {state}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+            if VERBOSE { println!("{BEFORE_ANSI}- states {stack_state:?} {state}{AFTER_ANSI}"); }
             let goto_state = state;
             let goto_row = state as usize * self.num_nt;
             // check the available GOTO states:

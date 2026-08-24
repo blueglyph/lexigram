@@ -6,15 +6,19 @@
 use gramparser_types::*;
 use lexigram_lib::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
+static SYMBOLS_T: [(&str, Option<&str>); 18] = [
+    ("Colon", Some(":")),("Lparen", Some("(")),("Or", Some("|")),("Plus", Some("+")),("Question", Some("?")),("Rparen", Some(")")),("Semicolon", Some(";")),("Sep", Some("/")),("Star", Some("*")),("StrLit", None),
+    ("Grammar", Some("grammar")),("SymEof", Some("EOF")),("Lform", None),("Rform", Some("<R>")),("Pform", Some("<P>")),("Greedy", Some("<G>")),("ResolveTag", Some("<resolve>")),("Id", None)];
+
 const PARSER_NUM_T: usize = 18;
 const PARSER_NUM_NT: usize = 14;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Sep", Some("/")), ("Star", Some("*")), ("StrLit", None), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Greedy", Some("<G>")), ("ResolveTag", Some("<resolve>")), ("Id", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_alt", "prod_factor", "prod_atom", "prod_alt_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
 static ALT_VAR: [VarId; 29] = [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
 static PARSING_TABLE: [AltId; 266] = [29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 0, 29, 29, 29, 29, 29, 29, 29, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 1, 29, 29, 29, 29, 29, 30, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 2, 2, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 3, 3, 30, 30, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 4, 5, 29, 29, 6, 6, 29, 29, 6, 6, 6, 29, 6, 29, 6, 6, 6, 6, 6, 29, 6, 29, 29, 7, 7, 29, 29, 7, 7, 7, 29, 7, 29, 7, 7, 7, 7, 7, 29, 7, 29, 29, 8, 30, 29, 29, 30, 30, 8, 29, 8, 29, 30, 8, 8, 8, 8, 29, 8, 29, 29, 14, 30, 30, 30, 30, 30, 15, 30, 16, 29, 30, 10, 11, 12, 13, 29, 9, 29, 29, 17, 18, 29, 29, 18, 18, 17, 29, 17, 29, 18, 17, 17, 17, 17, 29, 17, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 19, 19, 20, 29, 29, 21, 29, 29, 22, 22, 29, 29, 29, 29, 22, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 23, 29, 29, 29, 29, 24, 29, 29, 29, 29, 30, 30, 30, 29, 28, 28, 25, 26, 28, 28, 28, 27, 28, 29, 28, 28, 28, 28, 28, 29, 28, 29];
 static OPCODES: [&[OpCode]; 29] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(17), OpCode::T(10)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(17), OpCode::T(16)], &[OpCode::Exit(5), OpCode::T(17)], &[OpCode::NT(11), OpCode::Exit(6), OpCode::NT(6)], &[OpCode::Exit(7), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(9), OpCode::T(17)], &[OpCode::Exit(10), OpCode::T(12)], &[OpCode::Exit(11), OpCode::T(13)], &[OpCode::Exit(12), OpCode::T(14)], &[OpCode::Exit(13), OpCode::T(15)], &[OpCode::Exit(14), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Exit(15), OpCode::T(7)], &[OpCode::Exit(16), OpCode::T(9)], &[OpCode::Loop(9), OpCode::Exit(17), OpCode::NT(7)], &[OpCode::Exit(18)], &[OpCode::Loop(10), OpCode::Exit(19), OpCode::NT(3)], &[OpCode::Exit(20)], &[OpCode::Loop(11), OpCode::Exit(21), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(22)], &[OpCode::Exit(23), OpCode::T(6)], &[OpCode::Exit(24), OpCode::T(6), OpCode::T(11)], &[OpCode::Exit(25), OpCode::T(3)], &[OpCode::Exit(26), OpCode::T(4)], &[OpCode::Exit(27), OpCode::T(8)], &[OpCode::Exit(28)]];
 static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
 static START_SYMBOL: VarId = 0;
+
 
 pub fn build_parser() -> LLParser<'static> {{
     let symbol_table = FixedSymTable::new(
@@ -145,6 +149,21 @@ impl EnumSynValue {
     fn get_prod_alt1(self) -> SynProdAlt1 {
         if let EnumSynValue::ProdAlt1(val) = self { val } else { panic!() }
     }
+    #[allow(unused)]
+    fn nt(&self) -> VarId {
+        match &self {
+            EnumSynValue::File(_) => 0,
+            EnumSynValue::Header(_) => 1,
+            EnumSynValue::Rules(_) => 2,
+            EnumSynValue::Rule(_) => 3,
+            EnumSynValue::RuleName(_) => 4,
+            EnumSynValue::Prod(_) => 5,
+            EnumSynValue::ProdAlt(_) => 6,
+            EnumSynValue::ProdFactor(_) => 7,
+            EnumSynValue::ProdAtom(_) => 8,
+            EnumSynValue::ProdAlt1(_) => 9,
+        }
+    }
 }
 
 pub trait GramParserListener {
@@ -274,8 +293,7 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
         }
         self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
         if self.verbose {
-            println!("> stack_t:   {}", self.stack_t.join(", "));
-            println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", "));
+            println!("{}", self.get_status().join("\n"));
         }
     }
 
@@ -297,10 +315,6 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
         self.listener.handle_msg(span_opt, msg);
     }
 
-    fn push_span(&mut self, span: PosSpan) {
-        self.stack_span.push(span);
-    }
-
     fn is_stack_empty(&self) -> bool {
         self.stack.is_empty()
     }
@@ -315,6 +329,22 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
 
     fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
         self.listener.intercept_token(token, text, span)
+    }
+
+    fn get_status(&self) -> Vec<String> {
+        vec![
+            format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+            format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+            format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+        ]
+    }
+
+    fn push_span(&mut self, span: PosSpan) {
+        self.stack_span.push(span);
+    }
+
+    fn pop_span(&mut self) -> PosSpan {
+        self.stack_span.pop().unwrap()
     }
 }
 
