@@ -11,27 +11,27 @@
 pub(crate) mod rules_903_1 {
     /// User-defined type for `program`
     #[derive(Debug, PartialEq)]
-    pub struct SynProgram(u32);
+    pub struct SynProgram(String);
 
     /// User-defined type for `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
     #[derive(Debug, PartialEq)]
-    pub struct SynStmtI(u32);
+    pub struct SynStmtI(Vec<String>);
 
     /// User-defined type for `stmt`
     #[derive(Debug, PartialEq)]
-    pub struct SynStmt(u32);
+    pub struct SynStmt(String);
 
     /// User-defined type for `decl`
     #[derive(Debug, PartialEq)]
-    pub struct SynDecl(u32);
+    pub struct SynDecl(String);
 
     /// User-defined type for `inst`
     #[derive(Debug, PartialEq)]
-    pub struct SynInst(u32);
+    pub struct SynInst(String);
 
     /// User-defined type for `expr`
     #[derive(Debug, PartialEq)]
-    pub struct SynExpr(u32);
+    pub struct SynExpr(String);
     // ------------------------------------------------------------
     // [wrapper source for rule 903 #1, start program]
 
@@ -579,15 +579,16 @@ pub(crate) mod rules_903_1 {
         use lexigram_lib::make_stream;
         use super::*;
         
-        const BEFORE_ANSI: &str = "\u{1b}[1;36m";
-        const AFTER_ANSI: &str = "\u{1b}[0m";
+        const ANSI_POS: &str = "\u{1b}[1;36m";
+        const ANSI_ERR: &str = "\u{1b}[35m";
+        const END_ANSI: &str = "\u{1b}[0m";
 
         struct Listener<'a> {
             log: BufLog,
             words: Vec<&'a str>,
             verbose: bool,
             nt_recover: Vec<bool>,
-            nt_uid: Vec<u32>,
+            output: Option<String>,
         }
 
         impl<'a> Listener<'a> {
@@ -597,7 +598,7 @@ pub(crate) mod rules_903_1 {
                     words: input.split_ascii_whitespace().to_vec(),
                     verbose,
                     nt_recover: vec![true; NUM_NT],
-                    nt_uid: vec![0; NUM_NT],
+                    output: None
                 }
             }
 
@@ -607,19 +608,13 @@ pub(crate) mod rules_903_1 {
                 }
                 let (first, last) = (span.first.col() as usize - 1, span.last.col() as usize - 1);
                 format!(
-                    "{}{}{BEFORE_ANSI}{}{AFTER_ANSI}{}{}",
+                    "{}{}{ANSI_POS}{}{END_ANSI}{}{}",
                     &self.words[..first].join(" "),
                     if first == 0 || last == 0 { "" } else { " " },
                     &self.words[first..=last].join(" "),
                     if last + 1 >= self.words.len() { "" } else { " " },
                     &self.words[last + 1..].join(" ")
                 )
-            }
-
-            fn get_nt_uid(&mut self, nt: VarId) -> u32 {
-                let uid = self.nt_uid[nt as usize];
-                self.nt_uid[nt as usize] += 1;
-                uid
             }
         }
 
@@ -630,12 +625,10 @@ pub(crate) mod rules_903_1 {
             }
 
             fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
-                const BEFORE_ANSI: &str = "\u{1b}[31m";
-                const AFTER_ANSI : &str = "\u{1b}[0m";
-                if let LogMsg::Error(e) = &msg {
-                    println!("{BEFORE_ANSI}{e}{AFTER_ANSI}");
+                if self.verbose && let LogMsg::Error(e) = &msg {
+                    println!("{ANSI_ERR}{e}{END_ANSI}");
                     if let Some(span) = span_opt {
-                        println!("{BEFORE_ANSI}>>{AFTER_ANSI} {}", self.annotate(span));
+                        println!("{ANSI_ERR}>>{END_ANSI} {}", self.annotate(span));
                     }
                 }
                 self.get_log_mut().add(msg);
@@ -650,97 +643,108 @@ pub(crate) mod rules_903_1 {
 
             fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
                 let nterm = NTerm::try_from(nt).unwrap();
-                if self.verbose { println!("get_recovery_value({nterm:?}, last_dropped: {last_dropped:?})"); }
+                if self.verbose { println!("{ANSI_ERR}get_recovery_value({nterm:?}, last_dropped: {last_dropped:?}{END_ANSI})"); }
                 if !self.nt_recover[nt as usize] { return RecoveryNtValue::Skip }
                 last_dropped
                     .and_then(|value| if value.nt() == nt { Some(value) } else { None })
                     .or_else(||
                         Some(match nterm {
-                            NTerm::Program => EnumSynValue::Program(SynProgram(self.get_nt_uid(nt))),
-                            NTerm::StmtI => EnumSynValue::StmtI(SynStmtI(self.get_nt_uid(nt))),
-                            NTerm::Stmt => EnumSynValue::Stmt(SynStmt(self.get_nt_uid(nt))),
-                            NTerm::Decl => EnumSynValue::Decl(SynDecl(self.get_nt_uid(nt))),
-                            NTerm::Inst => EnumSynValue::Inst(SynInst(self.get_nt_uid(nt))),
-                            NTerm::Expr => EnumSynValue::Expr(SynExpr(self.get_nt_uid(nt))),
-                            NTerm::Decl1 => EnumSynValue::Decl1(SynDecl1(vec![])),
+                            NTerm::Program => EnumSynValue::Program(SynProgram("ERR(Program)".to_string())),
+                            NTerm::StmtI => EnumSynValue::StmtI(SynStmtI(vec!["ERR(StmtI)".to_string()])),
+                            NTerm::Stmt => EnumSynValue::Stmt(SynStmt("ERR(Stmt)".to_string())),
+                            NTerm::Decl => EnumSynValue::Decl(SynDecl("ERR(Decl)".to_string())),
+                            NTerm::Inst => EnumSynValue::Inst(SynInst("ERR(Inst)".to_string())),
+                            NTerm::Expr => EnumSynValue::Expr(SynExpr("ERR(Expr)".to_string())),
+                            NTerm::Decl1 => EnumSynValue::Decl1(SynDecl1(vec!["ERR(Decl1)".to_string()])),
                             _ => panic!()
                         }))
                     .map(|value| RecoveryNtValue::Value(value))
                     .unwrap_or_else(|| RecoveryNtValue::Abort)
             }
 
+            fn syntax_error_recovered(&mut self) {
+                const BEFORE_ANSI: &str = "\u{1b}[35m";
+                const AFTER_ANSI : &str = "\u{1b}[0m";
+                if self.verbose {
+                    println!("{BEFORE_ANSI}syntax_error_recovered(){AFTER_ANSI}");
+                }
+            }
+
+            fn exit(&mut self, program: SynProgram, span: PosSpan) {
+                let SynProgram(output) = program;
+                self.output = Some(output);
+            }
+
             fn exit_program(&mut self, ctx: CtxProgram, spans: Vec<PosSpan>) -> SynProgram {
                 if self.verbose { println!("exit_program:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 // program -> (<L> stmt)*
-                let CtxProgram::V1 { .. }  = ctx;
-                SynProgram(self.get_nt_uid(NTerm::Program as VarId))
+                let CtxProgram::V1 { star: SynStmtI(values) }  = ctx;
+                SynProgram(format!("P[{}]", values.join(", ")))
             }
         
             fn init_stmt_i(&mut self) -> SynStmtI {
-                SynStmtI(self.get_nt_uid(NTerm::StmtI as VarId))
+                SynStmtI(vec![])
             }
         
-            fn exit_stmt_i(&mut self, acc: &mut SynStmtI, ctx: CtxStmtI, spans: Vec<PosSpan>) {
+            fn exit_stmt_i(&mut self, SynStmtI(acc): &mut SynStmtI, ctx: CtxStmtI, spans: Vec<PosSpan>) {
                 if self.verbose { println!("exit_stmt_i:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
                 // `<L> stmt` iteration in `program -> ( ►► <L> stmt ◄◄ )*`
-                let CtxStmtI::V1 { stmt } = ctx;
+                let CtxStmtI::V1 { stmt: SynStmt(value) } = ctx;
+                acc.push(value);
             }
         
             fn exit_stmt(&mut self, ctx: CtxStmt, spans: Vec<PosSpan>) -> SynStmt {
                 if self.verbose { println!("exit_stmt:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
-                match ctx {
+                let value = match ctx {
                     // stmt -> decl
-                    CtxStmt::V1 { decl } => {}
+                    CtxStmt::V1 { decl: SynDecl(value) } => value,
                     // stmt -> inst
-                    CtxStmt::V2 { inst } => {}
-                }
-                SynStmt(self.get_nt_uid(NTerm::Stmt as VarId))
+                    CtxStmt::V2 { inst: SynInst(value) } => value,
+                };
+                SynStmt(format!("S({value})"))
             }
         
             fn exit_decl(&mut self, ctx: CtxDecl, spans: Vec<PosSpan>) -> SynDecl {
                 if self.verbose { println!("exit_decl:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
-                match ctx {
+                SynDecl(match ctx {
                     // decl -> Type (Id / ",")+ ";"
-                    CtxDecl::V1 { type1, plus } => {}
+                    CtxDecl::V1 { type1, plus: SynDecl1(values) } => format!("D[{type1}:{}]", values.join(",")),
                     // decl -> "typedef" Type Id ";"
-                    CtxDecl::V2 { type1, id } => {}
-                }
-                SynDecl(self.get_nt_uid(NTerm::Decl as VarId))
+                    CtxDecl::V2 { type1, id } => format!("D[{id}={type1}]"),
+                })
             }
         
             fn exit_inst(&mut self, ctx: CtxInst, spans: Vec<PosSpan>) -> SynInst {
                 if self.verbose { println!("exit_inst:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
-                match ctx {
+                SynInst(match ctx {
                     // inst -> Id "=" expr ";"
-                    CtxInst::V1 { id, expr } => {}
+                    CtxInst::V1 { id, expr: SynExpr(e) } => format!("I({id}={e})"),
                     // inst -> "print" expr ";"
-                    CtxInst::V2 { expr } => {}
-                }
-                SynInst(self.get_nt_uid(NTerm::Inst as VarId))
+                    CtxInst::V2 { expr: SynExpr(e) } => format!("Ip({e})"),
+                })
             }
         
             fn exit_expr(&mut self, ctx: CtxExpr, spans: Vec<PosSpan>) -> SynExpr {
                 if self.verbose { println!("exit_expr:{}", spans.iter().enumerate().map(|(i, s)| format!("\n- [{i}] {}", self.annotate(s))).join("")); }
-                match ctx {
+                SynExpr(match ctx {
                     // expr -> "-" expr
-                    CtxExpr::V1 { expr } => {}
+                    CtxExpr::V1 { expr: SynExpr(e) } => format!("-{e}"),
                     // expr -> expr "+" expr
-                    CtxExpr::V2 { expr } => {}
+                    CtxExpr::V2 { expr: [SynExpr(el), SynExpr(er)] } => format!("{el}+{er}"),
                     // expr -> expr <P> "-" expr
-                    CtxExpr::V3 { expr } => {}
+                    CtxExpr::V3 { expr: [SynExpr(el), SynExpr(er)] } => format!("{el}-{er}"),
                     // expr -> Id
-                    CtxExpr::V4 { id } => {}
+                    CtxExpr::V4 { id } => id,
                     // expr -> Num
-                    CtxExpr::V5 { num } => {}
-                }
-                SynExpr(self.get_nt_uid(NTerm::Expr as VarId))
+                    CtxExpr::V5 { num } => num,
+                })
             }
         }
 
         /// Tests good and bad texts. Can be used to check error-recovery algorithms in the LR parser.
         #[test]
         fn test() {
-            const VERBOSE: bool = true;
+            const VERBOSE: bool = false;
 
             // program -> (<L=stmt_i> stmt)*
             // stmt -> decl | inst
@@ -751,68 +755,90 @@ pub(crate) mod rules_903_1 {
                 (
                     "Type a , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     None,
+                    Some("P[S(D[Type:a,b,c]), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[S(D[Type:a,b,c]), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
                 ),
                 (
                     "Type a , b , c ; a = 1 ; b = a + ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Num, Id, "-""#]),
+                    Some("P[S(D[Type:a,b,c]), S(I(a=1)), S(I(b=a+ERR(Expr))), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[S(D[Type:a,b,c]), S(I(a=1)), ERR(Stmt), S(I(c=b-2)), S(Ip(c))]"),
                 ),
                 (
                     "Type a , b , c ; ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Id"#]),
+                    Some("P[S(D[Type:a,b,c]), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[ERR(Stmt), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]")
                 ),
                 (
                     "Type a , b , c ; a + 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input "+" instead of "=""#]),
+                    Some("P[S(D[Type:a,b,c]), ERR(Stmt), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[S(D[Type:a,b,c]), ERR(Stmt), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
                 ),
                 (
                     "Type a , b , ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Id"#]),
+                    Some("P[S(D[Type:a,b]), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[ERR(Stmt), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]")
                 ),
                 (
                     "Type , b , c ; a = 1 ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input "," instead of Id"#]),
+                    Some("P[S(D[Type:ERR(Decl1),b,c]), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[ERR(Stmt), ERR(Stmt), ERR(Stmt), S(I(a=1)), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]")
                 ),
                 (
                     "Type a , b , c ; a = ; b = a + 2 ; c = b - 2 ; print c ;",
                     Some([r#"unexpected input ";" instead of Num, Id, "-""#]),
+                    Some("P[S(D[Type:a,b,c]), S(I(a=ERR(Expr))), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
+                    Some("P[S(D[Type:a,b,c]), ERR(Stmt), S(I(b=a+2)), S(I(c=b-2)), S(Ip(c))]"),
                 ),
 
             ];
             let mut parser = build_parser();
-            for (test_id, (input, expected_errors)) in sequences.into_iter().enumerate() {
+            for (test_id, (input, exp_errors, exp_output1, exp_output2)) in sequences.into_iter().enumerate() {
                 if VERBOSE { println!("\n{:=<80}\nnew input '{input}'", ""); }
-                let stream = make_stream(input, SYMBOLS_T, true, Some(1), Some(0), false);
-                let listener = Listener::new(input, VERBOSE);
-                let mut wrapper = Wrapper::new(listener, VERBOSE);
-                let result = parser.parse_stream(&mut wrapper, stream);
-                let listener = wrapper.give_listener();
-                let errors = match result {
-                    Ok(_) => {
-                        if VERBOSE { println!("parsing completed successfully"); }
-                        None
-                    }
-                    Err(e) => {
-                        if VERBOSE { println!("parsing failed: {e}"); }
-                        Some(listener.log.get_errors().map(|s| s.get_inner_str()).to_vec())
-                    }
-                };
-                let expected_errors = expected_errors.map(|v| v.to_vec());
-                if VERBOSE {
-                    let msg = listener.log.get_messages().map(|s| format!("- {s}")).join("\n");
-                    if !msg.is_empty() {
-                        println!("Messages:\n{msg}");
-                    }
-                }
-                let err_msg = format!("test #{test_id} failed for input {input}");
-                assert_eq!(errors.is_some(), expected_errors.is_some(), "{err_msg}: was{} expecting errors", if expected_errors.is_none() { "n't" } else { "" });
-                if let Some(exp_errors) = expected_errors {
-                    let mut missing = vec![];
-                    for exp_err in exp_errors {
-                        if !errors.as_ref().unwrap().iter().any(|err| err.contains(exp_err)) {
-                            missing.push(exp_err);
+                for nt_recover in [true, false] {
+                    if VERBOSE { println!("\n{:#<40} nt_recover = {nt_recover}", ""); }
+                    let stream = make_stream(input, SYMBOLS_T, true, Some(1), Some(0), false);
+                    let mut listener = Listener::new(input, VERBOSE);
+                    listener.nt_recover[NTerm::Expr as usize] = nt_recover;
+                    listener.nt_recover[NTerm::Decl1 as usize] = nt_recover;
+                    let mut wrapper = Wrapper::new(listener, VERBOSE);
+                    let result = parser.parse_stream(&mut wrapper, stream);
+                    let listener = wrapper.give_listener();
+                    let errors = match result {
+                        Ok(_) => {
+                            if VERBOSE { println!("parsing completed successfully"); }
+                            None
                         }
+                        Err(e) => {
+                            if VERBOSE { println!("parsing failed: {e}"); }
+                            Some(listener.log.get_errors().map(|s| s.get_inner_str()).to_vec())
+                        }
+                    };
+                    let expected_errors = exp_errors.map(|v| v.to_vec());
+                    if VERBOSE {
+                        let msg = listener.log.get_messages().map(|s| format!("- {s}")).join("\n");
+                        if !msg.is_empty() {
+                            println!("Messages:\n{msg}");
+                        }
+                        println!("output: {:?}", listener.output);
                     }
-                    assert!(missing.is_empty(), "{err_msg}: missing error messages:{}", missing.join("\n"));
+                    let err_msg = format!("test #{test_id} failed for input {input} with nt_recover = {nt_recover}");
+                    assert_eq!(errors.is_some(), expected_errors.is_some(), "{err_msg}: was{} expecting errors", if expected_errors.is_none() { "n't" } else { "" });
+                    if let Some(exp_errors) = expected_errors {
+                        let mut missing = vec![];
+                        for exp_err in exp_errors {
+                            if !errors.as_ref().unwrap().iter().any(|err| err.contains(exp_err)) {
+                                missing.push(exp_err);
+                            }
+                        }
+                        assert!(missing.is_empty(), "{err_msg}: missing error messages:{}", missing.join("\n"));
+                    }
+                    let exp_output = if nt_recover { exp_output1 } else { exp_output2 };
+                    assert_eq!(listener.output.as_ref().map(|s| s.as_str()), exp_output, "{err_msg}: output mismatch");
                 }
             }
         }

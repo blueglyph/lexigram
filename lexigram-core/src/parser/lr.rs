@@ -125,7 +125,7 @@ impl<'a, T> LRParser<'a, T> {
         where I: Iterator<Item=ParserToken>,
               L: ListenerWrapper + WrapperLRErrorRecovery,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const BEFORE: &str = "\u{1b}[33m";
         const AFTER : &str = "\u{1b}[0m";
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
@@ -360,7 +360,7 @@ impl<'a, T> LRParser<'a, T> {
             let token_eof = token_error - 1;
             let mut skip = candidates.is_empty();
             while !skip {
-                if VERBOSE { println!("{BEFORE_ANSI}  - states {stack_state:?} {state}, err_span {err_span}, {}{AFTER_ANSI}", wrapper.get_status()[2]); }
+                if VERBOSE { println!("{BEFORE_ANSI}  - states {stack_state:?} {state}, err_span {err_span}{AFTER_ANSI}"); }
                 for &(var, state) in &candidates {
                     let action = &self.action[*stream_sym as usize + state as usize * self.num_t_full];
                     if action.is_action() {
