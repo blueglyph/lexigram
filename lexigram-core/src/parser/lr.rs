@@ -354,7 +354,9 @@ impl<'a, T> LRParser<'a, T> {
                 );
             }
             if candidates.is_empty() {
-                err_span += &wrapper.pop_span();
+                if *call_wrapper {
+                    err_span += &wrapper.pop_span();
+                }
                 let (sym, has_value) = self.get_state_symbol_and_value(state);
                 match sym {
                     Symbol::T(_) => {
@@ -382,7 +384,7 @@ impl<'a, T> LRParser<'a, T> {
                         if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
                         // if the wrapper is called, it can skip the recovery of the current nonterminal and
                         // recover at a higher level
-                        let recovery_result = wrapper.push_nt_recovery_value(var);
+                        let recovery_result = if *call_wrapper { wrapper.push_nt_recovery_value(var) } else { RecoveryNt::Abort };
                         *call_wrapper &= recovery_result != RecoveryNt::Abort;
                         skip = *call_wrapper && recovery_result == RecoveryNt::Skip;
                         if !skip {
@@ -396,7 +398,7 @@ impl<'a, T> LRParser<'a, T> {
                                 }
                             }
                             return Some(state);
-                        } else {
+                        } else if *call_wrapper {
                             // removes the span corresponding to the skipped state and accumulates it
                             err_span += &wrapper.pop_span();
                         }
