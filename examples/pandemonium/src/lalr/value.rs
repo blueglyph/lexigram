@@ -1750,17 +1750,6 @@ pub mod pandemonium_parser {
         SYMBOLS_T[t as usize]
     }
 
-    pub fn build_parser() -> LRParser<'static, LALR> {
-        LRParser::new(
-            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
-            FixedSymTable::new(
-                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
-                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
-            ),
-            false
-        )
-    }
-
     static NT_VALUE: [bool; 64] = [
         true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
         true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
@@ -1782,6 +1771,19 @@ pub mod pandemonium_parser {
         Symbol::T(12),Symbol::T(11),Symbol::T(12),Symbol::T(6),Symbol::T(11),Symbol::T(12),Symbol::T(6),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::T(0),Symbol::T(6),Symbol::T(8),Symbol::T(13),Symbol::T(13),Symbol::T(13),Symbol::T(13),
         Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(29),Symbol::T(10),Symbol::T(10),Symbol::T(10),Symbol::T(10),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::NT(49),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(9),Symbol::T(12),Symbol::T(6),Symbol::T(6),Symbol::T(6),Symbol::T(6),
         Symbol::T(30),Symbol::T(30),Symbol::T(30),Symbol::T(30)];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+            ),
+            false,
+            &STATE_SYMBOL,
+            &NT_VALUE
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxText {
@@ -2765,17 +2767,6 @@ pub mod pandemonium_parser {
                     RecoveryNt::Done
                 }
             }
-        }
-
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
         }
 
         fn syntax_error_recovered(&mut self) {

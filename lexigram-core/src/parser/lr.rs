@@ -63,14 +63,13 @@ pub trait WrapperLRErrorRecovery {
     /// The wrapper should ideally requires a value to the user through the listener interface, knowing this value
     /// is used to recover from a syntax error.
     ///
-    /// Returns `true` if the stack could be resynchronized. If it couldn't, the parser will continue to parse the text
+    /// Returns
+    /// * [RecoveryNt::Done] if the stack could be resynchronized.
+    /// * [RecoveryNt::Skip] if the value couldn't be created and another recover point should be found.
+    /// * [RecoveryNt::Abort] if the wrapper can't be resynchronized. The parser will continue parsing the text
     /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
     #[allow(unused_variables)]
     fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt { RecoveryNt::Abort }
-
-    /// Returns the symbol on the left of the dot and whether it has a value.
-    #[allow(unused_variables)]
-    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) { (Symbol::Empty, false) }
 
     /// Notifies the wrapper that the parser has recovered from the syntax error. It can be used to forward
     /// the notification to the listener.
@@ -86,6 +85,8 @@ pub struct LRParser<'a, T> {
     alt_nt_len: &'a [(VarId, u16, u16)],    // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,            // must include terminals <$> and <empty> at the end
     init_hook: bool,                        // first terminal must be intercepted
+    state_symbol: &'a [Symbol],
+    nt_value: &'a [bool],
     _phantom: PhantomData<T>,
 }
 
@@ -100,9 +101,11 @@ impl<'a, T> LRParser<'a, T> {
         goto: &'a [LRStateId],
         alt_nt_len: &'a [(VarId, u16, u16)],
         symbol_table: FixedSymTable,
-        init_hook: bool
+        init_hook: bool,
+        state_symbol: &'a [Symbol],
+        nt_value: &'a [bool],
     ) -> Self {
-        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, _phantom: PhantomData }
+        LRParser { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, state_symbol, nt_value, _phantom: PhantomData }
     }
 
     fn t_to_string(&self, t: TokenId) -> String {
@@ -302,6 +305,18 @@ impl<'a, T> LRParser<'a, T> {
         }
     }
 
+    /// Returns the symbol on the left of the dot and whether it has a value.
+    fn get_state_symbol_and_value(&self, state: LRStateId) -> (Symbol, bool) {
+        let sym = self.state_symbol[state as usize];
+        let has_value = match sym {
+            Symbol::T(t) => self.symbol_table.is_token_data(t),
+            Symbol::NT(nt) => self.nt_value[nt as usize],
+            Symbol::Empty => false,
+            Symbol::End => panic!(),
+        };
+        (sym, has_value)
+    }
+
     fn recover<I, L>(
         &self,
         stream: &mut I,
@@ -340,7 +355,7 @@ impl<'a, T> LRParser<'a, T> {
             }
             if candidates.is_empty() {
                 err_span += &wrapper.pop_span();
-                let (sym, has_value) = L::get_state_symbol_and_value(state);
+                let (sym, has_value) = self.get_state_symbol_and_value(state);
                 match sym {
                     Symbol::T(_) => {
                         if has_value { stack_t.pop(); }

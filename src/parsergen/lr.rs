@@ -8,6 +8,7 @@ use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_core::parser::lr::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
+use lexigram_core::parser::Symbol;
 use crate::build::BuildFrom;
 use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::{SymbolTable, LALR, LR, SourceSpacer};
@@ -166,9 +167,31 @@ impl ParserGen {
                 .flag_first_last()
                 .map(|(_, is_last, _)|
                     format!("    {}{}", (0..NT_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
-        src.add_space();
+        src.push(String::new());
         src.extend(self.source_token_enums());
         src.add_space();
+
+        // NT values for error recovery
+        if self.options.has_lr_error_recovery() {
+            const NT_VALUE_CHUNK: usize = 20;
+            assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
+            src.push(format!("static NT_VALUE: [bool; {}] = [", self.nt_values.len()));
+            src.extend(
+                self.nt_values.chunks(NT_VALUE_CHUNK)
+                    .flag_first_last()
+                    .map(|(_, is_last, values)|
+                        format!("    {}{}", values.iter().map(|&v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
+            const STATE_SYMBOL_CHUNK: usize = 25;
+            assert!(!self.state_symbol.is_empty(), "state_symbol is empty");
+            src.push(format!("static STATE_SYMBOL: [Symbol; {}] = [", self.state_symbol.len()));
+            src.extend(
+                self.state_symbol.chunks(STATE_SYMBOL_CHUNK)
+                    .flag_first_last()
+                    .map(|(_, is_last, symbols)|
+                        format!("    {}{}", symbols.iter().map(|s| format!("Symbol::{s:?}")).join(","), if is_last { "];" } else { "," })));
+            src.push(String::new());
+        }
+
         src.extend([
             "pub fn build_parser() -> LRParser<'static, LALR> {".to_string(),
             "    LRParser::new(".to_string(),
@@ -177,7 +200,9 @@ impl ParserGen {
             "            SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),".to_string(),
             "            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()".to_string(),
             "        ),".to_string(),
-            format!("        {}", self.init_hook),
+            format!("        {},", self.init_hook),
+            "        &STATE_SYMBOL,".to_string(),
+            "        &NT_VALUE".to_string(),
             "    )".to_string(),
             "}".to_string(),
         ]);
@@ -203,6 +228,8 @@ pub struct LRParserTables<T> {
     alt_nt_len: Vec<(VarId, u16, u16)>, // alt_id -> (nt, # symbols in alt, # terminals in alt)
     symbol_table: FixedSymTable,        // must include terminals <$> and <empty> at the end
     init_hook: bool,
+    state_symbol: Vec<Symbol>,
+    nt_value: Vec<bool>,
     log: BufLog,
     _phantom: PhantomData<T>,
 }
@@ -216,10 +243,12 @@ impl<T> LRParserTables<T> {
         alt_nt_len: Vec<(VarId, u16, u16)>,
         symbol_table: FixedSymTable,
         init_hook: bool,
+        state_symbol: Vec<Symbol>,
+        nt_value: Vec<bool>,
         log: Option<BufLog>
     ) -> Self {
         let log = log.unwrap_or_else(|| BufLog::new());
-        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, log, _phantom: PhantomData }
+        LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, log, state_symbol, nt_value, _phantom: PhantomData }
     }
 
     pub fn make_parser(&self) -> LRParser<'_, T> {
@@ -230,7 +259,10 @@ impl<T> LRParserTables<T> {
             &self.goto,
             &self.alt_nt_len,
             self.symbol_table.clone(),
-            self.init_hook)
+            self.init_hook,
+            &self.state_symbol,
+            &self.nt_value
+        )
     }
 
     pub fn get_log(&self) -> &BufLog {
@@ -274,6 +306,8 @@ impl BuildFrom<ProdRuleSet<LR>> for LRParserTables<LALR> {
             alts_to_alt_nt_len(&table.alts, &symtable),
             symtable.to_fixed_sym_table(),
             table.init_hook,
+            table.state_symbol,
+            vec![false; source.get_num_nt()],
             Some(source.log)
         )
     }

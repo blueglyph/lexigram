@@ -262,6 +262,7 @@ impl ParserGen {
         self.calc_opcodes();
         self.add_opcode_hooks();
         self.calc_span_nbrs();
+        self.calc_nt_value();
     }
 
     /// Sets internal values accordingly to the options
@@ -976,7 +977,6 @@ impl ParserGen {
 
     pub(crate) fn calc_item_ops(&mut self) {
         const VERBOSE: bool = false;
-        self.calc_nt_value();
         self.log.add_note("- making item ops...");
         let mut items = vec![Vec::<Symbol>::new(); self.alts.len()];
         if VERBOSE {
@@ -2026,8 +2026,6 @@ impl ParserGen {
         static LR_ERROR_RECOVERY_LIB: &[&str] = &[
             "::parser::RecoveryNt",
             "::parser::lr::WrapperLRErrorRecovery",
-            "::parser::lr::LRStateId",
-            "::parser::Symbol",
         ];
 
         self.log.add_note("generating wrapper source...");
@@ -2045,27 +2043,6 @@ impl ParserGen {
         }
 
         let mut src = vec![];
-
-        // NT values for error recovery
-        if self.options.parser_type.is_lr() {
-            const NT_VALUE_CHUNK: usize = 20;
-            assert!(self.symbol_table.get_num_nt() > 0, "terminal table is empty");
-            src.push(format!("static NT_VALUE: [bool; {}] = [", self.nt_values.len()));
-            src.extend(
-                self.nt_values.chunks(NT_VALUE_CHUNK)
-                    .flag_first_last()
-                    .map(|(_, is_last, values)|
-                        format!("    {}{}", values.iter().map(|&v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
-            const STATE_SYMBOL_CHUNK: usize = 25;
-            assert!(!self.state_symbol.is_empty(), "state_symbol is empty");
-            src.push(format!("static STATE_SYMBOL: [Symbol; {}] = [", self.state_symbol.len()));
-            src.extend(
-                self.state_symbol.chunks(STATE_SYMBOL_CHUNK)
-                    .flag_first_last()
-                    .map(|(_, is_last, symbols)|
-                        format!("    {}{}", symbols.iter().map(|s| format!("Symbol::{s:?}")).join(","), if is_last { "];" } else { "," })));
-            src.push(String::new());
-        }
 
         // writes contexts
         let mut nt_contexts = self.source_wrapper_ctx::<VERBOSE>(&mut src);
@@ -3227,17 +3204,6 @@ impl ParserGen {
             src.push(r"                RecoveryNt::Done".to_string());
             src.push(r"            }".to_string());
             src.push(r"        }".to_string());
-            src.push(r"    }".to_string());
-            src.push(String::new());
-            src.push(r"    fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {".to_string());
-            src.push(r"        let sym = STATE_SYMBOL[state as usize];".to_string());
-            src.push(r"        let has_value = match sym {".to_string());
-            src.push(r"            Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),".to_string());
-            src.push(r"            Symbol::NT(nt) => NT_VALUE[nt as usize],".to_string());
-            src.push(r"            Symbol::Empty => false,".to_string());
-            src.push(r"            Symbol::End => panic!(),".to_string());
-            src.push(r"        };".to_string());
-            src.push(r"        (sym, has_value)".to_string());
             src.push(r"    }".to_string());
             src.push(String::new());
             src.push(r"    fn syntax_error_recovered(&mut self) {".to_string());

@@ -501,6 +501,12 @@ pub mod typedef_match_parser {
         SYMBOLS_T[t as usize]
     }
 
+    static NT_VALUE: [bool; 8] = [
+        true,false,true,true,true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 31] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(8),Symbol::T(9),Symbol::T(2),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(0),Symbol::T(6),Symbol::T(7),Symbol::NT(2),Symbol::NT(3),Symbol::NT(5),Symbol::T(9),Symbol::T(5),Symbol::T(6),Symbol::NT(6),Symbol::T(6),Symbol::NT(4),Symbol::NT(6),Symbol::T(6),Symbol::NT(6),Symbol::T(1),Symbol::T(0),
+        Symbol::T(1),Symbol::T(1),Symbol::T(1),Symbol::NT(6),Symbol::NT(6),Symbol::T(6)];
+
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
@@ -508,15 +514,11 @@ pub mod typedef_match_parser {
                 SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
-            false
+            false,
+            &STATE_SYMBOL,
+            &NT_VALUE
         )
     }
-
-    static NT_VALUE: [bool; 8] = [
-        true,false,true,true,true,true,true,true];
-    static STATE_SYMBOL: [Symbol; 31] = [
-        Symbol::Empty,Symbol::NT(1),Symbol::T(8),Symbol::T(9),Symbol::T(2),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(0),Symbol::T(6),Symbol::T(7),Symbol::NT(2),Symbol::NT(3),Symbol::NT(5),Symbol::T(9),Symbol::T(5),Symbol::T(6),Symbol::NT(6),Symbol::T(6),Symbol::NT(4),Symbol::NT(6),Symbol::T(6),Symbol::NT(6),Symbol::T(1),Symbol::T(0),
-        Symbol::T(1),Symbol::T(1),Symbol::T(1),Symbol::NT(6),Symbol::NT(6),Symbol::T(6)];
 
     #[derive(Debug)]
     pub enum CtxProgram {
@@ -774,17 +776,6 @@ pub mod typedef_match_parser {
                     RecoveryNt::Done
                 }
             }
-        }
-
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
         }
 
         fn syntax_error_recovered(&mut self) {

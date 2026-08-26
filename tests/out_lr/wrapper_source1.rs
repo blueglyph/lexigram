@@ -127,6 +127,12 @@ pub(crate) mod rules_903_1 {
         SYMBOLS_T[t as usize]
     }
 
+    static NT_VALUE: [bool; 8] = [
+        true,true,true,true,true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 31] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::T(2),Symbol::T(7),Symbol::T(6),Symbol::T(8),Symbol::T(8),Symbol::T(9),Symbol::NT(0),Symbol::T(1),Symbol::T(5),Symbol::NT(2),Symbol::NT(3),Symbol::NT(4),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::NT(5),Symbol::NT(5),Symbol::T(3),Symbol::T(4),Symbol::T(1),Symbol::NT(5),
+        Symbol::T(4),Symbol::T(4),Symbol::T(1),Symbol::T(4),Symbol::NT(5),Symbol::NT(5)];
+
     pub fn build_parser() -> LRParser<'static, LALR> {
         LRParser::new(
             NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
@@ -134,15 +140,11 @@ pub(crate) mod rules_903_1 {
                 SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
                 SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
             ),
-            false
+            false,
+            &STATE_SYMBOL,
+            &NT_VALUE
         )
     }
-
-    static NT_VALUE: [bool; 8] = [
-        true,true,true,true,true,true,true,true];
-    static STATE_SYMBOL: [Symbol; 31] = [
-        Symbol::Empty,Symbol::NT(1),Symbol::T(2),Symbol::T(7),Symbol::T(6),Symbol::T(8),Symbol::T(8),Symbol::T(9),Symbol::NT(0),Symbol::T(1),Symbol::T(5),Symbol::NT(2),Symbol::NT(3),Symbol::NT(4),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(0),Symbol::T(1),Symbol::NT(5),Symbol::NT(5),Symbol::T(3),Symbol::T(4),Symbol::T(1),Symbol::NT(5),
-        Symbol::T(4),Symbol::T(4),Symbol::T(1),Symbol::T(4),Symbol::NT(5),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxProgram {
@@ -400,17 +402,6 @@ pub(crate) mod rules_903_1 {
                     RecoveryNt::Done
                 }
             }
-        }
-
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
         }
 
         fn syntax_error_recovered(&mut self) {
@@ -877,16 +868,10 @@ pub(crate) mod rules_980_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 980 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
-
-    static NT_VALUE: [bool; 17] = [
-        true,true,true,true,true,true,true,true,true,false,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 32] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(2),Symbol::NT(4),Symbol::T(2),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(12),Symbol::NT(15),Symbol::NT(0),Symbol::NT(10),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(13),Symbol::NT(11),Symbol::NT(5),Symbol::T(1),Symbol::T(3),Symbol::NT(14),
-        Symbol::NT(8),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1181,17 +1166,6 @@ pub(crate) mod rules_980_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -1419,16 +1393,10 @@ pub(crate) mod rules_980_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 980 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
-
-    static NT_VALUE: [bool; 17] = [
-        true,true,true,true,true,true,true,true,true,false,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 32] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(2),Symbol::NT(4),Symbol::T(2),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(12),Symbol::NT(15),Symbol::NT(0),Symbol::NT(10),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(13),Symbol::NT(11),Symbol::NT(5),Symbol::T(1),Symbol::T(3),Symbol::NT(14),
-        Symbol::NT(8),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -1707,17 +1675,6 @@ pub(crate) mod rules_980_2 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -1881,17 +1838,10 @@ pub(crate) mod rules_981_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 981 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
         ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 18] = [
-        true,true,true,true,true,true,true,true,true,false,false,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 51] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(4),Symbol::NT(4),Symbol::T(4),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(13),Symbol::NT(10),Symbol::NT(16),Symbol::NT(10),Symbol::NT(10),Symbol::NT(0),Symbol::NT(11),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(14),
-        Symbol::NT(12),Symbol::NT(5),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(15),Symbol::NT(8),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9),
-        Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2217,17 +2167,6 @@ pub(crate) mod rules_981_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -2535,17 +2474,10 @@ pub(crate) mod rules_981_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 981 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
         ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 18] = [
-        true,true,true,true,true,true,true,true,true,false,false,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 51] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(6),Symbol::T(4),Symbol::NT(4),Symbol::T(4),Symbol::NT(7),Symbol::T(0),Symbol::T(0),Symbol::NT(13),Symbol::NT(10),Symbol::NT(16),Symbol::NT(10),Symbol::NT(10),Symbol::NT(0),Symbol::NT(11),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(14),
-        Symbol::NT(12),Symbol::NT(5),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(15),Symbol::NT(8),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::T(7),Symbol::NT(9),Symbol::NT(9),Symbol::NT(9),
-        Symbol::NT(9)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2855,17 +2787,6 @@ pub(crate) mod rules_981_2 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -3062,16 +2983,10 @@ pub(crate) mod rules_982_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 982 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
-
-    static NT_VALUE: [bool; 17] = [
-        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 32] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(2),Symbol::NT(5),Symbol::T(2),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(10),Symbol::NT(6),Symbol::NT(7),Symbol::T(1),Symbol::T(3),Symbol::NT(12),
-        Symbol::NT(13),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3405,17 +3320,6 @@ pub(crate) mod rules_982_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -3659,16 +3563,10 @@ pub(crate) mod rules_982_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 982 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 5] = [
         ("A", None),("B", None),("A1", Some("A")),("B1", Some("B")),("X", Some("X"))];
-
-    static NT_VALUE: [bool; 17] = [
-        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 32] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(2),Symbol::NT(5),Symbol::T(2),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(1),Symbol::NT(10),Symbol::NT(6),Symbol::NT(7),Symbol::T(1),Symbol::T(3),Symbol::NT(12),
-        Symbol::NT(13),Symbol::T(3),Symbol::T(3),Symbol::T(4),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3986,17 +3884,6 @@ pub(crate) mod rules_982_2 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -4184,17 +4071,10 @@ pub(crate) mod rules_983_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 983 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
         ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 18] = [
-        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false,false];
-    static STATE_SYMBOL: [Symbol; 51] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(4),Symbol::NT(5),Symbol::T(4),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(16),Symbol::NT(16),Symbol::NT(16),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(10),
-        Symbol::NT(6),Symbol::NT(7),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(12),Symbol::NT(13),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15),
-        Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4557,17 +4437,6 @@ pub(crate) mod rules_983_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -4885,17 +4754,10 @@ pub(crate) mod rules_983_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 983 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 10] = [
         ("A", None),("B", None),("C", None),("D", None),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("D1", Some("D")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 18] = [
-        true,true,true,true,true,true,false,true,false,true,true,true,false,true,false,false,false,false];
-    static STATE_SYMBOL: [Symbol; 51] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::NT(3),Symbol::T(0),Symbol::NT(9),Symbol::T(4),Symbol::NT(5),Symbol::T(4),Symbol::NT(11),Symbol::T(0),Symbol::T(0),Symbol::NT(8),Symbol::NT(14),Symbol::NT(16),Symbol::NT(16),Symbol::NT(16),Symbol::NT(0),Symbol::NT(4),Symbol::NT(2),Symbol::T(1),Symbol::T(2),Symbol::T(1),Symbol::T(2),Symbol::NT(10),
-        Symbol::NT(6),Symbol::NT(7),Symbol::T(3),Symbol::T(3),Symbol::T(1),Symbol::T(2),Symbol::T(5),Symbol::T(6),Symbol::NT(12),Symbol::NT(13),Symbol::T(5),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::T(5),Symbol::T(6),Symbol::T(8),Symbol::T(9),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::T(7),Symbol::NT(15),Symbol::NT(15),Symbol::NT(15),
-        Symbol::NT(15)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -5242,17 +5104,6 @@ pub(crate) mod rules_983_2 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -5476,16 +5327,10 @@ pub(crate) mod rules_984_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 984 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 9] = [
         ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 10] = [
-        true,true,true,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 28] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(2),Symbol::T(0),Symbol::NT(4),Symbol::T(3),Symbol::NT(4),Symbol::NT(0),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(7),Symbol::NT(3),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(8),Symbol::T(2),Symbol::T(5),Symbol::T(8),
-        Symbol::NT(5),Symbol::T(6),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -5723,17 +5568,6 @@ pub(crate) mod rules_984_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -5875,16 +5709,10 @@ pub(crate) mod rules_984_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 984 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 9] = [
         ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 10] = [
-        true,true,true,true,false,false,true,false,false,false];
-    static STATE_SYMBOL: [Symbol; 28] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(2),Symbol::T(0),Symbol::NT(4),Symbol::T(3),Symbol::NT(4),Symbol::NT(0),Symbol::T(1),Symbol::NT(6),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(7),Symbol::NT(3),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(8),Symbol::T(2),Symbol::T(5),Symbol::T(8),
-        Symbol::NT(5),Symbol::T(6),Symbol::NT(5)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6106,17 +5934,6 @@ pub(crate) mod rules_984_2 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -6225,16 +6042,10 @@ pub(crate) mod rules_985_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule 985 #1, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 9] = [
         ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 10] = [
-        true,true,true,true,false,true,false,false,false,false];
-    static STATE_SYMBOL: [Symbol; 28] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(3),Symbol::T(0),Symbol::NT(7),Symbol::T(3),Symbol::NT(7),Symbol::NT(0),Symbol::T(1),Symbol::NT(2),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(4),Symbol::NT(5),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(6),Symbol::T(2),Symbol::T(5),Symbol::T(8),
-        Symbol::NT(8),Symbol::T(6),Symbol::NT(8)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6488,17 +6299,6 @@ pub(crate) mod rules_985_1 {
             }
         }
 
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
-        }
-
         fn syntax_error_recovered(&mut self) {
             self.listener.syntax_error_recovered();
         }
@@ -6656,16 +6456,10 @@ pub(crate) mod rules_985_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule 985 #2, start a]
 
-    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRStateId, WrapperLRErrorRecovery}}};
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 9] = [
         ("A", None),("B", None),("C", None),("Comma", Some(",")),("A1", Some("A")),("B1", Some("B")),("C1", Some("C")),("X", Some("X")),("Y", Some("Y"))];
-
-    static NT_VALUE: [bool; 10] = [
-        true,true,true,true,false,true,false,false,false,false];
-    static STATE_SYMBOL: [Symbol; 28] = [
-        Symbol::Empty,Symbol::T(0),Symbol::NT(1),Symbol::T(4),Symbol::NT(3),Symbol::T(0),Symbol::NT(7),Symbol::T(3),Symbol::NT(7),Symbol::NT(0),Symbol::T(1),Symbol::NT(2),Symbol::T(2),Symbol::T(3),Symbol::T(5),Symbol::NT(4),Symbol::NT(5),Symbol::T(1),Symbol::T(6),Symbol::T(3),Symbol::T(7),Symbol::NT(6),Symbol::T(2),Symbol::T(5),Symbol::T(8),
-        Symbol::NT(8),Symbol::T(6),Symbol::NT(8)];
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6901,17 +6695,6 @@ pub(crate) mod rules_985_2 {
                     RecoveryNt::Done
                 }
             }
-        }
-
-        fn get_state_symbol_and_value(state: LRStateId) -> (Symbol, bool) {
-            let sym = STATE_SYMBOL[state as usize];
-            let has_value = match sym {
-                Symbol::T(t) => SYMBOLS_T[t as usize].1.is_none(),
-                Symbol::NT(nt) => NT_VALUE[nt as usize],
-                Symbol::Empty => false,
-                Symbol::End => panic!(),
-            };
-            (sym, has_value)
         }
 
         fn syntax_error_recovered(&mut self) {
