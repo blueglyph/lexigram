@@ -11,7 +11,7 @@
             &mut self.log
         }
 
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, _err_span: &PosSpan) -> RecoveryNtValue {
             let nterm = NTerm::from(nt);
             last_dropped
                 .and_then(|value| if value.nt() == nt { Some(value) } else { None })

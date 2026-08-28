@@ -69,7 +69,7 @@ pub trait WrapperLRErrorRecovery {
     /// * [RecoveryNt::Abort] if the wrapper can't be resynchronized. The parser will continue parsing the text
     /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
     #[allow(unused_variables)]
-    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt { RecoveryNt::Abort }
+    fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt { RecoveryNt::Abort }
 
     /// Notifies the wrapper that the parser has recovered from the syntax error. It can be used to forward
     /// the notification to the listener.
@@ -384,7 +384,7 @@ impl<'a, T> LRParser<'a, T> {
                         if VERBOSE { println!("{BEFORE_ANSI}- symbol {} is fine for state {state}{AFTER_ANSI}", self.t_to_string(*stream_sym)); }
                         // if the wrapper is called, it can skip the recovery of the current nonterminal and
                         // recover at a higher level
-                        let recovery_result = if *call_wrapper { wrapper.push_nt_recovery_value(var) } else { RecoveryNt::Abort };
+                        let recovery_result = if *call_wrapper { wrapper.push_nt_recovery_value(var, &err_span) } else { RecoveryNt::Abort };
                         *call_wrapper &= recovery_result != RecoveryNt::Abort;
                         skip = *call_wrapper && recovery_result == RecoveryNt::Skip;
                         if !skip {

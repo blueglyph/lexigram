@@ -156,7 +156,7 @@ pub(crate) mod rules_13_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -273,8 +273,8 @@ pub(crate) mod rules_13_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -600,7 +600,7 @@ pub(crate) mod rules_102_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -714,8 +714,8 @@ pub(crate) mod rules_102_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -1010,7 +1010,7 @@ pub(crate) mod rules_103_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -1124,8 +1124,8 @@ pub(crate) mod rules_103_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -1441,7 +1441,7 @@ pub(crate) mod rules_109_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -1557,8 +1557,8 @@ pub(crate) mod rules_109_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -1872,7 +1872,7 @@ pub(crate) mod rules_119_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -1986,8 +1986,8 @@ pub(crate) mod rules_119_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -2287,7 +2287,7 @@ pub(crate) mod rules_120_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -2401,8 +2401,8 @@ pub(crate) mod rules_120_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -2621,7 +2621,7 @@ pub(crate) mod rules_150_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -2736,8 +2736,8 @@ pub(crate) mod rules_150_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -2893,7 +2893,7 @@ pub(crate) mod rules_151_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -3009,8 +3009,8 @@ pub(crate) mod rules_151_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -3174,7 +3174,7 @@ pub(crate) mod rules_155_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -3292,8 +3292,8 @@ pub(crate) mod rules_155_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -3519,7 +3519,7 @@ pub(crate) mod rules_200_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -3635,8 +3635,8 @@ pub(crate) mod rules_200_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -3886,7 +3886,7 @@ pub(crate) mod rules_200_2 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -4003,8 +4003,8 @@ pub(crate) mod rules_200_2 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -4206,7 +4206,7 @@ pub(crate) mod rules_201_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -4322,8 +4322,8 @@ pub(crate) mod rules_201_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -4579,7 +4579,7 @@ pub(crate) mod rules_201_2 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -4696,8 +4696,8 @@ pub(crate) mod rules_201_2 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -4903,7 +4903,7 @@ pub(crate) mod rules_219_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -5019,8 +5019,8 @@ pub(crate) mod rules_219_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -5271,7 +5271,7 @@ pub(crate) mod rules_219_2 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -5388,8 +5388,8 @@ pub(crate) mod rules_219_2 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -5613,7 +5613,7 @@ pub(crate) mod rules_222_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -5731,8 +5731,8 @@ pub(crate) mod rules_222_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -6003,7 +6003,7 @@ pub(crate) mod rules_250_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -6120,8 +6120,8 @@ pub(crate) mod rules_250_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -6266,7 +6266,7 @@ pub(crate) mod rules_250_2 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -6384,8 +6384,8 @@ pub(crate) mod rules_250_2 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -6536,7 +6536,7 @@ pub(crate) mod rules_251_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -6654,8 +6654,8 @@ pub(crate) mod rules_251_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -6808,7 +6808,7 @@ pub(crate) mod rules_251_2 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -6927,8 +6927,8 @@ pub(crate) mod rules_251_2 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
@@ -7144,7 +7144,7 @@ pub(crate) mod rules_504_1 {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -7259,8 +7259,8 @@ pub(crate) mod rules_504_1 {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {

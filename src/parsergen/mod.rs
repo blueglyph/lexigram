@@ -2069,7 +2069,7 @@ impl ParserGen {
             String::new(),
         ];
         if self.options.has_lr_error_recovery() {
-            src_skel.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue {".to_string());
+            src_skel.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, _err_span: &PosSpan) -> RecoveryNtValue {".to_string());
             src_skel.push("        let nterm = NTerm::from(nt);".to_string());
             src_skel.push("        last_dropped".to_string());
             src_skel.push("            .and_then(|value| if value.nt() == nt { Some(value) } else { None })".to_string());
@@ -2989,7 +2989,7 @@ impl ParserGen {
             src.push("    #[allow(unused_variables)]".to_string());
             src.push("    fn drop_nt_value(&mut self, value: &EnumSynValue) {}".to_string());
             src.push("    #[allow(unused_variables)]".to_string());
-            src.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }".to_string());
+            src.push("    fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }".to_string());
             src.push("    fn syntax_error_recovered(&mut self) {}".to_string());
         }
         let extra_span = if self.options.gen_span_params { ", span: PosSpan" } else { "" };
@@ -3195,8 +3195,8 @@ impl ParserGen {
             src.push(r"        self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());".to_string());
             src.push(r"    }".to_string());
             src.push(String::new());
-            src.push(r"    fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {".to_string());
-            src.push(r"        match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {".to_string());
+            src.push(r"    fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {".to_string());
+            src.push(r"        match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {".to_string());
             src.push(r"            RecoveryNtValue::Abort => RecoveryNt::Abort,".to_string());
             src.push(r"            RecoveryNtValue::Skip => RecoveryNt::Skip,".to_string());
             src.push(r"            RecoveryNtValue::Value(val) => {".to_string());

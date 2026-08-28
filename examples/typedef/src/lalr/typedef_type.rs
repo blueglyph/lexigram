@@ -640,7 +640,7 @@ pub mod typedef_type_parser {
         #[allow(unused_variables)]
         fn drop_nt_value(&mut self, value: &EnumSynValue) {}
         #[allow(unused_variables)]
-        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
         fn syntax_error_recovered(&mut self) {}
         #[allow(unused_variables)]
         fn hook(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
@@ -784,8 +784,8 @@ pub mod typedef_type_parser {
             self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
         }
 
-        fn push_nt_recovery_value(&mut self, nt: VarId) -> RecoveryNt {
-            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take()) {
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
                 RecoveryNtValue::Abort => RecoveryNt::Abort,
                 RecoveryNtValue::Skip => RecoveryNt::Skip,
                 RecoveryNtValue::Value(val) => {
