@@ -4,21 +4,21 @@ version = 4
 
 [[package]]
 name = "build-rtsgen"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "lexi-gram",
 ]
 
 [[package]]
 name = "build-stage1"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "lexi-gram",
 ]
 
 [[package]]
 name = "build-stage2"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "lexigram-lib",
 ]
@@ -89,7 +89,7 @@ checksum = "bae738582aa13b8b43c735d5cfacd543508220dd23290fb52bd7a00d38cc6a36"
 
 [[package]]
 name = "lexi-gram"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "iter-index",
  "lexigram-lib",
@@ -98,7 +98,7 @@ dependencies = [
 
 [[package]]
 name = "lexigram"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "enable-ansi-support",
  "lexi-gram",
@@ -106,11 +106,11 @@ dependencies = [
 
 [[package]]
 name = "lexigram-core"
-version = "0.9.4"
+version = "0.10.0"
 
 [[package]]
 name = "lexigram-lib"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "iter-index",
  "lexigram-core",

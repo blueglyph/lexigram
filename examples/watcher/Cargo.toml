@@ -13,7 +13,7 @@ repository.workspace = true
 [dependencies]
 # enable this feature to get a lower latency when parsing lines:
 # features = ["delay_stream_interception"]
-lexigram-core = { path = "../../lexigram-core", version = "0.9.4" }
+lexigram-core = { path = "../../lexigram-core", version = "0.10.0" }
 
 [lints]
 workspace = true

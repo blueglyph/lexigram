@@ -11,7 +11,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-lexi-gram = { path = "../../lexi-gram", version = "0.9.4" }
+lexi-gram = { path = "../../lexi-gram", version = "0.10.0" }
 
 [lints]
 workspace = true
