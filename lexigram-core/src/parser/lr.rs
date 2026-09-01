@@ -67,7 +67,7 @@ pub trait WrapperLRErrorRecovery {
     /// * [RecoveryNt::Done] if the stack could be resynchronized.
     /// * [RecoveryNt::Skip] if the value couldn't be created and another recover point should be found.
     /// * [RecoveryNt::Abort] if the wrapper can't be resynchronized. The parser will continue parsing the text
-    /// to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
+    ///   to detect other parsing errors, but it won't call the wrapper any more, except to intercept tokens.
     #[allow(unused_variables)]
     fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt { RecoveryNt::Abort }
 
@@ -410,18 +410,18 @@ impl<'a, T> LRParser<'a, T> {
                         if let Some((t, s, span)) = stream.next() {
                             *stream_pos = Some(span.first_forced());
                             // accumulates the position of the dropped token
-                            err_span += &stream_span;
+                            err_span += stream_span;
                             *stream_span = span;
                             // we can't say which interception to use, so we call both
-                            let t1 = wrapper.intercept_token(t, &s, &stream_span);
-                            let t2 = wrapper.hook(t1, s.as_str(), &stream_span);
+                            let t1 = wrapper.intercept_token(t, &s, stream_span);
+                            let t2 = wrapper.hook(t1, s.as_str(), stream_span);
                             break (t2, s);
                         } else {
                             *stream_pos = None;
                             if let Some((_t, s, _span)) = stream.next() {
                                 // an error code after the end means an unrecognized sequence: we may try to continue,
                                 // but we don't count the max lexical errors here for the sake of simplicity
-                                wrapper.report(Some(&stream_span), LogMsg::Error(format!("lexical error: {s}")));
+                                wrapper.report(Some(stream_span), LogMsg::Error(format!("lexical error: {s}")));
                                 continue;
                             } else {
                                 // end of stream

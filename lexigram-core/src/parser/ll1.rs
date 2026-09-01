@@ -210,7 +210,7 @@ impl<'a> LLParser<'a> {
                     if !recover_mode && alt_id >= error_skip_alt_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
-                            .map(|t| format!("{}", if t < end_var_id { Symbol::T(t).to_str_quote(sym_table) } else { "<EOF>".to_string() }))
+                            .map(|t| if t < end_var_id { Symbol::T(t).to_str_quote(sym_table) } else { "<EOF>".to_string() })
                             .collect::<Vec<_>>().join(", ");
                         let msg = format!(
                             "syntax error: found {} instead of {expected} while parsing {}{}",

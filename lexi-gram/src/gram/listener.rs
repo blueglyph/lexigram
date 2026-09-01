@@ -267,7 +267,7 @@ impl GramParserListener for GramListener<'_> {
     fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
         if let Some(span) = span_opt {
             if let Some(msg_text) = msg.get_inner_str_mut() {
-                let text = self.annotate(&span);
+                let text = self.annotate(span);
                 *msg_text = format!("{msg_text}\n\n{text}\n");
             }
         }

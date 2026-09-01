@@ -34,7 +34,7 @@ pub fn prule_to_macro(prule: &ProdRule) -> String {
     format!("prule!({})", prule.iter().map(|alt| alt.to_macro_item()).join("; "))
 }
 
-pub fn calc_alt_first(alt: &Alternative, first: &Vec<HashSet<Symbol>>) -> HashSet<Symbol> {
+pub fn calc_alt_first(alt: &Alternative, first: &[HashSet<Symbol>]) -> HashSet<Symbol> {
     let mut new = HashSet::<Symbol>::new();
     match &alt.v[0] {
         t @ Symbol::T(_) => { new.insert(*t); }
@@ -1361,7 +1361,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             groups[top_parent as usize].push(var);
             let var_flags = prules.flags[var as usize];
             if !tree.is_empty() {
-                let root = tree.get_root().expect(&format!("tree {var} has no root"));
+                let root = tree.get_root().unwrap_or_else(|| panic!("tree {var} has no root"));
                 let root_sym = tree.get(root);
                 let mut prule = match root_sym {
                     GrNode::Symbol(s) => {
@@ -1480,7 +1480,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             prules.flags[child_sep as usize] &= !ruleflag::CHILD_PLUS;
             for &child_parent in groups[top_parent as usize].iter().filter(|v| **v != child_sep) {
                 for (alt_id, a) in prules.prules[child_parent as usize].iter().index() {
-                    if a.iter().any(|s| *s == symb_child_sep) {
+                    if a.contains(&symb_child_sep) {
                         sep_nt_alt.push(SepNtAlt {
                             nt_parent: child_parent,
                             alt_id_parent: alt_id,

@@ -74,11 +74,11 @@ impl<T> ProdRuleSet<T> {
     }
 
     #[allow(unused)]
-    fn first_or_follow_to_str(&self, set: &Vec<HashSet<Symbol>>, prefix: &str) -> String {
+    fn first_or_follow_to_str(&self, set: &[HashSet<Symbol>], prefix: &str) -> String {
         let mut result = String::new();
-        for var in 0..self.num_nt {
+        for (var, items) in set.iter().enumerate().take(self.num_nt) {
             if !set[var].is_empty() {
-                let mut values = set[var].iter().to_vec();
+                let mut values = items.iter().to_vec();
                 values.sort();
                 result.push_str(&format!(
                     "{prefix}{} -> {}",
@@ -104,10 +104,10 @@ impl ProdRuleSet<LR> {
             self.num_nt += 1;
             self.parent.push(None);
             self.flags.push(0);
-            self.symbol_table.as_mut().map(|s| {
+            if let Some(s) = self.symbol_table.as_mut() {
                 let v = s.add_nonterminal("<goal>");
                 assert_eq!(v, self.num_nt as VarId - 1);
-            });
+            }
             self.original_start = Some(orig_start);
         }
     }
@@ -163,7 +163,7 @@ impl ProdRuleSet<LR> {
     }
 
     pub(crate) fn is_item_done(&self, item: &LRItem) -> bool {
-        item.pos as usize >= self.item_alt(&item).len()
+        item.pos as usize >= self.item_alt(item).len()
     }
 
     fn closure_lr0(&self, items: Vec<LRItem>) -> Vec<LRItem> {
@@ -172,7 +172,7 @@ impl ProdRuleSet<LR> {
             let n = set_items.len();
             let mut extra = HashSet::new();
             for item in &set_items {
-                if let Some(&Symbol::NT(nt)) = self.item_symbol(&item) {
+                if let Some(&Symbol::NT(nt)) = self.item_symbol(item) {
                     for (alt_id, alt) in self.prules[nt as usize].iter().enumerate() {
                         let pos = if alt.is_sym_empty() { 1 } else { 0 };
                         let new_item = item!(nt, alt_id as AltId, pos);
@@ -193,7 +193,7 @@ impl ProdRuleSet<LR> {
     fn goto_lr0(&self, items: &[LRItem], x: &Symbol) -> Vec<LRItem> {
         let mut s = vec![];
         for item in items {
-            if let Some(symbol) = self.item_symbol(&item) {
+            if let Some(symbol) = self.item_symbol(item) {
                 if symbol == x {
                     let mut new_item = item.clone();
                     new_item.pos += 1;
@@ -221,21 +221,21 @@ impl ProdRuleSet<LR> {
                     .collect::<BTreeSet<_>>();
                 if VERBOSE {
                     println!("| STATE {idx_state} ----------------------");
-                    println!("| items: {}", self.items_to_str(&state));
+                    println!("| items: {}", self.items_to_str(state));
                     println!("| -> symbols: {}", symbols.iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
                 }
                 for symbol in symbols {
                     let items = self.goto_lr0(state.as_slice(), symbol);
                     if !items.is_empty() {
                         if let Some(state_id) = set_states.get(&items) {
-                            gotos[idx_state].insert(symbol.clone(), *state_id);
+                            gotos[idx_state].insert(*symbol, *state_id);
                         } else {
                             let new_state_id = (states.len() + new_states.len()) as LRStateId;
                             if VERBOSE {
                                 println!("| -> GOTO(items, {}) = {} => STATE = {new_state_id}", symbol.to_str(self.get_symbol_table()), self.items_to_str(&items));
                             }
                             gotos.push(btreemap![]);
-                            gotos[idx_state].insert(symbol.clone(), new_state_id); // [from]: symbol => to
+                            gotos[idx_state].insert(*symbol, new_state_id); // [from]: symbol => to
                             reductions.extend(
                                 items.iter().index::<ItemId>()
                                     .filter_map(|(id, it)| if self.is_item_done(it) { Some((new_state_id, id)) } else { None }));
@@ -349,7 +349,7 @@ impl ProdRuleSet<LR> {
                 let mut alt_p = vec![];
                 let mut state = nts_p[nt_p as usize].0;
                 for symb in alt.iter().filter(|s| !s.is_empty()) {
-                    alt_p.push(state_symb_p[state as usize].get(symb).unwrap().clone());
+                    alt_p.push(*state_symb_p[state as usize].get(symb).unwrap());
                     state = *gotos[state as usize].get(symb).unwrap();
                 }
                 if alt_p.is_empty() {
@@ -377,7 +377,7 @@ impl ProdRuleSet<LR> {
             symtab_p.dump("");
         }
         let mut g_p = ProdRuleSet::<General> {
-            prules: prules,
+            prules,
             origin: Default::default(),
             num_nt: num_nt_p,
             num_t: ts_p.len(),
@@ -401,7 +401,7 @@ impl ProdRuleSet<LR> {
         for &(state, i_item) in &reductions {
             let item = &mut states[state as usize][i_item as usize];
             if VERBOSE { println!("reduction state {state}: {}", self.item_to_str(item)); }
-            let alt = self.item_alt(&item);
+            let alt = self.item_alt(item);
             for &nt_p in &nt_to_nt_p[item.nt as usize] {
                 let end_state = alt.iter()
                     .filter(|s| !s.is_empty())
@@ -724,7 +724,7 @@ impl LRParsingTable {
     /// [...]
     /// ```
     pub fn apply_terminal_hooks(&mut self, terminal_hooks: &[TokenId], log: &mut BufLog) {
-        log.add_note(format!("apply terminal hooks to parsing table"));
+        log.add_note("apply terminal hooks to parsing table".to_string());
         for &t in terminal_hooks {
             let tu = t as usize;
             // we only need to spot the states where a Shift or a Reduce action is performed

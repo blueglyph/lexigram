@@ -24,7 +24,7 @@ impl ParserGen {
     {
         rules.log.add_note("building parser gen from rules...");
         let name = rules.get_name()
-            .and_then(|n| Some(n.clone()))
+            .cloned()
             .unwrap_or_else(|| {
                 rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
                 "Test".to_string()

@@ -338,13 +338,13 @@ impl<'ls> LexiListener<'ls> {
                 String::new()
             };
             cols.push(vec![format!("  {rt:?}"),
-                           format!("{s}"),
-                           format!("{}", lit.as_ref().map(|s| format!("{s:?}")).unwrap_or_default()),
-                           format!("{mode}"),
-                           format!("{}", if let Some(b) = ret { if b { "Y" } else { "N" } } else { "" }),
+                           s.clone(),
+                           lit.as_ref().map(|s| format!("{s:?}")).unwrap_or_default(),
+                           mode,
+                           if let Some(b) = ret { if b { "Y".to_string() } else { "N".to_string() } } else { String::new() },
                            if let Some(sym) = sym_maybe { format!("{sym}") } else { String::new() },
                            // format!("{}", tree_to_string(t, None, true)),
-                           format!("{}", retree_to_str(t, None, None, false)),
+                           retree_to_str(t, None, None, false),
             ]);
         }
         lines.push("- definitions:".to_string());
@@ -639,7 +639,7 @@ impl LexiParserListener for LexiListener<'_> {
     fn handle_msg(&mut self, span_opt: Option<&PosSpan>, mut msg: LogMsg) {
         if let Some(span) = span_opt {
             if let Some(msg_text) = msg.get_inner_str_mut() {
-                let text = self.annotate(&span);
+                let text = self.annotate(span);
                 *msg_text = format!("{msg_text}\n\n{text}\n");
             }
         }

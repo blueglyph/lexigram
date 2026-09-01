@@ -30,7 +30,7 @@ impl ProdRuleSet<LL1> {
             return LL1ParsingTable::new();
         }
         if VERBOSE {
-            fn print_first_or_follow(title: &str, tbl: Option<&SymbolTable>, table: &Vec<HashSet<Symbol>>) {
+            fn print_first_or_follow(title: &str, tbl: Option<&SymbolTable>, table: &[HashSet<Symbol>]) {
                 let syms = table.iter().map(|hs| {
                     let mut f = hs.iter().cloned().to_vec();
                     f.sort();

@@ -25,7 +25,7 @@ impl ParserGen {
     {
         rules.log.add_note("building parser gen from rules...");
         let name = rules.get_name()
-            .and_then(|n| Some(n.clone()))
+            .cloned()
             .unwrap_or_else(|| {
                 rules.log.add_error("The rules didn't specify a name for the parser, using Test as replacement");
                 "Test".to_string()
@@ -105,7 +105,7 @@ impl ParserGen {
             .map(|(_, is_last, actions)|
                 format!(
                     "    {}{}",
-                    actions.into_iter().map(|a| {
+                    actions.iter().map(|a| {
                         let (str, id) = match a {
                             LRAction::Error => ("LRE".to_string(), 0),
                             LRAction::Shift(s) => (format!("LRS({s})"), 1),
@@ -148,7 +148,7 @@ impl ParserGen {
                 .map(|(_, is_last, gotos)|
                     format!(
                         "    {}{}",
-                        gotos.into_iter().map(LRStateId::to_string).join(","),
+                        gotos.iter().map(LRStateId::to_string).join(","),
                         if is_last { "];" } else { "," })));
         const ALT_CHUNK: usize = 25;
         assert!(!alt_nt_len.is_empty(), "alt_nt_len table is empty");
@@ -163,7 +163,7 @@ impl ParserGen {
         src.push(format!("static SYMBOLS_NT: [&str; {num_nt_table}] = ["));
         let mut it = self.symbol_table.get_nonterminals();
         src.extend(
-            (0..(self.symbol_table.get_num_nt() + NT_CHUNK - 1) / NT_CHUNK)
+            (0..self.symbol_table.get_num_nt().div_ceil(NT_CHUNK))
                 .flag_first_last()
                 .map(|(_, is_last, _)|
                     format!("    {}{}", (0..NT_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
@@ -247,7 +247,7 @@ impl<T> LRParserTables<T> {
         nt_value: Vec<bool>,
         log: Option<BufLog>
     ) -> Self {
-        let log = log.unwrap_or_else(|| BufLog::new());
+        let log = log.unwrap_or_default();
         LRParserTables { num_nt, num_t_full, action, goto, alt_nt_len, symbol_table, init_hook, log, state_symbol, nt_value, _phantom: PhantomData }
     }
 
@@ -272,15 +272,15 @@ impl<T> LRParserTables<T> {
 
 // ---------------------------------------------------------------------------------------------
 
-pub fn alts_to_alt_nt_len(alts: &Vec<(VarId, Alternative)>, symtable: &SymbolTable) -> Vec<(VarId, u16, u16)> {
-    alts.into_iter()
+pub fn alts_to_alt_nt_len(alts: &[(VarId, Alternative)], symtable: &SymbolTable) -> Vec<(VarId, u16, u16)> {
+    alts.iter()
         .enumerate()
         .map(|(i, (nt, alt))| (
             // nonterminal index:
             *nt,
             // number of symbols in production alternative:
             u16::try_from(if alt.is_sym_empty() { 0 } else { alt.len() })
-                .expect(&format!("alt[{i}] too long:\n{}", alt.to_str(Some(symtable)))),
+                .unwrap_or_else(|_| panic!("alt[{i}] too long:\n{}", alt.to_str(Some(symtable)))),
             // number of (variable) terminals containing data:
             alt.iter().filter(|s| symtable.is_symbol_t_data(s)).count() as u16
         ))

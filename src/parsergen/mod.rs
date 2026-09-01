@@ -609,7 +609,7 @@ impl ParserGen {
         if self.options.parser_type.is_lr() {
             self.opcodes = self.alts.iter()
                 .map(|(nt, Alternative { v, .. })| {
-                    let mut ops = v.iter().filter_map(|s| if !s.is_empty() { Some(OpCode::from(s.clone())) } else { None })
+                    let mut ops = v.iter().filter_map(|s| if !s.is_empty() { Some(OpCode::from(*s)) } else { None })
                         .rev()
                         .to_vec();
                     if self.flags[*nt as usize] & ruleflag::CHILD_REPEAT != 0 {
@@ -891,7 +891,7 @@ impl ParserGen {
             let var = explore.pop_front().unwrap();
             if VERBOSE { println!("{var}: alt = {} | explore = {} | alts: {}",
                                   alt.iter().join(", "), explore.iter().join(", "),
-                                  &self.var_alts[var as usize].iter().join(", ")); }
+                                  self.var_alts[var as usize].iter().join(", ")); }
             for a in &self.var_alts[var as usize] {
                 let (_, alter) = &self.alts[*a as usize];
                 if let Some(Symbol::NT(last)) = alter.symbols().last() {
@@ -1167,7 +1167,7 @@ impl ParserGen {
             let nt_top = self.get_top_parent(nt_child) as usize;
             for &nt_group in self.nt_parent[nt_top].iter().filter(|&nt| *nt != nt_child) {
                 for &alt_id in &self.var_alts[nt_group as usize] {
-                    if self.alts[alt_id as usize].1.iter().any(|s| *s == Symbol::NT(nt_child)) {
+                    if self.alts[alt_id as usize].1.contains(&Symbol::NT(nt_child)) {
                         if VERBOSE { println!("  - alt {alt_id}:"); }
                         let mut queue = VecDeque::<AltId>::from_iter([alt_id]);
                         let mut timeout = 10;
@@ -1249,12 +1249,12 @@ impl ParserGen {
         for SepNtInfo { alt_id_inst, nt_child, item_len } in sep_nt_info {
             if VERBOSE { println!("- sep_nt_info: alt_id_inst = {alt_id_inst}, nt_child = {nt_child}, item_len = {item_len} "); }
             // verifies the separator has no value
-            let item_len_span = SpanNbr::try_from(item_len).expect(&format!("item_len = {item_len}"));
+            let item_len_span = SpanNbr::try_from(item_len).unwrap_or_else(|_| panic!("item_len = {item_len}"));
             let c0_alt_id = self.var_alts[nt_child as usize][0];                                            // 2
             let alt_child0 = &self.alts[c0_alt_id as usize].1;
             let sep_len = alt_child0.len() - item_len - 1;                                                  // 5 - 3 - 1 = 1: [","]
             let sep_range = if is_lr { 1 .. sep_len + 1 } else { 0 .. sep_len };
-            let valuables = sep_range.map(|i| alt_child0[i]).filter(|s| self.sym_has_value(&s)).to_vec();
+            let valuables = sep_range.map(|i| alt_child0[i]).filter(|s| self.sym_has_value(s)).to_vec();
             if !valuables.is_empty() {
                 let alt_str = self.full_alt_str(c0_alt_id, None, false);
                 self.log.add_error(format!(
@@ -1491,7 +1491,7 @@ impl ParserGen {
                     // alt isn't empty (it's used as first loop iteration to collect the first item).
                     let is_last_alt = if owner_flags & ruleflag::CHILD_PLUS != 0 {
                         if is_lr {
-                            self.alts[alt_id as usize].1.get(0) != Some(&Symbol::NT(owner))
+                            self.alts[alt_id as usize].1.first() != Some(&Symbol::NT(owner))
                         } else {
                             alt_id == last_alt_id
                         }
@@ -1705,7 +1705,7 @@ impl ParserGen {
             src.push("#[derive(Clone, Copy, PartialEq, Debug)]".to_string());
             src.push("#[repr(u16)]".to_string());
             src.push("pub enum NTerm {".to_string());
-            let cols = self.symbol_table.get_nonterminals().into_iter().take(self.num_nt).index()
+            let cols = self.symbol_table.get_nonterminals().take(self.num_nt).index()
                 .map(|(t, s)| vec![
                     format!(
                         "    #[doc = \"`{s}`{}\"]",
@@ -1723,7 +1723,7 @@ impl ParserGen {
             src.push("    type Error = String;".to_string());
             src.push("    fn try_from(value: VarId) -> Result<Self, Self::Error> {".to_string());
             src.push("        match value {".to_string());
-            src.extend(self.symbol_table.get_nonterminals().into_iter().take(self.num_nt)
+            src.extend(self.symbol_table.get_nonterminals().take(self.num_nt)
                 .map(|s| format!("            _ if value == NTerm::{str} as VarId => Ok(NTerm::{str}),", str = s.to_camelcase()))
             );
             src.push(r#"            _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),"#.to_string());
@@ -1746,7 +1746,7 @@ impl ParserGen {
         src.push(format!("static SYMBOLS_T: [(&str, Option<&str>); {num_t_table}] = ["));
         let mut it = self.symbol_table.get_terminals();
         src.extend(
-            (0..(self.symbol_table.get_num_t() + T_CHUNK - 1) / T_CHUNK)
+            (0..self.symbol_table.get_num_t().div_ceil(T_CHUNK))
                 .flag_first_last()
                 .map(|(_, is_last, _)|
                     format!("    {}{}", (0..T_CHUNK).filter_map(|_| it.next()).map(|v| format!("{v:?}")).join(","), if is_last { "];" } else { "," })));
@@ -2031,7 +2031,7 @@ impl ParserGen {
         self.log.add_note("generating wrapper source...");
         self.options.used_libs.extend(PARSER_LIBS.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
         if self.options.has_lr_error_recovery() {
-            self.options.used_libs.extend(LR_ERROR_RECOVERY_LIB.into_iter().map(|s| format!("{}{s}", self.options.lib_crate)));
+            self.options.used_libs.extend(LR_ERROR_RECOVERY_LIB.iter().map(|s| format!("{}{s}", self.options.lib_crate)));
         }
 
         self.calc_type_info();
@@ -2396,7 +2396,7 @@ impl ParserGen {
             src.push("    fn nt(&self) -> VarId {".to_string());
             src.push("        match &self {".to_string());
             src.extend(syns.iter().map(|v| {
-                format!("            EnumSynValue::{}(_) => {v},", &self.nt_name[*v as usize].0)
+                format!("            EnumSynValue::{}(_) => {v},", self.nt_name[*v as usize].0)
             }));
             src.push("        }".to_string());
             src.push("    }".to_string());
@@ -2472,7 +2472,7 @@ impl ParserGen {
                     if is_plus {
                         let alts = self.var_alts[nt].iter().filter_map(|a| {
                             let alt_a = &self.alts[*a as usize].1;
-                            if alt_a.get(0) != Some(&sym_nt) {
+                            if alt_a.first() != Some(&sym_nt) {
                                 Some((*a, self.span_nbrs[*a as usize] - 1))
                             } else {
                                 None
@@ -2677,7 +2677,7 @@ impl ParserGen {
                 alt_id_name = var_fixer.get_unique_name(alt_id_name);
                 if has_value || has_span {
                     let match_ids = gathered_alt_ids.iter()
-                        .filter(|&id| self.alts[*id as usize].1.get(0) != Some(&Symbol::NT(nt as VarId)))
+                        .filter(|&id| self.alts[*id as usize].1.first() != Some(&Symbol::NT(nt as VarId)))
                         .to_vec();
                     if OPTIMIZE_IF_MATCH_ALT_ID && match_ids.len() > 1 {
                         let is_even = match_ids[0].is_multiple_of(2);
@@ -2804,7 +2804,7 @@ impl ParserGen {
                     src_wrapper_impl.extend(src_val);
                     let vec_name = if flags & ruleflag::SEP_LIST != 0 { "sep_list_acc" } else if is_plus { "plus_acc" } else { "star_acc" };
                     if let Some(lr_init_alt_ids) = lr_init_alt_ids_maybe { // has content only when has_value || has_span
-                        src_wrapper_impl.push(format!("{lr_init_alt_ids}"));
+                        src_wrapper_impl.push(lr_init_alt_ids);
                     }
                     if has_value {
                         src_wrapper_impl.push(format!("        let Some(EnumSynValue::{nu}(Syn{nu}({vec_name}))) = self.stack.last_mut() else {{"));
@@ -3357,7 +3357,7 @@ impl ParserGen {
             if indent.len() < depth {
                 indent.push((1..depth).map(|i| if i & 1 == 0 { "  " } else { ". " }).join(""));
             }
-            indented.push((*node, format!("{}{}", &indent[depth - 1], Symbol::NT(*node).to_str(self.get_symbol_table()))));
+            indented.push((*node, format!("{}{}", indent[depth - 1], Symbol::NT(*node).to_str(self.get_symbol_table()))));
         }
         indented
     }
@@ -3454,7 +3454,7 @@ impl ParserGen {
                     format!("| {}", ops.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!(
                         "| {}{}",
-                        &self.span_nbrs[a_id as usize],
+                        self.span_nbrs[a_id as usize],
                         if let Some(ispan) = self.span_nbrs_sep_list.get(&a_id) { format!(", {ispan}") } else { String::new() }),
                     format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
                 ]);

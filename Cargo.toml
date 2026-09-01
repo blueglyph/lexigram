@@ -48,7 +48,7 @@ default-members = [
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.85.1"
+rust-version = "1.87.0"
 authors = ["Redglyph"]
 categories = ["parsing"]
 keywords = ["parser", "lexer", "ll-parser", "parser-generator", "lexer-generator"]

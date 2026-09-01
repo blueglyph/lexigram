@@ -333,7 +333,7 @@ impl DfaBuilder {
                                                        inode.index, inode.num_children()));
                         }
                     }
-                    _ => panic!("{:?}: no way to compute firstpos/...", &*inode)
+                    _ => panic!("{:?}: no way to compute firstpos/...", *inode)
                 }
             }
             if let Some(nullable) = inode.op.is_nullable() {
@@ -434,7 +434,7 @@ impl DfaBuilder {
                         id_transitions.extend(set);
                         let cmp = segments.intersect(&symbols_part);
                         assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
-                        if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
+                        if VERBOSE { println!("  + {} to {}", cmp.common, id); }
                         for segment in cmp.common.into_iter() {
                             if let Some(ids) = trans.get_mut(&segment) {
                                 ids.insert(id);
@@ -599,7 +599,7 @@ impl DfaBuilder {
                 dfa.log.add_error(format!("DFA mode #{idx} has no initial state"));
             }
             for (st_from, mut map) in new_dfa.state_graph {
-                for (_, st_to) in map.iter_mut() {
+                for st_to in map.values_mut() {
                     *st_to += offset;
                 }
                 assert!(!dfa.state_graph.contains_key(&(st_from + offset)));
@@ -608,7 +608,7 @@ impl DfaBuilder {
             dfa.end_states.extend(new_dfa.end_states.into_iter().map(|(st, term)| (st + offset, term)));
         }
         if init_states.len() > 1 {
-            for (_, term) in dfa.end_states.iter_mut() {
+            for term in dfa.end_states.values_mut() {
                 term.mode_state = match term.mode {
                     ModeOption::None => None,
                     ModeOption::Mode(m) | ModeOption::Push(m) => {
@@ -771,7 +771,7 @@ impl<T> Dfa<T> {
         }
         self.end_states = end_states;
         for (id, mut trans) in std::mem::take(&mut self.state_graph) {
-            for (_, st) in trans.iter_mut() {
+            for st in trans.values_mut() {
                 *st = translate[st];
             }
             state_graph.insert(translate[&id], trans);
@@ -891,7 +891,7 @@ impl<T> Dfa<T> {
                 println!("st_to_group: {st_to_group:?}");
                 println!("groups: {groups:?}");
             }
-            for (_, new_st) in st_to_group.iter_mut() {
+            for new_st in st_to_group.values_mut() {
                 if *new_st > last_non_end_id {
                     *new_st -= delta;
                 }
