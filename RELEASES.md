@@ -1,3 +1,30 @@
+# 0.10.0
+
+* add bottom-up LALR parser generation and runtime code
+  * add `<resolve>` tag for resolution of shift-reduce conflicts using the same rules as top-down parsers for precedence and associativity
+  * add (optional) listener error recovery for bottom-up parsers
+* add "-t|--type <type>" parser option to the lexigram executable, where "<type>" is LL or LL1 for top-down (default), LALR or LALR1 for bottom-up 
+* allow fixed terminals to be written as strings in the grammar, provided they were declared in the lexicon. Example:
+  ```
+  // lexicon:
+  Comma                   : ',';
+  Lpar                    : '(';
+  Rpar                    : ')';
+  Def                     : 'def';
+  Id                      : [a-zA-Z][a-zA-Z_0-9]*;
+  […]
+
+  // grammar:
+  function:   'def' Id '(' fun_params ')' instruction;
+  fun_params: (Id / ',')+;
+  […]
+  ```
+* fix a number of issues
+
+### Compatibility-breaking changes
+
+* add explicit `(α / β)+` notation for token-separated items; e.g. `(Id / ",")+` for comma-separated IDs. If the notation isn't used, there is no automatic detection of token-separated lists any more.
+
 # 0.9.4
 
 * minor changes
