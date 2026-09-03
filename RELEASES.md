@@ -24,6 +24,7 @@
 ### Compatibility-breaking changes
 
 * add explicit `(α / β)+` notation for token-separated items; e.g. `(Id / ",")+` for comma-separated IDs. If the notation isn't used, there is no automatic detection of token-separated lists any more.
+* rename `star` field name to `plus` in the context types of `(α / β)+` and `(<L=i> α / β)+`, in order to keep the name consistent with the syntax. 
 
 # 0.9.4
 
