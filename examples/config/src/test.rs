@@ -6,11 +6,16 @@ use crate::parser::{ConfigParser, ConfigResult};
 
 #[test]
 fn test_run() {
+    const VERBOSE: bool = false;
+    let tests = vec![(SRC1, options_1::options()), (SRC2, options_2::options())];
     let mut p = ConfigParser::new();
-    for (i, src) in [SRC1, SRC2].into_iter().enumerate() {
-        println!("source #{i}");
+    for (i, (src, expected_options)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("source #{i}"); }
         match p.parse(src) {
-            Ok(ConfigResult { options, log }) => println!("{options:#?}\n\nlog:{log}"),
+            Ok(ConfigResult { options, log }) => {
+                if VERBOSE { println!("{options:#?}\n\nlog:{log}"); }
+                assert_eq!(options, expected_options);
+            },
             Err(log) => panic!("error\n{log}"),
         }
     }
@@ -37,25 +42,36 @@ options {
 }
 "#;
 
-// static LEXICON_FILENAME: &str = "src/watcher.lg";
-// static SOURCE_FILENAME: &str = "../watcher/src/lib.rs";
-// static LEXER_TAG: &str = "watcher_lexer";
-// static PARSER_TAG: &str = "watcher_parser";
-// const LEXER_INDENT: usize = 4;
-// const PARSER_INDENT: usize = 4;
-//
-// fn gen_source_watcher(action: Action) {
-//     let options = OptionsBuilder::new()
-//         .combined_spec(genspec!(filename: LEXICON_FILENAME))
-//         .lexer_code(gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
-//         .indent(LEXER_INDENT)
-//         // grammar is combined with lexicon, no need to define parser_spec
-//         .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
-//         .indent(PARSER_INDENT)
-//         .set_nt_value(NTValue::None)
-//         .span_params(true)
-//         .build()
-//         .expect("should have no error");
+pub mod options_1 {
+    use lexi_gram::{gencode, genspec};
+    use lexi_gram::lexigram_lib::parsergen::NTValue;
+    use lexi_gram::options::{Options, OptionsBuilder};
+
+    static LEXICON_FILENAME: &str = "src/watcher.lg";
+    static SOURCE_FILENAME: &str = "../watcher/src/lib.rs";
+    static LEXER_TAG: &str = "watcher_lexer";
+    static PARSER_TAG: &str = "watcher_parser";
+    const LEXER_INDENT: usize = 4;
+    const PARSER_INDENT: usize = 4;
+
+    pub fn options() -> Options {
+        OptionsBuilder::new()
+            .combined_spec(genspec!(filename: LEXICON_FILENAME))
+            .lexer_code(gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
+            .indent(LEXER_INDENT)
+            // grammar is combined with lexicon, no need to define parser_spec
+            .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
+            .indent(PARSER_INDENT)
+            .set_nt_value(NTValue::SetNames(vec![
+                "<default>".to_string(),
+                "-lexer".to_string(),
+                "-parser".to_string(),
+                "options".to_string()]))
+            .span_params(true)
+            .build()
+            .expect("should have no error")
+    }
+}
 
 // ---------------------------------------------------------
 static SRC2: &str = r#"
@@ -78,33 +94,29 @@ options {
 }
 "#;
 
-// static LEXICON_FILENAME: &str = "src/microcalc.l";
-// static GRAMMAR_FILENAME: &str = "src/microcalc.g";
-// static LEXICON_GRAMMAR_FILENAME: &str = "src/microcalc.lg";
-// static SOURCE_FILENAME: &str = "../microcalc/src/main.rs";
-// static LEXER_TAG: &str = "microcalc_lexer";
-// static PARSER_TAG: &str = "microcalc_parser";
-// const LEXER_INDENT: usize = 4;
-// const PARSER_INDENT: usize = 4;
-//
-// fn gen_source_microcalc_l_g(action: Action) {
-//     let options = OptionsBuilder::new()
-//         .lexer(genspec!(filename: LEXICON_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
-//         .indent(LEXER_INDENT)
-//         .parser(genspec!(filename: GRAMMAR_FILENAME), gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
-//         .indent(PARSER_INDENT)
-//         .extra_libs(["super::listener_types::*"])
-//         .build()
-//         .expect("should have no error");
-//     match try_gen_parser(action, options) {
-//         Ok(log) => {
-//             if action == Action::Generate {
-//                 println!("Code generated in {SOURCE_FILENAME}\n{log}");
-//             }
-//             assert!(log.has_no_warnings(), "unexpected warning(s):\n{}", log.get_warnings().join("\n"));
-//         }
-//         Err(build_error) => panic!("{build_error}"),
-//     }
-// }
+mod options_2 {
+    use lexi_gram::{gencode, genspec};
+    use lexi_gram::options::{Options, OptionsBuilder};
 
+    // static LEXICON_FILENAME: &str = "src/microcalc.l";
+    // static GRAMMAR_FILENAME: &str = "src/microcalc.g";
+    static LEXICON_GRAMMAR_FILENAME: &str = "src/microcalc.lg";
+    static SOURCE_FILENAME: &str = "../microcalc/src/main.rs";
+    static LEXER_TAG: &str = "microcalc_lexer";
+    static PARSER_TAG: &str = "microcalc_parser";
+    const LEXER_INDENT: usize = 4;
+    const PARSER_INDENT: usize = 4;
+
+    pub fn options() -> Options {
+        OptionsBuilder::new()
+            .combined_spec(genspec!(filename: LEXICON_GRAMMAR_FILENAME))
+            .lexer_code(gencode!(filename: SOURCE_FILENAME, tag: LEXER_TAG))
+            .indent(LEXER_INDENT)
+            .parser_code(gencode!(filename: SOURCE_FILENAME, tag: PARSER_TAG))
+            .indent(PARSER_INDENT)
+            .libs(["super::listener_types::*"])
+            .build()
+            .expect("should have no error")
+    }
+}
 // ---------------------------------------------------------
