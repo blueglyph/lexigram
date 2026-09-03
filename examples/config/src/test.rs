@@ -2,21 +2,50 @@
 
 #![cfg(test)]
 
-use crate::parser::{ConfigParser, ConfigResult};
+use lexi_gram::lexigram_lib::log::BufLog;
+use lexi_gram::lexigram_lib::parsergen::ParserType;
+use crate::ConfigResult;
+use crate::parser_ll1::ConfigLL1Parser;
+use crate::parser_lalr::ConfigLALRParser;
+
+// abstract type for several parser types
+enum TestParser<'l, 'p, 'ls> {
+    LL1(ConfigLL1Parser<'l, 'p, 'ls>),
+    LALR(ConfigLALRParser<'l, 'p, 'ls>)
+}
+
+impl<'l, 'p, 'ls: 'l> TestParser<'l, 'p, 'ls> {
+    fn new(parser_type: ParserType) -> Self {
+        match parser_type {
+            ParserType::LL1 => TestParser::LL1(ConfigLL1Parser::new()),
+            ParserType::LALR => TestParser::LALR(ConfigLALRParser::new()),
+        }
+    }
+
+    pub fn parse(&mut self, text: &'ls str) -> Result<ConfigResult, BufLog> {
+        match self {
+            TestParser::LL1(ll1) => ll1.parse(text),
+            TestParser::LALR(lalr) => lalr.parse(text),
+        }
+    }
+}
 
 #[test]
 fn test_run() {
-    const VERBOSE: bool = false;
-    let tests = vec![(SRC1, options_1::options()), (SRC2, options_2::options())];
-    let mut p = ConfigParser::new();
-    for (i, (src, expected_options)) in tests.into_iter().enumerate() {
-        if VERBOSE { println!("source #{i}"); }
-        match p.parse(src) {
-            Ok(ConfigResult { options, log }) => {
-                if VERBOSE { println!("{options:#?}\n\nlog:{log}"); }
-                assert_eq!(options, expected_options);
-            },
-            Err(log) => panic!("error\n{log}"),
+    const VERBOSE: bool = true;
+    for parser_type in [ParserType::LL1, ParserType::LALR] {
+        if VERBOSE { println!("{:=<80}\nparser {parser_type:?}", "") }
+        let tests = vec![(SRC1, options_1::options()), (SRC2, options_2::options())];
+        let mut p = TestParser::new(parser_type);
+        for (i, (src, expected_options)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("source #{i}"); }
+            match p.parse(src) {
+                Ok(ConfigResult { options, log }) => {
+                    if VERBOSE { println!("{options:#?}\n\nlog:{log}"); }
+                    assert_eq!(options, expected_options);
+                }
+                Err(log) => panic!("error\n{log}"),
+            }
         }
     }
 }
@@ -43,9 +72,9 @@ options {
 "#;
 
 pub mod options_1 {
-    use lexi_gram::{gencode, genspec};
     use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{Options, OptionsBuilder};
+    use lexi_gram::{gencode, genspec};
 
     static LEXICON_FILENAME: &str = "src/watcher.lg";
     static SOURCE_FILENAME: &str = "../watcher/src/lib.rs";
@@ -95,8 +124,8 @@ options {
 "#;
 
 mod options_2 {
-    use lexi_gram::{gencode, genspec};
     use lexi_gram::options::{Options, OptionsBuilder};
+    use lexi_gram::{gencode, genspec};
 
     // static LEXICON_FILENAME: &str = "src/microcalc.l";
     // static GRAMMAR_FILENAME: &str = "src/microcalc.g";

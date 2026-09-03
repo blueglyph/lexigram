@@ -1,37 +1,31 @@
 // Copyright (c) 2026 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::io::Cursor;
-use lexi_gram::lexigram_lib::lexigram_core;
-use listener_types::*;
+use crate::ConfigResult;
 use config_lexer::build_lexer;
 use config_parser::*;
-use lexi_gram::options::Options;
-use listener::Listener;
+use lexi_gram::lexigram_lib::lexigram_core;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::ll1::LLParser;
+use listener::Listener;
+use listener_types::*;
+use std::io::Cursor;
 
 const VERBOSE_WRAPPER: bool = false;
 
-pub struct ConfigParser<'l, 'p, 'ls> {
+pub struct ConfigLALRParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
     parser: LLParser<'p>,
     wrapper: Option<Wrapper<Listener<'ls>>>,
 }
 
-#[derive(Clone, Debug)]
-pub struct ConfigResult {
-    pub options: Options,
-    pub log: BufLog,
-}
-
-impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
+impl<'l, 'ls: 'l> ConfigLALRParser<'l, '_, 'ls> {
     /// Creates a new parser
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        ConfigParser { lexer, parser, wrapper: None }
+        ConfigLALRParser { lexer, parser, wrapper: None }
     }
 
     /// Parses a text.
@@ -60,16 +54,16 @@ impl<'l, 'ls: 'l> ConfigParser<'l, '_, 'ls> {
 }
 
 mod listener {
-    use std::collections::HashMap;
-    use std::str::FromStr;
-    use lexi_gram::{gencode, genspec};
+    use super::*;
     use lexi_gram::lexigram_lib::CollectJoin;
     use lexi_gram::lexigram_lib::lexigram_core::text_span::{GetLine, GetTextSpan};
     use lexi_gram::lexigram_lib::parsergen::NTValue;
     use lexi_gram::options::{Options, Specification};
+    use lexi_gram::{gencode, genspec};
     use lexigram_core::lexer::PosSpan;
     use lexigram_core::log::Logger;
-    use super::*;
+    use std::collections::HashMap;
+    use std::str::FromStr;
 
     pub(super) struct Listener<'ls> {
         pub options: Options,
@@ -634,10 +628,10 @@ mod config_lexer {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
+    use lexigram_core::lexer::{ActionOption, LexStateId, Lexer, ModeOption, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
     use std::collections::HashMap;
     use std::io::Read;
-    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
-    use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 39;
     const INITIAL_STATE: LexStateId = 0;
@@ -904,8 +898,8 @@ mod config_parser {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
     use super::listener_types::*;
+    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 29] = [
         ("Colon", Some(":")),("Comma", Some(",")),("Equal", Some("=")),("Lbracket", Some("{")),("LSbracket", Some("[")),("Rbracket", Some("}")),("RSbracket", Some("]")),("Semicolon", Some(";")),("Combined", Some("combined")),("Def", Some("def")),
