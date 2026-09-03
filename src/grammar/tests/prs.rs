@@ -257,7 +257,7 @@ fn prs_remove_recursion() {
         (603, vec![
             // e -> e "*" e | e "+" e | "!" e | Num
             r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
-            r#"e_1 -> <G> "*" e_4 e_1 | <G> "+" e_2 e_1 | ε"#,  // child_left_rec       // TODO: check if <G> necessary on * +
+            r#"e_1 -> <G> "*" e_4 e_1 | <G> "+" e_2 e_1 | ε"#,  // child_left_rec
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
             r#"e_4 -> "!" e | Num"#,                            // right_rec
