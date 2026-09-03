@@ -214,7 +214,7 @@ impl TestRules {
             605 => vec![r#"[TOKENS0] e ->   "!" e | e "*" e | e "+" e | Num;"#],
             // ----- right-associative op:
             606 => vec![r#"[TOKENS0] e ->     e "*" e |     e "+" e | <R> e "!" e | Num;"#],
-            607 => vec![r#"[TOKENS0] e ->     e "*" e | <R> e "!" e |     e "+" e | Num;"#],
+            607 => vec![r#"[TOKENS0] <resolve> e ->     e "*" e | <R> e "!" e |     e "+" e | Num;"#],
             608 => vec![r#"[TOKENS0] e -> <R> e "!" e |     e "*" e |     e "+" e | Num;"#],
             // ----- postfix op:
             609 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e | e "!"   | Num;"#],

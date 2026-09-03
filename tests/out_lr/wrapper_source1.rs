@@ -8,6 +8,261 @@
 
 // ================================================================================
 
+pub(crate) mod rules_607_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE(String);
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule 607 #1, start e]
+
+    use lexigram_lib::{AltId, TokenId, VarId, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Terminate, lr::WrapperLRErrorRecovery}};
+
+    static SYMBOLS_T: [(&str, Option<&str>); 4] = [
+        ("Mul", Some("*")),("Add", Some("+")),("Op", Some("!")),("Num", None)];
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `e -> e "*" e`
+        V1 { e: [SynE; 2] },
+        /// `e -> <R> e "!" e`
+        V2 { e: [SynE; 2] },
+        /// `e -> e "+" e`
+        V3 { e: [SynE; 2] },
+        /// `e -> Num`
+        V4 { num: String },
+    }
+
+    #[derive(Debug)]
+    pub enum EnumSynValue { E(SynE) }
+
+    impl EnumSynValue {
+        fn get_e(self) -> SynE {
+            let EnumSynValue::E(val) = self;
+            val
+        }
+        #[allow(unused)]
+        fn nt(&self) -> VarId {
+            match &self {
+                EnumSynValue::E(_) => 0,
+            }
+        }
+    }
+
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> Terminate { Terminate::None }
+        fn get_log_mut(&mut self) -> &mut impl Logger;
+        #[allow(unused_variables)]
+        fn handle_msg(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.get_log_mut().add(msg);
+        }
+        #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
+        #[allow(unused_variables)]
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
+        #[allow(unused_variables)]
+        fn exit(&mut self, e: SynE, span: PosSpan) {}
+        #[allow(unused_variables)]
+        fn abort(&mut self, terminate: Terminate) {}
+        fn exit_e(&mut self, ctx: CtxE, spans: Vec<PosSpan>) -> SynE;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<EnumSynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+        stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Exit => {
+                    match alt_id {
+                        0 |                                         // e -> e "*" e
+                        1 |                                         // e -> <R> e "!" e
+                        2 |                                         // e -> e "+" e
+                        3 => self.exit_e(alt_id),                   // e -> Num
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End(terminate) => {
+                    match terminate {
+                        Terminate::None => {
+                            let val = self.stack.pop().unwrap().get_e();
+                            let span = self.stack_span.pop().unwrap();
+                            self.listener.exit(val, span);
+                        }
+                        Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
+                    }
+                }
+                _ => panic!("unexpected call {call:?}, nt {nt}, alt_id {alt_id}")
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("{}", self.get_status().join("\n"));
+            }
+        }
+
+        fn check_abort_request(&self) -> Terminate {
+            self.listener.check_abort_request()
+        }
+
+        fn abort(&mut self) {
+            self.stack.clear();
+            self.stack_span.clear();
+            self.stack_t.clear();
+        }
+
+        fn get_log_mut(&mut self) -> &mut impl Logger {
+            self.listener.get_log_mut()
+        }
+
+        fn report(&mut self, span_opt: Option<&PosSpan>, msg: LogMsg) {
+            self.listener.handle_msg(span_opt, msg);
+        }
+
+        fn is_stack_empty(&self) -> bool {
+            self.stack.is_empty()
+        }
+
+        fn is_stack_t_empty(&self) -> bool {
+            self.stack_t.is_empty()
+        }
+
+        fn is_stack_span_empty(&self) -> bool {
+            self.stack_span.is_empty()
+        }
+
+        fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId {
+            self.listener.intercept_token(token, text, span)
+        }
+
+        fn get_status(&self) -> Vec<String> {
+            vec![
+                format!("> stack_t:    [{}]", self.stack_t.join(", ")),
+                format!("> stack:      [{}]", self.stack.iter().map(|it| format!("{it:?}")).collect::<Vec<_>>().join(", ")),
+                format!("> stack_span: [{}]", self.stack_span.iter().map(PosSpan::to_string).collect::<Vec<_>>().join(", ")),
+            ]
+        }
+
+        fn push_span(&mut self, span: PosSpan) {
+            self.stack_span.push(span);
+        }
+
+        fn pop_span(&mut self) -> PosSpan {
+            self.stack_span.pop().unwrap()
+        }
+    }
+
+    impl<T: TestListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit_e(&mut self, alt_id: AltId) {
+            let (n, ctx) = match alt_id {
+                0 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    (3, CtxE::V1 { e: [e_1, e_2] })
+                }
+                1 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    (3, CtxE::V2 { e: [e_1, e_2] })
+                }
+                2 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    (3, CtxE::V3 { e: [e_1, e_2] })
+                }
+                3 => {
+                    let num = self.stack_t.pop().unwrap();
+                    (1, CtxE::V4 { num })
+                }
+                _ => panic!("unexpected alt id {alt_id} in method exit_e")
+            };
+            let spans = self.stack_span.drain(self.stack_span.len() - n ..).collect::<Vec<_>>();
+            self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
+            let val = self.listener.exit_e(ctx, spans);
+            self.stack.push(EnumSynValue::E(val));
+        }
+    }
+
+    // [wrapper source for rule 607 #1, start e]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
 pub(crate) mod rules_903_1 {
     /// User-defined type for `program`
     #[derive(Debug, PartialEq)]
