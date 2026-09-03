@@ -628,10 +628,10 @@ mod config_lexer {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
-    use lexigram_core::lexer::{ActionOption, LexStateId, Lexer, ModeOption, Terminal};
-    use lexigram_core::segmap::{GroupId, Seg, SegMap};
     use std::collections::HashMap;
     use std::io::Read;
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 39;
     const INITIAL_STATE: LexStateId = 0;
@@ -898,8 +898,8 @@ mod config_parser {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
-    use super::listener_types::*;
     use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
+    use super::listener_types::*;
 
     static SYMBOLS_T: [(&str, Option<&str>); 29] = [
         ("Colon", Some(":")),("Comma", Some(",")),("Equal", Some("=")),("Lbracket", Some("{")),("LSbracket", Some("[")),("Rbracket", Some("}")),("RSbracket", Some("]")),("Semicolon", Some(";")),("Combined", Some("combined")),("Def", Some("def")),
