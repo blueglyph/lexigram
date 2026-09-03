@@ -3,8 +3,8 @@
 use lexi_gram::lexigram_lib::log::BufLog;
 use lexi_gram::options::Options;
 
-mod parser_ll1;
-mod parser_lalr;
+pub mod parser_ll1;
+pub mod parser_lalr;
 mod test;
 
 #[derive(Clone, Debug)]

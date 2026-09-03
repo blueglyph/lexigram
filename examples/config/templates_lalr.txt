@@ -59,6 +59,31 @@
             &mut self.log
         }
 
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, _err_span: &PosSpan) -> RecoveryNtValue {
+            let nterm = NTerm::from(nt);
+            last_dropped
+                .and_then(|value| if value.nt() == nt { Some(value) } else { None })
+                .or_else(||
+                    Some(match nterm {
+                        NTerm::IoOptions => EnumSynValue::IoOptions(SynIoOptions()),
+                        NTerm::IIoOpt => EnumSynValue::IIoOpt(SynIIoOpt()),
+                        NTerm::IoOption => EnumSynValue::IoOption(SynIoOption()),
+                        NTerm::TagOpt => EnumSynValue::TagOpt(SynTagOpt()),
+                        NTerm::GlobalOptions => EnumSynValue::GlobalOptions(SynGlobalOptions()),
+                        NTerm::IGlobalOpt => EnumSynValue::IGlobalOpt(SynIGlobalOpt()),
+                        NTerm::GlobalOption => EnumSynValue::GlobalOption(SynGlobalOption()),
+                        NTerm::Value => EnumSynValue::Value(SynValue()),
+                        NTerm::NtValue => EnumSynValue::NtValue(SynNtValue()),
+                        NTerm::IoOption1 => EnumSynValue::IoOption1(SynIoOption1()),
+                        NTerm::GlobalOption1 => EnumSynValue::GlobalOption1(SynGlobalOption1()),
+                        NTerm::GlobalOption2 => EnumSynValue::GlobalOption2(SynGlobalOption2()),
+                        NTerm::NtValue1 => EnumSynValue::NtValue1(SynNtValue1()),
+                        _ => panic!()
+                    }))
+                .map(|value| RecoveryNtValue::Value(value))
+                .unwrap_or_else(|| RecoveryNtValue::Abort)
+        }
+
         fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {
             // config -> definitions lexer parser options
             let CtxConfig::V1 = ctx;

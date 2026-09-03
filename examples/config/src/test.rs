@@ -32,7 +32,7 @@ impl<'l, 'p, 'ls: 'l> TestParser<'l, 'p, 'ls> {
 
 #[test]
 fn test_run() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for parser_type in [ParserType::LL1, ParserType::LALR] {
         if VERBOSE { println!("{:=<80}\nparser {parser_type:?}", "") }
         let tests = vec![(SRC1, options_1::options()), (SRC2, options_2::options())];

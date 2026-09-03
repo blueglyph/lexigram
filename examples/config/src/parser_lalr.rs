@@ -3,20 +3,20 @@
 use crate::ConfigResult;
 use config_lexer::build_lexer;
 use config_parser::*;
-use lexi_gram::lexigram_lib::lexigram_core;
+use lexi_gram::lexigram_lib::{lexigram_core, LALR};
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
-use lexigram_core::parser::ll1::LLParser;
 use listener::Listener;
 use listener_types::*;
 use std::io::Cursor;
+use lexi_gram::lexigram_lib::parser::lr::LRParser;
 
 const VERBOSE_WRAPPER: bool = false;
 
 pub struct ConfigLALRParser<'l, 'p, 'ls> {
     lexer: Lexer<'l, Cursor<&'l str>>,
-    parser: LLParser<'p>,
+    parser: LRParser<'p, LALR>,
     wrapper: Option<Wrapper<Listener<'ls>>>,
 }
 
@@ -628,10 +628,10 @@ mod config_lexer {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
-    use lexigram_core::lexer::{ActionOption, LexStateId, Lexer, ModeOption, Terminal};
-    use lexigram_core::segmap::{GroupId, Seg, SegMap};
     use std::collections::HashMap;
     use std::io::Read;
+    use lexigram_core::lexer::{ActionOption, Lexer, ModeOption, LexStateId, Terminal};
+    use lexigram_core::segmap::{GroupId, Seg, SegMap};
 
     const NBR_GROUPS: u32 = 39;
     const INITIAL_STATE: LexStateId = 0;
@@ -898,40 +898,270 @@ mod config_parser {
 
     use lexi_gram::lexigram_lib::lexigram_core;
 
+    use lexigram_core::{AltId, LALR, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, RecoveryNt, Symbol, Terminate, lr::{LRAction::{self, Accept as LRA, Error as LRE, Reduce as LRR, Shift as LRS}, LRParser, LRStateId, WrapperLRErrorRecovery}}};
     use super::listener_types::*;
-    use lexigram_core::{AltId, TokenId, VarId, fixed_sym_table::FixedSymTable, lexer::PosSpan, log::{LogMsg, Logger}, parser::{Call, ListenerWrapper, OpCode, Terminate, ll1::LLParser}};
 
     static SYMBOLS_T: [(&str, Option<&str>); 29] = [
         ("Colon", Some(":")),("Comma", Some(",")),("Equal", Some("=")),("Lbracket", Some("{")),("LSbracket", Some("[")),("Rbracket", Some("}")),("RSbracket", Some("]")),("Semicolon", Some(";")),("Combined", Some("combined")),("Def", Some("def")),
         ("Default", Some("default")),("Headers", Some("headers")),("Indent", Some("indent")),("Input", Some("input")),("Lexer", Some("lexer")),("Libs", Some("libs")),("None", Some("none")),("NTValue", Some("nt-value")),("Options", Some("options")),("Output", Some("output")),
         ("Parents", Some("parents")),("Parser", Some("parser")),("Set", Some("set")),("Spans", Some("spans")),("Stdout", Some("stdout")),("BoolLiteral", None),("Id", None),("NumLiteral", None),("StrLiteral", None)];
 
-    const PARSER_NUM_T: usize = 29;
-    const PARSER_NUM_NT: usize = 19;
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["config", "definitions", "i_def", "lexer", "parser", "options", "io_options", "i_io_opt", "io_option", "tag_opt", "global_options", "i_global_opt", "global_option", "value", "nt_value", "io_option_1", "global_option_1", "global_option_2", "nt_value_1"];
-    static ALT_VAR: [VarId; 44] = [0, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 9, 9, 10, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18];
-    static PARSING_TABLE: [AltId; 570] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 44, 44, 44, 44, 0, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 44, 44, 44, 44, 1, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 44, 44, 44, 44, 3, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 4, 44, 44, 44, 45, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 5, 44, 44, 44, 44, 44, 44, 44, 6, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 7, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 45, 44, 44, 9, 44, 44, 9, 9, 9, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 10, 44, 44, 44, 11, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 12, 44, 44, 16, 15, 13, 44, 44, 44, 44, 44, 14, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 18, 44, 44, 17, 18, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 44, 44, 19, 19, 44, 44, 19, 44, 19, 44, 44, 44, 44, 44, 19, 44, 44, 44, 44, 44, 44, 44, 20, 44, 44, 44, 21, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 44, 22, 23, 44, 44, 24, 44, 25, 44, 44, 44, 44, 44, 26, 44, 44, 44, 44, 44, 44, 44, 45, 44, 44, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 31, 27, 30, 28, 29, 44, 44, 45, 44, 44, 44, 45, 44, 44, 44, 44, 32, 44, 44, 44, 44, 44, 33, 44, 44, 44, 34, 44, 35, 44, 44, 44, 44, 44, 44, 44, 44, 36, 44, 44, 44, 37, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 38, 44, 44, 44, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 44, 44, 44, 41, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 42, 44, 44, 44, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44];
-    static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(4), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(7), OpCode::NT(13), OpCode::T(2), OpCode::T(26), OpCode::T(9)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(14)], &[OpCode::Exit(5), OpCode::T(5), OpCode::NT(6), OpCode::T(3), OpCode::T(21)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::T(5), OpCode::NT(10), OpCode::T(3), OpCode::T(18)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::NT(7), OpCode::NT(8)], &[OpCode::Loop(7), OpCode::Exit(10), OpCode::NT(8), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(8)], &[OpCode::Exit(13), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(13)], &[OpCode::Exit(14), OpCode::NT(9), OpCode::NT(13), OpCode::T(0), OpCode::T(19)], &[OpCode::Exit(15), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(5), OpCode::NT(15), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(6), OpCode::NT(13), OpCode::T(4)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::NT(11), OpCode::NT(12)], &[OpCode::Loop(11), OpCode::Exit(20), OpCode::NT(12), OpCode::T(1)], &[OpCode::Exit(21)], &[OpCode::Exit(22), OpCode::T(5), OpCode::NT(16), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(11)], &[OpCode::Exit(23), OpCode::NT(13), OpCode::T(0), OpCode::T(12)], &[OpCode::Exit(24), OpCode::T(5), OpCode::NT(17), OpCode::NT(13), OpCode::T(3), OpCode::T(0), OpCode::T(15)], &[OpCode::Exit(25), OpCode::NT(14), OpCode::T(0), OpCode::T(17)], &[OpCode::Exit(26), OpCode::NT(13), OpCode::T(0), OpCode::T(23)], &[OpCode::Exit(27), OpCode::T(25)], &[OpCode::Exit(28), OpCode::T(27)], &[OpCode::Exit(29), OpCode::T(28)], &[OpCode::Exit(30), OpCode::T(26)], &[OpCode::Exit(31), OpCode::T(24)], &[OpCode::Exit(32), OpCode::T(10)], &[OpCode::Exit(33), OpCode::T(16)], &[OpCode::Exit(34), OpCode::T(20)], &[OpCode::Exit(35), OpCode::T(5), OpCode::NT(18), OpCode::NT(13), OpCode::T(3), OpCode::T(22)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(37)], &[OpCode::Loop(16), OpCode::Exit(38), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(39)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(41)], &[OpCode::Loop(18), OpCode::Exit(42), OpCode::NT(13), OpCode::T(1)], &[OpCode::Exit(43)]];
-    static INIT_OPCODES: [OpCode; 2] = [OpCode::End, OpCode::NT(0)];
-    static START_SYMBOL: VarId = 0;
+    static NUM_NT: usize = 19;
+    static NUM_T_FULL: usize = 30;
+    static ACTION: [LRAction; 2940] = [
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(3),LRE,LRE,LRE,LRE,LRR(3),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(31),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(6),LRE,LRE,LRS(33),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(6),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(35),LRE,LRE,LRS(36),LRS(37),LRS(38),LRE,
+        LRE,LRE,LRE,LRE,LRS(39),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(43),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(8),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(35),LRE,LRE,LRS(36),LRS(37),LRS(38),LRE,LRE,LRE,LRE,LRE,LRS(39),LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(35),LRE,LRE,LRS(36),LRS(37),LRS(38),LRE,LRE,LRE,LRE,LRE,LRS(39),
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(57),LRS(58),LRE,LRE,LRS(59),LRE,LRS(60),LRE,LRE,LRE,LRE,LRE,LRS(61),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(18),LRE,LRE,LRS(17),LRR(18),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRR(18),LRE,LRE,LRS(17),
+        LRR(18),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(18),LRE,LRE,LRS(17),LRR(18),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(77),LRE,LRE,LRE,LRE,LRE,LRS(78),LRE,LRE,LRE,LRS(79),LRE,LRS(80),LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(57),LRS(58),LRE,LRE,LRS(59),LRE,LRS(60),LRE,LRE,LRE,LRE,LRE,LRS(61),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),
+        LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(48),LRS(49),LRS(50),LRS(51),LRS(52),LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRA,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(32),
+        LRE,LRE,LRE,LRE,LRR(1),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(3),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRS(34),LRE,LRE,LRE,LRE,LRE,LRE,LRS(5),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(6),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRS(7),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(45),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(8),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(9),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(10),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(46),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRS(11),LRE,LRE,LRE,LRR(9),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(11),LRE,LRE,LRE,LRR(11),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(12),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(0),LRE,LRE,LRE,LRS(14),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(4),LRE,
+        LRE,LRR(4),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(4),LRE,LRE,LRE,LRE,LRE,LRS(56),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(31),LRE,LRE,LRR(31),LRR(31),LRR(31),LRR(31),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(27),LRE,LRE,LRR(27),LRR(27),LRR(27),LRR(27),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(30),LRE,LRE,LRR(30),
+        LRR(30),LRR(30),LRR(30),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(28),LRE,LRE,LRR(28),LRR(28),LRR(28),LRR(28),LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(29),LRE,LRE,LRR(29),LRR(29),LRR(29),LRR(29),LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(65),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(15),LRE,LRE,LRE,LRR(15),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(10),LRE,LRE,LRE,LRR(10),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(5),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(5),LRS(71),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(18),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(72),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(19),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(20),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(73),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRS(21),LRE,LRE,LRE,LRR(19),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(21),LRE,LRE,LRE,
+        LRR(21),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(2),
+        LRE,LRE,LRE,LRE,LRR(2),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(12),LRE,LRE,LRE,LRR(12),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(37),LRE,LRE,LRE,LRR(37),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(22),LRE,LRE,LRE,LRS(75),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(13),LRE,LRE,LRE,LRR(13),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(14),LRE,LRE,LRE,LRR(14),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(23),LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(24),LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(7),LRE,LRE,LRE,LRE,LRE,LRE,LRS(84),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(16),LRE,LRE,LRE,LRR(16),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(23),LRE,LRE,LRE,LRR(23),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(32),LRE,LRE,LRE,LRR(32),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(33),LRE,LRE,LRE,
+        LRR(33),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(34),LRE,LRE,LRE,LRR(34),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(25),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(25),LRE,LRE,LRE,LRR(25),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(26),LRE,LRE,LRE,LRR(26),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(20),LRE,LRE,LRE,LRR(20),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(17),LRE,LRE,LRE,LRR(17),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(36),LRE,LRE,LRE,
+        LRR(36),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(39),LRE,LRE,LRE,LRR(39),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(26),LRE,LRE,LRE,LRS(90),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(41),LRE,LRE,LRE,LRR(41),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(27),LRE,LRE,LRE,LRS(91),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(22),LRE,LRE,LRE,LRR(22),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRR(24),LRE,LRE,LRE,LRR(24),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(43),LRE,LRE,LRE,
+        LRR(43),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRS(28),LRE,LRE,LRE,LRS(96),LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(38),LRE,LRE,LRE,LRR(38),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(40),LRE,LRE,LRE,LRR(40),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRR(35),LRE,LRE,LRE,LRR(35),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,
+        LRE,LRE,LRE,LRE,LRE,LRE,LRR(42),LRE,LRE,LRE,LRR(42),LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE,LRE];
+    static GOTO: [LRStateId; 551] = [
+        29,1,30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40,41,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,44,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,47,41,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,53,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,54,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,55,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,62,63,
+        64,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,66,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,67,
+        0,68,0,0,0,0,0,0,0,0,0,0,0,0,69,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,70,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,74,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,82,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,85,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,86,0,0,87,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,88,0,0,0,89,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,92,0,0,0,0,93,0,0,0,0,0,0,0,0,0,0,0,0,0,94,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,95,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,0,0,0,0,0];
+    static ALT_NT_LEN: [(VarId, u16, u16); 45] = [
+        (0, 4, 0),(1, 1, 0),(2, 6, 1),(2, 0, 0),(3, 4, 0),(4, 4, 0),(4, 0, 0),(5, 4, 0),(5, 0, 0),(6, 1, 0),(7, 3, 0),(7, 1, 0),(8, 4, 0),(8, 4, 0),(8, 4, 0),(8, 3, 0),(8, 5, 0),(9, 3, 0),(9, 0, 0),(10, 1, 0),(11, 3, 0),(11, 1, 0),(12, 5, 0),(12, 3, 0),(12, 5, 0),
+        (12, 3, 0),(12, 3, 0),(13, 1, 1),(13, 1, 1),(13, 1, 1),(13, 1, 1),(13, 1, 0),(14, 1, 0),(14, 1, 0),(14, 1, 0),(14, 4, 0),(15, 3, 0),(15, 1, 0),(16, 3, 0),(16, 1, 0),(17, 3, 0),(17, 1, 0),(18, 3, 0),(18, 1, 0),(19, 1, 0)];
+    static SYMBOLS_NT: [&str; 20] = [
+        "config","definitions","i_def","lexer","parser","options","io_options","i_io_opt","io_option","tag_opt","global_options","i_global_opt","global_option","value","nt_value","io_option_1","global_option_1","global_option_2","nt_value_1","<goal>"];
 
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum Term {
+        #[doc = "':'"]        Colon = 0,
+        #[doc = "','"]        Comma = 1,
+        #[doc = "'='"]        Equal = 2,
+        #[doc = "'{'"]        Lbracket = 3,
+        #[doc = "'['"]        LSbracket = 4,
+        #[doc = "'}'"]        Rbracket = 5,
+        #[doc = "']'"]        RSbracket = 6,
+        #[doc = "';'"]        Semicolon = 7,
+        #[doc = "'combined'"] Combined = 8,
+        #[doc = "'def'"]      Def = 9,
+        #[doc = "'default'"]  Default = 10,
+        #[doc = "'headers'"]  Headers = 11,
+        #[doc = "'indent'"]   Indent = 12,
+        #[doc = "'input'"]    Input = 13,
+        #[doc = "'lexer'"]    Lexer = 14,
+        #[doc = "'libs'"]     Libs = 15,
+        #[doc = "'none'"]     None = 16,
+        #[doc = "'nt-value'"] NTValue = 17,
+        #[doc = "'options'"]  Options = 18,
+        #[doc = "'output'"]   Output = 19,
+        #[doc = "'parents'"]  Parents = 20,
+        #[doc = "'parser'"]   Parser = 21,
+        #[doc = "'set'"]      Set = 22,
+        #[doc = "'spans'"]    Spans = 23,
+        #[doc = "'stdout'"]   Stdout = 24,
+        #[doc = "(variable)"] BoolLiteral = 25,
+        #[doc = "(variable)"] Id = 26,
+        #[doc = "(variable)"] NumLiteral = 27,
+        #[doc = "(variable)"] StrLiteral = 28,
+    }
 
-    pub fn build_parser() -> LLParser<'static> {{
-        let symbol_table = FixedSymTable::new(
-            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
-            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
-        );
-        LLParser::new(
-            PARSER_NUM_NT, PARSER_NUM_T + 1,
-            &ALT_VAR,
-            Vec::new(),
-            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            INIT_OPCODES.to_vec(),
-            &PARSING_TABLE,
-            symbol_table,
-            START_SYMBOL
+    // Unfortunately, Rust has no way to safely convert to enum constants...
+    impl From<TokenId> for Term {
+        fn from(value: TokenId) -> Self {
+            match value {
+                _ if value == Term::Colon as TokenId => Term::Colon,
+                _ if value == Term::Comma as TokenId => Term::Comma,
+                _ if value == Term::Equal as TokenId => Term::Equal,
+                _ if value == Term::Lbracket as TokenId => Term::Lbracket,
+                _ if value == Term::LSbracket as TokenId => Term::LSbracket,
+                _ if value == Term::Rbracket as TokenId => Term::Rbracket,
+                _ if value == Term::RSbracket as TokenId => Term::RSbracket,
+                _ if value == Term::Semicolon as TokenId => Term::Semicolon,
+                _ if value == Term::Combined as TokenId => Term::Combined,
+                _ if value == Term::Def as TokenId => Term::Def,
+                _ if value == Term::Default as TokenId => Term::Default,
+                _ if value == Term::Headers as TokenId => Term::Headers,
+                _ if value == Term::Indent as TokenId => Term::Indent,
+                _ if value == Term::Input as TokenId => Term::Input,
+                _ if value == Term::Lexer as TokenId => Term::Lexer,
+                _ if value == Term::Libs as TokenId => Term::Libs,
+                _ if value == Term::None as TokenId => Term::None,
+                _ if value == Term::NTValue as TokenId => Term::NTValue,
+                _ if value == Term::Options as TokenId => Term::Options,
+                _ if value == Term::Output as TokenId => Term::Output,
+                _ if value == Term::Parents as TokenId => Term::Parents,
+                _ if value == Term::Parser as TokenId => Term::Parser,
+                _ if value == Term::Set as TokenId => Term::Set,
+                _ if value == Term::Spans as TokenId => Term::Spans,
+                _ if value == Term::Stdout as TokenId => Term::Stdout,
+                _ if value == Term::BoolLiteral as TokenId => Term::BoolLiteral,
+                _ if value == Term::Id as TokenId => Term::Id,
+                _ if value == Term::NumLiteral as TokenId => Term::NumLiteral,
+                _ if value == Term::StrLiteral as TokenId => Term::StrLiteral,
+                _ => panic!("cannot convert terminal index #{value} to Term"),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, PartialEq, Debug)]
+    #[repr(u16)]
+    pub enum NTerm {
+        #[doc = "`config`"]                                   Config = 0,
+        #[doc = "`definitions`"]                              Definitions = 1,
+        #[doc = "`i_def`, parent: `definitions`"]             IDef = 2,
+        #[doc = "`lexer`"]                                    Lexer = 3,
+        #[doc = "`parser`"]                                   Parser = 4,
+        #[doc = "`options`"]                                  Options = 5,
+        #[doc = "`io_options`"]                               IoOptions = 6,
+        #[doc = "`i_io_opt`, parent: `io_options`"]           IIoOpt = 7,
+        #[doc = "`io_option`"]                                IoOption = 8,
+        #[doc = "`tag_opt`"]                                  TagOpt = 9,
+        #[doc = "`global_options`"]                           GlobalOptions = 10,
+        #[doc = "`i_global_opt`, parent: `global_options`"]   IGlobalOpt = 11,
+        #[doc = "`global_option`"]                            GlobalOption = 12,
+        #[doc = "`value`"]                                    Value = 13,
+        #[doc = "`nt_value`"]                                 NtValue = 14,
+        #[doc = "`io_option_1`, parent: `io_option`"]         IoOption1 = 15,
+        #[doc = "`global_option_1`, parent: `global_option`"] GlobalOption1 = 16,
+        #[doc = "`global_option_2`, parent: `global_option`"] GlobalOption2 = 17,
+        #[doc = "`nt_value_1`, parent: `nt_value`"]           NtValue1 = 18,
+    }
+
+    impl TryFrom<TokenId> for NTerm {
+        type Error = String;
+        fn try_from(value: VarId) -> Result<Self, Self::Error> {
+            match value {
+                _ if value == NTerm::Config as VarId => Ok(NTerm::Config),
+                _ if value == NTerm::Definitions as VarId => Ok(NTerm::Definitions),
+                _ if value == NTerm::IDef as VarId => Ok(NTerm::IDef),
+                _ if value == NTerm::Lexer as VarId => Ok(NTerm::Lexer),
+                _ if value == NTerm::Parser as VarId => Ok(NTerm::Parser),
+                _ if value == NTerm::Options as VarId => Ok(NTerm::Options),
+                _ if value == NTerm::IoOptions as VarId => Ok(NTerm::IoOptions),
+                _ if value == NTerm::IIoOpt as VarId => Ok(NTerm::IIoOpt),
+                _ if value == NTerm::IoOption as VarId => Ok(NTerm::IoOption),
+                _ if value == NTerm::TagOpt as VarId => Ok(NTerm::TagOpt),
+                _ if value == NTerm::GlobalOptions as VarId => Ok(NTerm::GlobalOptions),
+                _ if value == NTerm::IGlobalOpt as VarId => Ok(NTerm::IGlobalOpt),
+                _ if value == NTerm::GlobalOption as VarId => Ok(NTerm::GlobalOption),
+                _ if value == NTerm::Value as VarId => Ok(NTerm::Value),
+                _ if value == NTerm::NtValue as VarId => Ok(NTerm::NtValue),
+                _ if value == NTerm::IoOption1 as VarId => Ok(NTerm::IoOption1),
+                _ if value == NTerm::GlobalOption1 as VarId => Ok(NTerm::GlobalOption1),
+                _ if value == NTerm::GlobalOption2 as VarId => Ok(NTerm::GlobalOption2),
+                _ if value == NTerm::NtValue1 as VarId => Ok(NTerm::NtValue1),
+                _ => Err(format!("cannot convert nonterminal index #{value} to NTerm")),
+            }
+        }
+    }
+
+    pub fn get_term_name(t: TokenId) -> (&'static str, Option<&'static str>) {
+        SYMBOLS_T[t as usize]
+    }
+
+    static NT_VALUE: [bool; 20] = [
+        false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true];
+    static STATE_SYMBOL: [Symbol; 98] = [
+        Symbol::Empty,Symbol::NT(1),Symbol::NT(3),Symbol::T(3),Symbol::NT(4),Symbol::T(3),Symbol::T(2),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(1),Symbol::T(3),Symbol::NT(13),Symbol::T(3),Symbol::NT(13),Symbol::Empty,Symbol::T(4),Symbol::T(0),Symbol::T(0),Symbol::T(0),Symbol::T(1),Symbol::T(1),Symbol::T(3),Symbol::T(3),
+        Symbol::T(3),Symbol::T(1),Symbol::T(1),Symbol::T(1),Symbol::NT(0),Symbol::NT(2),Symbol::T(14),Symbol::T(9),Symbol::T(21),Symbol::T(26),Symbol::T(8),Symbol::T(11),Symbol::T(12),Symbol::T(13),Symbol::T(19),Symbol::NT(6),Symbol::NT(7),Symbol::NT(8),Symbol::T(18),Symbol::NT(5),Symbol::T(0),Symbol::T(5),Symbol::NT(6),Symbol::T(24),Symbol::T(25),
+        Symbol::T(26),Symbol::T(27),Symbol::T(28),Symbol::NT(13),Symbol::NT(13),Symbol::NT(8),Symbol::T(5),Symbol::T(11),Symbol::T(12),Symbol::T(15),Symbol::T(17),Symbol::T(23),Symbol::NT(10),Symbol::NT(11),Symbol::NT(12),Symbol::T(7),Symbol::NT(9),Symbol::NT(13),Symbol::NT(15),Symbol::NT(9),Symbol::NT(9),Symbol::T(0),Symbol::T(0),Symbol::T(5),Symbol::NT(13),
+        Symbol::T(5),Symbol::NT(13),Symbol::T(10),Symbol::T(16),Symbol::T(20),Symbol::T(22),Symbol::NT(14),Symbol::NT(13),Symbol::NT(12),Symbol::T(6),Symbol::NT(13),Symbol::NT(13),Symbol::NT(16),Symbol::NT(13),Symbol::NT(17),Symbol::T(5),Symbol::T(5),Symbol::NT(13),Symbol::NT(18),Symbol::NT(13),Symbol::NT(13),Symbol::T(5),Symbol::NT(13)];
+
+    pub fn build_parser() -> LRParser<'static, LALR> {
+        LRParser::new(
+            NUM_NT, NUM_T_FULL, &ACTION, &GOTO, &ALT_NT_LEN,
+            FixedSymTable::new(
+                SYMBOLS_T.into_iter().map(|(t, v)| (t.to_string(), v.map(|s| s.to_string()))).collect(),
+                SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+            ),
+            false,
+            &STATE_SYMBOL,
+            &NT_VALUE
         )
-    }}
+    }
 
     #[derive(Debug)]
     pub enum CtxConfig {
@@ -1062,7 +1292,7 @@ mod config_parser {
     pub struct SynConfig();
 
     #[derive(Debug)]
-    enum EnumSynValue { IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), IGlobalOpt(SynIGlobalOpt), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
+    pub enum EnumSynValue { IoOptions(SynIoOptions), IIoOpt(SynIIoOpt), IoOption(SynIoOption), TagOpt(SynTagOpt), GlobalOptions(SynGlobalOptions), IGlobalOpt(SynIGlobalOpt), GlobalOption(SynGlobalOption), Value(SynValue), NtValue(SynNtValue), IoOption1(SynIoOption1), GlobalOption1(SynGlobalOption1), GlobalOption2(SynGlobalOption2), NtValue1(SynNtValue1) }
 
     impl EnumSynValue {
         fn get_io_options(self) -> SynIoOptions {
@@ -1124,6 +1354,20 @@ mod config_parser {
         }
     }
 
+    /// Result returned by [TestListener::get_recovery_value].
+    ///
+    /// * [Abort](RecoveryNtValue::Abort): stops using the wrapper/listener
+    /// * [Skip](RecoveryNtValue::Skip): skips this nonterminal and tries to recover from a more global nonterminal
+    /// * [Value](RecoveryNtValue::Value): recovery nonterminal has been pushed, parsing resumes normally
+    pub enum RecoveryNtValue {
+        /// Aborts the wrapper/listener. Tries to recover the parser and continue to parse without calling the wrapper/listener any more.
+        Abort,
+        /// Skips the recovery at this level. Tries to recover from another nonterminal.
+        Skip,
+        /// The recovery nonterminal has been pushed. The parser can continue to parse the stream normally.
+        Value(EnumSynValue),
+    }
+
     pub trait ConfigListener {
         /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
@@ -1134,52 +1378,39 @@ mod config_parser {
             self.get_log_mut().add(msg);
         }
         #[allow(unused_variables)]
+        fn drop_nt_value(&mut self, value: &EnumSynValue) {}
+        #[allow(unused_variables)]
+        fn get_recovery_value(&mut self, nt: VarId, last_dropped: Option<EnumSynValue>, err_span: &PosSpan) -> RecoveryNtValue { RecoveryNtValue::Abort }
+        fn syntax_error_recovered(&mut self) {}
+        #[allow(unused_variables)]
         fn intercept_token(&mut self, token: TokenId, text: &str, span: &PosSpan) -> TokenId { token }
         #[allow(unused_variables)]
         fn exit(&mut self, span: PosSpan) {}
         #[allow(unused_variables)]
         fn abort(&mut self, terminate: Terminate) {}
-        fn init_config(&mut self) {}
         #[allow(unused_variables)]
         fn exit_config(&mut self, ctx: CtxConfig, spans: Vec<PosSpan>) {}
-        fn init_definitions(&mut self) {}
         #[allow(unused_variables)]
         fn exit_definitions(&mut self, ctx: CtxDefinitions, spans: Vec<PosSpan>) {}
         fn init_i_def(&mut self) {}
         #[allow(unused_variables)]
         fn exit_i_def(&mut self, ctx: CtxIDef, spans: Vec<PosSpan>) {}
         #[allow(unused_variables)]
-        fn exitloop_i_def(&mut self) {}
-        fn init_lexer(&mut self) {}
-        #[allow(unused_variables)]
         fn exit_lexer(&mut self, ctx: CtxLexer, spans: Vec<PosSpan>) {}
-        fn init_parser(&mut self) {}
         #[allow(unused_variables)]
         fn exit_parser(&mut self, ctx: CtxParser, spans: Vec<PosSpan>) {}
-        fn init_options(&mut self) {}
         #[allow(unused_variables)]
         fn exit_options(&mut self, ctx: CtxOptions, spans: Vec<PosSpan>) {}
-        fn init_io_options(&mut self) {}
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions;
         fn init_i_io_opt(&mut self) -> SynIIoOpt;
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>);
-        #[allow(unused_variables)]
-        fn exitloop_i_io_opt(&mut self, acc: &mut SynIIoOpt) {}
-        fn init_io_option(&mut self) {}
         fn exit_io_option(&mut self, ctx: CtxIoOption, spans: Vec<PosSpan>) -> SynIoOption;
-        fn init_tag_opt(&mut self) {}
         fn exit_tag_opt(&mut self, ctx: CtxTagOpt, spans: Vec<PosSpan>) -> SynTagOpt;
-        fn init_global_options(&mut self) {}
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions;
         fn init_i_global_opt(&mut self) -> SynIGlobalOpt;
         fn exit_i_global_opt(&mut self, acc: &mut SynIGlobalOpt, ctx: CtxIGlobalOpt, spans: Vec<PosSpan>);
-        #[allow(unused_variables)]
-        fn exitloop_i_global_opt(&mut self, acc: &mut SynIGlobalOpt) {}
-        fn init_global_option(&mut self) {}
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption;
-        fn init_value(&mut self) {}
         fn exit_value(&mut self, ctx: CtxValue, spans: Vec<PosSpan>) -> SynValue;
-        fn init_nt_value(&mut self) {}
         fn exit_nt_value(&mut self, ctx: CtxNtValue, spans: Vec<PosSpan>) -> SynNtValue;
     }
 
@@ -1190,6 +1421,7 @@ mod config_parser {
         max_stack: usize,
         stack_t: Vec<String>,
         stack_span: Vec<PosSpan>,
+        last_dropped_nt_value: Option<EnumSynValue>,
     }
 
     impl<T: ConfigListener> ListenerWrapper for Wrapper<T> {
@@ -1201,69 +1433,41 @@ mod config_parser {
                 self.stack_t.append(&mut t_data);
             }
             match call {
-                Call::Enter => {
-                    if matches!(nt, 2) {
-                        self.stack_span.push(PosSpan::empty());
-                    }
-                    match nt {
-                        0 => self.listener.init_config(),           // config
-                        1 => self.listener.init_definitions(),      // definitions
-                        2 => self.listener.init_i_def(),            // i_def
-                        3 => self.listener.init_lexer(),            // lexer
-                        4 => self.listener.init_parser(),           // parser
-                        5 => self.listener.init_options(),          // options
-                        6 => self.listener.init_io_options(),       // io_options
-                        7 => self.init_i_io_opt(),                  // i_io_opt
-                        8 => self.listener.init_io_option(),        // io_option
-                        15 => self.init_io_option1(),               // io_option_1
-                        9 => self.listener.init_tag_opt(),          // tag_opt
-                        10 => self.listener.init_global_options(),  // global_options
-                        11 => self.init_i_global_opt(),             // i_global_opt
-                        12 => self.listener.init_global_option(),   // global_option
-                        16 => self.init_global_option1(),           // global_option_1
-                        17 => self.init_global_option2(),           // global_option_2
-                        13 => self.listener.init_value(),           // value
-                        14 => self.listener.init_nt_value(),        // nt_value
-                        18 => self.init_nt_value1(),                // nt_value_1
-                        _ => panic!("unexpected enter nonterminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_config(),                    // config -> definitions lexer parser options
                         1 => self.exit_definitions(),               // definitions -> i_def
-                        2 => self.exit_i_def(),                     // i_def -> <L> "def" Id "=" value ";" i_def
-                        3 => self.listener.exitloop_i_def(),        // i_def -> <L> ε
+                        2 => self.exit_i_def(),                     // i_def -> <L> i_def "def" Id "=" value ";"
+                        3 => self.init_i_def(),                     // i_def -> <L> ε
                         4 => self.exit_lexer(),                     // lexer -> "lexer" "{" io_options "}"
                         5 |                                         // parser -> "parser" "{" io_options "}"
                         6 => self.exit_parser(alt_id),              // parser -> ε
                         7 |                                         // options -> "options" "{" global_options "}"
                         8 => self.exit_options(alt_id),             // options -> ε
-                        9 => self.exit_io_options(),                // io_options -> io_option i_io_opt
-                        10 => self.exit_i_io_opt(),                 // i_io_opt -> <L> "," io_option i_io_opt
-                        11 => self.exitloop_i_io_opt(),             // i_io_opt -> <L> ε
+                        9 => self.exit_io_options(),                // io_options -> i_io_opt
+                        10 => self.exit_i_io_opt(),                 // i_io_opt -> <L> i_io_opt "," io_option
+                        11 => self.init_i_io_opt(),                 // i_io_opt -> <L> io_option
                         12 |                                        // io_option -> "combined" ":" value tag_opt
                         13 |                                        // io_option -> "input" ":" value tag_opt
                         14 |                                        // io_option -> "output" ":" value tag_opt
                         15 |                                        // io_option -> "indent" ":" value
-                        16 => self.exit_io_option(alt_id),          // io_option -> "headers" ":" "{" value io_option_1 "}"
-                        36 => self.exit_io_option1(),               // io_option_1 -> "," value io_option_1
-                        37 => {}                                    // io_option_1 -> ε
+                        16 => self.exit_io_option(alt_id),          // io_option -> "headers" ":" "{" io_option_1 "}"
+                        36 => self.exit_io_option1(),               // io_option_1 -> io_option_1 "," value
+                        37 => self.init_io_option1(),               // io_option_1 -> value
                         17 |                                        // tag_opt -> "[" value "]"
                         18 => self.exit_tag_opt(alt_id),            // tag_opt -> ε
-                        19 => self.exit_global_options(),           // global_options -> global_option i_global_opt
-                        20 => self.exit_i_global_opt(),             // i_global_opt -> <L> "," global_option i_global_opt
-                        21 => self.exitloop_i_global_opt(),         // i_global_opt -> <L> ε
-                        22 |                                        // global_option -> "headers" ":" "{" value global_option_1 "}"
+                        19 => self.exit_global_options(),           // global_options -> i_global_opt
+                        20 => self.exit_i_global_opt(),             // i_global_opt -> <L> i_global_opt "," global_option
+                        21 => self.init_i_global_opt(),             // i_global_opt -> <L> global_option
+                        22 |                                        // global_option -> "headers" ":" "{" global_option_1 "}"
                         23 |                                        // global_option -> "indent" ":" value
-                        24 |                                        // global_option -> "libs" ":" "{" value global_option_2 "}"
+                        24 |                                        // global_option -> "libs" ":" "{" global_option_2 "}"
                         25 |                                        // global_option -> "nt-value" ":" nt_value
                         26 => self.exit_global_option(alt_id),      // global_option -> "spans" ":" value
-                        38 => self.exit_global_option1(),           // global_option_1 -> "," value global_option_1
-                        39 => {}                                    // global_option_1 -> ε
-                        40 => self.exit_global_option2(),           // global_option_2 -> "," value global_option_2
-                        41 => {}                                    // global_option_2 -> ε
+                        38 => self.exit_global_option1(),           // global_option_1 -> global_option_1 "," value
+                        39 => self.init_global_option1(),           // global_option_1 -> value
+                        40 => self.exit_global_option2(),           // global_option_2 -> global_option_2 "," value
+                        41 => self.init_global_option2(),           // global_option_2 -> value
                         27 |                                        // value -> BoolLiteral
                         28 |                                        // value -> NumLiteral
                         29 |                                        // value -> StrLiteral
@@ -1272,9 +1476,9 @@ mod config_parser {
                         32 |                                        // nt_value -> "default"
                         33 |                                        // nt_value -> "none"
                         34 |                                        // nt_value -> "parents"
-                        35 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" value nt_value_1 "}"
-                        42 => self.exit_nt_value1(),                // nt_value_1 -> "," value nt_value_1
-                        43 => {}                                    // nt_value_1 -> ε
+                        35 => self.exit_nt_value(alt_id),           // nt_value -> "set" "{" nt_value_1 "}"
+                        42 => self.exit_nt_value1(),                // nt_value_1 -> nt_value_1 "," value
+                        43 => self.init_nt_value1(),                // nt_value_1 -> value
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1287,6 +1491,7 @@ mod config_parser {
                         Terminate::Abort | Terminate::Conclude => self.listener.abort(terminate),
                     }
                 }
+                _ => panic!("unexpected call {call:?}, nt {nt}, alt_id {alt_id}")
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             if self.verbose {
@@ -1345,9 +1550,32 @@ mod config_parser {
         }
     }
 
+    impl<T: ConfigListener> WrapperLRErrorRecovery for Wrapper<T> {
+        fn pop_nt_value(&mut self) {
+            self.last_dropped_nt_value = self.stack.pop();
+            if self.verbose { println!("dropped {:?} value", self.last_dropped_nt_value.as_ref().unwrap()); }
+            self.listener.drop_nt_value(self.last_dropped_nt_value.as_ref().unwrap());
+        }
+
+        fn push_nt_recovery_value(&mut self, nt: VarId, err_span: &PosSpan) -> RecoveryNt {
+            match self.listener.get_recovery_value(nt, self.last_dropped_nt_value.take(), err_span) {
+                RecoveryNtValue::Abort => RecoveryNt::Abort,
+                RecoveryNtValue::Skip => RecoveryNt::Skip,
+                RecoveryNtValue::Value(val) => {
+                    self.stack.push(val);
+                    RecoveryNt::Done
+                }
+            }
+        }
+
+        fn syntax_error_recovered(&mut self) {
+            self.listener.syntax_error_recovered();
+        }
+    }
+
     impl<T: ConfigListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new(), stack_span: Vec::new(), last_dropped_nt_value: None }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1378,6 +1606,11 @@ mod config_parser {
             let spans = self.stack_span.drain(self.stack_span.len() - 1 ..).collect::<Vec<_>>();
             self.stack_span.push(spans.iter().fold(PosSpan::empty(), |acc, sp| acc + sp));
             self.listener.exit_definitions(ctx, spans);
+        }
+
+        fn init_i_def(&mut self) {
+            self.listener.init_i_def();
+            self.stack_span.push(PosSpan::empty());
         }
 
         fn exit_i_def(&mut self) {
@@ -1456,11 +1689,6 @@ mod config_parser {
             spans.drain(..2);
             let Some(EnumSynValue::IIoOpt(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i_io_opt(acc, ctx, spans);
-        }
-
-        fn exitloop_i_io_opt(&mut self) {
-            let EnumSynValue::IIoOpt(acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i_io_opt(acc);
         }
 
         fn exit_io_option(&mut self, alt_id: AltId) {
@@ -1557,11 +1785,6 @@ mod config_parser {
             spans.drain(..2);
             let Some(EnumSynValue::IGlobalOpt(acc)) = self.stack.last_mut() else { panic!() };
             self.listener.exit_i_global_opt(acc, ctx, spans);
-        }
-
-        fn exitloop_i_global_opt(&mut self) {
-            let EnumSynValue::IGlobalOpt(acc) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_i_global_opt(acc);
         }
 
         fn exit_global_option(&mut self, alt_id: AltId) {
