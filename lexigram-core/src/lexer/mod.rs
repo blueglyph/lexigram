@@ -402,7 +402,7 @@ impl LexerError {
 
 pub type LexerToken = (TokenId, ChannelId, String, PosSpan);
 
-/// Lexical analyzer (lexer) based on tables, which scans a `Read` source and produces tokens.
+/// Lexical analyser (lexer) based on tables, which scans a `Read` source and produces tokens.
 ///
 /// The tokens can be extracted one by one with [`get_token()`](Lexer::get_token) or from an
 /// iterator created by [`tokens()`](Lexer::tokens).
