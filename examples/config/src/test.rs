@@ -54,20 +54,22 @@ fn test_run() {
 // ---------------------------------------------------------
 static SRC1: &str = r#"
 def SOURCE_FILENAME = "../watcher/src/lib.rs";
+def INDENT = 4;
+def HAS_SPANS = true;
 
 lexer {
     combined: "src/watcher.lg",
     output: SOURCE_FILENAME ["watcher_lexer"],
-    indent: 4
+    indent: INDENT
 }
 parser {
     output: SOURCE_FILENAME ["watcher_parser"],
-    indent: 4
+    indent: INDENT
 }
 options {
     nt-value: set { "<default>", "-lexer", "-parser" },
     nt-value: set { "options" },
-    spans: true
+    spans: HAS_SPANS
 }
 "#;
 
