@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use iter_index::IndexerIterator;
 use lexigram_core::fixed_sym_table::{FixedSymTable, SymInfoTable};
-use lexigram_core::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_core::log::{BufLog, LogStatus, Logger};
 use lexigram_core::parser::lr::{LRAction, LRParser, LRStateId};
 use lexigram_core::{CollectJoin, VarId};
 use lexigram_core::alt::Alternative;
@@ -14,6 +14,7 @@ use crate::grammar::{ProdRuleSet, SepInfo};
 use crate::{SymbolTable, LALR, LR, SourceSpacer};
 use crate::parsergen::{ParserGen, ParserGenOptions, ParserType};
 use crate::adaptors::FlagLastIterator;
+use crate::grammar::lr::LRParsingTable;
 
 impl ParserGen {
     /// Creates a [ParserGen] from a set of LR production rules.
@@ -31,8 +32,11 @@ impl ParserGen {
                 "Test".to_string()
             });
         let mut lr_rules = ProdRuleSet::<LR>::build_from(rules);
-        assert_eq!(lr_rules.get_log().num_errors(), 0);
-        let parsing_table = lr_rules.make_parsing_table_lalr(true);
+        let parsing_table = if lr_rules.has_no_errors() {
+            lr_rules.make_parsing_table_lalr(true)
+        } else {
+            LRParsingTable::default()
+        };
         let num_nt = lr_rules.get_num_nt();
         let mut var_alts = vec![vec![]; num_nt];
         for (alt_id, (var_id, _)) in parsing_table.alts.iter().index() {
