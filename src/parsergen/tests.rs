@@ -304,6 +304,19 @@ pub(super) mod wrapper_source {
                     (ParserGen::build_lalr_from_rules_lr(lr), original_str)
                 }
             };
+            let err_msg = format!("test {test_id} TestRules({tr_id}) #{rule_iter} failed");
+            if !builder.has_no_errors() {
+                // so early, it won't be possible to continue the tests any further, so we cut short to the next test or we stop
+                if tests_all {
+                    num_errors += 1;
+                    if VERBOSE {
+                        println!("{err_msg}: couldn't make the ParserGen\n{}", builder.log);
+                    }
+                    continue;
+                } else {
+                    panic!("{err_msg}: couldn't make the ParserGen\n{}", builder.log);
+                }
+            }
             builder.set_gen_span_params(gen_span_params);
             builder.set_include_alts(true);
             builder.use_full_lib(true);
@@ -426,7 +439,6 @@ pub(super) mod wrapper_source {
             } else {
                 None
             };
-            let err_msg = format!("test {test_id} TestRules({tr_id}) #{rule_iter} failed");
             if tests_all {
                 if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {
                     num_errors += 1;
