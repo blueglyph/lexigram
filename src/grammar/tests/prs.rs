@@ -1490,8 +1490,8 @@ fn prs_grammar_notes() {
         (
             1007,
             vec![],
-            vec!["a has an illegal flag L-Form (only used with +, *, or right recursion)",
-                 "b has an illegal flag L-Form"],
+            vec!["a has an illegal L-Form flag, which can be used only with +, *, or LL(1) right recursion",
+                 "b has an illegal L-Form flag"],
         ),
         (
             1008,
@@ -1502,7 +1502,7 @@ fn prs_grammar_notes() {
         (
             1009,
             vec![],
-            vec!["e has an illegal flag L-Form"],
+            vec!["e has an illegal L-Form flag"],
         ),
         (
             581,
