@@ -3,14 +3,15 @@
 use crate::ConfigResult;
 use config_lexer::build_lexer;
 use config_parser::*;
-use lexi_gram::lexigram_lib::{lexigram_core, LALR};
+use lexi_gram::lexigram_lib::lexigram_core;
+use lexigram_core::LALR;
 use lexigram_core::char_reader::CharReader;
 use lexigram_core::lexer::{Lexer, TokenSpliterator};
 use lexigram_core::log::{BufLog, LogStatus, Logger};
 use listener::Listener;
 use listener_types::*;
 use std::io::Cursor;
-use lexi_gram::lexigram_lib::parser::lr::LRParser;
+use lexigram_core::parser::lr::LRParser;
 
 const VERBOSE_WRAPPER: bool = false;
 
@@ -29,11 +30,8 @@ impl<'l, 'ls: 'l> ConfigLALRParser<'l, '_, 'ls> {
     }
 
     /// Parses a text.
-    ///
-    /// On success, returns
-    /// * `log`, a `BufLog` object.
-    ///
-    /// On failure, returns the log with the error messages.
+    /// * On success, returns `log`, a `BufLog` object.
+    /// * On failure, returns the log with the error messages.
     pub fn parse(&mut self, text: &'ls str) -> Result<ConfigResult, BufLog> {
         self.wrapper = Some(Wrapper::new(Listener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
@@ -211,7 +209,7 @@ mod listener {
         }
 
         fn exit_io_options(&mut self, ctx: CtxIoOptions, spans: Vec<PosSpan>) -> SynIoOptions {
-            // io_options -> io_option (<L> "," io_option)*
+            // io_options -> (<L> io_option / ",")+
             let CtxIoOptions::V1 { plus } = ctx;
             plus
         }
@@ -221,7 +219,7 @@ mod listener {
         }
 
         fn exit_i_io_opt(&mut self, acc: &mut SynIIoOpt, ctx: CtxIIoOpt, spans: Vec<PosSpan>) {
-            // `<L> "," io_option` iteration in `io_options -> io_option ( ►► <L> "," io_option ◄◄ )*`
+            // `<L> io_option / ","` iteration in `io_options -> ( ►► <L> io_option / "," ◄◄ )+`
             let CtxIIoOpt::V1 { io_option } = ctx;
             if let Err(e) = acc.fold(io_option) {
                 self.log.add_error(format!("at {}, {e}", spans[0]));
@@ -296,7 +294,7 @@ mod listener {
                         SynIoOption::Error
                     }
                 }
-                // io_option -> "headers" ":" "{" value ("," value)* "}"
+                // io_option -> "headers" ":" "{" (value / ",")+ "}"
                 CtxIoOption::V5 { plus: SynIoOption1(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(headers) => SynIoOption::Headers(headers),
@@ -323,7 +321,7 @@ mod listener {
         }
 
         fn exit_global_options(&mut self, ctx: CtxGlobalOptions, spans: Vec<PosSpan>) -> SynGlobalOptions {
-            // global_options -> global_option (<L> "," global_option)*
+            // global_options -> (<L> global_option / ",")+
             let CtxGlobalOptions::V1 { plus } = ctx;
             plus
         }
@@ -342,7 +340,7 @@ mod listener {
 
         fn exit_global_option(&mut self, ctx: CtxGlobalOption, spans: Vec<PosSpan>) -> SynGlobalOption {
             match ctx {
-                // global_option -> "headers" ":" "{" value ("," value)* "}"
+                // global_option -> "headers" ":" "{" (value / ",")+ "}"
                 CtxGlobalOption::V1 { plus: SynGlobalOption1(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(headers) => SynGlobalOption::Headers(headers),
@@ -360,7 +358,7 @@ mod listener {
                         SynGlobalOption::Error
                     }
                 }
-                // global_option -> "libs" ":" "{" value ("," value)* "}"
+                // global_option -> "libs" ":" "{" (value / ",")+ "}"
                 CtxGlobalOption::V3 { plus: SynGlobalOption2(values) } => {
                     match self.values_to_strings(values, &spans[3]) {
                         Ok(libs) => SynGlobalOption::Libs(libs),
@@ -425,7 +423,7 @@ mod listener {
                 CtxNtValue::V2 => NTValue::None,
                 // nt_value -> "parents"
                 CtxNtValue::V3 => NTValue::Parents,
-                // nt_value -> "set" "{" value ("," value)* "}"
+                // nt_value -> "set" "{" (value / ",")+ "}"
                 CtxNtValue::V4 { plus: SynNtValue1(values) } => {
                     match self.values_to_strings(values, &spans[2]) {
                         Ok(names) => NTValue::SetNames(names),

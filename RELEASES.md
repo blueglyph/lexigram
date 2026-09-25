@@ -3,7 +3,7 @@
 * add bottom-up LALR parser generation and runtime code
   * add `<resolve>` tag for resolution of shift-reduce conflicts using the same rules as top-down parsers for precedence and associativity
   * add (optional) listener error recovery for bottom-up parsers
-* add "-t|--type <type>" parser option to the lexigram executable, where "<type>" is LL or LL1 for top-down (default), LALR or LALR1 for bottom-up 
+* add `-t|--type <type>` parser option to the lexigram executable, where `<type>` is LL or LL1 for top-down (default), LALR or LALR1 for bottom-up 
 * allow fixed terminals to be written as strings in the grammar, provided they were declared in the lexicon. Example:
   ```
   // lexicon:
