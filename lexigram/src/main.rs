@@ -11,12 +11,14 @@ use lexigram_lib::log::LogStatus;
 use crate::arg_opt::{parse_args, ArgOptions, HELP_MESSAGE};
 
 mod arg_opt;
+mod tests;
 
 // package name & version
 pub const BIN_PKG_NAME: &str = env!("CARGO_PKG_NAME");
 pub const BIN_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Error returned by [execute].
+#[derive(Debug)]
 pub enum ExeError {
     /// The "help" option was met; the [help message](HELP_MESSAGE) should be displayed.
     Help,

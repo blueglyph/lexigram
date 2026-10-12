@@ -416,7 +416,7 @@ mod test4 {
 
 mod failing_tests {
     use lexigram_lib::parsergen::{NTValue, ParserType};
-    use crate::options::{CodeLocation, ERR_COMBINED_SPEC_ALREADY_SET, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
+    use crate::options::{CodeLocation, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -739,7 +739,7 @@ mod failing_tests {
                     .lexer_code(gencode!(filename: "lexer.rs"))
                     .parser_code(gencode!(filename: "parser.rs"))
                     .build(),
-                ERR_COMBINED_SPEC_ALREADY_SET
+                ERR_COMBINED_SPEC_GIVEN_TOO_LATE
             ),
             (   // 26
                 OptionsBuilder::new()

@@ -16,9 +16,14 @@ pub static HELP_MESSAGE: &str = r##"lexigram is a lexer / parser generator.
 Usage:    lexigram [options]
 
 Main options. Please note:
-- The lexer options must be given before the parser options, and the parser options must
-  be given before the template options (types/listener).
-- Generating/verifying the parser is optional, but the lexer is mandatory.
+- The following options must be given in order: lexer, parser, and types / listener,
+  so 1) -lexicon and -lexer, 2) -grammar and -parser, 3) --types and --listener.
+- Generating/verifying the parser is optional, but the lexer is mandatory. The
+  types and listener templates are optional.
+
+  -x|--lexicon <location>   Location of the lexicon, where <location> is the same as for
+                            --lexer, exept "-" isn't valid.
+                            This option is mandatory.
 
   -l|--lexer <location>     Location of the generated lexer code, where <location> is
                                 <location> = <filename> | <filename> tag <tag> | -
@@ -37,17 +42,13 @@ Main options. Please note:
                                                             existing file "lexer.rs"
                             --lexer -                    -> code will be output to stdout
 
-  -x|--lexicon <location>   Location of the lexicon, where <location> is the same as for
-                            --lexer, exept "-" isn't valid.
-                            This option is mandatory.
+  -g|--grammar <location>   Location of the grammar, where <location> is the same as for
+                            --lexer, except "-" isn't valid. This option is mandatory if
+                            --parser is set.
 
   -p|--parser <location>    Location of the generated parser code, where <location> is the same
                             as for --lexer. If the --parser and --grammar options aren't
                             present, the parser code isn't generated.
-
-  -g|--grammar <location>   Location of the grammar, where <location> is the same as for
-                            --lexer, except "-" isn't valid. This option is mandatory if
-                            --parser is set.
 
   -c|--combined <location>  Location of the combined lexicon and grammar. Both must be
                             included in the same location, starting with the lexicon:
@@ -63,8 +64,10 @@ Main options. Please note:
   --types <location>        Location of the template for the user types.
   --listener <location>     Location of the template for the listener implementation.
 
-Secondary lexer / parser / template options. Those options can be set before -l/--lexer and -p/--parser
-if they apply to both, or after either of them if they only apply to the lexer or the parser:
+Secondary lexer / parser / template options. The position of these options is important:
+- Default values must be set before -x/--lexicon or -c/--combined.
+- Values that apply only to one part must be set just after --lexer, --parser, --types,
+  or --listener.
 
   --header <string>         Adds a header in front of the generated code. This option can
                             be used multiple times if several headers are required.

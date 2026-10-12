@@ -275,7 +275,6 @@ pub struct OptionsBuilder {
 pub(crate) static ERR_LEXER_SPEC_ALREADY_SET: &str = "lexer lexicon specification already set";
 pub(crate) static ERR_LEXER_CODE_ALREADY_SET: &str = "lexer code location already set";
 pub(crate) static ERR_COMBINED_SPEC_GIVEN_TOO_LATE: &str = "combined lexicon/grammar specification set after other lexer/parser options";
-pub(crate) static ERR_COMBINED_SPEC_ALREADY_SET: &str = "combined lexicon/grammar specification already set";
 pub(crate) static ERR_LEXER_AFTER_PARSER: &str = "lexer option set after parser options";
 pub(crate) static ERR_LEXER_AFTER_TEMPLATES: &str = "lexer option set after template options";
 pub(crate) static ERR_LEXER_SPEC_OR_CODE_ALREADY_SET: &str = "lexer code location and/or specification already set";
@@ -324,12 +323,10 @@ impl OptionsBuilder {
     pub fn combined_spec(&mut self, combined_spec: Specification) -> &mut Self {
         match self.state {
             BuilderState::Start => {
-                if !self.options.has_lexer_spec() {
-                    self.options.lexer_spec = combined_spec.clone();
-                    self.options.parser_spec = combined_spec;
-                } else {
-                    self.set_error("combined spec: ", ERR_COMBINED_SPEC_ALREADY_SET);
-                }
+                assert!(!self.options.has_lexer_spec());
+                self.options.lexer_spec = combined_spec.clone();
+                self.options.parser_spec = combined_spec;
+                self.state = BuilderState::Lexer;
             }
             BuilderState::Lexer | BuilderState::Parser | BuilderState::Types | BuilderState::Listener => {
                 self.set_error("combined spec: ", ERR_COMBINED_SPEC_GIVEN_TOO_LATE);
