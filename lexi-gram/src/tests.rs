@@ -416,7 +416,7 @@ mod test4 {
 
 mod failing_tests {
     use lexigram_lib::parsergen::{NTValue, ParserType};
-    use crate::options::{CodeLocation, ERR_COMBINED_SPEC_GIVEN_TOO_LATE};
+    use crate::options::{CodeLocation, ERR_COMBINED_SPEC_GIVEN_TOO_LATE, ERR_TEMPL_CODE_MUST_BE_LAST};
     use super::*;
 
     const TEST5_LEXICON_FILENAME: &str = "../build-rtsgen/src/rtsgen.l";
@@ -783,6 +783,42 @@ mod failing_tests {
                     .parser(genspec!(string: "grammar"), gencode!(filename: "parser.rs"))
                     .build(),
                 ERR_PARSER_SPEC_OR_CODE_ALREADY_SET
+            ),
+            (   // 31
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .types_code(gencode!(filename: "types.rs"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_TEMPL_CODE_MUST_BE_LAST
+            ),
+            (   // 32
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .types_code(gencode!(filename: "types.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_TEMPL_CODE_MUST_BE_LAST
+            ),
+            (   // 33
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .listener_code(gencode!(filename: "types.rs"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_TEMPL_CODE_MUST_BE_LAST
+            ),
+            (   // 34
+                OptionsBuilder::new()
+                    .combined_spec(genspec!(string: "lexicon+grammar"))
+                    .lexer_code(gencode!(filename: "lexer.rs"))
+                    .listener_code(gencode!(filename: "types.rs"))
+                    .parser_code(gencode!(filename: "parser.rs"))
+                    .build(),
+                ERR_TEMPL_CODE_MUST_BE_LAST
             ),
         ];
         for (id, (result, expected_message)) in tests.into_iter().enumerate() {

@@ -288,7 +288,7 @@ pub(crate) static ERR_MISSING_PARSER_OPTION: &str = "parser is missing option(s)
 pub(crate) static ERR_MISSING_PARSER_CODE: &str = "parser code isn't set yet";
 pub(crate) static ERR_TYPES_CODE_ALREADY_SET: &str = "location of template code for types already set";
 pub(crate) static ERR_LISTENER_CODE_ALREADY_SET: &str = "location of template code for listener implementation already set";
-
+pub(crate) static ERR_TEMPL_CODE_MUST_BE_LAST: &str = "location of template code for types and listener must come after the parser options";
 
 impl OptionsBuilder {
     /// Creates a builder for [Options]
@@ -471,8 +471,10 @@ impl OptionsBuilder {
     /// Sets the location the generated template for the user types (default is none)
     pub fn types_code(&mut self, types_code: CodeLocation) -> &mut Self {
         match self.state {
-            BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
-            | BuilderState::Types | BuilderState::Listener => {
+            BuilderState::Start | BuilderState::Lexer => {
+                self.set_error("types code: ", ERR_TEMPL_CODE_MUST_BE_LAST);
+            }
+            BuilderState::Parser | BuilderState::Types | BuilderState::Listener => {
                 if !self.options.has_parser_code() {
                     self.set_error("types code: ", ERR_MISSING_PARSER_CODE);
                 } else if !self.options.has_types_code() {
@@ -490,8 +492,10 @@ impl OptionsBuilder {
     /// Sets the location the generated template for the listener implementation (default is none)
     pub fn listener_code(&mut self, listener_code: CodeLocation) -> &mut Self {
         match self.state {
-            BuilderState::Start | BuilderState::Lexer | BuilderState::Parser
-            | BuilderState::Types | BuilderState::Listener => {
+            BuilderState::Start | BuilderState::Lexer => {
+                self.set_error("listener code: ", ERR_TEMPL_CODE_MUST_BE_LAST);
+            }
+            BuilderState::Parser | BuilderState::Types | BuilderState::Listener => {
                 if !self.options.has_parser_code() {
                     self.set_error("listener code: ", ERR_MISSING_PARSER_CODE);
                 } else if !self.options.has_listener_code() {
