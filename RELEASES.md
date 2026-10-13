@@ -1,3 +1,7 @@
+# 0.10.1
+
+* minor doc update
+
 # 0.10.0
 
 * add bottom-up LALR parser generation and runtime code

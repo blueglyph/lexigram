@@ -2,7 +2,7 @@
 [![documentation](https://docs.rs/lexigram/badge.svg)](https://docs.rs/lexigram)
 [![crate](https://img.shields.io/crates/l/lexigram.svg)](https://github.com/blueglyph/lexigram/blob/master/LICENSE-MIT)
 
-<hr/>
+---
 
 # Lexigram
 
@@ -18,19 +18,19 @@ cargo install lexigram
 
 # The `lexigram` Crate
 
-The [`lexigram`](https://crates.io/crates/lexigram) crate contains the implementation of the command-line lexer & parser generator.
+The [`lexigram`](https://crates.io/crates/lexigram) crate contains the command-line lexer/parser generator.
 
-It takes a grammar and generates the Rust source code to parse the corresponding language, providing a custom listener trait as user interace. This interface allows your code to interact with the parser by executing user-implemented callback methods when the rules are reduced, like ANTLR. It is also somewhat similar to the code written next to each rule in tools like Yacc and Bison, but it's cleaner and more flexible.
+It takes a lexicon and a grammar, and generates the Rust source code to parse the corresponding language, providing a custom listener trait as user interface. This interface allows your code to interact with the parser by executing user-implemented callback methods when the rules are reduced, as in ANTLR. It is also somewhat similar to the code written next to each rule in tools like Yacc and Bison, but it's cleaner and more flexible.
 
-Two types of parser can be generated: top-down and bottom-up.
+Two parser types can be generated: top-down and bottom-up.
 
-The top-down option generate a predictive, non-recursive LL(1) parser. You may write non-LL(1) grammars as long as Lexigram can transform it into LL(1): left-recursive and ambiguous rules such as binary expressions are supported, and left factorization is performed automatically. The grammar also supports extended syntax such as repetition, token-separated repetitions, and so on. The generated interface hides those transformation by referring to the original rules as much as possible.
+The top-down option generates a predictive, non-recursive LL(1) parser. You may write non-LL(1) grammars as long as Lexigram can transform it into LL(1): left-recursive and ambiguous rules such as binary expressions are supported, and left factorization is performed automatically. The grammar also supports extended syntax such as repetition, token-separated repetitions, and so on. The generated interface hides those transformations by referring to the original rules as much as possible.
 
 The bottom-up option currently generates an LALR(1) parser. Ambiguous rules are resolved with the same simple grammar notation used in LL(1) grammars. In general, Lexigram makes it relatively straightforward to move from LL to LALR.
 
 ## Simplified Example
 
-Here's the grammar for a basic expression parser:
+Here's the lexicon and the grammar for a basic expression parser:
 
 ```text
 lexicon Calc;
@@ -45,23 +45,23 @@ WhiteSpace              : [ \n\r\t]+    -> skip;
 
 grammar Calc;
 
+<resolve>
 expr:
     '-' expr
 |   expr <R> '^' expr           // <R>: right-associative
-|   expr ('*' | <P> '/') expr   // <P>: Div has the same priority as Mul
+|   expr ('*' | <P> '/') expr   // <P>: '/' has the same priority as '*'
 |   expr ('+' | <P> '-') expr
 |   Num
 ;
 ```
 
 `expr` is an ambiguous rule that Lexigram has to transform:
-* The priority is implicitly defined by the order of the rule alternatives: the first has the highest priority. 
-* The `<P>` attribute marks an alternative that must have the same priority as the previous one.
+* The `<resolve>` attribute explicitly requests to resolve the ambiguity in `expr`. It's optional for LL(1), but necessary for LALR(1).
+* The priority is implicitly defined by the order of the rule alternatives: the first one has the highest priority. 
+* The `<P>` attribute marks an alternative that has the same priority as the previous one.
 * The `<R>` attribute marks a right-associative operator; binary operators are left-associative by default.  
 
-Lexigram creates the tables for the lexer and parser, and the wrapper code that interfaces the parser and the user listener. We show only a few interesting bits below.
-
-Each rule has an initialization method, called when the parser has predicted it was the next rule, and an exit method, called once the rule has been fully parsed.
+Among other things, Lexigram creates a custom trait for the listener, which the user implements to interact with the parser:
 
 ```rust,ignore
 pub trait CalcListener {
@@ -72,12 +72,12 @@ pub trait CalcListener {
 }    
 ```
 
-The `exit_expr(…)` method is called once `expr` is fully parsed, providing the values of the terminals and nonterminals in the context argument `ctx`. It returns the value of the nonterminal; `SynExpr` is the type of the `expr` nonterminal value, and is defined by you (a template is provided).
+When the input is parsed, the `exit_expr(…)` method is called each time an `expr` has been fully parsed. The context argument `ctx` provides the values associated with the symbols, and the method returns the `SynExpr` value of the expression; for example, a numerical value, or a reference to a node if an AST is built (`SynExpr` is user-defined). 
 
-To interact with the parser, you create a listener object that typically holds the AST and some intermediate data, and you implement the `CalcListener` trait for that object. Here's a quick example showing how the method can be implemented for a basic calculator: 
+Here's an example showing how the method can be implemented for a basic calculator: 
 
 ```rust,ignore
-pub struct SynExpr(pub f64);
+pub type SynExpr = f64; // we don't need a new type
 
 pub struct Listener {
     value: Option<f64>,
@@ -89,23 +89,23 @@ impl CalcListener for Listener {
     
     fn exit(&mut self, expr: SynExpr) {
         // final result is the value of the top `expr`
-        self.value = Some(expr.0);
+        self.value = Some(expr);
     }
     
     fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr {
         SynExpr(match ctx {
             // expr -> "-" expr
-            CtxExpr::V1 { expr: SynExpr(left) } => - left,
+            CtxExpr::V1 { expr: left } => - left,
             // expr -> expr <R> "^" expr
-            CtxExpr::V2 { expr: [SynExpr(l), SynExpr(r)] } => l.powf(r),
+            CtxExpr::V2 { expr: [left, right] } => left.powf(right),
             // expr -> expr "*" expr
-            CtxExpr::V3 { expr: [SynExpr(l), SynExpr(r)] } => l * r,
+            CtxExpr::V3 { expr: [left, right] } => left * right,
             // expr -> expr <P> "/" expr
-            CtxExpr::V4 { expr: [SynExpr(l), SynExpr(r)] } => l / r,
+            CtxExpr::V4 { expr: [left, right] } => left / right,
             // expr -> expr "+" expr
-            CtxExpr::V5 { expr: [SynExpr(l), SynExpr(r)] } => l + r,
+            CtxExpr::V5 { expr: [left, right] } => left + right,
             // expr -> expr <P> "-" expr
-            CtxExpr::V6 { expr: [SynExpr(l), SynExpr(r)] } => l - r,
+            CtxExpr::V6 { expr: [left, right] } => left - right,
             // expr -> Num
             CtxExpr::V7 { num } => f64::from_str(&num).unwrap(),
         })
@@ -115,47 +115,19 @@ impl CalcListener for Listener {
 
 As you can see, the code preserves the structure of the original grammar, even though it had to be modified by Lexigram for an LL(1) parser. 
 
+In LL(1), each rule also provides an optional initialization method, like `init_expr(…)`, which is called before its content is parsed. This isn't available for LALR parsers, since it's incompatible with how they operate. 
+
 # Usage
 
-`lexigram -h` shows the usage summary.
+`lexigram -h` shows all the commands and options.
 
-In a nutshell, you must provide the location of the lexicon, the grammar, and specify where to generate the code.
+In a nutshell, you must provide the location of the lexicon, the grammar, and specify where to write the generated code.
 
-The lexicon and the grammar are usually stored as stand-alone files, like `expr.l` and `expr.g`, or one combined file `expr.lg`. They can also be included between tags in any file. Here, we'll combine the lexicon and the grammar, and we'll keep it in the same file as the generated code.
-
-The same is true for the generated code; Lexigram can create stand-alone files or insert it between tags in an existing file.
+Create an empty project and copy the combined lexicon / grammar above in a file `calc.lg`.
 
 Create a file `calc.rs` with the following content:
 
 ````rust,ignore
-/*!
-```
-// [grammar]
-
-lexicon Calc;
-
-Add                     : '+';
-Div                     : '/';
-Exp                     : '^';
-Mul                     : '*';
-Sub                     : '-';
-Num                     : [0-9]+;
-WhiteSpace              : [ \n\r\t]+    -> skip;
-
-grammar Calc;
-
-expr:
-    '-' expr
-|   expr <R> '^' expr           // <R>: right-associative
-|   expr ('*' | <P> '/') expr   // <P>: Div has the same priority as Mul
-|   expr ('+' | <P> '-') expr
-|   Num
-;
-
-// [grammar]
-```
-*/
-
 #[derive(Debug)]
 pub struct SynExpr(pub f64);
 
@@ -170,32 +142,30 @@ mod parser {
 }
 ````
 
-Launch the following command:
+Execute the following command:
 
 ```shell
-lexigram --indent 4 \
-  -c calc.rs tag grammar -l calc.rs tag lexer_source \
+$ lexigram --indent 4 \
+  -c calc.lg -l calc.rs tag lexer_source \
   -p calc.rs tag parser_source \
   --types types.txt \
   --listener listener.txt \
   --lib "super::SynExpr"
 ```
 
-It will insert the generated code of the lexer and LL(1) parser inside the `[lexer_source]` and `[parser_source]` tags, respectively. Launching the same command will replace any existing code between the tags, so it can be used iteratively (useful if you need to fix or change the grammar!).
+It inserts the generated code of the lexer and LL(1) parser inside the `[lexer_source]` and `[parser_source]` tags, respectively. Running the same command again will replace any existing code between the tags, so it can be used iteratively. Useful if you need to fix or change the grammar!
 
-In `types.txt` and `listener.txt`, you'll find a template for the user types and a basic implementation of the listener. You can copy their content the first time to make it easier. You can also add those files to your repository to see what must be updated in your code each time the grammar is modified.
+In `types.txt` and `listener.txt`, you'll find a template for the user types and a basic implementation of the listener. You can copy their contents the first time to make things easier. You can also add those files to your repository to see what must be updated in your code each time the grammar is modified.
 
-The only dependency you need in Cargo.toml is the [`lexigram-core`](https://crates.io/crates/lexigram-core) crate, with a version compatible with the `lexigram` executable (`lexigram -V`).
+The only dependency you need in Cargo.toml is the [`lexigram-core`](https://crates.io/crates/lexigram-core) crate.
 
 # Switching to LALR(1)
 
-To generate an LALR parser, you just need to add a `<resolve>` before the `expr:` rule, to tell Lexigram it can resolve the shift/reduce conflicts due to the ambiguities by using the same precedence and associativity notation as before. This attribute can be used for LL(1), too, but it's optional.
-
-The command must specify the parser type, since it generates LL(1) by default:
+Lexigram generates an LL(1) parser by default. If you want another type, you must specify it explicitly:
 
 ```shell
 lexigram --indent 4 \
-  -c calc.rs tag grammar -l calc.rs tag lexer_source \
+  -c calc.lg -l calc.rs tag lexer_source \
   -p calc.rs tag parser_source \
   --types types.txt \
   --listener listener.txt \
@@ -203,19 +173,19 @@ lexigram --indent 4 \
   -t LALR
 ```
 
-The generated listener interface is the same, except for the missing `init_*` methods, which are incompatible with the way bottom-up parsers operate.  
+The generated listener interface is the same, except for `init_expr(…)` and a few extra optional methods used to recover from syntax errors.  
 
 # Where to Go From Here
 
-The [Lexigram book](https://www.unscript.net/lexigram-book) has an introduction, a tutorial, and a reference that should provide all the necessary information to start building your own parser.
+The [Lexigram book](https://www.unscript.net/lexigram-book) has an introduction, a tutorial, and a reference with all the necessary information to start building your own parser.
 
 You can also find some examples in the project repository:
 * in [./examples](https://github.com/blueglyph/lexigram/tree/master/examples)
 * in [./build-rtsgen](https://github.com/blueglyph/lexigram/tree/master/build-rtsgen), which is a [lexer/parser](https://github.com/blueglyph/lexigram/blob/master/src/rtsgen/mod.rs) for simplified grammar language used in the unit tests.
 
-There are `#[ignore]` tests in the `./examples/gen_*` crates to regenerate the examples. They show how to generate a parser programmatically, if you prefer that to the command-line executable.
+There are tests marked with `#[ignore]` in the `./examples/gen_*` crates that can be used to regenerate the examples. They show how to generate a parser programmatically, if you prefer that to the command-line executable.
 
-Lexigram itself uses a couple of lexers/parsers (that it generated itself) to parse the lexicon (Lexi) and the grammar (Gram). Lexi and Gram, however, are a little harder to trace in the source code because they're generated in two stages.
+Lexigram itself uses a couple of self-generated lexers/parsers to parse the lexicon (Lexi) and the grammar (Gram).
 
 # Status
 
@@ -229,4 +199,4 @@ _The code and the documentation were entirely written by a human._
 
 # Licence
 
-This code is licenced under either [MIT License](https://choosealicense.com/licenses/mit/) or [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/), at your option.
+This code is licensed under either [MIT License](https://choosealicense.com/licenses/mit/) or [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/), at your option.
