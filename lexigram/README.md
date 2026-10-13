@@ -10,7 +10,7 @@ This crate is part of the [Lexigram](https://github.com/blueglyph/lexigram) proj
 
 You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram).
 
-You can install the executable with this command:
+You can install and update the executable with this command:
 
 ```shell
 cargo install lexigram
@@ -20,11 +20,13 @@ cargo install lexigram
 
 The [`lexigram`](https://crates.io/crates/lexigram) crate contains the implementation of the command-line lexer & parser generator.
 
-It currently generates a predictive, non-recursive LL(1) parser. However, you may write a non-LL(1) grammar, as long as Lexigram can transform it into LL(1). Left-recursive and ambiguous rules are allowed, and left factorization is performed automatically. These transformations are made as transparent as possible in the generated code.
+It takes a grammar and generates the Rust source code to parse the corresponding language, providing a custom listener trait as user interace. This interface allows your code to interact with the parser by executing user-implemented callback methods when the rules are reduced, like ANTLR. It is also somewhat similar to the code written next to each rule in tools like Yacc and Bison, but it's cleaner and more flexible.
 
-The listener pattern allows your code to interact with the parser by executing user-implemented methods when rules are processed, similarly to ANTLR. It is also somewhat similar to the code written next to each rule in tools like Yacc and Bison, but it's cleaner and more flexible.
+Two types of parser can be generated: top-down and bottom-up.
 
-Unlike ANTLR, the generated parser is table-driven, not recursive-descent, and the callbacks are called immediately during the parsing phase, not after the construction of a concrete syntax tree. However, it's LL(1), not LL(*). 
+The top-down option generate a predictive, non-recursive LL(1) parser. You may write non-LL(1) grammars as long as Lexigram can transform it into LL(1): left-recursive and ambiguous rules such as binary expressions are supported, and left factorization is performed automatically. The grammar also supports extended syntax such as repetition, token-separated repetitions, and so on. The generated interface hides those transformation by referring to the original rules as much as possible.
+
+The bottom-up option currently generates an LALR(1) parser. Ambiguous rules are resolved with the same simple grammar notation used in LL(1) grammars. In general, Lexigram makes it relatively straightforward to move from LL to LALR.
 
 ## Simplified Example
 
@@ -32,6 +34,7 @@ Here's the grammar for a basic expression parser:
 
 ```text
 lexicon Calc;
+
 Add                     : '+';
 Div                     : '/';
 Exp                     : '^';
@@ -41,11 +44,12 @@ Num                     : [0-9]+;
 WhiteSpace              : [ \n\r\t]+    -> skip;
 
 grammar Calc;
+
 expr:
-    Sub expr
-|   expr <R> Exp expr           // <R>: right-associative
-|   expr (Mul | <P> Div) expr   // <P>: Div has the same priority as Mul
-|   expr (Add | <P> Sub) expr
+    '-' expr
+|   expr <R> '^' expr           // <R>: right-associative
+|   expr ('*' | <P> '/') expr   // <P>: Div has the same priority as Mul
+|   expr ('+' | <P> '-') expr
 |   Num
 ;
 ```
@@ -129,6 +133,7 @@ Create a file `calc.rs` with the following content:
 // [grammar]
 
 lexicon Calc;
+
 Add                     : '+';
 Div                     : '/';
 Exp                     : '^';
@@ -138,11 +143,12 @@ Num                     : [0-9]+;
 WhiteSpace              : [ \n\r\t]+    -> skip;
 
 grammar Calc;
+
 expr:
-    Sub expr
-|   expr <R> Exp expr           // <R>: right-associative
-|   expr (Mul | <P> Div) expr   // <P>: Div has the same priority as Mul
-|   expr (Add | <P> Sub) expr
+    '-' expr
+|   expr <R> '^' expr           // <R>: right-associative
+|   expr ('*' | <P> '/') expr   // <P>: Div has the same priority as Mul
+|   expr ('+' | <P> '-') expr
 |   Num
 ;
 
@@ -175,11 +181,29 @@ lexigram --indent 4 \
   --lib "super::SynExpr"
 ```
 
-It will insert the generated code of the lexer and parser inside the `[lexer_source]` and `[parser_source]` tags, respectively. Launching the same command will replace any existing code between the tags, so it can be used iteratively (useful if you need to fix or change the grammar!).
+It will insert the generated code of the lexer and LL(1) parser inside the `[lexer_source]` and `[parser_source]` tags, respectively. Launching the same command will replace any existing code between the tags, so it can be used iteratively (useful if you need to fix or change the grammar!).
 
 In `types.txt` and `listener.txt`, you'll find a template for the user types and a basic implementation of the listener. You can copy their content the first time to make it easier. You can also add those files to your repository to see what must be updated in your code each time the grammar is modified.
 
 The only dependency you need in Cargo.toml is the [`lexigram-core`](https://crates.io/crates/lexigram-core) crate, with a version compatible with the `lexigram` executable (`lexigram -V`).
+
+# Switching to LALR(1)
+
+To generate an LALR parser, you just need to add a `<resolve>` before the `expr:` rule, to tell Lexigram it can resolve the shift/reduce conflicts due to the ambiguities by using the same precedence and associativity notation as before. This attribute can be used for LL(1), too, but it's optional.
+
+The command must specify the parser type, since it generates LL(1) by default:
+
+```shell
+lexigram --indent 4 \
+  -c calc.rs tag grammar -l calc.rs tag lexer_source \
+  -p calc.rs tag parser_source \
+  --types types.txt \
+  --listener listener.txt \
+  --lib "super::SynExpr" \
+  -t LALR
+```
+
+The generated listener interface is the same, except for the missing `init_*` methods, which are incompatible with the way bottom-up parsers operate.  
 
 # Where to Go From Here
 

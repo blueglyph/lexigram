@@ -1,7 +1,7 @@
 [package]
 name = "lexigram"
 version = "0.10.0"
-description = "Lexer and LL(1) parser generator"
+description = "Lexer and LL(1)/LALR(1) parser generator"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
