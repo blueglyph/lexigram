@@ -2,7 +2,7 @@
 
 * minor doc update
 
-# 0.10.0
+# 0.10.1
 
 * add bottom-up LALR parser generation and runtime code
   * add `<resolve>` tag for resolution of shift-reduce conflicts using the same rules as top-down parsers for precedence and associativity
