@@ -15,7 +15,7 @@ Main distinctive features:
 * Grammar-driven listener pattern for better flexibility and to avoid mixing grammar with Rust source code.
 * Listener methods called directly during parsing, rather than after reconstructing a concrete syntax tree.
 * Low-latency variants for right-recursive rules (in LL) and `*`/`+` repetitions.
-* Grammar syntax and listener support for repetitions separated by tokens (e.g. `Id ":" Type ("," Id ":" Type)*`)
+* Grammar syntax and listener support for repetitions separated by tokens (e.g. `(Id ':' Type / ',')+`)
 * Ability to parse continuous input streams.
 
 You can dive into the [Lexigram book](https://www.unscript.net/lexigram-book) for an introduction, a tutorial, or a reference. You can also browse the [crate documentation](https://docs.rs/lexigram-lib/latest/lexigram_lib/).
